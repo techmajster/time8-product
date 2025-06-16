@@ -1,26 +1,164 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+    --background: 0 0% 100%;
+    --foreground: 240 10% 25%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 25%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 25%;
+    --primary: 267 85% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 5% 93%;
+    --secondary-foreground: 240 6% 35%;
+    --muted: 240 5% 96%;
+    --muted-foreground: 240 4% 54%;
+    --accent: 270 8% 92%;
+    --accent-foreground: 240 6% 35%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 6% 87%;
+    --input: 240 6% 87%;
+    --ring: 267 85% 60%;
+    --chart-1: 267 85% 60%;
+    --chart-2: 270 75% 55%;
+    --chart-3: 273 65% 50%;
+    --chart-4: 276 55% 45%;
+    --chart-5: 279 45% 40%;
+    --sidebar: 240 5% 96%;
+    --sidebar-foreground: 240 10% 25%;
+    --sidebar-primary: 267 85% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 270 8% 92%;
+    --sidebar-accent-foreground: 240 6% 35%;
+    --sidebar-border: 240 6% 87%;
+    --sidebar-ring: 267 85% 60%;
+    --radius: 0.5rem;
+    --chart-1: 210 37.5000% 65.4902%;
+    --chart-2: 12.9032 73.2283% 75.0980%;
+    --chart-3: 213.1579 29.9213% 50.1961%;
+    --chart-4: 216.9231 35.7798% 42.7451%;
+    --chart-5: 221.0127 43.6464% 35.4902%;
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+    /* Semantic colors for status states */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+    --warning: 48 96% 53%;
+    --warning-foreground: 26 83% 14%;
+    --info: 200 89% 48%;
+    --info-foreground: 0 0% 100%;
+    --sidebar-background: 0 0% 98%;
+    --font-sans: Inter, sans-serif;
+    --font-serif: Merriweather, serif;
+    --font-mono: JetBrains Mono, monospace;
+    --shadow-color: hsl(0 0% 0%);
+    --shadow-opacity: 0.1;
+    --shadow-blur: 8px;
+    --shadow-spread: -1px;
+    --shadow-offset-x: 0px;
+    --shadow-offset-y: 4px;
+    --letter-spacing: 0em;
+    --spacing: 0.25rem;
+    --shadow-2xs: 0px 4px 8px -1px hsl(0 0% 0% / 0.05);
+    --shadow-xs: 0px 4px 8px -1px hsl(0 0% 0% / 0.05);
+    --shadow-sm: 0px 4px 8px -1px hsl(0 0% 0% / 0.10), 0px 1px 2px -2px hsl(0 0% 0% / 0.10);
+    --shadow: 0px 4px 8px -1px hsl(0 0% 0% / 0.10), 0px 1px 2px -2px hsl(0 0% 0% / 0.10);
+    --shadow-md: 0px 4px 8px -1px hsl(0 0% 0% / 0.10), 0px 2px 4px -2px hsl(0 0% 0% / 0.10);
+    --shadow-lg: 0px 4px 8px -1px hsl(0 0% 0% / 0.10), 0px 4px 6px -2px hsl(0 0% 0% / 0.10);
+    --shadow-xl: 0px 4px 8px -1px hsl(0 0% 0% / 0.10), 0px 8px 10px -2px hsl(0 0% 0% / 0.10);
+    --shadow-2xl: 0px 4px 8px -1px hsl(0 0% 0% / 0.25);
+    --tracking-normal: 0em;
+  }
+
+  .dark {
+    --background: 240 10% 18%;
+    --foreground: 240 5% 92%;
+    --card: 240 10% 25%;
+    --card-foreground: 240 5% 92%;
+    --popover: 240 10% 25%;
+    --popover-foreground: 240 5% 92%;
+    --primary: 270 75% 65%;
+    --primary-foreground: 240 10% 18%;
+    --secondary: 240 8% 30%;
+    --secondary-foreground: 240 5% 85%;
+    --muted: 240 10% 25%;
+    --muted-foreground: 240 5% 70%;
+    --accent: 240 8% 35%;
+    --accent-foreground: 240 5% 85%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 240 10% 18%;
+    --border: 240 8% 42%;
+    --input: 240 8% 42%;
+    --ring: 270 75% 65%;
+    --chart-1: 270 75% 65%;
+    --chart-2: 267 85% 60%;
+    --chart-3: 270 75% 55%;
+    --chart-4: 273 65% 50%;
+    --chart-5: 276 55% 45%;
+    --sidebar: 240 10% 25%;
+    --sidebar-foreground: 240 5% 92%;
+    --sidebar-primary: 270 75% 65%;
+    --sidebar-primary-foreground: 240 10% 18%;
+    --sidebar-accent: 240 8% 35%;
+    --sidebar-accent-foreground: 240 5% 85%;
+    --sidebar-border: 240 8% 42%;
+    --sidebar-ring: 270 75% 65%;
+    --radius: 0.5rem;
+    --chart-1: 210 37.5000% 65.4902%;
+    --chart-2: 11.7241 63.5036% 73.1373%;
+    --chart-3: 213.1579 29.9213% 50.1961%;
+    --chart-4: 216.9231 35.7798% 42.7451%;
+    --chart-5: 221.0127 43.6464% 35.4902%;
+
+    /* Semantic colors for status states (dark mode) */
+    --success: 142 71% 45%;
+    --success-foreground: 145 80% 10%;
+    --warning: 48 96% 53%;
+    --warning-foreground: 26 83% 14%;
+    --info: 200 89% 48%;
+    --info-foreground: 0 0% 100%;
+    --sidebar-background: 240 5.9% 10%;
+    --font-sans: Inter, sans-serif;
+    --font-serif: Merriweather, serif;
+    --font-mono: JetBrains Mono, monospace;
+    --shadow-color: hsl(0 0% 0%);
+    --shadow-opacity: 0.1;
+    --shadow-blur: 8px;
+    --shadow-spread: -1px;
+    --shadow-offset-x: 0px;
+    --shadow-offset-y: 4px;
+    --letter-spacing: 0em;
+    --spacing: 0.25rem;
+    --shadow-2xs: 0px 4px 8px -1px hsl(0 0% 0% / 0.05);
+    --shadow-xs: 0px 4px 8px -1px hsl(0 0% 0% / 0.05);
+    --shadow-sm: 0px 4px 8px -1px hsl(0 0% 0% / 0.10), 0px 1px 2px -2px hsl(0 0% 0% / 0.10);
+    --shadow: 0px 4px 8px -1px hsl(0 0% 0% / 0.10), 0px 1px 2px -2px hsl(0 0% 0% / 0.10);
+    --shadow-md: 0px 4px 8px -1px hsl(0 0% 0% / 0.10), 0px 2px 4px -2px hsl(0 0% 0% / 0.10);
+    --shadow-lg: 0px 4px 8px -1px hsl(0 0% 0% / 0.10), 0px 4px 6px -2px hsl(0 0% 0% / 0.10);
+    --shadow-xl: 0px 4px 8px -1px hsl(0 0% 0% / 0.10), 0px 8px 10px -2px hsl(0 0% 0% / 0.10);
+    --shadow-2xl: 0px 4px 8px -1px hsl(0 0% 0% / 0.25);
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    letter-spacing: var(--tracking-normal);
+  }
+  .theme {
+    --font-sans: Inter, sans-serif;
+    --font-mono: JetBrains Mono, monospace;
+    --font-serif: Merriweather, serif;
+    --radius: 0.5rem;
+    --tracking-tighter: calc(var(--tracking-normal) - 0.05em);
+    --tracking-tight: calc(var(--tracking-normal) - 0.025em);
+    --tracking-wide: calc(var(--tracking-normal) + 0.025em);
+    --tracking-wider: calc(var(--tracking-normal) + 0.05em);
+    --tracking-widest: calc(var(--tracking-normal) + 0.1em);
+  }
 }
