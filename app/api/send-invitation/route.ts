@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { sendInvitationEmail, createInvitationEmailContent } from '@/lib/email'
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,6 +25,9 @@ export async function POST(request: NextRequest) {
     const hasEmailConfig = process.env.RESEND_API_KEY && process.env.FROM_EMAIL
 
     if (hasEmailConfig) {
+      // Dynamically import email functions only when needed
+      const { sendInvitationEmail } = await import('@/lib/email')
+      
       // Send actual email
       const result = await sendInvitationEmail({
         to,
@@ -50,6 +52,9 @@ export async function POST(request: NextRequest) {
         )
       }
     } else {
+      // Dynamically import email functions only when needed
+      const { createInvitationEmailContent } = await import('@/lib/email')
+      
       // Email service not configured - return invitation link for manual sharing
       const emailContent = createInvitationEmailContent({
         to,

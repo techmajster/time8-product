@@ -1,7 +1,7 @@
 import { Resend } from 'resend'
 
-// Initialize Resend (you'll need to add RESEND_API_KEY to your .env.local)
-const resend = new Resend(process.env.RESEND_API_KEY)
+// Initialize Resend only if API key is available
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 
 interface InvitationEmailData {
   to: string
@@ -15,6 +15,12 @@ interface InvitationEmailData {
 
 export async function sendInvitationEmail(data: InvitationEmailData) {
   try {
+    // Check if email service is configured
+    if (!resend) {
+      console.warn('Email service not configured - RESEND_API_KEY missing')
+      return { success: false, error: 'Email service not configured' }
+    }
+
     // Construct the invitation URL
     const invitationUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001'}/auth/accept-invitation?token=${data.invitationToken}`
 
