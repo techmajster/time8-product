@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar as CalendarIcon, Edit, Clock, Save } from 'lucide-react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
+import { DatePicker } from '@/components/ui/date-picker'
 
 interface TeamMember {
   id: string
@@ -393,18 +394,18 @@ export function EditEmployeeScheduleDialog({ employee, onScheduleUpdated, trigge
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label>Data rozpoczęcia</Label>
-                    <Input
-                      type="date"
-                      value={customSchedule.start_date}
-                      onChange={(e) => setCustomSchedule(prev => ({ ...prev, start_date: e.target.value }))}
+                    <DatePicker
+                      date={customSchedule.start_date ? new Date(customSchedule.start_date) : undefined}
+                      onDateChange={(date) => setCustomSchedule(prev => ({ ...prev, start_date: date ? date.toISOString().split('T')[0] : '' }))}
+                      placeholder="Wybierz datę rozpoczęcia"
                     />
                   </div>
                   <div>
                     <Label>Data zakończenia</Label>
-                    <Input
-                      type="date"
-                      value={customSchedule.end_date}
-                      onChange={(e) => setCustomSchedule(prev => ({ ...prev, end_date: e.target.value }))}
+                    <DatePicker
+                      date={customSchedule.end_date ? new Date(customSchedule.end_date) : undefined}
+                      onDateChange={(date) => setCustomSchedule(prev => ({ ...prev, end_date: date ? date.toISOString().split('T')[0] : '' }))}
+                      placeholder="Wybierz datę zakończenia"
                     />
                   </div>
                 </div>

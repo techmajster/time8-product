@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Mail, Clock, CheckCircle, XCircle } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 interface Invitation {
   id: string
@@ -35,12 +36,21 @@ export default function InvitationsSection({ invitations, canManageTeam }: Invit
   const [success, setSuccess] = useState<string | null>(null)
   const router = useRouter()
 
-  const getRoleBadgeColor = (role: string) => {
+  const getRoleBadgeVariant = (role: string): "default" | "secondary" | "destructive" | "outline" => {
     switch (role) {
-      case 'admin': return 'bg-destructive/10 text-destructive-foreground border-destructive/20'
-      case 'manager': return 'bg-primary/10 text-primary-foreground border-primary/20'
-      case 'employee': return 'bg-success/10 text-success-foreground border-success/20'
-      default: return 'bg-muted text-muted-foreground border-border'
+      case 'admin': return 'destructive'
+      case 'manager': return 'default' 
+      case 'employee': return 'secondary'
+      default: return 'outline'
+    }
+  }
+
+  const getRoleDisplayName = (role: string) => {
+    switch (role) {
+      case 'admin': return 'Admin'
+      case 'manager': return 'Menedżer' 
+      case 'employee': return 'Pracownik'
+      default: return role
     }
   }
 
@@ -87,11 +97,28 @@ export default function InvitationsSection({ invitations, canManageTeam }: Invit
     setError(null)
     setSuccess(null)
 
-    // TODO: Implement resend functionality
-    setTimeout(() => {
-      setSuccess(`Zaproszenie ponownie wysłane do ${email}`)
+    try {
+      const response = await fetch('/api/resend-invitation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ invitationId })
+      })
+
+      const result = await response.json()
+
+      if (response.ok) {
+        setSuccess(`Zaproszenie ponownie wysłane do ${email}`)
+        // Refresh the page to update the invitations list
+        router.refresh()
+      } else {
+        setError(result.error || 'Nie udało się ponownie wysłać zaproszenia')
+      }
+    } catch (err) {
+      console.error('Error resending invitation:', err)
+      setError('Nie udało się ponownie wysłać zaproszenia')
+    } finally {
       setLoading(null)
-    }, 1000)
+    }
   }
 
   if (!canManageTeam) {
@@ -99,17 +126,8 @@ export default function InvitationsSection({ invitations, canManageTeam }: Invit
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Mail className="h-5 w-5" />
-          Oczekujące zaproszenia
-        </CardTitle>
-        <CardDescription>
-          Zaproszenia oczekujące na akceptację
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
+    <Card className="bg-background border rounded-lg shadow-none">
+      <CardContent className="p-6">
         {error && (
           <Alert variant="destructive" className="mb-4">
             <AlertDescription>{error}</AlertDescription>
@@ -149,8 +167,8 @@ export default function InvitationsSection({ invitations, canManageTeam }: Invit
                          }
                        </p>
                       <div className="flex items-center gap-2 mt-1">
-                        <Badge className={getRoleBadgeColor(invitation.role)}>
-                          {invitation.role === 'admin' ? 'Administrator' : invitation.role === 'manager' ? 'Menedżer' : 'Pracownik'}
+                        <Badge variant={getRoleBadgeVariant(invitation.role)}>
+                          {getRoleDisplayName(invitation.role)}
                         </Badge>
                         <Badge variant={isExpired ? "destructive" : "secondary"}>
                           {isExpired ? 'Wygasłe' : 'Oczekujące'}
@@ -187,10 +205,28 @@ export default function InvitationsSection({ invitations, canManageTeam }: Invit
             })}
           </div>
         ) : (
-          <div className="text-center py-8">
-            <Mail className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-muted-foreground">Brak oczekujących zaproszeń</p>
-            <p className="text-sm text-muted-foreground">Wszystkie zaproszenia zostały zaakceptowane lub wygasły</p>
+          /* Empty State based on Figma design */
+          <div className="flex flex-col items-center justify-center py-12">
+            <div className="bg-white border border-border rounded-lg shadow-sm size-12 flex items-center justify-center mb-6">
+              <Mail className="h-6 w-6 text-foreground" />
+            </div>
+            <div className="text-center space-y-2 mb-6">
+              <h3 className="text-xl font-semibold text-foreground leading-7">
+                Nie masz żadnego oczekującego zaproszenia
+              </h3>
+              <p className="text-sm text-muted-foreground leading-5">
+                Wszystkie zaproszenia zostały zaakceptowane lub wygasły. Zaproś nowych członków zespołu.
+              </p>
+            </div>
+            {canManageTeam && (
+              <div className="flex justify-center">
+                <Link href="/team?invite=true">
+                  <Button className="bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2 rounded-lg">
+                    Zaproś członka
+                  </Button>
+                </Link>
+              </div>
+            )}
           </div>
         )}
       </CardContent>

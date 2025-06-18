@@ -173,6 +173,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Send email notification about new request to managers
+    try {
+      const { notifyLeaveRequestStatusChange } = await import('@/lib/notification-utils')
+      await notifyLeaveRequestStatusChange(leaveRequest.id, 'pending')
+    } catch (emailError) {
+      console.error('Error sending email notification:', emailError)
+      // Don't fail the request if email fails
+    }
+
     return NextResponse.json({
       success: true,
       leaveRequest,

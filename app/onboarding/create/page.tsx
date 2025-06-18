@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { ArrowLeft, Building2 } from 'lucide-react'
 import Link from 'next/link'
+import { Checkbox } from '@/components/ui/checkbox'
 
 export default function CreateOrganizationPage() {
   const [loading, setLoading] = useState(false)
@@ -229,13 +230,11 @@ export default function CreateOrganizationPage() {
               </div>
 
               <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
+                <Checkbox
                   id="requireDomain"
                   checked={formData.requireGoogleDomain}
-                  onChange={(e) => setFormData({ ...formData, requireGoogleDomain: e.target.checked })}
+                  onCheckedChange={(checked) => setFormData({ ...formData, requireGoogleDomain: !!checked })}
                   disabled={!formData.googleDomain}
-                  className="rounded border-input"
                 />
                 <Label htmlFor="requireDomain" className="text-sm font-normal cursor-pointer">
                   Only allow users with this email domain to join

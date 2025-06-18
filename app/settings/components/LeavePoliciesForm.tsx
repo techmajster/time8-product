@@ -10,6 +10,7 @@ import { Switch } from '@/components/ui/switch'
 import { Loader2, Save, Clock, AlertTriangle, Building2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 interface LeavePoliciesFormProps {
   organizationId: string
@@ -315,17 +316,20 @@ export function LeavePoliciesForm({ organizationId }: LeavePoliciesFormProps) {
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="weekend_policy">Polityka weekendów</Label>
-            <select
-              id="weekend_policy"
+            <Select
               value={policies.weekend_policy}
-              onChange={(e) => setPolicies(prev => ({ ...prev, weekend_policy: e.target.value as 'include' | 'exclude' | 'business_days_only' }))}
-              className="w-full px-3 py-2 border border-input rounded-md"
+              onValueChange={(value) => setPolicies(prev => ({ ...prev, weekend_policy: value as 'include' | 'exclude' | 'business_days_only' }))}
               disabled={loading}
             >
-              <option value="exclude">Nie licz weekendów</option>
-              <option value="include">Licz weekendy</option>
-              <option value="business_days_only">Tylko dni robocze</option>
-            </select>
+              <SelectTrigger>
+                <SelectValue placeholder="Wybierz politykę weekendów" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="exclude">Nie licz weekendów</SelectItem>
+                <SelectItem value="include">Licz weekendy</SelectItem>
+                <SelectItem value="business_days_only">Tylko dni robocze</SelectItem>
+              </SelectContent>
+            </Select>
             <p className="text-xs text-muted-foreground">
               Jak traktować weekendy przy liczeniu dni urlopu
             </p>
@@ -333,16 +337,19 @@ export function LeavePoliciesForm({ organizationId }: LeavePoliciesFormProps) {
 
           <div className="space-y-2">
             <Label htmlFor="holiday_policy">Polityka świąt</Label>
-            <select
-              id="holiday_policy"
+            <Select
               value={policies.holiday_policy}
-              onChange={(e) => setPolicies(prev => ({ ...prev, holiday_policy: e.target.value as 'include' | 'exclude' }))}
-              className="w-full px-3 py-2 border border-input rounded-md"
+              onValueChange={(value) => setPolicies(prev => ({ ...prev, holiday_policy: value as 'include' | 'exclude' }))}
               disabled={loading}
             >
-              <option value="exclude">Nie licz świąt państwowych</option>
-              <option value="include">Licz święta państwowe</option>
-            </select>
+              <SelectTrigger>
+                <SelectValue placeholder="Wybierz politykę świąt" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="exclude">Nie licz świąt państwowych</SelectItem>
+                <SelectItem value="include">Licz święta państwowe</SelectItem>
+              </SelectContent>
+            </Select>
             <p className="text-xs text-muted-foreground">
               Jak traktować święta państwowe przy liczeniu dni urlopu
             </p>

@@ -19,6 +19,7 @@ import {
   formatValidationErrors 
 } from '@/lib/leave-validation'
 import { LeaveType, LeaveBalance, LeaveRequest, UserProfile, LeaveCategory } from '@/types/leave'
+import { DatePicker } from '@/components/ui/date-picker'
 
 interface EditLeaveRequestFormProps {
   leaveRequest: LeaveRequest
@@ -266,23 +267,20 @@ export function EditLeaveRequestForm({ leaveRequest, leaveTypes, leaveBalances, 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="start_date">Data rozpoczęcia *</Label>
-            <Input
-              id="start_date"
-              type="date"
-              value={formData.start_date}
-              onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-              required
+            <DatePicker
+              date={formData.start_date ? new Date(formData.start_date) : undefined}
+              onDateChange={(date) => setFormData({ ...formData, start_date: date ? date.toISOString().split('T')[0] : '' })}
+              placeholder="Wybierz datę rozpoczęcia"
+              disabled={loading}
             />
           </div>
           <div className="space-y-2">
             <Label htmlFor="end_date">Data zakończenia *</Label>
-            <Input
-              id="end_date"
-              type="date"
-              value={formData.end_date}
-              onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-              min={formData.start_date}
-              required
+            <DatePicker
+              date={formData.end_date ? new Date(formData.end_date) : undefined}
+              onDateChange={(date) => setFormData({ ...formData, end_date: date ? date.toISOString().split('T')[0] : '' })}
+              placeholder="Wybierz datę zakończenia"
+              disabled={loading || !formData.start_date}
             />
           </div>
         </div>

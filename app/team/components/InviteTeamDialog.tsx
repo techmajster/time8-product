@@ -96,6 +96,10 @@ export function InviteTeamDialog() {
 
       // Generate invitation token
       const token = btoa(Math.random().toString(36).substring(2) + Date.now().toString(36))
+      
+      // Set expiry date to 7 days from now
+      const expiresAt = new Date()
+      expiresAt.setDate(expiresAt.getDate() + 7)
 
       // Create invitation
       const { error: inviteError } = await supabase
@@ -106,7 +110,9 @@ export function InviteTeamDialog() {
           role: formData.role,
           invited_by: user.id,
           token: token,
-          status: 'pending'
+          status: 'pending',
+          expires_at: expiresAt.toISOString(),
+          personal_message: formData.personalMessage || null
         })
 
       if (inviteError) {

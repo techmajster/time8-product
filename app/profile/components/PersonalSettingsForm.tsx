@@ -9,6 +9,7 @@ import { Loader2, Save, Bell, Mail, Calendar, Moon } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useUserTheme } from '@/hooks/use-user-theme'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 interface PersonalSettingsFormProps {
   userId: string
@@ -362,52 +363,61 @@ CREATE POLICY "Users can manage own settings" ON user_settings
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
             <Label htmlFor="timezone">Strefa czasowa</Label>
-            <select
-              id="timezone"
+            <Select
               value={settings.timezone}
-              onChange={(e) => setSettings(prev => ({ ...prev, timezone: e.target.value }))}
-              className="w-full px-3 py-2 border border-input rounded-md"
+              onValueChange={(value) => setSettings(prev => ({ ...prev, timezone: value }))}
               disabled={loading}
             >
-              <option value="Europe/Warsaw">Europa/Warszawa (GMT+1)</option>
-              <option value="Europe/London">Europa/Londyn (GMT+0)</option>
-              <option value="Europe/Berlin">Europa/Berlin (GMT+1)</option>
-              <option value="Europe/Paris">Europa/Paryż (GMT+1)</option>
-              <option value="America/New_York">Ameryka/Nowy Jork (GMT-5)</option>
-            </select>
+              <SelectTrigger>
+                <SelectValue placeholder="Wybierz strefę czasową" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Europe/Warsaw">Europa/Warszawa (GMT+1)</SelectItem>
+                <SelectItem value="Europe/London">Europa/Londyn (GMT+0)</SelectItem>
+                <SelectItem value="Europe/Berlin">Europa/Berlin (GMT+1)</SelectItem>
+                <SelectItem value="Europe/Paris">Europa/Paryż (GMT+1)</SelectItem>
+                <SelectItem value="America/New_York">Ameryka/Nowy Jork (GMT-5)</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="language">Język</Label>
-            <select
-              id="language"
+            <Select
               value={settings.language}
-              onChange={(e) => setSettings(prev => ({ ...prev, language: e.target.value }))}
-              className="w-full px-3 py-2 border border-input rounded-md"
+              onValueChange={(value) => setSettings(prev => ({ ...prev, language: value }))}
               disabled={loading}
             >
-              <option value="pl">Polski</option>
-              <option value="en">English</option>
-              <option value="de">Deutsch</option>
-              <option value="fr">Français</option>
-            </select>
+              <SelectTrigger>
+                <SelectValue placeholder="Wybierz język" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pl">Polski</SelectItem>
+                <SelectItem value="en">English</SelectItem>
+                <SelectItem value="de">Deutsch</SelectItem>
+                <SelectItem value="fr">Français</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="date_format">Format daty</Label>
-          <select
-            id="date_format"
+          <Select
             value={settings.date_format}
-            onChange={(e) => setSettings(prev => ({ ...prev, date_format: e.target.value }))}
-            className="w-full px-3 py-2 border border-input rounded-md"
+            onValueChange={(value) => setSettings(prev => ({ ...prev, date_format: value }))}
             disabled={loading}
           >
-            <option value="DD/MM/YYYY">DD/MM/RRRR (31/12/2024)</option>
-            <option value="MM/DD/YYYY">MM/DD/RRRR (12/31/2024)</option>
-            <option value="YYYY-MM-DD">RRRR-MM-DD (2024-12-31)</option>
-            <option value="DD.MM.YYYY">DD.MM.RRRR (31.12.2024)</option>
-          </select>
+            <SelectTrigger>
+              <SelectValue placeholder="Wybierz format daty" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="DD/MM/YYYY">DD/MM/RRRR (31/12/2024)</SelectItem>
+              <SelectItem value="MM/DD/YYYY">MM/DD/RRRR (12/31/2024)</SelectItem>
+              <SelectItem value="YYYY-MM-DD">RRRR-MM-DD (2024-12-31)</SelectItem>
+              <SelectItem value="DD.MM.YYYY">DD.MM.RRRR (31.12.2024)</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

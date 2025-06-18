@@ -18,6 +18,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
 
 interface LeaveType {
   id: string
@@ -327,20 +329,23 @@ export function LeaveTypesManager({ leaveTypes, organizationId }: LeaveTypesMana
 
             <div className="space-y-2">
               <Label htmlFor="add-category">Kategoria *</Label>
-              <select
-                id="add-category"
+              <Select
                 value={formData.leave_category}
-                onChange={(e) => setFormData(prev => ({ ...prev, leave_category: e.target.value }))}
-                className="w-full px-3 py-2 border border-input rounded-md"
+                onValueChange={(value) => setFormData(prev => ({ ...prev, leave_category: value }))}
                 required
                 disabled={loading}
               >
-                {categories.map((category) => (
-                  <option key={category.value} value={category.value}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger>
+                  <SelectValue placeholder="Wybierz kategorię" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((category) => (
+                    <SelectItem key={category.value} value={category.value}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
@@ -362,13 +367,11 @@ export function LeaveTypesManager({ leaveTypes, organizationId }: LeaveTypesMana
             <div className="space-y-2">
               <Label htmlFor="add-requires-balance">Zarządzanie saldem</Label>
               <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
+                <Checkbox
                   id="add-requires-balance"
                   checked={formData.requires_balance}
-                  onChange={(e) => setFormData(prev => ({ ...prev, requires_balance: e.target.checked }))}
+                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, requires_balance: !!checked }))}
                   disabled={loading}
-                  className="w-4 h-4"
                 />
                 <Label htmlFor="add-requires-balance" className="text-sm font-normal">
                   Wymaga zarządzania saldem urlopowym
@@ -447,20 +450,23 @@ export function LeaveTypesManager({ leaveTypes, organizationId }: LeaveTypesMana
 
             <div className="space-y-2">
               <Label htmlFor="edit-category">Kategoria *</Label>
-              <select
-                id="edit-category"
+              <Select
                 value={formData.leave_category}
-                onChange={(e) => setFormData(prev => ({ ...prev, leave_category: e.target.value }))}
-                className="w-full px-3 py-2 border border-input rounded-md"
+                onValueChange={(value) => setFormData(prev => ({ ...prev, leave_category: value }))}
                 required
                 disabled={loading}
               >
-                {categories.map((category) => (
-                  <option key={category.value} value={category.value}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger>
+                  <SelectValue placeholder="Wybierz kategorię" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((category) => (
+                    <SelectItem key={category.value} value={category.value}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
@@ -482,13 +488,11 @@ export function LeaveTypesManager({ leaveTypes, organizationId }: LeaveTypesMana
             <div className="space-y-2">
               <Label htmlFor="edit-requires-balance">Zarządzanie saldem</Label>
               <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
+                <Checkbox
                   id="edit-requires-balance"
                   checked={formData.requires_balance}
-                  onChange={(e) => setFormData(prev => ({ ...prev, requires_balance: e.target.checked }))}
+                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, requires_balance: !!checked }))}
                   disabled={loading}
-                  className="w-4 h-4"
                 />
                 <Label htmlFor="edit-requires-balance" className="text-sm font-normal">
                   Wymaga zarządzania saldem urlopowym

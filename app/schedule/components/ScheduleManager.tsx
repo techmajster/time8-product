@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
+import { Checkbox } from '@/components/ui/checkbox'
 
 import { Calendar, Clock, User, Users, Edit, Trash, Plus } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -357,11 +358,9 @@ export function ScheduleManager({ teamMembers, userRole }: ScheduleManagerProps)
             {canManageSchedules && (
               <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg">
                 <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={selectedEmployees.length === teamMembers.length}
-                    onChange={(e) => handleSelectAll(e.target.checked)}
-                    className="rounded"
+                    onCheckedChange={(checked) => handleSelectAll(!!checked)}
                   />
                   <span className="text-sm font-medium">
                     Zaznacz wszystkich ({selectedEmployees.length}/{teamMembers.length})

@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Users, Clock, User } from 'lucide-react'
 import { toast } from 'sonner'
+import { Checkbox } from '@/components/ui/checkbox'
 
 interface WorkScheduleTemplate {
   id: string
@@ -172,11 +173,9 @@ export function AssignTemplateDialog({ template, onAssignmentComplete, trigger }
                 <CardTitle className="text-sm">Wybierz pracowników</CardTitle>
                 <div className="flex items-center gap-2">
                   <label className="flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       checked={selectedEmployees.length === teamMembers.length && teamMembers.length > 0}
-                      onChange={(e) => handleSelectAll(e.target.checked)}
-                      className="rounded"
+                      onCheckedChange={(checked) => handleSelectAll(!!checked)}
                     />
                     <span>Zaznacz wszystkich ({selectedEmployees.length}/{teamMembers.length})</span>
                   </label>
@@ -206,11 +205,9 @@ export function AssignTemplateDialog({ template, onAssignmentComplete, trigger }
                       key={member.id} 
                       className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-muted/50"
                     >
-                      <input
-                        type="checkbox"
+                      <Checkbox
                         checked={selectedEmployees.includes(member.id)}
-                        onChange={(e) => handleEmployeeSelection(member.id, e.target.checked)}
-                        className="rounded"
+                        onCheckedChange={(checked) => handleEmployeeSelection(member.id, !!checked)}
                       />
                       
                       <Avatar className="h-8 w-8">

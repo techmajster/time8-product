@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2, Save, User } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { DatePicker } from '@/components/ui/date-picker'
 
 interface Profile {
   id: string
@@ -132,23 +133,20 @@ export function ProfileForm({ profile }: ProfileFormProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
             <Label htmlFor="employment_start_date">Data zatrudnienia</Label>
-            <Input
-              id="employment_start_date"
-              type="date"
-              value={formData.employment_start_date}
-              onChange={(e) => setFormData(prev => ({ ...prev, employment_start_date: e.target.value }))}
+            <DatePicker
+              date={formData.employment_start_date ? new Date(formData.employment_start_date) : undefined}
+              onDateChange={(date) => setFormData(prev => ({ ...prev, employment_start_date: date ? date.toISOString().split('T')[0] : '' }))}
+              placeholder="Wybierz datę zatrudnienia"
               disabled={loading}
             />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="birth_date">Data urodzenia</Label>
-            <Input
-              id="birth_date"
-              type="date"
-              value={formData.birth_date}
-              onChange={(e) => setFormData(prev => ({ ...prev, birth_date: e.target.value }))}
-              max={new Date().toISOString().split('T')[0]}
+            <DatePicker
+              date={formData.birth_date ? new Date(formData.birth_date) : undefined}
+              onDateChange={(date) => setFormData(prev => ({ ...prev, birth_date: date ? date.toISOString().split('T')[0] : '' }))}
+              placeholder="Wybierz datę urodzenia"
               disabled={loading}
             />
             <p className="text-xs text-muted-foreground">

@@ -125,6 +125,15 @@ export async function POST(
       }
     }
 
+    // Send email notification about the status change
+    try {
+      const { notifyLeaveRequestStatusChange } = await import('@/lib/notification-utils')
+      await notifyLeaveRequestStatusChange(requestId, newStatus)
+    } catch (emailError) {
+      console.error('Error sending email notification:', emailError)
+      // Don't fail the request if email fails
+    }
+
     const actionText = action === 'approve' ? 'zatwierdzony' : 'odrzucony'
     const message = `Wniosek urlopowy został ${actionText}`
 

@@ -12,6 +12,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Users, Plus, Mail } from 'lucide-react'
 import Link from 'next/link'
 import { InviteTeamDialog } from './components/InviteTeamDialog'
+import InvitationsSection from './components/InvitationsSection'
 
 export default async function TeamPage() {
   const supabase = await createClient()
@@ -207,85 +208,10 @@ export default async function TeamPage() {
 
               {/* Invitations Tab Content */}
               <TabsContent value="invitations" className="mt-0">
-                <Card className="bg-background border rounded-lg shadow-none">
-                  <CardContent className="p-6">
-                    {invitations && invitations.length > 0 ? (
-                      <div className="space-y-4">
-                        {invitations.map((invitation) => {
-                          const isExpired = new Date(invitation.expires_at) < new Date()
-                          
-                          return (
-                            <div
-                              key={invitation.id}
-                              className="flex items-center justify-between p-4 border rounded-lg"
-                            >
-                              <div className="flex items-center gap-4">
-                                <div className="h-10 w-10 rounded-full bg-warning/10 flex items-center justify-center">
-                                  <Mail className="h-4 w-4 text-warning" />
-                                </div>
-                                <div>
-                                  <p className="font-medium">{invitation.email}</p>
-                                  <p className="text-sm text-muted-foreground">
-                                    Zaproszony przez {
-                                      invitation.profiles 
-                                        ? (invitation.profiles as any).full_name || (invitation.profiles as any).email || 'Nieznany'
-                                        : 'Nieznany'
-                                    }
-                                  </p>
-                                  <div className="flex items-center gap-2 mt-1">
-                                    <Badge variant={getRoleBadgeVariant(invitation.role)}>
-                                      {getRoleDisplayName(invitation.role)}
-                                    </Badge>
-                                    <Badge variant={isExpired ? "destructive" : "secondary"}>
-                                      {isExpired ? 'Wygasłe' : 'Oczekujące'}
-                                    </Badge>
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="text-right">
-                                <p className="text-sm text-muted-foreground">
-                                  {isExpired ? 'Wygasło' : 'Wygasa'} {new Date(invitation.expires_at).toLocaleDateString('pl-PL')}
-                                </p>
-                                <div className="flex gap-2 mt-2">
-                                  <Button variant="outline" size="sm">
-                                    Wyślij ponownie
-                                  </Button>
-                                  <Button variant="outline" size="sm" className="text-destructive hover:bg-destructive/5">
-                                    Anuluj
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    ) : (
-                      /* Empty State based on Figma design */
-                      <div className="flex flex-col items-center justify-center py-12">
-                        <div className="bg-white border border-border rounded-lg shadow-sm size-12 flex items-center justify-center mb-6">
-                          <Mail className="h-6 w-6 text-foreground" />
-                        </div>
-                        <div className="text-center space-y-2 mb-6">
-                          <h3 className="text-xl font-semibold text-foreground leading-7">
-                            Nie masz żadnego oczekującego zaproszenia
-                          </h3>
-                          <p className="text-sm text-muted-foreground leading-5">
-                            Wszystkie zaproszenia zostały zaakceptowane lub wygasły. Zaproś nowych członków zespołu.
-                          </p>
-                        </div>
-                        {canManageTeam && (
-                          <div className="flex justify-center">
-                            <Link href="/team?invite=true">
-                              <Button className="bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2 rounded-lg">
-                                Zaproś członka
-                              </Button>
-                            </Link>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                <InvitationsSection 
+                  invitations={invitations || []} 
+                  canManageTeam={canManageTeam} 
+                />
               </TabsContent>
             </div>
           </div>

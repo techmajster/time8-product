@@ -21,6 +21,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { useRouter } from 'next/navigation'
+import { DatePicker } from '@/components/ui/date-picker'
 
 interface Holiday {
   id: string
@@ -160,14 +161,11 @@ function AddCompanyHolidayDialog({ organizationId, onHolidayAdded }: { organizat
 
           <div className="space-y-2">
             <Label htmlFor="date">Data *</Label>
-            <Input
-              id="date"
-              type="date"
-              value={formData.date}
-              onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-              required
+            <DatePicker
+              date={formData.date ? new Date(formData.date) : undefined}
+              onDateChange={(date) => setFormData(prev => ({ ...prev, date: date ? date.toISOString().split('T')[0] : '' }))}
+              placeholder="Wybierz datę święta"
               disabled={loading}
-              min={new Date().toISOString().split('T')[0]}
             />
           </div>
 
@@ -335,14 +333,11 @@ function EditHolidayDialog({ holiday, onHolidayUpdated }: { holiday: Holiday, on
 
           <div className="space-y-2">
             <Label htmlFor="edit-date">Data *</Label>
-            <Input
-              id="edit-date"
-              type="date"
-              value={formData.date}
-              onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-              required
+            <DatePicker
+              date={formData.date ? new Date(formData.date) : undefined}
+              onDateChange={(date) => setFormData(prev => ({ ...prev, date: date ? date.toISOString().split('T')[0] : '' }))}
+              placeholder="Wybierz datę święta"
               disabled={loading}
-              min={new Date().toISOString().split('T')[0]}
             />
           </div>
 
