@@ -82,13 +82,22 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Get holidays in the period for display
+    // Get organization's country code for filtering
+    const { data: orgData } = await supabase
+      .from('organizations')
+      .select('country_code')
+      .eq('id', profile.organization_id)
+      .single()
+
+    const countryCode = orgData?.country_code || 'PL'
+
+    // Get holidays in the period for display (filtered by country)
     const { data: holidays } = await supabase
       .from('company_holidays')
-      .select('name, date, type')
+      .select('name, date, type, country_code')
       .gte('date', startDate)
       .lte('date', endDate)
-      .or(`type.eq.national,organization_id.eq.${profile.organization_id}`)
+      .or(`organization_id.eq.${profile.organization_id},and(type.eq.national,country_code.eq.${countryCode})`)
       .order('date')
 
     return NextResponse.json({

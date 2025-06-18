@@ -565,13 +565,23 @@ export default function HolidaysPage() {
 
       setProfile(transformedProfile)
 
-      // Fetch holidays
+      // Get organization settings to filter holidays by country
+      const { data: orgData } = await supabase
+        .from('organizations')
+        .select('country_code')
+        .eq('id', userProfile.organization_id)
+        .single()
+
+      const countryCode = orgData?.country_code || 'PL'
+
+      // Fetch holidays (national holidays for the selected country + organization holidays)
       const currentYear = new Date().getFullYear()
       const { data: holidaysData, error: holidaysError } = await supabase
         .from('company_holidays')
-        .select('id, name, date, type, organization_id, description')
+        .select('id, name, date, type, organization_id, description, country_code')
         .gte('date', `${currentYear}-01-01`)
         .lte('date', `${currentYear}-12-31`)
+        .or(`organization_id.eq.${userProfile.organization_id},and(type.eq.national,country_code.eq.${countryCode})`)
         .order('date', { ascending: true })
 
       if (holidaysError) {
@@ -586,7 +596,7 @@ export default function HolidaysPage() {
 
       setHolidays(transformedHolidays)
 
-      // Fetch upcoming holidays
+      // Fetch upcoming holidays (filtered by country)
       const today = new Date().toISOString().split('T')[0]
       const futureDate = new Date()
       futureDate.setDate(futureDate.getDate() + 90)
@@ -594,9 +604,10 @@ export default function HolidaysPage() {
 
       const { data: upcomingData, error: upcomingError } = await supabase
         .from('company_holidays')
-        .select('id, name, date, type, organization_id, description')
+        .select('id, name, date, type, organization_id, description, country_code')
         .gte('date', today)
         .lte('date', future)
+        .or(`organization_id.eq.${userProfile.organization_id},and(type.eq.national,country_code.eq.${countryCode})`)
         .order('date', { ascending: true })
         .limit(5)
 

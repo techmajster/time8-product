@@ -2,6 +2,7 @@ import { AppLayout } from '@/components/app-layout'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { Button } from '@/components/ui/button'
+import { PageHeader } from '@/components/ui/page-header'
 import { LeaveRequestRow } from './components/LeaveRequestRow'
 import { LeaveBalanceCard } from './components/LeaveBalanceCard'
 import { NewLeaveRequestDialog } from './components/NewLeaveRequestDialog'
@@ -133,22 +134,17 @@ export default async function LeaveRequestsPage({ searchParams }: {
         <div className="p-6 lg:p-8">
           <div className="max-w-7xl mx-auto">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
-              <div>
-                <h1 className="text-2xl font-semibold text-foreground">Wnioski urlopowe</h1>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Zarządzaj swoimi wnioskami urlopowymi i sprawdzaj status
-                </p>
-              </div>
-              <div className="mt-4 sm:mt-0">
-                <Link href="/leave?new=true">
-                  <Button>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Nowy wniosek
-                  </Button>
-                </Link>
-              </div>
-            </div>
+            <PageHeader
+              title="Wnioski urlopowe"
+              description="Zarządzaj swoimi wnioskami urlopowymi i sprawdzaj status"
+            >
+              <Link href="/leave?new=true">
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Nowy wniosek
+                </Button>
+              </Link>
+            </PageHeader>
 
             {/* Two-column layout */}
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">

@@ -103,7 +103,7 @@ export default function InvitationsSection({ invitations, canManageTeam }: Invit
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Mail className="h-5 w-5" />
-          Oczekujące zaproszenia ({invitations?.length || 0})
+          Oczekujące zaproszenia
         </CardTitle>
         <CardDescription>
           Zaproszenia oczekujące na akceptację
@@ -141,7 +141,7 @@ export default function InvitationsSection({ invitations, canManageTeam }: Invit
                     </div>
                     <div>
                       <p className="font-medium">{invitation.email}</p>
-                                             <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-muted-foreground">
                          Zaproszony przez {
                            Array.isArray(invitation.profiles) 
                              ? invitation.profiles[0]?.full_name || invitation.profiles[0]?.email || 'Nieznany'

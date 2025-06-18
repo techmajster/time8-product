@@ -1,7 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { Search, Settings, Info, AlertCircle, ChevronDown } from "lucide-react"
+import { Search, Settings, Info, AlertCircle, ChevronDown, Plus, Download, Trash2 } from "lucide-react"
+import { useState } from "react"
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -47,6 +48,7 @@ export default function ThemeDemo() {
   const [sliderValue, setSliderValue] = React.useState([50])
   const [isCollapsed, setIsCollapsed] = React.useState(false)
   const [commandOpen, setCommandOpen] = React.useState(false)
+  const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({})
 
   React.useEffect(() => {
     const timer = setTimeout(() => setProgress(66), 500)
@@ -64,6 +66,28 @@ export default function ThemeDemo() {
     return () => document.removeEventListener("keydown", down)
   }, [])
 
+  const toggleLoading = (key: string) => {
+    setLoadingStates(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }))
+
+    // Auto-clear loading state after 3 seconds
+    setTimeout(() => {
+      setLoadingStates(prev => ({
+        ...prev,
+        [key]: false
+      }))
+    }, 3000)
+  }
+
+  const handleLoadingDemo = (key: string) => {
+    setLoadingStates(prev => ({ ...prev, [key]: true }))
+    setTimeout(() => {
+      setLoadingStates(prev => ({ ...prev, [key]: false }))
+    }, 2000)
+  }
+
   return (
     <TooltipProvider>
       <div className="container mx-auto p-8 space-y-12">
@@ -75,25 +99,169 @@ export default function ThemeDemo() {
           <ThemeToggle />
         </div>
 
-        {/* Buttons */}
+        {/* Enhanced Buttons from Figma Design */}
         <section className="space-y-6">
-          <h2 className="text-2xl font-semibold">Buttons</h2>
-          <Card>
-            <CardHeader>
-              <CardTitle>Button Variants</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-wrap gap-2">
-              <Button>Default</Button>
-              <Button variant="secondary">Secondary</Button>
-              <Button variant="outline">Outline</Button>
-              <Button variant="ghost">Ghost</Button>
-              <Button variant="link">Link</Button>
-              <Button variant="destructive">Destructive</Button>
-              <Button size="sm">Small</Button>
-              <Button size="lg">Large</Button>
-              <Button disabled>Disabled</Button>
-            </CardContent>
-          </Card>
+          <h2 className="text-2xl font-semibold">Enhanced Button System</h2>
+          <div className="grid gap-6">
+            {/* Variants Grid */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Button Variants (Figma Design)</CardTitle>
+                <CardDescription>All variants with exact Figma specifications</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Default */}
+                <div className="space-y-3">
+                  <h3 className="font-medium text-sm">Default (Primary)</h3>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <Button size="sm">Small</Button>
+                    <Button size="default">Default</Button>
+                    <Button size="lg">Large</Button>
+                    <Button size="icon"><Settings className="h-4 w-4" /></Button>
+                    <Button disabled>Disabled</Button>
+                    <Button 
+                      loading={loadingStates.default}
+                      onClick={() => handleLoadingDemo('default')}
+                    >
+                      {loadingStates.default ? 'Loading...' : 'Click for Loading'}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Secondary */}
+                <div className="space-y-3">
+                  <h3 className="font-medium text-sm">Secondary</h3>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <Button variant="secondary" size="sm">Small</Button>
+                    <Button variant="secondary" size="default">Default</Button>
+                    <Button variant="secondary" size="lg">Large</Button>
+                    <Button variant="secondary" size="icon"><Settings className="h-4 w-4" /></Button>
+                    <Button variant="secondary" disabled>Disabled</Button>
+                    <Button 
+                      variant="secondary"
+                      loading={loadingStates.secondary}
+                      onClick={() => handleLoadingDemo('secondary')}
+                    >
+                      {loadingStates.secondary ? 'Loading...' : 'Click for Loading'}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Ghost */}
+                <div className="space-y-3">
+                  <h3 className="font-medium text-sm">Ghost</h3>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <Button variant="ghost" size="sm">Small</Button>
+                    <Button variant="ghost" size="default">Default</Button>
+                    <Button variant="ghost" size="lg">Large</Button>
+                    <Button variant="ghost" size="icon"><Settings className="h-4 w-4" /></Button>
+                    <Button variant="ghost" disabled>Disabled</Button>
+                    <Button 
+                      variant="ghost"
+                      loading={loadingStates.ghost}
+                      onClick={() => handleLoadingDemo('ghost')}
+                    >
+                      {loadingStates.ghost ? 'Loading...' : 'Click for Loading'}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Link */}
+                <div className="space-y-3">
+                  <h3 className="font-medium text-sm">Link</h3>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <Button variant="link" size="sm">Small Link</Button>
+                    <Button variant="link" size="default">Default Link</Button>
+                    <Button variant="link" size="lg">Large Link</Button>
+                    <Button variant="link" disabled>Disabled</Button>
+                    <Button 
+                      variant="link"
+                      loading={loadingStates.link}
+                      onClick={() => handleLoadingDemo('link')}
+                    >
+                      {loadingStates.link ? 'Loading...' : 'Click for Loading'}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Outline */}
+                <div className="space-y-3">
+                  <h3 className="font-medium text-sm">Outline</h3>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <Button variant="outline" size="sm">Small</Button>
+                    <Button variant="outline" size="default">Default</Button>
+                    <Button variant="outline" size="lg">Large</Button>
+                    <Button variant="outline" size="icon"><Settings className="h-4 w-4" /></Button>
+                    <Button variant="outline" disabled>Disabled</Button>
+                    <Button 
+                      variant="outline"
+                      loading={loadingStates.outline}
+                      onClick={() => handleLoadingDemo('outline')}
+                    >
+                      {loadingStates.outline ? 'Loading...' : 'Click for Loading'}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Destructive */}
+                <div className="space-y-3">
+                  <h3 className="font-medium text-sm">Destructive</h3>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <Button variant="destructive" size="sm">Delete</Button>
+                    <Button variant="destructive" size="default">Delete Item</Button>
+                    <Button variant="destructive" size="lg">Delete Forever</Button>
+                    <Button variant="destructive" size="icon"><Trash2 className="h-4 w-4" /></Button>
+                    <Button variant="destructive" disabled>Disabled</Button>
+                    <Button 
+                      variant="destructive"
+                      loading={loadingStates.destructive}
+                      onClick={() => handleLoadingDemo('destructive')}
+                    >
+                      {loadingStates.destructive ? 'Deleting...' : 'Click to Delete'}
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Usage Examples */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Real-world Usage Examples</CardTitle>
+                <CardDescription>Common button combinations</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Form Actions */}
+                <div className="space-y-2">
+                  <h4 className="font-medium text-sm">Form Actions</h4>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Button>Save Changes</Button>
+                    <Button variant="outline">Cancel</Button>
+                    <Button variant="ghost">Preview</Button>
+                  </div>
+                </div>
+
+                {/* With Icons */}
+                <div className="space-y-2">
+                  <h4 className="font-medium text-sm">With Icons</h4>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Button>
+                      <Plus className="h-4 w-4" />
+                      Add Item
+                    </Button>
+                    <Button variant="outline">
+                      <Download className="h-4 w-4" />
+                      Download
+                    </Button>
+                    <Button variant="destructive" size="sm">
+                      <Trash2 className="h-4 w-4" />
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </section>
 
         {/* Form Controls */}
@@ -563,7 +731,7 @@ export default function ThemeDemo() {
               </CardHeader>
               <CardContent>
                 <Tabs defaultValue="account" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
+                  <TabsList>
                     <TabsTrigger value="account">Account</TabsTrigger>
                     <TabsTrigger value="password">Password</TabsTrigger>
                   </TabsList>

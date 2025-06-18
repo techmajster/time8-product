@@ -2,10 +2,13 @@ import { AppLayout } from '@/components/app-layout'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Building2, Users, Calendar, Clock } from 'lucide-react'
+import { PageHeader } from '@/components/ui/page-header'
+import { Building2, Users, Calendar, Clock, Palette, Globe } from 'lucide-react'
 import { OrganizationSettingsForm } from './components/OrganizationSettingsForm'
+import { OrganizationBrandingForm } from './components/OrganizationBrandingForm'
 import { LeaveTypesManager } from './components/LeaveTypesManager'
 import { LeavePoliciesForm } from './components/LeavePoliciesForm'
+import { HolidayCalendarSettings } from './components/HolidayCalendarSettings'
 
 export default async function SettingsPage() {
   const supabase = await createClient()
@@ -27,6 +30,10 @@ export default async function SettingsPage() {
         slug,
         google_domain,
         require_google_domain,
+        brand_color,
+        logo_url,
+        country_code,
+        locale,
         created_at
       )
     `)
@@ -72,12 +79,10 @@ export default async function SettingsPage() {
         <div className="p-6 lg:p-8">
           <div className="max-w-7xl mx-auto">
             {/* Header */}
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold text-foreground">Ustawienia</h1>
-              <p className="text-muted-foreground mt-2">
-                Zarządzaj ustawieniami organizacji, rodzajami urlopów i politykami
-              </p>
-            </div>
+            <PageHeader
+              title="Ustawienia"
+              description="Zarządzaj ustawieniami organizacji, rodzajami urlopów i politykami"
+            />
 
             {/* Organization Overview */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -136,6 +141,38 @@ export default async function SettingsPage() {
                 </CardHeader>
                 <CardContent>
                   <OrganizationSettingsForm organization={organization} />
+                </CardContent>
+              </Card>
+
+              {/* Organization Branding */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Palette className="h-5 w-5" />
+                    Branding organizacji
+                  </CardTitle>
+                  <CardDescription>
+                    Logo, kolory i inne elementy wizualnej identyfikacji
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <OrganizationBrandingForm organization={organization} />
+                </CardContent>
+              </Card>
+
+              {/* Holiday Calendar Settings */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Globe className="h-5 w-5" />
+                    Kalendarz świąt
+                  </CardTitle>
+                  <CardDescription>
+                    Wybierz kalendarz narodowych świąt dla swojej organizacji
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <HolidayCalendarSettings organizationId={profile.organization_id} currentCountryCode={organization?.country_code || 'PL'} />
                 </CardContent>
               </Card>
 

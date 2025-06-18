@@ -2,6 +2,7 @@ import { AppLayout } from '@/components/app-layout'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { PageHeader } from '@/components/ui/page-header'
 import { Badge } from '@/components/ui/badge'
 import { Calendar, Users, TrendingDown, AlertTriangle, CalendarDays } from 'lucide-react'
 import { TeamCalendarView } from './components/TeamCalendarView'
@@ -119,11 +120,20 @@ export default async function CalendarPage() {
     console.error('Leave requests query error:', leaveRequestsError)
   }
 
-  // Get holidays for the same period
+  // Get organization's country code for holiday filtering
+  const { data: orgSettings } = await supabase
+    .from('organizations')
+    .select('country_code')
+    .eq('id', profile.organization_id)
+    .single()
+
+  const countryCode = orgSettings?.country_code || 'PL'
+
+  // Get holidays for the same period (filtered by organization's country)
   const { data: holidaysRaw, error: holidaysError } = await supabase
     .from('company_holidays')
     .select('*')
-    .or(`organization_id.eq.${profile.organization_id},organization_id.is.null`)
+    .or(`organization_id.eq.${profile.organization_id},and(type.eq.national,country_code.eq.${countryCode})`)
     .gte('date', startDate.toISOString().split('T')[0])
     .lte('date', endDate.toISOString().split('T')[0])
     .order('date')
@@ -189,12 +199,10 @@ export default async function CalendarPage() {
         <div className="p-6 lg:p-8">
           <div className="max-w-7xl mx-auto">
             {/* Header */}
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold text-foreground">Kalendarz zespołu</h1>
-              <p className="text-muted-foreground mt-2">
-                Zobacz, kto kiedy jest niedostępny i planuj obciążenie zespołu
-              </p>
-            </div>
+            <PageHeader
+              title="Kalendarz zespołu"
+              description="Zobacz, kto kiedy jest niedostępny i planuj obciążenie zespołu"
+            />
 
             {/* Capacity Overview Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">

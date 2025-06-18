@@ -26,6 +26,7 @@ interface LeaveType {
   color: string
   leave_category: string
   organization_id: string
+  requires_balance?: boolean
 }
 
 interface LeaveTypesManagerProps {
@@ -46,7 +47,8 @@ export function LeaveTypesManager({ leaveTypes, organizationId }: LeaveTypesMana
     name: '',
     days_per_year: 0,
     color: 'hsl(var(--primary))',
-    leave_category: 'vacation'
+    leave_category: 'vacation',
+    requires_balance: true
   })
 
   const colors = [
@@ -75,7 +77,8 @@ export function LeaveTypesManager({ leaveTypes, organizationId }: LeaveTypesMana
       name: '',
       days_per_year: 0,
       color: 'hsl(var(--primary))',
-      leave_category: 'vacation'
+      leave_category: 'vacation',
+      requires_balance: true
     })
     setError(null)
     setSuccess(null)
@@ -91,7 +94,8 @@ export function LeaveTypesManager({ leaveTypes, organizationId }: LeaveTypesMana
       name: leaveType.name,
       days_per_year: leaveType.days_per_year,
       color: leaveType.color,
-      leave_category: leaveType.leave_category
+      leave_category: leaveType.leave_category,
+      requires_balance: leaveType.requires_balance ?? true
     })
     setSelectedLeaveType(leaveType)
     setError(null)
@@ -119,7 +123,8 @@ export function LeaveTypesManager({ leaveTypes, organizationId }: LeaveTypesMana
           name: formData.name,
           days_per_year: formData.days_per_year,
           color: formData.color,
-          leave_category: formData.leave_category
+          leave_category: formData.leave_category,
+          requires_balance: formData.requires_balance
         })
 
       if (insertError) {
@@ -155,7 +160,8 @@ export function LeaveTypesManager({ leaveTypes, organizationId }: LeaveTypesMana
           name: formData.name,
           days_per_year: formData.days_per_year,
           color: formData.color,
-          leave_category: formData.leave_category
+          leave_category: formData.leave_category,
+          requires_balance: formData.requires_balance
         })
         .eq('id', selectedLeaveType?.id)
 
@@ -240,7 +246,14 @@ export function LeaveTypesManager({ leaveTypes, organizationId }: LeaveTypesMana
                 style={{ backgroundColor: leaveType.color }}
               />
               <div>
-                <h4 className="font-medium">{leaveType.name}</h4>
+                <div className="flex items-center gap-2">
+                  <h4 className="font-medium">{leaveType.name}</h4>
+                  {leaveType.requires_balance && (
+                    <Badge variant="secondary" className="text-xs">
+                      Saldo
+                    </Badge>
+                  )}
+                </div>
                 <p className="text-sm text-muted-foreground">
                   {leaveType.days_per_year} dni rocznie • {categories.find(c => c.value === leaveType.leave_category)?.name}
                 </p>
@@ -346,6 +359,26 @@ export function LeaveTypesManager({ leaveTypes, organizationId }: LeaveTypesMana
               </div>
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="add-requires-balance">Zarządzanie saldem</Label>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="add-requires-balance"
+                  checked={formData.requires_balance}
+                  onChange={(e) => setFormData(prev => ({ ...prev, requires_balance: e.target.checked }))}
+                  disabled={loading}
+                  className="w-4 h-4"
+                />
+                <Label htmlFor="add-requires-balance" className="text-sm font-normal">
+                  Wymaga zarządzania saldem urlopowym
+                </Label>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Zaznacz, jeśli ten typ urlopu wymaga śledzenia i zarządzania saldem dni urlopowych
+              </p>
+            </div>
+
             {error && (
               <Alert variant="destructive">
                 <AlertDescription>{error}</AlertDescription>
@@ -444,6 +477,26 @@ export function LeaveTypesManager({ leaveTypes, organizationId }: LeaveTypesMana
                   />
                 ))}
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-requires-balance">Zarządzanie saldem</Label>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="edit-requires-balance"
+                  checked={formData.requires_balance}
+                  onChange={(e) => setFormData(prev => ({ ...prev, requires_balance: e.target.checked }))}
+                  disabled={loading}
+                  className="w-4 h-4"
+                />
+                <Label htmlFor="edit-requires-balance" className="text-sm font-normal">
+                  Wymaga zarządzania saldem urlopowym
+                </Label>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Zaznacz, jeśli ten typ urlopu wymaga śledzenia i zarządzania saldem dni urlopowych
+              </p>
             </div>
 
             {error && (

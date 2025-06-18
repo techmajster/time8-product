@@ -15,14 +15,16 @@ export async function AppLayout({ children }: AppLayoutProps) {
     redirect('/auth/login')
   }
 
-  // Get user profile with organization details
+  // Get user profile with organization details including branding
   const { data: profile } = await supabase
     .from('profiles')
     .select(`
       *,
       organizations (
         id,
-        name
+        name,
+        brand_color,
+        logo_url
       )
     `)
     .eq('id', user.id)
@@ -32,10 +34,24 @@ export async function AppLayout({ children }: AppLayoutProps) {
     redirect('/onboarding')
   }
 
+  // Get pending team invitations count
+  const { count: teamInviteCount } = await supabase
+    .from('invitations')
+    .select('*', { count: 'exact', head: true })
+    .eq('organization_id', profile.organization_id)
+    .eq('status', 'pending')
+
   return (
     <AppLayoutClient 
       userRole={profile.role}
       userId={user.id}
+      organization={profile.organizations}
+      userProfile={{
+        full_name: profile.full_name,
+        email: user.email || '',
+        avatar_url: profile.avatar_url
+      }}
+      teamInviteCount={teamInviteCount || 0}
     >
       {children}
     </AppLayoutClient>

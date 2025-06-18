@@ -2,6 +2,7 @@ import { AppLayout } from '@/components/app-layout'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { PageHeader } from '@/components/ui/page-header'
 import { User, Calendar, Settings } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { ProfileForm } from './components/ProfileForm'
@@ -88,12 +89,10 @@ export default async function ProfilePage() {
         <div className="p-6 lg:p-8">
           <div className="max-w-7xl mx-auto">
             {/* Header */}
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold text-foreground">Profil użytkownika</h1>
-              <p className="text-muted-foreground mt-2">
-                Zarządzaj swoimi danymi osobowymi i ustawieniami konta
-              </p>
-            </div>
+            <PageHeader
+              title="Profil użytkownika"
+              description="Zarządzaj swoimi danymi osobowymi i ustawieniami konta"
+            />
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* Left Column - Profile Overview */}
