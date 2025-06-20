@@ -1,4 +1,7 @@
 import type { NextConfig } from "next";
+import createNextIntlPlugin from 'next-intl/plugin';
+
+const withNextIntl = createNextIntlPlugin('./i18n.ts');
 
 const nextConfig: NextConfig = {
   // ESLint configuration - only error on error level, not warnings
@@ -7,19 +10,22 @@ const nextConfig: NextConfig = {
   },
   
   // Bundle optimization
-  experimental: {
-    optimizePackageImports: [
-      'lucide-react', 
-      '@radix-ui/react-dialog', 
-      '@radix-ui/react-dropdown-menu',
-      '@radix-ui/react-popover',
-      '@radix-ui/react-select',
-      '@radix-ui/react-tabs',
-      '@radix-ui/react-toast',
-      'date-fns',
-      'react-day-picker'
-    ],
-  },
+      experimental: {
+      optimizePackageImports: [
+        'lucide-react', 
+        '@radix-ui/react-dialog', 
+        '@radix-ui/react-dropdown-menu',
+        '@radix-ui/react-popover',
+        '@radix-ui/react-select',
+        '@radix-ui/react-tabs',
+        '@radix-ui/react-toast',
+        'date-fns',
+        'react-day-picker'
+      ],
+    },
+    
+    // Server external packages
+    serverExternalPackages: ['@node-rs/argon2'],
   
   // Image optimization
   images: {
@@ -92,4 +98,4 @@ const nextConfig: NextConfig = {
   }),
 };
 
-export default nextConfig;
+export default withNextIntl(nextConfig);

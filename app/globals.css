@@ -37,11 +37,6 @@
     --sidebar-border: 240 6% 87%;
     --sidebar-ring: 267 85% 60%;
     --radius: 0.5rem;
-    --chart-1: 210 37.5000% 65.4902%;
-    --chart-2: 12.9032 73.2283% 75.0980%;
-    --chart-3: 213.1579 29.9213% 50.1961%;
-    --chart-4: 216.9231 35.7798% 42.7451%;
-    --chart-5: 221.0127 43.6464% 35.4902%;
 
     /* Semantic colors for status states */
     --success: 142 76% 36%;
@@ -107,11 +102,6 @@
     --sidebar-border: 240 8% 42%;
     --sidebar-ring: 270 75% 65%;
     --radius: 0.5rem;
-    --chart-1: 210 37.5000% 65.4902%;
-    --chart-2: 11.7241 63.5036% 73.1373%;
-    --chart-3: 213.1579 29.9213% 50.1961%;
-    --chart-4: 216.9231 35.7798% 42.7451%;
-    --chart-5: 221.0127 43.6464% 35.4902%;
 
     /* Semantic colors for status states (dark mode) */
     --success: 142 71% 45%;
@@ -166,3 +156,6 @@
     --tracking-widest: calc(var(--tracking-normal) + 0.1em);
   }
 }
+
+
+

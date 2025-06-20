@@ -202,7 +202,7 @@ export function LeaveRequestRow({ request, isManagerOrAdmin, currentUserId }: Le
   return (
     <Link 
       href={`/leave/${request.id}`}
-      className="block hover:bg-muted/50 transition-colors group"
+      className="block hover:bg-muted/50 transition-colors group cursor-pointer"
       onClick={handleRowClick}
     >
       <div className="p-6 flex items-center justify-between">

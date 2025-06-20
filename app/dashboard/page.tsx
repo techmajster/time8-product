@@ -3,8 +3,12 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { LeaveBalanceCard } from '../leave/components/LeaveBalanceCard'
+import { getTranslations } from 'next-intl/server'
 
 export default async function DashboardPage() {
+  const t = await getTranslations('dashboard')
+  const tCommon = await getTranslations('common')
+  
   const supabase = await createClient()
   
   const { data: { user } } = await supabase.auth.getUser()
@@ -71,8 +75,8 @@ export default async function DashboardPage() {
               <div className="lg:col-span-3">
                 {/* Header */}
                 <div className="mb-8">
-                  <h1 className="text-2xl font-semibold text-foreground">Pulpit</h1>
-                  <p className="text-muted-foreground mt-1">Witaj ponownie, {profile.full_name || user.email}</p>
+                  <h1 className="text-2xl font-semibold text-foreground">{t('title')}</h1>
+                  <p className="text-muted-foreground mt-1">{t('welcome')}, {profile.full_name || user.email}</p>
                 </div>
 
                 {/* Stats Cards */}
@@ -80,20 +84,20 @@ export default async function DashboardPage() {
                   {/* Leave Balance Card */}
                   <Card className="bg-card border-border shadow-sm">
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium text-muted-foreground">Saldo urlopowe</CardTitle>
+                      <CardTitle className="text-sm font-medium text-muted-foreground">{t('leaveBalance')}</CardTitle>
                     </CardHeader>
                     <CardContent>
                       {vacationBalance ? (
                         <>
                           <div className="text-2xl font-bold text-foreground">
-                            {vacationBalance.remaining_days} dni
+                            {vacationBalance.remaining_days} {t('days')}
                           </div>
                           <p className="text-xs text-muted-foreground mt-1">
-                            pozostało w tym roku
+                            {t('remainingThisYear')}
                           </p>
                         </>
                       ) : (
-                        <div className="text-sm text-muted-foreground">Brak danych</div>
+                        <div className="text-sm text-muted-foreground">{t('noData')}</div>
                       )}
                     </CardContent>
                   </Card>
@@ -101,11 +105,11 @@ export default async function DashboardPage() {
                   {/* Team Members Card */}
                   <Card className="bg-card border-border shadow-sm">
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium text-muted-foreground">Zespół</CardTitle>
+                      <CardTitle className="text-sm font-medium text-muted-foreground">{t('team')}</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-bold text-foreground">{teamCount || 0}</div>
-                      <p className="text-xs text-muted-foreground mt-1">członków organizacji</p>
+                      <p className="text-xs text-muted-foreground mt-1">{t('organizationMembers')}</p>
                     </CardContent>
                   </Card>
 
@@ -113,11 +117,11 @@ export default async function DashboardPage() {
                   {profile.role === 'admin' && (
                     <Card className="bg-card border-border shadow-sm">
                       <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">Oczekujące wnioski</CardTitle>
+                        <CardTitle className="text-sm font-medium text-muted-foreground">{t('pendingRequests')}</CardTitle>
                       </CardHeader>
                       <CardContent>
                         <div className="text-2xl font-bold text-foreground">{pendingRequestsCount || 0}</div>
-                        <p className="text-xs text-muted-foreground mt-1">do zatwierdzenia</p>
+                        <p className="text-xs text-muted-foreground mt-1">{t('toApprove')}</p>
                       </CardContent>
                     </Card>
                   )}

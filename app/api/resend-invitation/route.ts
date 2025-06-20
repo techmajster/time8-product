@@ -88,13 +88,14 @@ export async function POST(request: NextRequest) {
     const newExpiresAt = new Date()
     newExpiresAt.setDate(newExpiresAt.getDate() + 7) // 7 days from now
 
-    // Update the invitation with new token and expiry date
+    // Update the invitation with new token, expiry date, and reset invitation code to generate a new one
     const { error: updateError } = await supabase
       .from('invitations')
       .update({
         token: newToken,
         expires_at: newExpiresAt.toISOString(),
-        created_at: new Date().toISOString() // Update created_at to reflect resend time
+        created_at: new Date().toISOString(), // Update created_at to reflect resend time
+        invitation_code: null // Reset to null so trigger generates a new code
       })
       .eq('id', invitationId)
 

@@ -7,8 +7,12 @@ import { Badge } from '@/components/ui/badge'
 import { Settings, Users, Calendar, Plus, CalendarDays } from 'lucide-react'
 import Link from 'next/link'
 import { LeaveBalanceManager } from './components/LeaveBalanceManager'
+import { getTranslations } from 'next-intl/server'
 
 export default async function AdminPage() {
+  const t = await getTranslations('admin')
+  const tCommon = await getTranslations('common')
+  
   const supabase = await createClient()
   
   const { data: { user } } = await supabase.auth.getUser()
@@ -139,9 +143,9 @@ export default async function AdminPage() {
           <div className="max-w-7xl mx-auto">
             {/* Header */}
             <div className="mb-8">
-              <h1 className="text-2xl font-bold text-foreground">Panel Administratora</h1>
+              <h1 className="text-2xl font-bold text-foreground">{t('title')}</h1>
               <p className="text-muted-foreground mt-1">
-                Zarządzaj saldami urlopowymi i konfiguracją organizacji
+                {t('description')}
               </p>
             </div>
 
@@ -149,41 +153,41 @@ export default async function AdminPage() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">Członkowie zespołu</CardTitle>
+                  <CardTitle className="text-sm font-medium text-muted-foreground">{t('teamMembersCard')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-foreground">{teamMembers?.length || 0}</div>
-                  <p className="text-xs text-muted-foreground mt-1">aktywnych użytkowników</p>
+                  <p className="text-xs text-muted-foreground mt-1">{t('activeUsers')}</p>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">Typy urlopów</CardTitle>
+                  <CardTitle className="text-sm font-medium text-muted-foreground">{t('leaveTypesCard')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-foreground">{leaveTypes?.length || 0}</div>
-                  <p className="text-xs text-muted-foreground mt-1">skonfigurowanych typów</p>
+                  <p className="text-xs text-muted-foreground mt-1">{t('configuredTypes')}</p>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">Salda urlopowe</CardTitle>
+                  <CardTitle className="text-sm font-medium text-muted-foreground">{t('leaveBalancesCard')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-foreground">{leaveBalances?.length || 0}</div>
-                  <p className="text-xs text-muted-foreground mt-1">dla roku {new Date().getFullYear()}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{t('forYear')} {new Date().getFullYear()}</p>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">Ostatnie wnioski</CardTitle>
+                  <CardTitle className="text-sm font-medium text-muted-foreground">{t('recentRequestsCard')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-foreground">{recentRequests?.length || 0}</div>
-                  <p className="text-xs text-muted-foreground mt-1">w ostatnim czasie</p>
+                  <p className="text-xs text-muted-foreground mt-1">{t('recently')}</p>
                 </CardContent>
               </Card>
             </div>
@@ -200,99 +204,93 @@ export default async function AdminPage() {
                 />
               </div>
 
-              {/* Admin Actions & Quick Info - Takes up 1/3 of the space */}
-              <div className="space-y-6">
-                {/* Quick Actions */}
+              {/* Admin Actions Sidebar */}
+              <div className="xl:col-span-1">
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Settings className="h-5 w-5" />
-                      Szybkie akcje
+                      {t('quickActions')}
                     </CardTitle>
+                    <CardDescription>
+                      {t('quickActionsDescription')}
+                    </CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-3">
-                    <Button asChild className="w-full" variant="outline">
-                      <Link href="/team">
+                  <CardContent className="space-y-4">
+                    {/* Organization Settings */}
+                    <Link href="/settings">
+                      <Button variant="outline" className="w-full justify-start">
+                        <Settings className="h-4 w-4 mr-2" />
+                        {t('organizationSettings')}
+                      </Button>
+                    </Link>
+
+                    {/* Team Management */}
+                    <Link href="/team">
+                      <Button variant="outline" className="w-full justify-start">
                         <Users className="h-4 w-4 mr-2" />
-                        Zarządzaj zespołem
-                      </Link>
-                    </Button>
-                    <Button asChild className="w-full" variant="outline">
-                      <Link href="/admin/leave-types">
-                        <Plus className="h-4 w-4 mr-2" />
-                        Konfiguruj typy urlopów
-                      </Link>
-                    </Button>
-                    <Button asChild className="w-full" variant="outline">
-                      <Link href="/leave">
-                        <Calendar className="h-4 w-4 mr-2" />
-                        Przegląd wniosków
-                      </Link>
-                    </Button>
-                    <Button asChild className="w-full" variant="outline">
-                      <Link href="/admin/holidays">
+                        {t('teamManagement')}
+                      </Button>
+                    </Link>
+
+                    {/* Holiday Management */}
+                    <Link href="/admin/holidays">
+                      <Button variant="outline" className="w-full justify-start">
                         <CalendarDays className="h-4 w-4 mr-2" />
-                        Zarządzaj świętami
-                      </Link>
-                    </Button>
+                        {t('holidayManagement')}
+                      </Button>
+                    </Link>
+
+                    {/* Setup Holidays */}
+                    <Link href="/admin/setup-holidays">
+                      <Button variant="outline" className="w-full justify-start">
+                        <Calendar className="h-4 w-4 mr-2" />
+                        {t('setupHolidays')}
+                      </Button>
+                    </Link>
+
+                    {/* Test Email */}
+                    <Link href="/admin/test-email">
+                      <Button variant="outline" className="w-full justify-start">
+                        <Plus className="h-4 w-4 mr-2" />
+                        {t('testEmail')}
+                      </Button>
+                    </Link>
                   </CardContent>
                 </Card>
 
-                {/* Recent Requests */}
-                <Card>
+                {/* Recent Activity */}
+                <Card className="mt-6">
                   <CardHeader>
-                    <CardTitle className="text-lg">Ostatnie wnioski</CardTitle>
-                    <CardDescription>Najnowsze wnioski urlopowe</CardDescription>
+                    <CardTitle>{t('recentActivity')}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     {recentRequests && recentRequests.length > 0 ? (
-                      <div className="space-y-3">
+                      <div className="space-y-4">
                         {recentRequests.map((request) => (
-                          <div key={request.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                          <div key={request.id} className="flex items-center justify-between">
                             <div>
                               <p className="text-sm font-medium">
-                                {(request as any).profiles?.full_name || (request as any).profiles?.email}
+                                {(request.profiles as any)?.full_name || (request.profiles as any)?.email}
                               </p>
                               <p className="text-xs text-muted-foreground">
                                 {new Date(request.created_at).toLocaleDateString('pl-PL')}
                               </p>
                             </div>
-                            <Badge className={
-                              request.status === 'pending' ? 'bg-warning/10 text-warning-foreground border-warning/20 dark:bg-warning/10 dark:text-warning-foreground dark:border-warning/20' :
-                              request.status === 'approved' ? 'bg-success/10 text-success-foreground border-success/20 dark:bg-success/10 dark:text-success-foreground dark:border-success/20' :
-                              'bg-destructive/10 text-destructive-foreground border-destructive/20 dark:bg-destructive/10 dark:text-destructive-foreground dark:border-destructive/20'
+                            <Badge variant={
+                              request.status === 'approved' ? 'default' :
+                              request.status === 'pending' ? 'secondary' : 'destructive'
                             }>
-                              {request.status === 'pending' ? 'Oczekujący' : request.status === 'approved' ? 'Zatwierdzony' : 'Odrzucony'}
+                              {request.status === 'pending' ? t('pending') :
+                               request.status === 'approved' ? t('approved') : 
+                               request.status === 'rejected' ? t('rejected') : request.status}
                             </Badge>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <p className="text-sm text-muted-foreground">Brak ostatnich wniosków</p>
+                      <p className="text-sm text-muted-foreground">{t('noRecentActivity')}</p>
                     )}
-                  </CardContent>
-                </Card>
-
-                {/* Organization Info */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Informacje o organizacji</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <div>
-                        <p className="text-sm font-medium">Nazwa organizacji</p>
-                        <p className="text-sm text-muted-foreground">{profile.organizations?.name}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">Twoja rola</p>
-                        <p className="text-sm text-muted-foreground">Administrator</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">Rok podatkowy</p>
-                        <p className="text-sm text-muted-foreground">{new Date().getFullYear()}</p>
-                      </div>
-                    </div>
                   </CardContent>
                 </Card>
               </div>

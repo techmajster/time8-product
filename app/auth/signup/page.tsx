@@ -175,11 +175,11 @@ export default function SignupPage() {
                             className="font-normal text-[14px] leading-[20px] text-neutral-500 cursor-pointer flex-1"
                           >
                             I accept the{' '}
-                            <Link href="/terms" className="text-neutral-900 underline hover:text-neutral-700">
+                            <Link href="/terms" className="text-neutral-900 underline hover:text-neutral-700 cursor-pointer">
                               Terms and Conditions
                             </Link>{' '}
                             and{' '}
-                            <Link href="/privacy" className="text-neutral-900 underline hover:text-neutral-700">
+                            <Link href="/privacy" className="text-neutral-900 underline hover:text-neutral-700 cursor-pointer">
                               Privacy Policy
                             </Link>
                           </Label>
@@ -234,7 +234,7 @@ export default function SignupPage() {
                           </span>
                           <Link 
                             href="/auth/login" 
-                            className="text-neutral-900 underline hover:text-neutral-700"
+                            className="text-neutral-900 underline hover:text-neutral-700 cursor-pointer"
                           >
                             Sign in
                           </Link>

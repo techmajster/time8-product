@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Mail, Clock, CheckCircle, XCircle } from 'lucide-react'
+import { Mail, Clock, CheckCircle, XCircle, Copy, Check } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
@@ -16,6 +16,7 @@ interface Invitation {
   status: string
   created_at: string
   expires_at: string
+  invitation_code?: string
   profiles?: {
     full_name?: string
     email?: string
@@ -34,6 +35,7 @@ export default function InvitationsSection({ invitations, canManageTeam }: Invit
   const [loading, setLoading] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [copiedCode, setCopiedCode] = useState<string | null>(null)
   const router = useRouter()
 
   const getRoleBadgeVariant = (role: string): "default" | "secondary" | "destructive" | "outline" => {
@@ -60,6 +62,16 @@ export default function InvitationsSection({ invitations, canManageTeam }: Invit
       case 'accepted': return <CheckCircle className="h-4 w-4 text-success" />
       case 'expired': return <XCircle className="h-4 w-4 text-destructive" />
       default: return <Clock className="h-4 w-4 text-muted-foreground" />
+    }
+  }
+
+  const handleCopyInvitationCode = async (code: string) => {
+    try {
+      await navigator.clipboard.writeText(code)
+      setCopiedCode(code)
+      setTimeout(() => setCopiedCode(null), 2000)
+    } catch (err) {
+      console.error('Failed to copy invitation code:', err)
     }
   }
 
@@ -173,6 +185,24 @@ export default function InvitationsSection({ invitations, canManageTeam }: Invit
                         <Badge variant={isExpired ? "destructive" : "secondary"}>
                           {isExpired ? 'Wygasłe' : 'Oczekujące'}
                         </Badge>
+                        {invitation.invitation_code && !isExpired && (
+                          <div className="flex items-center gap-1 px-2 py-1 bg-muted rounded text-xs font-mono">
+                            <span className="text-muted-foreground">Kod:</span>
+                            <span className="font-bold">{invitation.invitation_code}</span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-4 w-4 p-0 ml-1"
+                              onClick={() => handleCopyInvitationCode(invitation.invitation_code!)}
+                            >
+                              {copiedCode === invitation.invitation_code ? (
+                                <Check className="h-3 w-3 text-green-500" />
+                              ) : (
+                                <Copy className="h-3 w-3" />
+                              )}
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

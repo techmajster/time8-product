@@ -304,6 +304,7 @@ export interface Invitation {
   expires_at: string
   created_at: string
   updated_at: string
+  invitation_code?: string
 }
 
 // Default leave types for new organizations

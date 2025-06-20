@@ -83,10 +83,71 @@ export default function JoinOrganizationPage() {
     setLoading(true)
     setError(null)
 
-    // In a real app, you'd validate the invite code
-    // For now, we'll show an error
-    setError('Invite codes are not yet implemented. Please ask your admin to add you.')
-    setLoading(false)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+
+      // Look up invitation by invitation code
+      const { data: invitation, error: invitationError } = await supabase
+        .from('invitations')
+        .select('id, organization_id, email, role, status, expires_at')
+        .eq('invitation_code', inviteCode.trim().toUpperCase())
+        .eq('status', 'pending')
+        .single()
+
+      if (invitationError || !invitation) {
+        if (invitationError?.code === 'PGRST116') {
+          throw new Error('No invitation found with this code. Please check the code and try again.')
+        }
+        throw new Error('Invalid or expired invitation code. Please check the code and try again.')
+      }
+
+      // Get organization details separately
+      const { data: organization } = await supabase
+        .from('organizations')
+        .select('id, name')
+        .eq('id', invitation.organization_id)
+        .single()
+
+      // Check if invitation has expired
+      if (new Date(invitation.expires_at) < new Date()) {
+        throw new Error('This invitation has expired. Please contact your admin for a new invitation.')
+      }
+
+      // Check if the user's email matches the invitation
+      if (invitation.email.toLowerCase() !== user.email?.toLowerCase()) {
+        throw new Error(`This invitation is for ${invitation.email}. Please sign in with the correct email address or contact your admin.`)
+      }
+
+      // Update user profile with organization and role from invitation
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          organization_id: invitation.organization_id,
+          role: invitation.role,
+        })
+        .eq('id', user.id)
+
+      if (profileError) throw profileError
+
+      // Mark invitation as accepted
+      const { error: acceptError } = await supabase
+        .from('invitations')
+        .update({
+          status: 'accepted',
+          accepted_at: new Date().toISOString()
+        })
+        .eq('id', invitation.id)
+
+      if (acceptError) throw acceptError
+
+      // Success! Redirect to completion page
+      router.push('/onboarding/complete')
+    } catch (err) {
+      console.error('Error joining organization:', err)
+      setError(err instanceof Error ? err.message : 'Failed to join organization')
+      setLoading(false)
+    }
   }
 
   if (checking) {
@@ -153,13 +214,15 @@ export default function JoinOrganizationPage() {
                 <Label htmlFor="inviteCode">Invite Code</Label>
                 <Input
                   id="inviteCode"
-                  placeholder="Enter your invite code"
+                  placeholder="e.g., AB3CD4FG"
                   value={inviteCode}
-                  onChange={(e) => setInviteCode(e.target.value)}
+                  onChange={(e) => setInviteCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+                  maxLength={8}
+                  className="font-mono text-center tracking-wider text-lg"
                   required
                 />
                 <p className="text-xs text-muted-foreground">
-                  Ask your HR manager or admin for this code
+                  Ask your HR manager or admin for this 8-character code
                 </p>
               </div>
 

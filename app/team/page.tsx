@@ -13,8 +13,12 @@ import { Users, Plus, Mail } from 'lucide-react'
 import Link from 'next/link'
 import { InviteTeamDialog } from './components/InviteTeamDialog'
 import InvitationsSection from './components/InvitationsSection'
+import { getTranslations } from 'next-intl/server'
 
 export default async function TeamPage() {
+  const t = await getTranslations('team')
+  const tCommon = await getTranslations('common')
+  
   const supabase = await createClient()
   
   const { data: { user } } = await supabase.auth.getUser()
@@ -60,6 +64,7 @@ export default async function TeamPage() {
       status, 
       created_at,
       expires_at,
+      invitation_code,
       profiles!invitations_invited_by_fkey (
         full_name,
         email
@@ -80,9 +85,9 @@ export default async function TeamPage() {
 
   const getRoleDisplayName = (role: string) => {
     switch (role) {
-      case 'admin': return 'Admin'
-      case 'manager': return 'Menedżer' 
-      case 'employee': return 'Pracownik'
+      case 'admin': return t('roles.admin')
+      case 'manager': return t('roles.manager')
+      case 'employee': return t('roles.employee')
       default: return role
     }
   }
@@ -95,13 +100,13 @@ export default async function TeamPage() {
         {/* Row 1: Full-width white background with centered PageHeader + Tabs */}
         <div className="w-full bg-background">
           <PageHeader
-            title="Zarządzanie zespołem"
-            description="Zarządzaj członkami zespołu i zaproszeniami"
+            title={t('title')}
+            description={t('description')}
           >
             {canManageTeam && (
               <Link href="/team?invite=true">
                 <Button className="bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2 rounded-lg">
-                  Zaproś członka
+                  {t('inviteMember')}
                 </Button>
               </Link>
             )}
@@ -112,10 +117,10 @@ export default async function TeamPage() {
             <div className="max-w-7xl mx-auto">
               <TabsList>
                 <TabsTrigger value="members">
-                  Członkowie zespołu ({teamMembers?.length || 0})
+                  {t('teamMembers')} ({teamMembers?.length || 0})
                 </TabsTrigger>
                 <TabsTrigger value="invitations">
-                  Oczekujące zaproszenia ({invitations?.length || 0})
+                  {t('pendingInvitations')} ({invitations?.length || 0})
                 </TabsTrigger>
               </TabsList>
             </div>
@@ -136,11 +141,11 @@ export default async function TeamPage() {
                         <Table>
                           <TableHeader>
                             <TableRow>
-                              <TableHead>Użytkownik</TableHead>
-                              <TableHead>Email</TableHead>
-                              <TableHead>Typ konta</TableHead>
-                              <TableHead>Dołączył</TableHead>
-                              <TableHead className="text-right">Akcje</TableHead>
+                              <TableHead>{t('user')}</TableHead>
+                              <TableHead>{t('email')}</TableHead>
+                              <TableHead>{t('accountType')}</TableHead>
+                              <TableHead>{t('joined')}</TableHead>
+                              <TableHead className="text-right">{t('actions')}</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -148,7 +153,7 @@ export default async function TeamPage() {
                               <TableRow key={member.id}>
                                 <TableCell>
                                   <span className="font-medium text-foreground">
-                                    {member.full_name || 'Brak nazwy'}
+                                    {member.full_name || t('noName')}
                                   </span>
                                 </TableCell>
                                 <TableCell>
@@ -180,7 +185,7 @@ export default async function TeamPage() {
                         <div className="bg-neutral-50 border-t border-border h-[52px] flex items-center">
                           <div className="px-4">
                             <p className="text-sm font-normal text-muted-foreground">
-                              Total team members: {teamMembers?.length || 0}
+                              {t('totalTeamMembers')}: {teamMembers?.length || 0}
                             </p>
                           </div>
                         </div>
@@ -188,8 +193,8 @@ export default async function TeamPage() {
                     ) : (
                       <div className="text-center py-12">
                         <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                        <p className="text-muted-foreground">Jeszcze brak członków zespołu</p>
-                        <p className="text-sm text-muted-foreground">Zaproś pierwszego członka zespołu aby rozpocząć</p>
+                        <p className="text-muted-foreground">{t('noTeamMembers')}</p>
+                        <p className="text-sm text-muted-foreground">{t('inviteFirstMember')}</p>
                       </div>
                     )}
                   </CardContent>
@@ -198,9 +203,8 @@ export default async function TeamPage() {
                 {/* Permission Notice for Non-Admins */}
                 {!canManageTeam && (
                   <Alert className="mt-6 border-amber-200 bg-amber-50 text-amber-800">
-                    <Users className="h-4 w-4" />
                     <AlertDescription>
-                      <strong>Ograniczony dostęp:</strong> Tylko administratorzy i menedżerowie mogą zapraszać nowych członków zespołu. Skontaktuj się z administratorem jeśli potrzebujesz kogoś zaprosić.
+                      {t('permissionNotice')}
                     </AlertDescription>
                   </Alert>
                 )}
@@ -210,7 +214,7 @@ export default async function TeamPage() {
               <TabsContent value="invitations" className="mt-0">
                 <InvitationsSection 
                   invitations={invitations || []} 
-                  canManageTeam={canManageTeam} 
+                  canManageTeam={canManageTeam}
                 />
               </TabsContent>
             </div>

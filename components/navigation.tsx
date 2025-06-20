@@ -16,6 +16,8 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { SignOutButton } from '@/components/sign-out-button'
 import { ThemeToggle } from '@/components/theme-toggle'
+import { LanguageSwitcher } from '@/components/LanguageSwitcher'
+import { useTranslations } from 'next-intl'
 
 interface NavigationProps {
   userRole?: string
@@ -29,52 +31,52 @@ interface NavigationProps {
   teamInviteCount?: number
 }
 
-const navigation = [
+const getNavigationItems = (t: any) => [
   {
-    name: 'Dashboard',
+    name: t('navigation.dashboard'),
     href: '/dashboard',
     roles: ['admin', 'manager', 'employee']
   },
   {
-    name: 'Zespół',
+    name: t('navigation.team'),
     href: '/team',
     roles: ['admin', 'manager', 'employee'],
     showBadge: true
   },
   {
-    name: 'Wnioski urlopowe',
+    name: t('navigation.leave'),
     href: '/leave',
     roles: ['admin', 'manager', 'employee']
   },
   {
-    name: 'Harmonogramy',
+    name: t('navigation.schedule'),
     href: '/schedule',
     roles: ['admin', 'manager']
   },
   {
-    name: 'Administracja',
+    name: t('navigation.admin'),
     href: '/admin',
     roles: ['admin']
   },
   {
-    name: 'Święta',
+    name: t('admin.holidayManagement'),
     href: '/admin/holidays',
     roles: ['admin']
   },
   {
-    name: 'Kalendarz zespołu',
+    name: t('navigation.calendar'),
     href: '/calendar',
     roles: ['admin', 'manager', 'employee']
   }
 ]
 
-const settingsNavigation = [
+const getSettingsNavigation = (t: any) => [
   {
-    name: 'Ustawienia organizacji',
+    name: t('settings.organization'),
     href: '/settings'
   },
   {
-    name: 'Profil',
+    name: t('navigation.profile'),
     href: '/profile'
   }
 ]
@@ -87,6 +89,10 @@ export function Navigation({
   teamInviteCount = 0
 }: NavigationProps) {
   const pathname = usePathname()
+  const t = useTranslations()
+  
+  const navigation = getNavigationItems(t)
+  const settingsNavigation = getSettingsNavigation(t)
 
   const filteredNavigation = navigation.filter(item => 
     item.roles.includes(userRole)
@@ -157,14 +163,14 @@ export function Navigation({
                     size="sm"
                     className="flex items-center gap-1.5 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground transition-colors h-auto"
                   >
-                    Ustawienia
+                    {t('navigation.settings')}
                     <ChevronDown className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start">
                   {settingsNavigation.map((item) => (
                     <DropdownMenuItem key={item.name} asChild>
-                      <Link href={item.href} className="cursor-pointer">
+                      <Link href={item.href}>
                         {item.name}
                       </Link>
                     </DropdownMenuItem>
@@ -176,7 +182,8 @@ export function Navigation({
         </div>
 
         {/* Right side - User menu */}
-        <div className="flex items-center">
+        <div className="flex items-center gap-2">
+          <LanguageSwitcher />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -199,14 +206,14 @@ export function Navigation({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuItem asChild>
-                <Link href="/profile" className="cursor-pointer">
-                  Profil
+                <Link href="/profile">
+                  {t('navigation.profile')}
                 </Link>
               </DropdownMenuItem>
               {(userRole === 'admin' || userRole === 'manager') && (
                 <DropdownMenuItem asChild>
-                  <Link href="/settings" className="cursor-pointer">
-                    Ustawienia organizacji
+                  <Link href="/settings">
+                    {t('settings.organization')}
                   </Link>
                 </DropdownMenuItem>
               )}
