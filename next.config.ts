@@ -10,22 +10,22 @@ const nextConfig: NextConfig = {
   },
   
   // Bundle optimization
-      experimental: {
-      optimizePackageImports: [
-        'lucide-react', 
-        '@radix-ui/react-dialog', 
-        '@radix-ui/react-dropdown-menu',
-        '@radix-ui/react-popover',
-        '@radix-ui/react-select',
-        '@radix-ui/react-tabs',
-        '@radix-ui/react-toast',
-        'date-fns',
-        'react-day-picker'
-      ],
-    },
+  experimental: {
+    optimizePackageImports: [
+      'lucide-react', 
+      '@radix-ui/react-dialog', 
+      '@radix-ui/react-dropdown-menu',
+      '@radix-ui/react-popover',
+      '@radix-ui/react-select',
+      '@radix-ui/react-tabs',
+      '@radix-ui/react-toast',
+      'date-fns',
+      'react-day-picker'
+    ],
+  },
     
-    // Server external packages
-    serverExternalPackages: ['@node-rs/argon2'],
+  // Server external packages
+  serverExternalPackages: ['@node-rs/argon2'],
   
   // Image optimization
   images: {
@@ -42,9 +42,9 @@ const nextConfig: NextConfig = {
   // Performance optimizations
   compress: true,
   
-  // Webpack optimizations for production
+  // Consolidated webpack configuration
   webpack: (config, { dev, isServer }) => {
-    // Optimize bundle splitting in production
+    // Bundle optimization for production
     if (!dev && !isServer) {
       config.optimization.splitChunks = {
         chunks: 'all',
@@ -80,12 +80,8 @@ const nextConfig: NextConfig = {
       config.optimization.runtimeChunk = 'single';
     }
     
-    return config;
-  },
-  
-  // Bundle analyzer (for debugging)
-  ...(process.env.ANALYZE === 'true' && {
-    webpack: (config: any) => {
+    // Optional bundle analyzer (only when ANALYZE=true)
+    if (process.env.ANALYZE === 'true') {
       const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
       config.plugins.push(
         new BundleAnalyzerPlugin({
@@ -93,9 +89,10 @@ const nextConfig: NextConfig = {
           openAnalyzer: true,
         })
       );
-      return config;
-    },
-  }),
+    }
+    
+    return config;
+  },
 };
 
 export default withNextIntl(nextConfig);
