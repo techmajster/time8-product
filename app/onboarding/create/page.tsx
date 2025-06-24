@@ -8,9 +8,12 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { ArrowLeft, Building2 } from 'lucide-react'
+import { ArrowLeft, Building2, Globe, Check } from 'lucide-react'
 import Link from 'next/link'
 import { Checkbox } from '@/components/ui/checkbox'
+import { getAvailableCalendars } from '@/lib/holiday-calendars'
+
+const AVAILABLE_CALENDARS = getAvailableCalendars()
 
 export default function CreateOrganizationPage() {
   const [loading, setLoading] = useState(false)
@@ -21,6 +24,7 @@ export default function CreateOrganizationPage() {
     slug: '',
     googleDomain: '',
     requireGoogleDomain: false,
+    countryCode: 'PL',
   })
   
   const router = useRouter()
@@ -97,6 +101,7 @@ export default function CreateOrganizationPage() {
           slug: formData.slug,
           google_domain: formData.googleDomain || null,
           require_google_domain: formData.requireGoogleDomain,
+          country_code: formData.countryCode,
         })
         .select()
         .single()
@@ -242,6 +247,57 @@ export default function CreateOrganizationPage() {
               </div>
               <p className="text-xs text-muted-foreground">
                 Letters, numbers, and hyphens only
+              </p>
+            </div>
+
+            <div className="rounded-lg border bg-muted p-4 space-y-4">
+              <div className="flex items-center gap-2">
+                <Globe className="h-5 w-5" />
+                <h3 className="font-medium">Holiday Calendar</h3>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Choose which national holiday calendar to use for your organization
+              </p>
+
+              <div className="grid grid-cols-1 gap-3">
+                {AVAILABLE_CALENDARS.map((calendar) => {
+                  const isSelected = formData.countryCode === calendar.code
+                  
+                  return (
+                    <div
+                      key={calendar.code}
+                      className={`relative p-3 border rounded-lg cursor-pointer transition-all ${
+                        isSelected
+                          ? 'border-primary bg-primary/5'
+                          : 'border-border hover:border-primary/50 hover:bg-muted/50'
+                      }`}
+                      onClick={() => setFormData({ ...formData, countryCode: calendar.code })}
+                    >
+                      {isSelected && (
+                        <div className="absolute top-2 right-2">
+                          <Check className="h-4 w-4 text-primary" />
+                        </div>
+                      )}
+                      
+                      <div className="flex items-start gap-3">
+                        <div className="text-2xl">{calendar.flag}</div>
+                        <div className="flex-1">
+                          <div className="font-medium">{calendar.name}</div>
+                          <div className="text-sm text-muted-foreground mt-1">
+                            {calendar.description}
+                          </div>
+                          <div className="text-xs text-primary mt-1">
+                            {calendar.holidayCount} świąt dostępnych
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+              
+              <p className="text-xs text-muted-foreground">
+                Możesz zmienić kalendarz później w ustawieniach organizacji
               </p>
             </div>
 

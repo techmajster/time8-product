@@ -159,32 +159,55 @@ export async function sendPendingLeaveReminders() {
   const supabase = await createClient()
 
   try {
-    // Get all managers and admins with pending leave requests to review
-    const { data: managersWithPending, error } = await supabase
-      .from('profiles')
+    // ✅ OPTIMIZED: Get all pending requests with manager info in a single query (was N+1 pattern)
+    const { data: pendingRequestsWithManagers, error } = await supabase
+      .from('leave_requests')
       .select(`
-        id, email, full_name, organization_id,
+        id, leave_type, start_date, created_at, organization_id,
+        profiles!leave_requests_user_id_fkey(full_name),
         organizations!inner(name)
       `)
-      .in('role', ['admin', 'manager'])
+      .eq('status', 'pending')
 
-    if (error || !managersWithPending) {
-      console.error('Could not fetch managers:', error)
+    if (error || !pendingRequestsWithManagers) {
+      console.error('Could not fetch pending requests:', error)
       return
     }
 
-    for (const manager of managersWithPending) {
-      // Get pending requests for this manager's organization
-      const { data: pendingRequests, error: requestsError } = await supabase
-        .from('leave_requests')
-        .select(`
-          id, leave_type, start_date, created_at,
-          profiles!inner(full_name, organization_id)
-        `)
-        .eq('status', 'pending')
-        .eq('profiles.organization_id', manager.organization_id)
+    // Get all managers and admins
+    const { data: managers, error: managersError } = await supabase
+      .from('profiles')
+      .select('id, email, full_name, organization_id')
+      .in('role', ['admin', 'manager'])
 
-      if (requestsError || !pendingRequests || pendingRequests.length === 0) {
+    if (managersError || !managers) {
+      console.error('Could not fetch managers:', managersError)
+      return
+    }
+
+    // ✅ OPTIMIZED: Group pending requests by organization (single loop, no N queries)
+    const requestsByOrg = pendingRequestsWithManagers.reduce((acc: any, request: any) => {
+      const orgId = request.organization_id
+      if (!acc[orgId]) {
+        acc[orgId] = {
+          organizationName: request.organizations.name,
+          requests: []
+        }
+      }
+      acc[orgId].requests.push({
+        employeeName: request.profiles.full_name,
+        leaveType: request.leave_type,
+        startDate: new Date(request.start_date).toLocaleDateString('pl-PL'),
+        requestDate: new Date(request.created_at).toLocaleDateString('pl-PL')
+      })
+      return acc
+    }, {})
+
+    // Send notifications to managers (single loop through managers, no additional queries)
+    for (const manager of managers) {
+      const orgRequests = requestsByOrg[manager.organization_id]
+      
+      if (!orgRequests || orgRequests.requests.length === 0) {
         continue
       }
 
@@ -194,14 +217,9 @@ export async function sendPendingLeaveReminders() {
         {
           type: 'leave_reminder',
           to: manager.email,
-          pendingRequestsCount: pendingRequests.length,
-          organizationName: (manager as any).organizations.name,
-          requests: pendingRequests.map((req: any) => ({
-            employeeName: req.profiles.full_name,
-            leaveType: req.leave_type,
-            startDate: new Date(req.start_date).toLocaleDateString('pl-PL'),
-            requestDate: new Date(req.created_at).toLocaleDateString('pl-PL')
-          }))
+          pendingRequestsCount: orgRequests.requests.length,
+          organizationName: orgRequests.organizationName,
+          requests: orgRequests.requests
         }
       )
     }
@@ -234,31 +252,48 @@ export async function sendWeeklySummaries() {
     const weekStart = new Date(today.setDate(today.getDate() - today.getDay()))
     const weekEnd = new Date(today.setDate(today.getDate() - today.getDay() + 6))
 
-    for (const user of users) {
-      // Get leave data for this user's organization
-      const { data: leaveData, error: leaveError } = await supabase
-        .from('leave_requests')
-        .select(`
-          id, leave_type, start_date, end_date, status,
-          profiles!inner(full_name, organization_id)
-        `)
-        .eq('profiles.organization_id', (user as any).profiles.organization_id)
-        .gte('start_date', weekStart.toISOString())
-        .lte('end_date', weekEnd.toISOString())
+    // ✅ OPTIMIZED: Get all leave data for all organizations in a single query (was N+1 pattern)
+    const organizationIds = [...new Set(users.map((user: any) => user.profiles.organization_id))]
+    
+    const { data: allLeaveData, error: leaveError } = await supabase
+      .from('leave_requests')
+      .select(`
+        id, leave_type, start_date, end_date, status, organization_id,
+        profiles!leave_requests_user_id_fkey(full_name)
+      `)
+      .in('organization_id', organizationIds)
+      .gte('start_date', weekStart.toISOString())
+      .lte('end_date', weekEnd.toISOString())
 
-      if (leaveError) {
-        console.error('Could not fetch leave data:', leaveError)
-        continue
+    if (leaveError) {
+      console.error('Could not fetch leave data:', leaveError)
+      return
+    }
+
+    // ✅ OPTIMIZED: Group leave data by organization (single loop, no N queries)
+    const leavesByOrg = (allLeaveData || []).reduce((acc: any, leave: any) => {
+      const orgId = leave.organization_id
+      if (!acc[orgId]) {
+        acc[orgId] = []
       }
+      acc[orgId].push(leave)
+      return acc
+    }, {})
 
-      const totalLeaves = leaveData?.filter((l: any) => l.status === 'approved').length || 0
-      const pendingRequests = leaveData?.filter((l: any) => l.status === 'pending').length || 0
-      const upcomingLeaves = leaveData?.filter((l: any) => l.status === 'approved').map((leave: any) => ({
-        employeeName: leave.profiles.full_name,
-        leaveType: leave.leave_type,
-        startDate: new Date(leave.start_date).toLocaleDateString('pl-PL'),
-        endDate: new Date(leave.end_date).toLocaleDateString('pl-PL')
-      })) || []
+    // Send weekly summaries to users (single loop through users, no additional queries)
+    for (const user of users) {
+      const orgLeaveData = leavesByOrg[(user as any).profiles.organization_id] || []
+
+      const totalLeaves = orgLeaveData.filter((l: any) => l.status === 'approved').length
+      const pendingRequests = orgLeaveData.filter((l: any) => l.status === 'pending').length
+      const upcomingLeaves = orgLeaveData
+        .filter((l: any) => l.status === 'approved')
+        .map((leave: any) => ({
+          employeeName: leave.profiles.full_name,
+          leaveType: leave.leave_type,
+          startDate: new Date(leave.start_date).toLocaleDateString('pl-PL'),
+          endDate: new Date(leave.end_date).toLocaleDateString('pl-PL')
+        }))
 
       await sendNotificationIfEnabled(
         (user as any).user_id,

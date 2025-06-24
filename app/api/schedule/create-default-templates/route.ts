@@ -1,37 +1,26 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { getBasicAuth } from '@/lib/auth-utils'
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    
-    // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Get user profile for organization_id and role check
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('organization_id, role')
-      .eq('id', user.id)
-      .single()
-
-    if (profileError || !profile) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
-    }
+    // Use optimized auth utility
+    const auth = await getBasicAuth()
+    if (!auth.success) return auth.error
+    const { organizationId, role } = auth
 
     // Only allow admin to create default templates
-    if (profile.role !== 'admin') {
+    if (role !== 'admin') {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
     }
+
+    const supabase = await createClient()
 
     // Check if templates already exist
     const { data: existingTemplates } = await supabase
       .from('work_schedule_templates')
       .select('id')
-      .eq('organization_id', profile.organization_id)
+      .eq('organization_id', organizationId)
 
     if (existingTemplates && existingTemplates.length > 0) {
       return NextResponse.json({ 
@@ -43,7 +32,7 @@ export async function POST(request: NextRequest) {
     // Create default templates
     const defaultTemplates = [
       {
-        organization_id: profile.organization_id,
+        organization_id: organizationId,
         name: 'Standardowy 9-17',
         description: 'Standardowy harmonogram biurowy, poniedziałek-piątek 9:00-17:00',
         schedule_type: 'fixed',
@@ -71,7 +60,7 @@ export async function POST(request: NextRequest) {
         sunday_is_working: false,
       },
       {
-        organization_id: profile.organization_id,
+        organization_id: organizationId,
         name: 'Wczesna zmiana 6-14',
         description: 'Wczesna zmiana, poniedziałek-piątek 6:00-14:00',
         schedule_type: 'shift',
@@ -99,7 +88,7 @@ export async function POST(request: NextRequest) {
         sunday_is_working: false,
       },
       {
-        organization_id: profile.organization_id,
+        organization_id: organizationId,
         name: 'Późna zmiana 14-22',
         description: 'Późna zmiana, poniedziałek-piątek 14:00-22:00',
         schedule_type: 'shift',
@@ -127,7 +116,7 @@ export async function POST(request: NextRequest) {
         sunday_is_working: false,
       },
       {
-        organization_id: profile.organization_id,
+        organization_id: organizationId,
         name: 'Weekendowy 7 dni',
         description: 'Harmonogram 7 dni w tygodniu, 8:00-16:00',
         schedule_type: 'shift',

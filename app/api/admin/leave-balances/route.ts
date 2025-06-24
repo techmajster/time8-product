@@ -1,24 +1,18 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { getBasicAuth } from '@/lib/auth-utils'
 
 export async function POST(request: Request) {
   try {
     const supabase = await createClient()
     
-    // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    // Use optimized auth utility
+    const auth = await getBasicAuth()
+    if (!auth.success) return auth.error
+    const { organizationId, role } = auth
 
     // Check if user is admin
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('role, organization_id')
-      .eq('id', user.id)
-      .single()
-
-    if (profileError || profile.role !== 'admin') {
+    if (role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -35,7 +29,7 @@ export async function POST(request: Request) {
           year,
           entitled_days: allocated_days,
           used_days: 0,
-          organization_id: profile.organization_id
+          organization_id: organizationId
         })
         .select()
 
@@ -57,7 +51,7 @@ export async function POST(request: Request) {
           entitled_days: allocated_days
         })
         .eq('id', balance_id)
-        .eq('organization_id', profile.organization_id)
+        .eq('organization_id', organizationId)
         .select()
 
       if (error) {
@@ -76,7 +70,7 @@ export async function POST(request: Request) {
       const { data: leaveTypes, error: leaveTypesError } = await supabase
         .from('leave_types')
         .select('id, days_per_year, name, leave_category')
-        .eq('organization_id', profile.organization_id)
+        .eq('organization_id', organizationId)
         .eq('requires_balance', true)
         .gt('days_per_year', 0)
         .not('leave_category', 'in', '(maternity,paternity,childcare)')
@@ -95,7 +89,7 @@ export async function POST(request: Request) {
         .select('leave_type_id')
         .eq('user_id', target_user_id)
         .eq('year', target_year)
-        .eq('organization_id', profile.organization_id)
+        .eq('organization_id', organizationId)
 
       const existingLeaveTypeIds = existingBalances?.map(b => b.leave_type_id) || []
       const newBalances = leaveTypes
@@ -106,7 +100,7 @@ export async function POST(request: Request) {
           year: target_year,
           entitled_days: lt.days_per_year,
           used_days: 0,
-          organization_id: profile.organization_id
+          organization_id: organizationId
         }))
 
       if (newBalances.length === 0) {
@@ -133,13 +127,13 @@ export async function POST(request: Request) {
       // Create default leave balances for ALL users in the organization
       const { target_year = new Date().getFullYear() } = body
       
-      console.log('Creating missing balances for organization:', profile.organization_id, 'year:', target_year)
+      console.log('Creating missing balances for organization:', organizationId, 'year:', target_year)
       
       // Get all users in organization
       const { data: users, error: usersError } = await supabase
         .from('profiles')
         .select('id, full_name, email')
-        .eq('organization_id', profile.organization_id)
+        .eq('organization_id', organizationId)
 
       if (usersError) {
         console.error('Error fetching users:', usersError)
@@ -150,7 +144,7 @@ export async function POST(request: Request) {
       const { data: leaveTypes, error: leaveTypesError } = await supabase
         .from('leave_types')
         .select('id, days_per_year, name, leave_category')
-        .eq('organization_id', profile.organization_id)
+        .eq('organization_id', organizationId)
         .eq('requires_balance', true)
         .gt('days_per_year', 0)
         .not('leave_category', 'in', '(maternity,paternity,childcare)')
@@ -174,7 +168,7 @@ export async function POST(request: Request) {
       const { data: existingBalances, error: existingError } = await supabase
         .from('leave_balances')
         .select('user_id, leave_type_id')
-        .eq('organization_id', profile.organization_id)
+        .eq('organization_id', organizationId)
         .eq('year', target_year)
 
       if (existingError) {
@@ -201,7 +195,7 @@ export async function POST(request: Request) {
             missingBalances.push({
               user_id: user.id,
               leave_type_id: leaveType.id,
-              organization_id: profile.organization_id,
+              organization_id: organizationId,
               year: target_year,
               entitled_days: leaveType.days_per_year,
               used_days: 0
@@ -252,20 +246,13 @@ export async function DELETE(request: Request) {
   try {
     const supabase = await createClient()
     
-    // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    // Use optimized auth utility
+    const auth = await getBasicAuth()
+    if (!auth.success) return auth.error
+    const { organizationId, role } = auth
 
     // Check if user is admin
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('role, organization_id')
-      .eq('id', user.id)
-      .single()
-
-    if (profileError || profile.role !== 'admin') {
+    if (role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -280,7 +267,7 @@ export async function DELETE(request: Request) {
       .from('leave_balances')
       .delete()
       .eq('id', balance_id)
-      .eq('organization_id', profile.organization_id)
+      .eq('organization_id', organizationId)
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 })

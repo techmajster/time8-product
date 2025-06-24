@@ -1,32 +1,21 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { getBasicAuth, isManagerOrAdmin } from '@/lib/auth-utils'
 
 export async function GET(request: NextRequest) {
   try {
+    // Use optimized auth utility
+    const auth = await getBasicAuth()
+    if (!auth.success) return auth.error
+    const { organizationId } = auth
+
     const supabase = await createClient()
-    
-    // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Get user profile for organization_id
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('organization_id')
-      .eq('id', user.id)
-      .single()
-
-    if (profileError || !profile) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
-    }
 
     // Get all templates for the organization
     const { data: templates, error: templatesError } = await supabase
       .from('work_schedule_templates')
       .select('*')
-      .eq('organization_id', profile.organization_id)
+      .eq('organization_id', organizationId)
       .order('created_at', { ascending: false })
 
     if (templatesError) {
@@ -52,30 +41,17 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    
-    // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Get user profile for organization_id and role
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('organization_id, role')
-      .eq('id', user.id)
-      .single()
-
-    if (profileError || !profile) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
-    }
+    // Use optimized auth utility
+    const auth = await getBasicAuth()
+    if (!auth.success) return auth.error
+    const { user, organizationId, role } = auth
 
     // Check if user can manage templates
-    const canManage = profile.role === 'admin' || profile.role === 'manager'
-    if (!canManage) {
+    if (!isManagerOrAdmin(role)) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
     }
+
+    const supabase = await createClient()
 
     const body = await request.json()
     const {
@@ -117,7 +93,7 @@ export async function POST(request: NextRequest) {
       const { error: updateError } = await supabase
         .from('work_schedule_templates')
         .update({ is_default: false })
-        .eq('organization_id', profile.organization_id)
+        .eq('organization_id', organizationId)
         .eq('is_default', true)
 
       if (updateError) {
@@ -133,7 +109,7 @@ export async function POST(request: NextRequest) {
         description: description?.trim() || null,
         schedule_type: schedule_type || 'fixed',
         is_default: is_default || false,
-        organization_id: profile.organization_id,
+        organization_id: organizationId,
         created_by: user.id,
         monday_start,
         monday_end,

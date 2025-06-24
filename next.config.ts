@@ -9,6 +9,16 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: process.env.NODE_ENV === 'production',
   },
   
+  // Development optimization - prevent CSS cache issues
+  ...(process.env.NODE_ENV === 'development' && {
+    onDemandEntries: {
+      // period (in ms) where the server will keep pages in the buffer
+      maxInactiveAge: 25 * 1000,
+      // number of pages that should be kept simultaneously without being disposed
+      pagesBufferLength: 2,
+    },
+  }),
+  
   // Bundle optimization
   experimental: {
     optimizePackageImports: [

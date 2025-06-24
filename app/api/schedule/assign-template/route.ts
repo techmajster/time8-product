@@ -1,31 +1,20 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { getBasicAuth, isManagerOrAdmin } from '@/lib/auth-utils'
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    
-    // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Get user profile for organization_id and role check
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('organization_id, role')
-      .eq('id', user.id)
-      .single()
-
-    if (profileError || !profile) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
-    }
+    // Use optimized auth utility
+    const auth = await getBasicAuth()
+    if (!auth.success) return auth.error
+    const { organizationId, role } = auth
 
     // Only allow admin/manager to assign templates
-    if (profile.role !== 'admin' && profile.role !== 'manager') {
+    if (!isManagerOrAdmin(role)) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
     }
+
+    const supabase = await createClient()
 
     const { employee_ids, template_id } = await request.json()
 
@@ -42,7 +31,7 @@ export async function POST(request: NextRequest) {
       .from('work_schedule_templates')
       .select('*')
       .eq('id', template_id)
-      .eq('organization_id', profile.organization_id)
+      .eq('organization_id', organizationId)
       .single()
 
     if (templateError || !template) {
@@ -54,7 +43,7 @@ export async function POST(request: NextRequest) {
       .from('profiles')
       .select('id')
       .in('id', employee_ids)
-      .eq('organization_id', profile.organization_id)
+      .eq('organization_id', organizationId)
 
     if (employeesError || !employees || employees.length !== employee_ids.length) {
       return NextResponse.json({ error: 'Some employees not found or not in organization' }, { status: 400 })
@@ -65,14 +54,15 @@ export async function POST(request: NextRequest) {
     const startDate = new Date()
     startDate.setDate(startDate.getDate() - (startDate.getDay() + 6) % 7) // Go to last Monday
 
-    for (const employeeId of employee_ids) {
-      // Clear existing schedules for this employee
-      await supabase
-        .from('employee_schedules')
-        .delete()
-        .eq('user_id', employeeId)
-        .eq('organization_id', profile.organization_id)
+    // ✅ OPTIMIZED: Bulk delete existing schedules for all employees at once (was N+1 pattern)
+    await supabase
+      .from('employee_schedules')
+      .delete()
+      .in('user_id', employee_ids)
+      .eq('organization_id', organizationId)
 
+    // Generate new schedules for all employees
+    for (const employeeId of employee_ids) {
       // Generate new schedules
       for (let week = 0; week < 4; week++) {
         for (let day = 0; day < 7; day++) {
@@ -88,7 +78,7 @@ export async function POST(request: NextRequest) {
           
           schedules.push({
             user_id: employeeId,
-            organization_id: profile.organization_id,
+            organization_id: organizationId,
             date: dateStr,
             shift_start_time: isWorking ? startTime : null,
             shift_end_time: isWorking ? endTime : null,

@@ -5,9 +5,48 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { PageHeader } from '@/components/ui/page-header'
 import { Badge } from '@/components/ui/badge'
 import { Calendar, Users, TrendingDown, AlertTriangle, CalendarDays } from 'lucide-react'
-import { TeamCalendarView } from './components/TeamCalendarView'
-import { CapacityOverview } from './components/CapacityOverview'
-import { UpcomingLeaves } from './components/UpcomingLeaves'
+import dynamic from 'next/dynamic'
+import { Skeleton } from '@/components/ui/skeleton'
+
+// ✅ OPTIMIZATION: Lazy load heavy calendar components for better performance
+const TeamCalendarView = dynamic(() => 
+  import('./components/TeamCalendarView').then(mod => ({ default: mod.TeamCalendarView })), 
+  { 
+    loading: () => (
+      <div className="space-y-4">
+        <Skeleton className="h-8 w-full" />
+        <Skeleton className="h-64 w-full" />
+        <Skeleton className="h-32 w-full" />
+      </div>
+    )
+  }
+)
+
+const CapacityOverview = dynamic(() => 
+  import('./components/CapacityOverview').then(mod => ({ default: mod.CapacityOverview })), 
+  { 
+    loading: () => (
+      <div className="space-y-4">
+        <Skeleton className="h-24 w-full" />
+        <Skeleton className="h-40 w-full" />
+        <Skeleton className="h-20 w-full" />
+      </div>
+    )
+  }
+)
+
+const UpcomingLeaves = dynamic(() => 
+  import('./components/UpcomingLeaves').then(mod => ({ default: mod.UpcomingLeaves })), 
+  { 
+    loading: () => (
+      <div className="space-y-2">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Skeleton key={i} className="h-16 w-full" />
+        ))}
+      </div>
+    )
+  }
+)
 
 export default async function CalendarPage() {
   const supabase = await createClient()
@@ -98,11 +137,17 @@ export default async function CalendarPage() {
       color: request.leave_types?.color || '#gray-500'
     },
     // Also include snake_case for CapacityOverview
+    leave_type: {
+      id: request.leave_types?.id || request.id,
+      name: request.leave_types?.name || 'Unknown',
+      color: request.leave_types?.color || '#gray-500'
+    },
     leave_types: {
       name: request.leave_types?.name || 'Unknown',
       color: request.leave_types?.color || '#gray-500'
     },
     user: {
+      id: request.user_id,
       fullName: request.profiles?.full_name || 'Unknown User',
       email: request.profiles?.email || '',
       avatarUrl: request.profiles?.avatar_url || null
@@ -132,7 +177,7 @@ export default async function CalendarPage() {
   // Get holidays for the same period (filtered by organization's country)
   const { data: holidaysRaw, error: holidaysError } = await supabase
     .from('company_holidays')
-    .select('*')
+    .select('id, name, date, type')
     .or(`organization_id.eq.${profile.organization_id},and(type.eq.national,country_code.eq.${countryCode})`)
     .gte('date', startDate.toISOString().split('T')[0])
     .lte('date', endDate.toISOString().split('T')[0])

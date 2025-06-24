@@ -6,8 +6,22 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Settings, Users, Calendar, Plus, CalendarDays } from 'lucide-react'
 import Link from 'next/link'
-import { LeaveBalanceManager } from './components/LeaveBalanceManager'
+import dynamic from 'next/dynamic'
+import { Skeleton } from '@/components/ui/skeleton'
 import { getTranslations } from 'next-intl/server'
+
+// ✅ OPTIMIZATION: Lazy load heavy admin components
+const LeaveBalanceManager = dynamic(() => 
+  import('./components/LeaveBalanceManager').then(mod => ({ default: mod.LeaveBalanceManager })), 
+  { 
+    loading: () => (
+      <div className="space-y-4">
+        <Skeleton className="h-32 w-full" />
+        <Skeleton className="h-64 w-full" />
+      </div>
+    )
+  }
+)
 
 export default async function AdminPage() {
   const t = await getTranslations('admin')
@@ -51,7 +65,7 @@ export default async function AdminPage() {
 
   const { data: leaveTypes } = await supabase
     .from('leave_types')
-    .select('*')
+    .select('id, name, color, leave_category, requires_balance, days_per_year')
     .eq('organization_id', profile.organization_id)
     .order('name')
 

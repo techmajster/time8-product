@@ -1,24 +1,18 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { getBasicAuth } from '@/lib/auth-utils'
 
 export async function POST() {
   try {
     const supabase = await createClient()
     
-    // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    // Use optimized auth utility
+    const auth = await getBasicAuth()
+    if (!auth.success) return auth.error
+    const { organizationId, role } = auth
 
     // Check if user is admin
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('role, organization_id')
-      .eq('id', user.id)
-      .single()
-
-    if (profileError || profile.role !== 'admin') {
+    if (role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -36,7 +30,7 @@ export async function POST() {
         profiles!inner(email)
       `)
       .eq('leave_types.name', 'Urlop na żądanie')
-      .eq('organization_id', profile.organization_id)
+      .eq('organization_id', organizationId)
     
     console.log('Before fix:', beforeState)
 
@@ -45,7 +39,7 @@ export async function POST() {
       .from('leave_types')
       .select('id')
       .eq('name', 'Urlop na żądanie')
-      .eq('organization_id', profile.organization_id)
+      .eq('organization_id', organizationId)
       .single()
 
     if (!leaveType) {
@@ -57,7 +51,7 @@ export async function POST() {
       .from('leave_balances')
       .update({ used_days: 4 })
       .eq('leave_type_id', leaveType.id)
-      .eq('organization_id', profile.organization_id)
+      .eq('organization_id', organizationId)
       .gt('used_days', 4)
       .select(`
         id,
@@ -87,7 +81,7 @@ export async function POST() {
         profiles!inner(email)
       `)
       .eq('leave_types.name', 'Urlop na żądanie')
-      .eq('organization_id', profile.organization_id)
+      .eq('organization_id', organizationId)
 
     console.log('After fix:', afterState)
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { handleLeaveRequestEdit } from '@/lib/leave-balance-utils'
+import { getBasicAuth } from '@/lib/auth-utils'
 
 export async function PUT(
   request: NextRequest,
@@ -17,30 +18,12 @@ export async function PUT(
       )
     }
 
+    // Use optimized auth utility
+    const auth = await getBasicAuth()
+    if (!auth.success) return auth.error
+    const { user, organizationId } = auth
+
     const supabase = await createClient()
-
-    // Get current user
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Not authenticated' },
-        { status: 401 }
-      )
-    }
-
-    // Get user profile
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('organization_id')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile?.organization_id) {
-      return NextResponse.json(
-        { error: 'Profile not found' },
-        { status: 404 }
-      )
-    }
 
     // Get the existing leave request to verify ownership
     const { data: existingRequest, error: fetchError } = await supabase
@@ -48,7 +31,7 @@ export async function PUT(
       .select('*')
       .eq('id', requestId)
       .eq('user_id', user.id) // Only allow users to edit their own requests
-      .eq('organization_id', profile.organization_id)
+      .eq('organization_id', organizationId)
       .single()
 
     if (fetchError || !existingRequest) {
@@ -85,7 +68,7 @@ export async function PUT(
         existingRequest.days_requested,
         leave_type_id,
         days_requested,
-        profile.organization_id,
+        organizationId,
         existingRequest.status
       )
 
@@ -146,30 +129,13 @@ export async function DELETE(
 ) {
   try {
     const { id: requestId } = await params
+    
+    // Use optimized auth utility
+    const auth = await getBasicAuth()
+    if (!auth.success) return auth.error
+    const { user, organizationId } = auth
+
     const supabase = await createClient()
-
-    // Get current user
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Not authenticated' },
-        { status: 401 }
-      )
-    }
-
-    // Get user profile
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('organization_id')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile?.organization_id) {
-      return NextResponse.json(
-        { error: 'Profile not found' },
-        { status: 404 }
-      )
-    }
 
     // Get the leave request to verify ownership and status
     const { data: leaveRequest, error: fetchError } = await supabase
@@ -177,7 +143,7 @@ export async function DELETE(
       .select('*')
       .eq('id', requestId)
       .eq('user_id', user.id) // Only allow users to delete their own requests
-      .eq('organization_id', profile.organization_id)
+      .eq('organization_id', organizationId)
       .single()
 
     if (fetchError || !leaveRequest) {

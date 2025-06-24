@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getBasicAuth, requireRole } from '@/lib/auth-utils'
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,38 +13,27 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const supabase = await createClient()
-
-    // Get current user
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Not authenticated' },
-        { status: 401 }
-      )
+    // Authenticate and check permissions
+    const auth = await getBasicAuth()
+    if (!auth.success) {
+      return auth.error
     }
 
-    // Get user profile to check permissions
+    const { user, organizationId, role } = auth
+    
+    // Check if user has permission to resend invitations
+    const roleCheck = requireRole({ role } as any, ['admin', 'manager'])
+    if (roleCheck) {
+      return roleCheck
+    }
+
+    // Get full profile for email info
+    const supabase = await createClient()
     const { data: profile } = await supabase
       .from('profiles')
-      .select('organization_id, role, full_name, email')
+      .select('full_name, email')
       .eq('id', user.id)
       .single()
-
-    if (!profile) {
-      return NextResponse.json(
-        { error: 'Profile not found' },
-        { status: 404 }
-      )
-    }
-
-    // Check if user has permission to resend invitations
-    if (profile.role !== 'admin' && profile.role !== 'manager') {
-      return NextResponse.json(
-        { error: 'You do not have permission to resend invitations' },
-        { status: 403 }
-      )
-    }
 
     // Get the invitation to verify it belongs to the user's organization
     const { data: invitation } = await supabase
@@ -68,7 +58,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify the invitation belongs to the user's organization
-    if (invitation.organization_id !== profile.organization_id) {
+    if (invitation.organization_id !== organizationId) {
       return NextResponse.json(
         { error: 'You can only resend invitations from your organization' },
         { status: 403 }
@@ -115,8 +105,8 @@ export async function POST(request: NextRequest) {
         body: JSON.stringify({
           to: invitation.email,
           organizationName: (invitation.organizations as any)?.name || 'Unknown Organization',
-          inviterName: profile.full_name || profile.email || 'Unknown',
-          inviterEmail: profile.email,
+          inviterName: profile?.full_name || profile?.email || 'Unknown',
+          inviterEmail: profile?.email || '',
           role: invitation.role,
           invitationToken: newToken,
           personalMessage: invitation.personal_message

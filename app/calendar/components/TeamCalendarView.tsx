@@ -1,17 +1,22 @@
 'use client'
 
-import { useState } from 'react'
+import React from 'react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { ChevronLeft, ChevronRight, User } from 'lucide-react'
 import Image from 'next/image'
+import { useState } from 'react'
+import { format, addDays, startOfWeek, endOfWeek, isSameDay, isToday, isSameMonth, addWeeks, subWeeks, startOfMonth, endOfMonth } from 'date-fns'
+import { pl } from 'date-fns/locale'
 
 interface TeamMember {
   id: string
   full_name: string | null
   email: string
   avatar_url?: string | null
+  role: string
 }
 
 interface LeaveRequest {
@@ -54,7 +59,8 @@ interface DayDetails {
   isToday: boolean
 }
 
-export function TeamCalendarView({ teamMembers, leaveRequests, holidays }: TeamCalendarViewProps) {
+// ✅ OPTIMIZATION: Memoize this heavy component to prevent unnecessary re-renders
+export const TeamCalendarView = React.memo(function TeamCalendarView({ teamMembers, leaveRequests, holidays }: TeamCalendarViewProps) {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDay, setSelectedDay] = useState<DayDetails | null>(null)
   const [dayDetailsOpen, setDayDetailsOpen] = useState(false)
@@ -565,4 +571,4 @@ export function TeamCalendarView({ teamMembers, leaveRequests, holidays }: TeamC
       </Dialog>
     </div>
   )
-} 
+}) 

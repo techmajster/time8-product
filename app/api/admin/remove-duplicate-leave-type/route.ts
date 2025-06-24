@@ -1,24 +1,18 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { getBasicAuth } from '@/lib/auth-utils'
 
 export async function POST() {
   try {
     const supabase = await createClient()
     
-    // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    // Use optimized auth utility
+    const auth = await getBasicAuth()
+    if (!auth.success) return auth.error
+    const { organizationId, role } = auth
 
     // Check if user is admin
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('role, organization_id')
-      .eq('id', user.id)
-      .single()
-
-    if (profileError || profile.role !== 'admin') {
+    if (role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -29,7 +23,7 @@ export async function POST() {
       .from('leave_types')
       .select('id, name')
       .eq('name', 'Urlop wychowawczy')
-      .eq('organization_id', profile.organization_id)
+      .eq('organization_id', organizationId)
       .single()
 
     if (!duplicateLeaveType) {
@@ -69,7 +63,7 @@ export async function POST() {
       .from('leave_types')
       .delete()
       .eq('id', duplicateLeaveType.id)
-      .eq('organization_id', profile.organization_id)
+      .eq('organization_id', organizationId)
 
     if (deleteError) {
       console.error('Delete error:', deleteError)

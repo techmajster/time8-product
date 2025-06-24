@@ -1,35 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getBasicAuth, isManagerOrAdmin } from '@/lib/auth-utils'
 
 export async function GET() {
   try {
+    // Authenticate and get basic profile info
+    const auth = await getBasicAuth()
+    if (!auth.success) {
+      return auth.error
+    }
+
+    const { user, organizationId, role } = auth
     const supabase = await createClient()
 
-    // Get current user
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Not authenticated' },
-        { status: 401 }
-      )
-    }
-
-    // Get user profile
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('organization_id, role')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile?.organization_id) {
-      return NextResponse.json(
-        { error: 'Profile not found' },
-        { status: 404 }
-      )
-    }
-
     // Build query based on role
-    const isManagerOrAdmin = profile.role === 'admin' || profile.role === 'manager'
+    const canViewAll = isManagerOrAdmin(role)
     
     let query = supabase
       .from('leave_requests')
@@ -40,7 +25,7 @@ export async function GET() {
           name,
           color
         ),
-        profiles!leave_requests_user_id_fkey (
+        user_profile:profiles!leave_requests_user_id_fkey (
           id,
           full_name,
           email
@@ -50,11 +35,11 @@ export async function GET() {
           email
         )
       `)
-      .eq('organization_id', profile.organization_id)
+      .eq('organization_id', organizationId)
       .order('created_at', { ascending: false })
 
     // If employee, only show their own requests
-    if (!isManagerOrAdmin) {
+    if (!canViewAll) {
       query = query.eq('user_id', user.id)
     }
 
@@ -90,37 +75,19 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Use optimized auth utility
+    const auth = await getBasicAuth()
+    if (!auth.success) return auth.error
+    const { user, organizationId } = auth
+
     const supabase = await createClient()
-
-    // Get current user
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Not authenticated' },
-        { status: 401 }
-      )
-    }
-
-    // Get user profile
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('organization_id')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile?.organization_id) {
-      return NextResponse.json(
-        { error: 'Profile not found' },
-        { status: 404 }
-      )
-    }
 
     // Validate leave type belongs to organization
     const { data: leaveType } = await supabase
       .from('leave_types')
       .select('id, name')
       .eq('id', leave_type_id)
-      .eq('organization_id', profile.organization_id)
+      .eq('organization_id', organizationId)
       .single()
 
     if (!leaveType) {
@@ -137,7 +104,7 @@ export async function POST(request: NextRequest) {
       .from('leave_requests')
       .select('id, start_date, end_date, status')
       .eq('user_id', user.id)
-      .eq('organization_id', profile.organization_id)
+      .eq('organization_id', organizationId)
       .in('status', ['pending', 'approved'])
       .lte('start_date', end_date)
       .gte('end_date', start_date)
@@ -153,7 +120,7 @@ export async function POST(request: NextRequest) {
     const { data: leaveRequest, error: createError } = await supabase
       .from('leave_requests')
       .insert({
-        organization_id: profile.organization_id,
+        organization_id: organizationId,
         user_id: user.id,
         leave_type_id,
         start_date,

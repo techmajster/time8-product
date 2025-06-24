@@ -586,7 +586,7 @@ export default function HolidaysPage() {
       // Transform holidays
       const transformedHolidays = holidaysData?.map(holiday => ({
         ...holiday,
-        holiday_type: holiday.type || 'company',
+        holiday_type: holiday.type || 'organization',
       })) || []
 
       setHolidays(transformedHolidays)
@@ -619,7 +619,7 @@ export default function HolidaysPage() {
         
         return {
           ...holiday,
-          holiday_type: holiday.type || 'company',
+          holiday_type: holiday.type || 'organization',
           days_until: Math.max(0, diffDays)
         }
       }) || []
@@ -651,11 +651,7 @@ export default function HolidaysPage() {
   }
 
   const getHolidayTypeIcon = (type: string) => {
-    switch (type) {
-      case 'national': return '🇵🇱'
-      case 'organization': return '🏢'
-      default: return '📅'
-    }
+    return ''
   }
 
   const getHolidayTypeName = (type: string) => {
@@ -707,7 +703,7 @@ export default function HolidaysPage() {
           <div>
             <h1 className="text-3xl font-bold text-card-foreground">Zarządzanie świętami</h1>
             <p className="text-muted-foreground">
-              Przeglądaj polskie święta państwowe i zarządzaj świętami firmowymi
+              Przeglądaj święta państwowe i zarządzaj świętami firmowymi
             </p>
           </div>
           
@@ -727,7 +723,7 @@ export default function HolidaysPage() {
             <CardContent>
               <div className="text-2xl font-bold">{nationalHolidays.length}</div>
               <p className="text-xs text-muted-foreground">
-                Polskie święta narodowe
+                Święta narodowe
               </p>
             </CardContent>
           </Card>
@@ -778,7 +774,6 @@ export default function HolidaysPage() {
                   className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="text-2xl">{getHolidayTypeIcon(holiday.holiday_type || '')}</span>
                     <div>
                       <h4 className="font-medium">{holiday.name}</h4>
                       <p className="text-sm text-muted-foreground">
@@ -839,7 +834,6 @@ export default function HolidaysPage() {
                     className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors"
                   >
                     <div className="flex items-center gap-3">
-                      <span className="text-xl">{getHolidayTypeIcon(holiday.holiday_type || '')}</span>
                       <div>
                         <h4 className="font-medium">{holiday.name}</h4>
                         <p className="text-sm text-muted-foreground">

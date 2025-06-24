@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getBasicAuth, isManagerOrAdmin } from '@/lib/auth-utils'
 
 export async function PUT(
   request: NextRequest,
@@ -7,29 +8,18 @@ export async function PUT(
 ) {
   try {
     const { id } = await params
-    const supabase = await createClient()
     
-    // Get current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Get user profile and organization
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('organization_id, role')
-      .eq('id', user.id)
-      .single()
-
-    if (profileError || !profile?.organization_id) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
-    }
+    // Use optimized auth utility
+    const auth = await getBasicAuth()
+    if (!auth.success) return auth.error
+    const { user, organizationId, role } = auth
 
     // Check if user has permission to edit templates
-    if (profile.role !== 'admin' && profile.role !== 'manager') {
+    if (!isManagerOrAdmin(role)) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
     }
+
+    const supabase = await createClient()
 
     const updateData = await request.json()
 
@@ -44,7 +34,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Template not found' }, { status: 404 })
     }
 
-    if (existingTemplate.organization_id !== profile.organization_id) {
+    if (existingTemplate.organization_id !== organizationId) {
       return NextResponse.json({ error: 'Template not found' }, { status: 404 })
     }
 
@@ -53,7 +43,7 @@ export async function PUT(
       await supabase
         .from('work_schedule_templates')
         .update({ is_default: false })
-        .eq('organization_id', profile.organization_id)
+        .eq('organization_id', organizationId)
         .neq('id', id)
     }
 
@@ -114,29 +104,18 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params
-    const supabase = await createClient()
     
-    // Get current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Get user profile and organization
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('organization_id, role')
-      .eq('id', user.id)
-      .single()
-
-    if (profileError || !profile?.organization_id) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
-    }
+    // Use optimized auth utility
+    const auth = await getBasicAuth()
+    if (!auth.success) return auth.error
+    const { user, organizationId, role } = auth
 
     // Check if user has permission to delete templates
-    if (profile.role !== 'admin' && profile.role !== 'manager') {
+    if (!isManagerOrAdmin(role)) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
     }
+
+    const supabase = await createClient()
 
     // Validate template belongs to user's organization and is not default
     const { data: existingTemplate, error: templateError } = await supabase
@@ -149,7 +128,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Template not found' }, { status: 404 })
     }
 
-    if (existingTemplate.organization_id !== profile.organization_id) {
+    if (existingTemplate.organization_id !== organizationId) {
       return NextResponse.json({ error: 'Template not found' }, { status: 404 })
     }
 

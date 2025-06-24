@@ -98,7 +98,7 @@ export default async function LeaveRequestsPage({ searchParams }: {
   // Get leave types for the new request dialog
   const { data: leaveTypes } = await supabase
     .from('leave_types')
-    .select('*')
+    .select('id, name, color, leave_category, requires_balance, days_per_year, requires_approval, organization_id, is_paid, can_be_split, created_at, updated_at')
     .eq('organization_id', profile.organization_id)
     .order('name')
 

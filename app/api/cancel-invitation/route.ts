@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getBasicAuth, requireRole } from '@/lib/auth-utils'
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,38 +13,21 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const supabase = await createClient()
-
-    // Get current user
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Not authenticated' },
-        { status: 401 }
-      )
+    // Authenticate and check permissions
+    const auth = await getBasicAuth()
+    if (!auth.success) {
+      return auth.error
     }
 
-    // Get user profile to check permissions
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('organization_id, role')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile) {
-      return NextResponse.json(
-        { error: 'Profile not found' },
-        { status: 404 }
-      )
-    }
-
+    const { user, organizationId, role } = auth
+    
     // Check if user has permission to cancel invitations
-    if (profile.role !== 'admin' && profile.role !== 'manager') {
-      return NextResponse.json(
-        { error: 'You do not have permission to cancel invitations' },
-        { status: 403 }
-      )
+    const roleCheck = requireRole({ role } as any, ['admin', 'manager'])
+    if (roleCheck) {
+      return roleCheck
     }
+
+    const supabase = await createClient()
 
     // Get the invitation to verify it belongs to the user's organization
     const { data: invitation } = await supabase
@@ -60,7 +44,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify the invitation belongs to the user's organization
-    if (invitation.organization_id !== profile.organization_id) {
+    if (invitation.organization_id !== organizationId) {
       return NextResponse.json(
         { error: 'You can only cancel invitations from your organization' },
         { status: 403 }

@@ -1,26 +1,17 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { getBasicAuth } from '@/lib/auth-utils'
 
 export async function POST(request: NextRequest) {
   try {
+    // Authenticate user
+    const auth = await getBasicAuth()
+    if (!auth.success) {
+      return auth.error
+    }
+
+    const { organizationId } = auth
     const supabase = await createClient()
-    
-    // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Get user profile for organization_id
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('organization_id')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
-    }
 
     const { startDate, endDate } = await request.json()
 
@@ -53,7 +44,7 @@ export async function POST(request: NextRequest) {
     const { data, error } = await supabase.rpc('calculate_working_days_with_holidays', {
       start_date: startDate,
       end_date: endDate,
-      organization_id: profile.organization_id
+      organization_id: organizationId
     })
 
     if (error) {
@@ -75,7 +66,7 @@ export async function POST(request: NextRequest) {
         start_date: startDate,
         end_date: endDate,
         holidays_in_period: holidaysCheck || [],
-        organization_id: profile.organization_id,
+        organization_id: organizationId,
         calculation_method: 'fallback',
         error_details: error,
         warning: 'Used fallback calculation due to database function error'
@@ -86,7 +77,7 @@ export async function POST(request: NextRequest) {
     const { data: orgData } = await supabase
       .from('organizations')
       .select('country_code')
-      .eq('id', profile.organization_id)
+      .eq('id', organizationId)
       .single()
 
     const countryCode = orgData?.country_code || 'PL'
@@ -97,7 +88,7 @@ export async function POST(request: NextRequest) {
       .select('name, date, type, country_code')
       .gte('date', startDate)
       .lte('date', endDate)
-      .or(`organization_id.eq.${profile.organization_id},and(type.eq.national,country_code.eq.${countryCode})`)
+      .or(`organization_id.eq.${organizationId},and(type.eq.national,country_code.eq.${countryCode})`)
       .order('date')
 
     return NextResponse.json({
@@ -105,7 +96,7 @@ export async function POST(request: NextRequest) {
       start_date: startDate,
       end_date: endDate,
       holidays_in_period: holidays || [],
-      organization_id: profile.organization_id,
+      organization_id: organizationId,
       calculation_method: 'database_function',
       calculation_includes: {
         weekends_excluded: true,

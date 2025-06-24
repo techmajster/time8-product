@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { handleLeaveRequestApproval } from '@/lib/leave-balance-utils'
+import { getBasicAuth, isManagerOrAdmin } from '@/lib/auth-utils'
 
 export async function POST(
   request: NextRequest,
@@ -17,38 +18,20 @@ export async function POST(
       )
     }
 
-    const supabase = await createClient()
-
-    // Get current user
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Not authenticated' },
-        { status: 401 }
-      )
-    }
-
-    // Get user profile to check permissions
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('organization_id, role, full_name, email')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile?.organization_id) {
-      return NextResponse.json(
-        { error: 'Profile not found' },
-        { status: 404 }
-      )
-    }
+    // Use optimized auth utility
+    const auth = await getBasicAuth()
+    if (!auth.success) return auth.error
+    const { user, organizationId, role } = auth
 
     // Check if user has permission to approve/reject
-    if (profile.role !== 'admin' && profile.role !== 'manager') {
+    if (!isManagerOrAdmin(role)) {
       return NextResponse.json(
         { error: 'You do not have permission to approve/reject leave requests' },
         { status: 403 }
       )
     }
+
+    const supabase = await createClient()
 
     // Get the leave request to verify it belongs to the user's organization
     const { data: leaveRequest, error: fetchError } = await supabase
@@ -74,7 +57,7 @@ export async function POST(
     }
 
     // Verify the request belongs to the user's organization
-    if (leaveRequest.organization_id !== profile.organization_id) {
+    if (leaveRequest.organization_id !== organizationId) {
       return NextResponse.json(
         { error: 'You can only manage requests from your organization' },
         { status: 403 }

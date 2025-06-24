@@ -1,30 +1,18 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { getBasicAuth, isManagerOrAdmin } from '@/lib/auth-utils'
 
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
     
-    // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Get user profile for organization_id and role
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('organization_id, role')
-      .eq('id', user.id)
-      .single()
-
-    if (profileError || !profile) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
-    }
+    // Use optimized auth utility
+    const auth = await getBasicAuth()
+    if (!auth.success) return auth.error
+    const { user, organizationId, role } = auth
 
     // Check if user can manage schedules
-    const canManage = profile.role === 'admin' || profile.role === 'manager'
-    if (!canManage) {
+    if (!isManagerOrAdmin(role)) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
     }
 
@@ -51,7 +39,7 @@ export async function POST(request: NextRequest) {
       .from('profiles')
       .select('id')
       .eq('id', employee_id)
-      .eq('organization_id', profile.organization_id)
+      .eq('organization_id', organizationId)
       .single()
 
     if (employeeError || !employee) {
@@ -71,7 +59,7 @@ export async function POST(request: NextRequest) {
         
         scheduleEntries.push({
           user_id: employee_id,
-          organization_id: profile.organization_id,
+          organization_id: organizationId,
           date: dateStr,
           shift_start_time: is_working_day ? `${shift_start_time}:00` : null,
           shift_end_time: is_working_day ? `${shift_end_time}:00` : null,

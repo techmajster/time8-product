@@ -1,32 +1,23 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { getBasicAuth } from '@/lib/auth-utils'
 
 export async function GET(request: NextRequest) {
   try {
+    // Authenticate user
+    const auth = await getBasicAuth()
+    if (!auth.success) {
+      return auth.error
+    }
+
+    const { organizationId } = auth
     const supabase = await createClient()
-    
-    // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Get user profile for organization_id
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('organization_id, role')
-      .eq('id', user.id)
-      .single()
-
-    if (profileError || !profile) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
-    }
 
     // Get all team members from the organization
     const { data: teamMembers, error: teamError } = await supabase
       .from('profiles')
       .select('id, full_name, email, role, avatar_url')
-      .eq('organization_id', profile.organization_id)
+      .eq('organization_id', organizationId)
       .order('full_name')
 
     if (teamError) {
@@ -37,7 +28,7 @@ export async function GET(request: NextRequest) {
     const { data: schedules, error: schedulesError } = await supabase
       .from('employee_schedules')
       .select('*')
-      .eq('organization_id', profile.organization_id)
+      .eq('organization_id', organizationId)
       .order('updated_at', { ascending: false })
 
     if (schedulesError) {

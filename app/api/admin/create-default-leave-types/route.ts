@@ -1,25 +1,19 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { DEFAULT_LEAVE_TYPES } from '@/types/leave'
+import { getBasicAuth } from '@/lib/auth-utils'
 
 export async function POST() {
   try {
     const supabase = await createClient()
     
-    // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    // Use optimized auth utility
+    const auth = await getBasicAuth()
+    if (!auth.success) return auth.error
+    const { organizationId, role } = auth
 
     // Check if user is admin
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('role, organization_id')
-      .eq('id', user.id)
-      .single()
-
-    if (profileError || profile.role !== 'admin') {
+    if (role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 })
     }
 
@@ -27,7 +21,7 @@ export async function POST() {
     const { data: existingTypes, error: checkError } = await supabase
       .from('leave_types')
       .select('id, name')
-      .eq('organization_id', profile.organization_id)
+      .eq('organization_id', organizationId)
 
     if (checkError) {
       return NextResponse.json({ error: checkError.message }, { status: 400 })
@@ -44,7 +38,7 @@ export async function POST() {
       .from('leave_types')
       .insert(
         DEFAULT_LEAVE_TYPES.map(type => ({
-          organization_id: profile.organization_id,
+          organization_id: organizationId,
           name: type.name,
           days_per_year: type.days_per_year,
           color: type.color,
@@ -72,7 +66,7 @@ export async function POST() {
       const { data: users, error: usersError } = await supabase
         .from('profiles')
         .select('id')
-        .eq('organization_id', profile.organization_id)
+        .eq('organization_id', organizationId)
 
       if (usersError) {
         console.warn('Could not fetch users for balance creation:', usersError)
@@ -82,7 +76,7 @@ export async function POST() {
           balanceRequiredTypes.map(leaveType => ({
             user_id: user.id,
             leave_type_id: leaveType.id,
-            organization_id: profile.organization_id,
+            organization_id: organizationId,
             year: new Date().getFullYear(),
             entitled_days: leaveType.days_per_year,
             used_days: 0

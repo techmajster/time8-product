@@ -3,6 +3,7 @@
 import * as React from "react"
 import { Search, Settings, Info, AlertCircle, ChevronDown, Plus, Download, Trash2 } from "lucide-react"
 import { useState } from "react"
+import dynamic from 'next/dynamic'
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -38,8 +39,86 @@ import { Textarea } from "@/components/ui/textarea"
 import { Toggle } from "@/components/ui/toggle"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { TooltipProvider } from "@/components/ui/tooltip"
-import { ThemeToggle } from "@/components/theme-toggle" 
+import { ThemeToggle } from "@/components/theme-toggle"
+import { 
+  CalendarIcon, 
+  AlertTriangle, 
+  CheckCircle2, 
+  XCircle,
+  Home,
+  Users,
+  FileText,
+  BarChart3,
+  Bell,
+  Menu,
+  X,
+  MessageSquare,
+  ThumbsUp,
+  Play,
+  Pause,
+  SkipBack,
+  SkipForward,
+  Volume2,
+  VolumeX,
+  Zap,
+  Shield,
+  Globe,
+  Mail,
+  Phone,
+  MapPin,
+  Clock,
+  User,
+  Building,
+  CreditCard,
+  Key,
+  Palette,
+  Monitor,
+  Smartphone,
+  Tablet
+} from "lucide-react"
 
+// ✅ OPTIMIZATION: Lazy load heavy components that are not immediately visible
+const HeavyUIComponents = dynamic(() => 
+  Promise.resolve(() => (
+    <div className="space-y-6">
+      {/* Calendar Section */}
+      <section className="space-y-6">
+        <h2 className="text-2xl font-semibold">Calendar & Date Components</h2>
+        <div className="grid gap-6 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Calendar</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CalendarDemo />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Date Range Picker</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <DateRangePicker />
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+    </div>
+  )), 
+  { 
+    loading: () => (
+      <div className="space-y-6">
+        <Skeleton className="h-8 w-64" />
+        <div className="grid gap-6 md:grid-cols-2">
+          <Skeleton className="h-80 w-full" />
+          <Skeleton className="h-80 w-full" />
+        </div>
+      </div>
+    ),
+    ssr: false
+  }
+)
 
 export default function ThemeDemo() {
   const [date, setDate] = React.useState<Date | undefined>(new Date())

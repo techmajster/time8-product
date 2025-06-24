@@ -1,32 +1,39 @@
 'use client'
 
+import React from 'react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { TrendingUp, TrendingDown, AlertTriangle, Users } from 'lucide-react'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Users, AlertTriangle, TrendingDown, TrendingUp } from 'lucide-react'
+import { format, startOfWeek, endOfWeek, isWithinInterval, parseISO } from 'date-fns'
+import { pl } from 'date-fns/locale'
 
 interface TeamMember {
   id: string
-  full_name: string | null
   email: string
+  full_name: string | null
   avatar_url?: string | null
+  role: string
+}
+
+interface LeaveType {
+  id: string
+  name: string
+  color: string
 }
 
 interface LeaveRequest {
   id: string
-  user_id: string
   start_date: string
   end_date: string
-  status: string
-  working_days: number
-  leave_types: {
-    name: string
-    color: string
-  } | null
-  profiles: {
-    full_name: string | null
+  status: 'approved' | 'pending' | 'cancelled'
+  leave_type: LeaveType
+  user: {
+    id: string
+    fullName: string
     email: string
-    avatar_url?: string | null
-  } | null
+  }
 }
 
 interface CapacityOverviewProps {
@@ -34,7 +41,8 @@ interface CapacityOverviewProps {
   leaveRequests: LeaveRequest[]
 }
 
-export function CapacityOverview({ teamMembers, leaveRequests }: CapacityOverviewProps) {
+// ✅ OPTIMIZATION: Memoize this component to prevent unnecessary re-renders
+export const CapacityOverview = React.memo(function CapacityOverview({ teamMembers, leaveRequests }: CapacityOverviewProps) {
   const totalTeamSize = teamMembers.length
 
   // Helper function to get week dates
@@ -61,7 +69,7 @@ export function CapacityOverview({ teamMembers, leaveRequests }: CapacityOvervie
       
       // Check if leave overlaps with this week
       if (leaveStart <= end && leaveEnd >= start) {
-        peopleOnLeave.add(leave.user_id)
+        peopleOnLeave.add(leave.user.id)
       }
     })
 
@@ -229,4 +237,4 @@ export function CapacityOverview({ teamMembers, leaveRequests }: CapacityOvervie
       </div>
     </div>
   )
-} 
+}) 
