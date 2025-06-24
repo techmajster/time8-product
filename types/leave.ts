@@ -28,7 +28,7 @@ export enum LeaveCategory {
   MATERNITY = 'maternity',    // Urlop macierzyński
   PATERNITY = 'paternity',    // Urlop ojcowski
   PARENTAL = 'parental',      // Urlop rodzicielski
-  CHILDCARE = 'childcare',    // Urlop wychowawczy, dni wolne wychowawcze
+  CHILDCARE = 'childcare',    // Dni wolne wychowawcze
   UNPAID = 'unpaid',          // Urlop bezpłatny
   CARE = 'care',              // Urlop opiekuńczy
   SPECIAL = 'special',        // Urlop okolicznościowy, na poszukiwanie pracy
@@ -378,17 +378,6 @@ export const DEFAULT_LEAVE_TYPES = [
     is_paid: true,
     leave_category: 'parental',
     description: '41 lub 43 tygodnie, 70% lub 81.5% z ZUS'
-  },
-  // Childcare leave
-  {
-    name: 'Urlop wychowawczy',
-    days_per_year: 0, // Up to 36 months
-    color: '#84CC16',
-    requires_approval: true,
-    requires_balance: false,
-    is_paid: false,
-    leave_category: 'childcare',
-    description: 'Do 36 miesięcy, brak wynagrodzenia'
   },
   // Free childcare days
   {
