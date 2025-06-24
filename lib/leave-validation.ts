@@ -46,13 +46,33 @@ export function validateLeaveRequest(
 export function getApplicableLeaveTypes(
   _userProfile: UserProfile,
   leaveTypes: LeaveType[],
-  _leaveBalances: LeaveBalance[],
+  leaveBalances: LeaveBalance[],
   organizationId: string,
   _leaveType?: LeaveType
 ): LeaveType[] {
-  // Show all leave types regardless of balance configuration
-  // Admins can configure balances separately
-  return leaveTypes.filter(lt => lt.organization_id === organizationId)
+  // Filter leave types by organization first
+  const orgLeaveTypes = leaveTypes.filter(lt => lt.organization_id === organizationId)
+  
+  // Filter out leave types where user has 0 entitled days (not applicable to them)
+  // This hides child-specific leave types (maternity, paternity, childcare days)
+  // from users who don't have them assigned
+  return orgLeaveTypes.filter(leaveType => {
+    // If the leave type doesn't require balance tracking, always show it
+    if (!leaveType.requires_balance) {
+      return true
+    }
+    
+    // Find the user's balance for this leave type
+    const balance = leaveBalances.find(b => b.leave_type_id === leaveType.id)
+    
+    // If no balance exists, don't show it (shouldn't happen with proper setup)
+    if (!balance) {
+      return false
+    }
+    
+    // Only show if user has entitled days (> 0)
+    return balance.entitled_days > 0
+  })
 }
 
 export function calculateWorkingDays(startDate: Date, endDate: Date): number {
