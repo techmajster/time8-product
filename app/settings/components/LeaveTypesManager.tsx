@@ -18,7 +18,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 
 interface LeaveType {
@@ -26,7 +25,6 @@ interface LeaveType {
   name: string
   days_per_year: number
   color: string
-  leave_category: string
   organization_id: string
   requires_balance?: boolean
 }
@@ -48,38 +46,25 @@ export function LeaveTypesManager({ leaveTypes, organizationId }: LeaveTypesMana
   const [formData, setFormData] = useState({
     name: '',
     days_per_year: 0,
-    color: 'hsl(var(--primary))',
-    leave_category: 'vacation',
+    color: '#3B82F6',
     requires_balance: true
   })
 
   const colors = [
-    { name: 'Podstawowy', value: 'hsl(var(--primary))' },
-    { name: 'Sukces', value: 'hsl(var(--success))' },
-    { name: 'Ostrzeżenie', value: 'hsl(var(--warning))' },
-    { name: 'Błąd', value: 'hsl(var(--destructive))' },
-    { name: 'Informacja', value: 'hsl(var(--info))' },
-    { name: 'Akcentujący', value: 'hsl(var(--accent))' },
-    { name: 'Wyciszony', value: 'hsl(var(--muted))' }
-  ]
-
-  const categories = [
-    { value: 'vacation', name: 'Urlop wypoczynkowy' },
-    { value: 'sick', name: 'Zwolnienie lekarskie' },
-    { value: 'personal', name: 'Urlop okolicznościowy' },
-    { value: 'maternity', name: 'Urlop macierzyński' },
-    { value: 'paternity', name: 'Urlop ojcowski' },
-    { value: 'parental', name: 'Urlop rodzicielski' },
-    { value: 'study', name: 'Urlop szkoleniowy' },
-    { value: 'other', name: 'Inne' }
+    { name: 'Niebieski', value: '#3B82F6' },
+    { name: 'Zielony', value: '#10B981' },
+    { name: 'Żółty', value: '#F59E0B' },
+    { name: 'Czerwony', value: '#EF4444' },
+    { name: 'Fioletowy', value: '#8B5CF6' },
+    { name: 'Szary', value: '#6B7280' },
+    { name: 'Turkusowy', value: '#14B8A6' }
   ]
 
   const resetForm = () => {
     setFormData({
       name: '',
       days_per_year: 0,
-      color: 'hsl(var(--primary))',
-      leave_category: 'vacation',
+      color: '#3B82F6',
       requires_balance: true
     })
     setError(null)
@@ -96,7 +81,6 @@ export function LeaveTypesManager({ leaveTypes, organizationId }: LeaveTypesMana
       name: leaveType.name,
       days_per_year: leaveType.days_per_year,
       color: leaveType.color,
-      leave_category: leaveType.leave_category,
       requires_balance: leaveType.requires_balance ?? true
     })
     setSelectedLeaveType(leaveType)
@@ -118,19 +102,47 @@ export function LeaveTypesManager({ leaveTypes, organizationId }: LeaveTypesMana
     try {
       const supabase = createClient()
 
-      const { error: insertError } = await supabase
+      const { data: newLeaveType, error: insertError } = await supabase
         .from('leave_types')
         .insert({
           organization_id: organizationId,
           name: formData.name,
           days_per_year: formData.days_per_year,
           color: formData.color,
-          leave_category: formData.leave_category,
-          requires_balance: formData.requires_balance
+          requires_balance: formData.requires_balance,
+          leave_category: 'annual', // Default category
+          requires_approval: true // Default approval requirement
         })
+        .select()
+        .single()
 
       if (insertError) {
-        throw insertError
+        console.error('Database error:', insertError)
+        throw new Error(insertError.message || 'Nie udało się dodać rodzaju urlopu')
+      }
+
+      // If this leave type requires balance and has days allocated, create balances for all users
+      if (formData.requires_balance && formData.days_per_year > 0) {
+        try {
+          const response = await fetch('/api/admin/leave-balances', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'create_defaults_for_all_users',
+              target_year: new Date().getFullYear()
+            })
+          })
+
+          if (!response.ok) {
+            console.warn('Failed to auto-create leave balances:', await response.text())
+          } else {
+            const result = await response.json()
+            console.log('Auto-created leave balances:', result)
+          }
+        } catch (balanceError) {
+          console.warn('Error creating leave balances:', balanceError)
+          // Don't fail the leave type creation if balance creation fails
+        }
       }
 
       setSuccess('Rodzaj urlopu został dodany!')
@@ -142,7 +154,7 @@ export function LeaveTypesManager({ leaveTypes, organizationId }: LeaveTypesMana
 
     } catch (error) {
       console.error('Error adding leave type:', error)
-      setError('Wystąpił błąd podczas dodawania rodzaju urlopu')
+      setError(error instanceof Error ? error.message : 'Wystąpił błąd podczas dodawania rodzaju urlopu')
     } finally {
       setLoading(false)
     }
@@ -162,13 +174,13 @@ export function LeaveTypesManager({ leaveTypes, organizationId }: LeaveTypesMana
           name: formData.name,
           days_per_year: formData.days_per_year,
           color: formData.color,
-          leave_category: formData.leave_category,
           requires_balance: formData.requires_balance
         })
         .eq('id', selectedLeaveType?.id)
 
       if (updateError) {
-        throw updateError
+        console.error('Database error:', updateError)
+        throw new Error(updateError.message || 'Nie udało się zaktualizować rodzaju urlopu')
       }
 
       setSuccess('Rodzaj urlopu został zaktualizowany!')
@@ -180,7 +192,7 @@ export function LeaveTypesManager({ leaveTypes, organizationId }: LeaveTypesMana
 
     } catch (error) {
       console.error('Error updating leave type:', error)
-      setError('Wystąpił błąd podczas aktualizacji rodzaju urlopu')
+      setError(error instanceof Error ? error.message : 'Wystąpił błąd podczas aktualizacji rodzaju urlopu')
     } finally {
       setLoading(false)
     }
@@ -209,7 +221,7 @@ export function LeaveTypesManager({ leaveTypes, organizationId }: LeaveTypesMana
         .eq('id', selectedLeaveType?.id)
 
       if (deleteError) {
-        throw deleteError
+        throw new Error(deleteError.message || 'Nie udało się usunąć rodzaju urlopu')
       }
 
       router.refresh()
@@ -218,6 +230,39 @@ export function LeaveTypesManager({ leaveTypes, organizationId }: LeaveTypesMana
     } catch (error) {
       console.error('Error deleting leave type:', error)
       setError(error instanceof Error ? error.message : 'Wystąpił błąd podczas usuwania rodzaju urlopu')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleCreateDefaults = async () => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      const response = await fetch('/api/admin/create-default-leave-types', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Nie udało się utworzyć domyślnych rodzajów urlopów')
+      }
+
+      router.refresh()
+      setSuccess('Domyślne rodzaje urlopów zostały utworzone!')
+      
+      setTimeout(() => {
+        setSuccess(null)
+      }, 3000)
+
+    } catch (error) {
+      console.error('Error creating default leave types:', error)
+      setError(error instanceof Error ? error.message : 'Wystąpił błąd podczas tworzenia domyślnych rodzajów urlopów')
     } finally {
       setLoading(false)
     }
@@ -234,6 +279,19 @@ export function LeaveTypesManager({ leaveTypes, organizationId }: LeaveTypesMana
           Dodaj rodzaj urlopu
         </Button>
       </div>
+
+      {/* Global alerts */}
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {success && (
+        <Alert className="bg-green-50 border-green-200 text-green-800">
+          <AlertDescription>{success}</AlertDescription>
+        </Alert>
+      )}
 
       {/* Leave Types List */}
       <div className="space-y-4">
@@ -257,7 +315,7 @@ export function LeaveTypesManager({ leaveTypes, organizationId }: LeaveTypesMana
                   )}
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  {leaveType.days_per_year} dni rocznie • {categories.find(c => c.value === leaveType.leave_category)?.name}
+                  {leaveType.days_per_year} dni rocznie
                 </p>
               </div>
             </div>
@@ -283,9 +341,24 @@ export function LeaveTypesManager({ leaveTypes, organizationId }: LeaveTypesMana
         ))}
 
         {leaveTypes.length === 0 && (
-          <div className="text-center py-8 text-muted-foreground">
+          <div className="text-center py-8 text-muted-foreground space-y-4">
             <p>Brak rodzajów urlopów</p>
-            <p className="text-sm">Dodaj pierwszy rodzaj urlopu dla organizacji</p>
+            <p className="text-sm">Dodaj pierwszy rodzaj urlopu dla organizacji lub użyj domyślnych typów urlopów</p>
+            <Button 
+              onClick={handleCreateDefaults}
+              variant="outline"
+              disabled={loading}
+              className="mx-auto"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Tworzenie...
+                </>
+              ) : (
+                'Utwórz domyślne rodzaje urlopów'
+              )}
+            </Button>
           </div>
         )}
       </div>
@@ -320,32 +393,11 @@ export function LeaveTypesManager({ leaveTypes, organizationId }: LeaveTypesMana
                 type="number"
                 value={formData.days_per_year}
                 onChange={(e) => setFormData(prev => ({ ...prev, days_per_year: parseInt(e.target.value) || 0 }))}
-                placeholder="26"
+                placeholder="0"
                 required
                 min="0"
                 disabled={loading}
               />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="add-category">Kategoria *</Label>
-              <Select
-                value={formData.leave_category}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, leave_category: value }))}
-                required
-                disabled={loading}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Wybierz kategorię" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((category) => (
-                    <SelectItem key={category.value} value={category.value}>
-                      {category.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
 
             <div className="space-y-2">
@@ -389,7 +441,7 @@ export function LeaveTypesManager({ leaveTypes, organizationId }: LeaveTypesMana
             )}
 
             {success && (
-              <Alert className="bg-success/10 border-success/20 text-success">
+              <Alert className="bg-green-50 border-green-200 text-green-800">
                 <AlertDescription>{success}</AlertDescription>
               </Alert>
             )}
@@ -449,27 +501,6 @@ export function LeaveTypesManager({ leaveTypes, organizationId }: LeaveTypesMana
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit-category">Kategoria *</Label>
-              <Select
-                value={formData.leave_category}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, leave_category: value }))}
-                required
-                disabled={loading}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Wybierz kategorię" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((category) => (
-                    <SelectItem key={category.value} value={category.value}>
-                      {category.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
               <Label>Kolor *</Label>
               <div className="grid grid-cols-4 gap-2">
                 {colors.map((color) => (
@@ -510,7 +541,7 @@ export function LeaveTypesManager({ leaveTypes, organizationId }: LeaveTypesMana
             )}
 
             {success && (
-              <Alert className="bg-success/10 border-success/20 text-success">
+              <Alert className="bg-green-50 border-green-200 text-green-800">
                 <AlertDescription>{success}</AlertDescription>
               </Alert>
             )}
@@ -538,31 +569,12 @@ export function LeaveTypesManager({ leaveTypes, organizationId }: LeaveTypesMana
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Trash2 className="h-5 w-5 text-destructive" />
-              Usuń rodzaj urlopu
-            </DialogTitle>
+            <DialogTitle>Usuń rodzaj urlopu</DialogTitle>
             <DialogDescription>
-              Czy na pewno chcesz usunąć ten rodzaj urlopu? Ta akcja nie może być cofnięta.
+              Czy na pewno chcesz usunąć rodzaj urlopu "{selectedLeaveType?.name}"?
+              Ta operacja jest nieodwracalna.
             </DialogDescription>
           </DialogHeader>
-
-          {selectedLeaveType && (
-            <div className="p-4 rounded-lg bg-destructive/5 border border-destructive/20">
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-4 h-4 rounded-full"
-                  style={{ backgroundColor: selectedLeaveType.color }}
-                />
-                <div>
-                  <h4 className="font-medium text-destructive-foreground">{selectedLeaveType.name}</h4>
-                  <p className="text-sm text-destructive">
-                    {selectedLeaveType.days_per_year} dni rocznie
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
 
           {error && (
             <Alert variant="destructive">
@@ -574,22 +586,14 @@ export function LeaveTypesManager({ leaveTypes, organizationId }: LeaveTypesMana
             <Button type="button" variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={loading}>
               Anuluj
             </Button>
-            <Button 
-              type="button" 
-              variant="destructive" 
-              onClick={handleSubmitDelete} 
-              disabled={loading}
-            >
+            <Button type="button" variant="destructive" onClick={handleSubmitDelete} disabled={loading}>
               {loading ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Usuwanie...
                 </>
               ) : (
-                <>
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Usuń rodzaj urlopu
-                </>
+                'Usuń rodzaj urlopu'
               )}
             </Button>
           </DialogFooter>

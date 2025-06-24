@@ -184,6 +184,7 @@ export function Navigation({
         {/* Right side - User menu */}
         <div className="flex items-center gap-2">
           <LanguageSwitcher />
+          <ThemeToggle />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -217,12 +218,6 @@ export function Navigation({
                   </Link>
                 </DropdownMenuItem>
               )}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <div className="flex items-center w-full">
-                  <ThemeToggle />
-                </div>
-              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
                 <div className="w-full">

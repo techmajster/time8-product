@@ -64,8 +64,12 @@ export function AppLayoutClient({ children, userRole, userId, organization, user
       {/* Dynamic CSS Variables for Organization Branding */}
       <style jsx global>{`
         :root {
-          --primary: ${hslColor} !important;
-          --primary-foreground: 0 0% 100% !important;
+          --primary: ${hslColor};
+          --primary-foreground: 0 0% 100%;
+        }
+        .dark {
+          --primary: ${hslColor};
+          --primary-foreground: 0 0% 100%;
         }
       `}</style>
       

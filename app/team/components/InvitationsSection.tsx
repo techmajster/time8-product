@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Mail, Clock, CheckCircle, XCircle, Copy, Check } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 
 interface Invitation {
   id: string
@@ -37,6 +38,7 @@ export default function InvitationsSection({ invitations, canManageTeam }: Invit
   const [success, setSuccess] = useState<string | null>(null)
   const [copiedCode, setCopiedCode] = useState<string | null>(null)
   const router = useRouter()
+  const t = useTranslations('team')
 
   const getRoleBadgeVariant = (role: string): "default" | "secondary" | "destructive" | "outline" => {
     switch (role) {
@@ -49,9 +51,9 @@ export default function InvitationsSection({ invitations, canManageTeam }: Invit
 
   const getRoleDisplayName = (role: string) => {
     switch (role) {
-      case 'admin': return 'Admin'
-      case 'manager': return 'Menedżer' 
-      case 'employee': return 'Pracownik'
+      case 'admin': return t('roles.admin')
+      case 'manager': return t('roles.manager')
+      case 'employee': return t('roles.employee')
       default: return role
     }
   }
@@ -90,15 +92,15 @@ export default function InvitationsSection({ invitations, canManageTeam }: Invit
       const result = await response.json()
 
       if (response.ok) {
-        setSuccess(`Zaproszenie do ${email} zostało anulowane i usunięte`)
+        setSuccess(t('invitationCancelled', { email }))
         // Refresh the page to update the invitations list
         router.refresh()
       } else {
-        setError(result.error || 'Nie udało się anulować zaproszenia')
+        setError(result.error || t('failedToCancel'))
       }
     } catch (err) {
       console.error('Error cancelling invitation:', err)
-      setError('Nie udało się anulować zaproszenia')
+      setError(t('failedToCancel'))
     } finally {
       setLoading(null)
     }
@@ -119,15 +121,15 @@ export default function InvitationsSection({ invitations, canManageTeam }: Invit
       const result = await response.json()
 
       if (response.ok) {
-        setSuccess(`Zaproszenie ponownie wysłane do ${email}`)
+        setSuccess(t('invitationResent', { email }))
         // Refresh the page to update the invitations list
         router.refresh()
       } else {
-        setError(result.error || 'Nie udało się ponownie wysłać zaproszenia')
+        setError(result.error || t('failedToResend'))
       }
     } catch (err) {
       console.error('Error resending invitation:', err)
-      setError('Nie udało się ponownie wysłać zaproszenia')
+      setError(t('failedToResend'))
     } finally {
       setLoading(null)
     }
@@ -172,10 +174,10 @@ export default function InvitationsSection({ invitations, canManageTeam }: Invit
                     <div>
                       <p className="font-medium">{invitation.email}</p>
                       <p className="text-sm text-muted-foreground">
-                         Zaproszony przez {
+                         {t('invitedBy')} {
                            Array.isArray(invitation.profiles) 
-                             ? invitation.profiles[0]?.full_name || invitation.profiles[0]?.email || 'Nieznany'
-                             : invitation.profiles?.full_name || invitation.profiles?.email || 'Nieznany'
+                             ? invitation.profiles[0]?.full_name || invitation.profiles[0]?.email || t('unknown')
+                             : invitation.profiles?.full_name || invitation.profiles?.email || t('unknown')
                          }
                        </p>
                       <div className="flex items-center gap-2 mt-1">
@@ -183,11 +185,11 @@ export default function InvitationsSection({ invitations, canManageTeam }: Invit
                           {getRoleDisplayName(invitation.role)}
                         </Badge>
                         <Badge variant={isExpired ? "destructive" : "secondary"}>
-                          {isExpired ? 'Wygasłe' : 'Oczekujące'}
+                          {isExpired ? t('expired') : t('pending')}
                         </Badge>
                         {invitation.invitation_code && !isExpired && (
                           <div className="flex items-center gap-1 px-2 py-1 bg-muted rounded text-xs font-mono">
-                            <span className="text-muted-foreground">Kod:</span>
+                            <span className="text-muted-foreground">{t('code')}:</span>
                             <span className="font-bold">{invitation.invitation_code}</span>
                             <Button
                               variant="ghost"
@@ -208,7 +210,7 @@ export default function InvitationsSection({ invitations, canManageTeam }: Invit
                   </div>
                   <div className="text-right">
                     <p className="text-sm text-muted-foreground">
-                      {isExpired ? 'Wygasło' : 'Wygasa'} {new Date(invitation.expires_at).toLocaleDateString('pl-PL')}
+                      {isExpired ? t('expired_date') : t('expires')} {new Date(invitation.expires_at).toLocaleDateString()}
                     </p>
                     <div className="flex gap-2 mt-2">
                       <Button 
@@ -217,7 +219,7 @@ export default function InvitationsSection({ invitations, canManageTeam }: Invit
                         disabled={isLoading || isExpired}
                         onClick={() => handleResendInvitation(invitation.id, invitation.email)}
                       >
-                        {isLoading ? 'Wysyłanie...' : 'Wyślij ponownie'}
+                        {isLoading ? t('sending') : t('resendInvitation')}
                       </Button>
                       <Button 
                         variant="outline" 
@@ -226,7 +228,7 @@ export default function InvitationsSection({ invitations, canManageTeam }: Invit
                         disabled={isLoading || isExpired}
                         onClick={() => handleCancelInvitation(invitation.id, invitation.email)}
                       >
-                        {isLoading ? 'Anulowanie...' : 'Anuluj'}
+                        {isLoading ? t('cancelling') : t('cancelInvitation')}
                       </Button>
                     </div>
                   </div>
@@ -242,17 +244,17 @@ export default function InvitationsSection({ invitations, canManageTeam }: Invit
             </div>
             <div className="text-center space-y-2 mb-6">
               <h3 className="text-xl font-semibold text-foreground leading-7">
-                Nie masz żadnego oczekującego zaproszenia
+                {t('noInvitationsTitle')}
               </h3>
               <p className="text-sm text-muted-foreground leading-5">
-                Wszystkie zaproszenia zostały zaakceptowane lub wygasły. Zaproś nowych członków zespołu.
+                {t('noInvitationsDescription')}
               </p>
             </div>
             {canManageTeam && (
               <div className="flex justify-center">
                 <Link href="/team?invite=true">
                   <Button className="bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2 rounded-lg">
-                    Zaproś członka
+                    {t('inviteMemberButton')}
                   </Button>
                 </Link>
               </div>

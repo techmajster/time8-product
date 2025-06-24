@@ -18,7 +18,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import { Edit, Plus, Calendar, Users, Trash2 } from 'lucide-react'
+import { Edit, Plus, Calendar, Users, Trash2, Loader2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 interface TeamMember {
@@ -81,6 +81,13 @@ export function LeaveBalanceManager({
   const [success, setSuccess] = useState<string | null>(null)
   const [newBalanceOpen, setNewBalanceOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<string | null>(null)
+  const [showCreateMissingDialog, setShowCreateMissingDialog] = useState(false)
+  const [missingBalancesPreview, setMissingBalancesPreview] = useState<{
+    userCount: number
+    balanceCount: number
+    totalDays: number
+    details: Array<{user: string, leaveType: string, days: number}>
+  } | null>(null)
   const [formData, setFormData] = useState({
     user_id: '',
     leave_type_id: '',
@@ -231,6 +238,102 @@ export function LeaveBalanceManager({
     }
   }
 
+  const handlePreviewMissingBalances = async () => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      // Calculate what balances would be created
+      const autoAssignedTypes = balanceRequiredLeaveTypes.filter(type => 
+        type.days_per_year > 0 && 
+        !['maternity', 'paternity', 'childcare'].includes(type.leave_category || '')
+      )
+
+      const missingDetails: Array<{user: string, leaveType: string, days: number}> = []
+      let totalDays = 0
+
+      teamMembers.forEach(user => {
+        autoAssignedTypes.forEach(leaveType => {
+          const hasBalance = filteredLeaveBalances.some(
+            balance => balance.user_id === user.id && balance.leave_type_id === leaveType.id
+          )
+          if (!hasBalance) {
+            missingDetails.push({
+              user: user.full_name || user.email,
+              leaveType: leaveType.name,
+              days: leaveType.days_per_year
+            })
+            totalDays += leaveType.days_per_year
+          }
+        })
+      })
+
+      const uniqueUsers = new Set(missingDetails.map(d => d.user))
+
+      setMissingBalancesPreview({
+        userCount: uniqueUsers.size,
+        balanceCount: missingDetails.length,
+        totalDays,
+        details: missingDetails
+      })
+
+      setShowCreateMissingDialog(true)
+
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Wystąpił błąd podczas sprawdzania brakujących sald')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleCreateMissingBalances = async () => {
+    setLoading(true)
+    setError(null)
+    setSuccess(null)
+
+    try {
+      console.log('Creating missing balances...')
+      
+      const response = await fetch('/api/admin/leave-balances', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'create_defaults_for_all_users',
+          target_year: new Date().getFullYear()
+        })
+      })
+
+      console.log('Response status:', response.status)
+      
+      const result = await response.json()
+      console.log('Response result:', result)
+
+      if (!response.ok) {
+        throw new Error(result.error || `HTTP ${response.status}: Nie udało się utworzyć brakujących sald`)
+      }
+
+      setSuccess('Brakujące salda zostały utworzone pomyślnie!')
+      setShowCreateMissingDialog(false)
+      setMissingBalancesPreview(null)
+      
+      // Wait a moment before refreshing to ensure the UI updates
+      setTimeout(() => {
+        router.refresh()
+      }, 500)
+
+    } catch (err: unknown) {
+      console.error('Error creating missing balances:', err)
+      
+      if (err instanceof TypeError && err.message.includes('fetch')) {
+        setError('Błąd połączenia z serwerem. Sprawdź połączenie internetowe.')
+      } else {
+        setError(err instanceof Error ? err.message : 'Wystąpił nieznany błąd podczas tworzenia brakujących sald')
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -242,16 +345,21 @@ export function LeaveBalanceManager({
             </CardTitle>
             <CardDescription>
               Konfiguruj dni urlopowe dla członków zespołu na rok {new Date().getFullYear()}
+              <br />
+              <span className="text-xs text-muted-foreground">
+                Uwaga: Urlop macierzyński, ojcowski i dni wolne wychowawcze należy przyznawać indywidualnie pracownikom z dziećmi
+              </span>
             </CardDescription>
           </div>
-          <Dialog open={newBalanceOpen} onOpenChange={setNewBalanceOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Dodaj saldo
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
+          <div className="flex gap-2">
+            <Dialog open={newBalanceOpen} onOpenChange={setNewBalanceOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Dodaj saldo
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
               <DialogHeader>
                 <DialogTitle>Dodaj nowe saldo urlopowe</DialogTitle>
                 <DialogDescription>
@@ -353,7 +461,134 @@ export function LeaveBalanceManager({
                 </DialogFooter>
               </form>
             </DialogContent>
-          </Dialog>
+            </Dialog>
+
+            <Dialog open={showCreateMissingDialog} onOpenChange={setShowCreateMissingDialog}>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Tworzenie brakujących sald urlopowych</DialogTitle>
+                  <DialogDescription>
+                    Przegląd sald, które zostaną utworzone dla roku {new Date().getFullYear()}
+                  </DialogDescription>
+                </DialogHeader>
+                
+                {missingBalancesPreview && (
+                  <div className="space-y-4">
+                    {missingBalancesPreview.balanceCount === 0 ? (
+                      <Alert>
+                        <AlertDescription>
+                          <div className="flex items-center gap-2">
+                            <span className="text-green-600">✓</span>
+                            Wszyscy użytkownicy posiadają już wszystkie wymagane salda urlopowe. 
+                            Nie ma nic do utworzenia.
+                          </div>
+                        </AlertDescription>
+                      </Alert>
+                    ) : (
+                      <>
+                        <div className="bg-muted p-4 rounded-lg">
+                          <h4 className="font-medium mb-2">Podsumowanie:</h4>
+                          <div className="grid grid-cols-3 gap-4 text-sm">
+                            <div>
+                              <span className="text-muted-foreground">Użytkownicy:</span>
+                              <div className="font-medium">{missingBalancesPreview.userCount}</div>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Salda do utworzenia:</span>
+                              <div className="font-medium">{missingBalancesPreview.balanceCount}</div>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Łączne dni:</span>
+                              <div className="font-medium">{missingBalancesPreview.totalDays}</div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div>
+                          <h4 className="font-medium mb-3">Szczegóły:</h4>
+                          <div className="max-h-60 overflow-y-auto border rounded-lg">
+                            <div className="grid grid-cols-3 gap-4 p-3 bg-muted font-medium text-sm border-b">
+                              <div>Użytkownik</div>
+                              <div>Typ urlopu</div>
+                              <div>Dni</div>
+                            </div>
+                            {missingBalancesPreview.details.map((detail, index) => (
+                              <div key={index} className="grid grid-cols-3 gap-4 p-3 text-sm border-b last:border-b-0">
+                                <div className="truncate">{detail.user}</div>
+                                <div className="truncate">{detail.leaveType}</div>
+                                <div>{detail.days}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <Alert>
+                          <AlertDescription>
+                            Uwaga: Nie zostaną utworzone salda dla urlopów macierzyńskich, ojcowskich 
+                            i dni wolnych wychowawczych - te należy przyznawać indywidualnie.
+                          </AlertDescription>
+                        </Alert>
+                      </>
+                    )}
+
+                    {error && (
+                      <Alert variant="destructive">
+                        <AlertDescription>{error}</AlertDescription>
+                      </Alert>
+                    )}
+
+                    {success && (
+                      <Alert>
+                        <AlertDescription>{success}</AlertDescription>
+                      </Alert>
+                    )}
+                  </div>
+                )}
+
+                <DialogFooter>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => setShowCreateMissingDialog(false)} 
+                    disabled={loading}
+                  >
+                    Anuluj
+                  </Button>
+                  {missingBalancesPreview && missingBalancesPreview.balanceCount > 0 && (
+                    <Button 
+                      onClick={handleCreateMissingBalances} 
+                      disabled={loading}
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Tworzenie...
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="h-4 w-4 mr-2" />
+                          Utwórz {missingBalancesPreview.balanceCount} sald
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+            
+            <Button 
+              variant="outline" 
+              onClick={handlePreviewMissingBalances}
+              disabled={loading}
+            >
+              {loading ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Plus className="h-4 w-4 mr-2" />
+              )}
+              Utwórz brakujące salda
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>

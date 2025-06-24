@@ -124,24 +124,59 @@ export default function CreateOrganizationPage() {
 
       // Create default leave types
       console.log('Creating default leave types...')
-          const defaultLeaveTypes = [
-      { name: 'Urlop wypoczynkowy', days_per_year: 21, color: 'hsl(var(--info))' },
-      { name: 'Zwolnienie lekarskie', days_per_year: 10, color: 'hsl(var(--destructive))' },
-      { name: 'Urlop okolicznościowy', days_per_year: 3, color: 'hsl(var(--success))' },
-    ]
-
-      const { error: leaveTypesError } = await supabase
+      const { DEFAULT_LEAVE_TYPES } = await import('@/types/leave')
+      
+      const { data: createdLeaveTypes, error: leaveTypesError } = await supabase
         .from('leave_types')
         .insert(
-          defaultLeaveTypes.map(type => ({
-            ...type,
+          DEFAULT_LEAVE_TYPES.map(type => ({
             organization_id: org.id,
+            name: type.name,
+            days_per_year: type.days_per_year,
+            color: type.color,
+            requires_approval: type.requires_approval,
+            requires_balance: type.requires_balance,
+            leave_category: type.leave_category
           }))
         )
+        .select()
 
       if (leaveTypesError) {
         console.error('Leave types error:', leaveTypesError)
         // Don't throw here, organization is created successfully
+      } else {
+        console.log('Default leave types created successfully')
+        
+        // Create leave balances for the admin user for leave types that require balance
+        // Exclude child-specific leave types that should be manually assigned
+        const balanceRequiredTypes = createdLeaveTypes?.filter(lt => 
+          lt.requires_balance && 
+          lt.days_per_year > 0 && 
+          !['maternity', 'paternity', 'childcare'].includes(lt.leave_category)
+        ) || []
+        
+        if (balanceRequiredTypes.length > 0) {
+          console.log('Creating leave balances for admin user...')
+          const leaveBalances = balanceRequiredTypes.map(leaveType => ({
+            user_id: user.id,
+            leave_type_id: leaveType.id,
+            organization_id: org.id,
+            year: new Date().getFullYear(),
+            entitled_days: leaveType.days_per_year,
+            used_days: 0
+          }))
+
+          const { error: balancesError } = await supabase
+            .from('leave_balances')
+            .insert(leaveBalances)
+
+          if (balancesError) {
+            console.error('Leave balances error:', balancesError)
+            // Don't throw here, organization is created successfully
+          } else {
+            console.log('Leave balances created successfully for admin user')
+          }
+        }
       }
 
       // Success! Redirect to completion page

@@ -157,5 +157,29 @@
   }
 }
 
+@layer utilities {
+  /* Fix for navigation becoming unresponsive after theme changes */
+  .nav-fix {
+    pointer-events: auto !important;
+    cursor: pointer !important;
+  }
+  
+  /* Ensure proper event handling for interactive elements */
+  button,
+  [role="button"],
+  a,
+  [role="menuitem"] {
+    pointer-events: auto !important;
+    cursor: pointer !important;
+  }
+  
+  /* Dropdown menu fixes */
+  [data-radix-dropdown-menu-content],
+  [data-radix-dropdown-menu-item] {
+    pointer-events: auto !important;
+    cursor: pointer !important;
+  }
+}
+
 
 

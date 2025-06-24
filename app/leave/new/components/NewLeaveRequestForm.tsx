@@ -313,11 +313,39 @@ export function NewLeaveRequestForm({ leaveTypes, leaveBalances, userProfile, on
                             <span className="font-medium">{leaveType.name}</span>
                           </div>
                         </TableCell>
-                        <TableCell className="text-center">{balance.total_days}</TableCell>
+                        <TableCell className="text-center">{balance.entitled_days}</TableCell>
                         <TableCell className="text-center">{balance.used_days}</TableCell>
                         <TableCell className="text-center">
-                          <Badge variant={balance.remaining_days > 0 ? "default" : "destructive"}>
-                            {balance.remaining_days}
+                          <Badge variant={(() => {
+                            if (leaveType.name === 'Urlop na żądanie') {
+                              const vacationBalance = leaveBalances.find(b => {
+                                const vLeaveType = leaveTypes.find(lt => lt.id === b.leave_type_id)
+                                return vLeaveType?.name === 'Urlop wypoczynkowy'
+                              })
+                              if (vacationBalance) {
+                                const usedThisYear = Math.min(balance.used_days, 4)
+                                const remainingAnnual = 4 - usedThisYear
+                                const actualRemaining = Math.min(remainingAnnual, vacationBalance.remaining_days)
+                                return actualRemaining > 0 ? "default" : "destructive"
+                              }
+                            }
+                            return balance.remaining_days > 0 ? "default" : "destructive"
+                          })()}>
+                            {(() => {
+                              if (leaveType.name === 'Urlop na żądanie') {
+                                const vacationBalance = leaveBalances.find(b => {
+                                  const vLeaveType = leaveTypes.find(lt => lt.id === b.leave_type_id)
+                                  return vLeaveType?.name === 'Urlop wypoczynkowy'
+                                })
+                                if (vacationBalance) {
+                                  const usedThisYear = Math.min(balance.used_days, 4)
+                                  const remainingAnnual = 4 - usedThisYear
+                                  const actualRemaining = Math.min(remainingAnnual, vacationBalance.remaining_days)
+                                  return Math.max(0, actualRemaining)
+                                }
+                              }
+                              return Math.max(0, balance.remaining_days)
+                            })()}
                           </Badge>
                         </TableCell>
                       </TableRow>
@@ -421,10 +449,13 @@ export function NewLeaveRequestForm({ leaveTypes, leaveBalances, userProfile, on
                     {selectedType.max_days_per_request && (
                       <p>• Maksymalnie za jednym razem: {selectedType.max_days_per_request} dni</p>
                     )}
-                                         {selectedType.leave_category === LeaveCategory.ON_DEMAND && (
-                       <p>• Roczny limit: 4 dni (prawo pracownika)</p>
+                                         {selectedType.name === 'Urlop na żądanie' && (
+                       <>
+                         <p>• Roczny limit: 4 dni (prawo pracownika)</p>
+                         <p>• Jest częścią urlopu wypoczynkowego - będzie odliczone z obu sald</p>
+                       </>
                      )}
-                     {selectedType.leave_category === LeaveCategory.FORCE_MAJEURE && (
+                     {selectedType.leave_category === LeaveCategory.EMERGENCY && (
                        <p>• Dostępny w nagłych, nieprzewidzianych okolicznościach</p>
                      )}
                      {selectedType.leave_category === LeaveCategory.PARENTAL && (

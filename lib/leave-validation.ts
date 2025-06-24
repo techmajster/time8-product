@@ -78,7 +78,27 @@ export function hasAvailableBalance(_organizationId: string, leaveTypeId: string
     return { hasBalance: true }
   }
   
-  const availableDays = balance.total_days - balance.used_days + (balance.carry_over_days || 0)
+  // Use remaining_days directly from the database (it's calculated as entitled_days - used_days)
+  const availableDays = balance.remaining_days
+  
+  // Special case for "Urlop na żądanie" - also check "Urlop wypoczynkowy" balance
+  // since on-demand leave is part of vacation leave in Polish law
+  if (balance.leave_types?.name === 'Urlop na żądanie') {
+    const vacationBalance = leaveBalances.find(b => b.leave_types?.name === 'Urlop wypoczynkowy')
+    if (vacationBalance) {
+      // Calculate remaining annual limit for "Urlop na żądanie" (max 4 days per year)
+      const annualLimit = 4
+      const usedThisYear = Math.min(balance.used_days, annualLimit)
+      const remainingAnnual = annualLimit - usedThisYear
+      
+      // Can only take on-demand leave if both annual limit and vacation balance allow it
+      const actualAvailable = Math.min(remainingAnnual, vacationBalance.remaining_days)
+      return {
+        hasBalance: actualAvailable >= requestedDays,
+        availableDays: actualAvailable
+      }
+    }
+  }
   
   return {
     hasBalance: availableDays >= requestedDays,

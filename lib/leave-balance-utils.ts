@@ -77,6 +77,13 @@ export async function updateLeaveBalance(update: LeaveBalanceUpdate) {
     // Update existing balance - only update used_days, remaining_days will be calculated automatically
     const newUsedDays = Math.max(0, currentBalance.used_days - update.days_change)
 
+    console.log(`🔧 Updating balance for leave type ${update.leave_type_id}:`, {
+      currentUsedDays: currentBalance.used_days,
+      daysChange: update.days_change,
+      newUsedDays,
+      balanceId: currentBalance.id
+    })
+
     const { data: updatedBalance, error: updateError } = await supabase
       .from('leave_balances')
       .update({
@@ -86,6 +93,8 @@ export async function updateLeaveBalance(update: LeaveBalanceUpdate) {
       .eq('id', currentBalance.id)
       .select()
       .single()
+
+    console.log(`🔧 Balance update result:`, { updatedBalance, updateError })
 
     if (updateError) {
       console.error('Error updating leave balance:', updateError)
@@ -110,13 +119,61 @@ export async function handleLeaveRequestApproval(
   organization_id: string,
   year: number = new Date().getFullYear()
 ) {
-  return updateLeaveBalance({
+  const supabase = await createClient()
+  
+  // Get the leave type to check if it's "Urlop na żądanie"
+  const { data: leaveType, error: leaveTypeError } = await supabase
+    .from('leave_types')
+    .select('name')
+    .eq('id', leave_type_id)
+    .single()
+
+  if (leaveTypeError) {
+    throw new Error('Failed to fetch leave type information')
+  }
+
+  // Update the primary leave type balance
+  const primaryResult = await updateLeaveBalance({
     user_id,
     leave_type_id,
     days_change: -days_requested, // Negative to deduct days
     organization_id,
     year
   })
+
+  // Special case: "Urlop na żądanie" should also deduct from "Urlop wypoczynkowy"
+  // because on-demand leave is part of annual vacation leave in Polish law
+  if (leaveType.name === 'Urlop na żądanie') {
+    console.log(`🔧 Processing dual deduction for "Urlop na żądanie" - ${days_requested} days`)
+    try {
+      // Find the "Urlop wypoczynkowy" leave type for this organization
+      const { data: vacationLeaveType, error: vacationError } = await supabase
+        .from('leave_types')
+        .select('id')
+        .eq('name', 'Urlop wypoczynkowy')
+        .eq('organization_id', organization_id)
+        .single()
+
+      if (!vacationError && vacationLeaveType) {
+        console.log(`🔧 Found vacation leave type, also deducting from: ${vacationLeaveType.id}`)
+        // Also deduct from vacation leave balance
+        await updateLeaveBalance({
+          user_id,
+          leave_type_id: vacationLeaveType.id,
+          days_change: -days_requested, // Negative to deduct days
+          organization_id,
+          year
+        })
+      } else {
+        console.log(`🔧 Could not find vacation leave type:`, vacationError)
+      }
+    } catch (error) {
+      console.error('Error updating vacation leave balance for on-demand leave:', error)
+      // Don't fail the entire operation if vacation balance update fails
+    }
+  }
+
+  return primaryResult
 }
 
 /**
@@ -132,13 +189,56 @@ export async function handleLeaveRequestCancellation(
 ) {
   // Only restore balance if the request was previously approved
   if (previous_status === 'approved') {
-    return updateLeaveBalance({
+    const supabase = await createClient()
+    
+    // Get the leave type to check if it's "Urlop na żądanie"
+    const { data: leaveType, error: leaveTypeError } = await supabase
+      .from('leave_types')
+      .select('name')
+      .eq('id', leave_type_id)
+      .single()
+
+    if (leaveTypeError) {
+      throw new Error('Failed to fetch leave type information')
+    }
+
+    // Restore the primary leave type balance
+    const primaryResult = await updateLeaveBalance({
       user_id,
       leave_type_id,
       days_change: days_requested, // Positive to add days back
       organization_id,
       year
     })
+
+    // Special case: "Urlop na żądanie" should also restore "Urlop wypoczynkowy"
+    if (leaveType.name === 'Urlop na żądanie') {
+      try {
+        // Find the "Urlop wypoczynkowy" leave type for this organization
+        const { data: vacationLeaveType, error: vacationError } = await supabase
+          .from('leave_types')
+          .select('id')
+          .eq('name', 'Urlop wypoczynkowy')
+          .eq('organization_id', organization_id)
+          .single()
+
+        if (!vacationError && vacationLeaveType) {
+          // Also restore vacation leave balance
+          await updateLeaveBalance({
+            user_id,
+            leave_type_id: vacationLeaveType.id,
+            days_change: days_requested, // Positive to add days back
+            organization_id,
+            year
+          })
+        }
+      } catch (error) {
+        console.error('Error restoring vacation leave balance for on-demand leave:', error)
+        // Don't fail the entire operation if vacation balance update fails
+      }
+    }
+
+    return primaryResult
   }
   
   return null // No balance change needed for pending/rejected requests

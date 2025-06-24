@@ -128,11 +128,32 @@ export function LeaveBalanceCard({
                 <div className="grid grid-cols-1 gap-2 text-xs">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Pozostało:</span>
-                    <span className="font-semibold text-foreground">{balance.remaining_days} dni</span>
+                    <span className="font-semibold text-foreground">
+                      {(() => {
+                        // Special handling for "Urlop na żądanie" - calculate remaining based on vacation leave
+                        if (balance.leave_types?.name === 'Urlop na żądanie') {
+                          const vacationBalance = leaveBalances.find(b => b.leave_types?.name === 'Urlop wypoczynkowy')
+                          if (vacationBalance) {
+                            // Remaining on-demand leave is min of: annual limit (4), vacation remaining days
+                            const annualLimit = 4
+                            const usedThisYear = Math.min(balance.used_days, annualLimit)
+                            const remainingAnnual = annualLimit - usedThisYear
+                            const actualRemaining = Math.min(remainingAnnual, vacationBalance.remaining_days)
+                            return `${Math.max(0, actualRemaining)} dni`
+                          }
+                        }
+                        return `${Math.max(0, balance.remaining_days)} dni`
+                      })()}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Wykorzystano:</span>
-                    <span className="text-muted-foreground">{balance.used_days} dni</span>
+                    <span className="text-muted-foreground">
+                      {balance.leave_types?.name === 'Urlop na żądanie' 
+                        ? `${Math.min(balance.used_days, 4)} dni` 
+                        : `${balance.used_days} dni`
+                      }
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Przyznano:</span>
@@ -143,12 +164,24 @@ export function LeaveBalanceCard({
                   <div
                     className="bg-primary h-1.5 rounded-full transition-all"
                     style={{
-                      width: `${Math.min((balance.used_days / balance.entitled_days) * 100, 100)}%`
+                      width: `${(() => {
+                        if (balance.leave_types?.name === 'Urlop na żądanie') {
+                          const usedThisYear = Math.min(balance.used_days, 4)
+                          return Math.min((usedThisYear / 4) * 100, 100)
+                        }
+                        return Math.min((balance.used_days / balance.entitled_days) * 100, 100)
+                      })()}%`
                     }}
                   />
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Wykorzystano {Math.round((balance.used_days / balance.entitled_days) * 100)}% rocznego limitu
+                  {(() => {
+                    if (balance.leave_types?.name === 'Urlop na żądanie') {
+                      const usedThisYear = Math.min(balance.used_days, 4)
+                      return `Wykorzystano ${Math.round((usedThisYear / 4) * 100)}% rocznego limitu`
+                    }
+                    return `Wykorzystano ${Math.round((balance.used_days / balance.entitled_days) * 100)}% rocznego limitu`
+                  })()}
                 </p>
               </div>
             </div>
