@@ -53,25 +53,45 @@ export function getApplicableLeaveTypes(
   // Filter leave types by organization first
   const orgLeaveTypes = leaveTypes.filter(lt => lt.organization_id === organizationId)
   
-  // Filter out leave types where user has 0 entitled days (not applicable to them)
-  // This hides child-specific leave types (maternity, paternity, childcare days)
-  // from users who don't have them assigned
+  // Define child-specific and conditional leave types that should be hidden
+  // if user doesn't have access to them (regardless of balance tracking)
+  const conditionalLeaveTypes = [
+    'Urlop macierzyński',      // Maternity - only for pregnant employees
+    'Urlop ojcowski',          // Paternity - only for employees with children
+    'Dni wolne wychowawcze',   // Childcare days - only for employees with children under 14
+    'Urlop rodzicielski',      // Parental - only for employees with children
+    'Urlop szkoleniowy',       // Training - only when applicable
+    'Urlop rehabilitacyjny',   // Rehabilitation - only for disabled employees
+    'Urlop na poszukiwanie pracy' // Job search - only when terminated
+  ]
+  
   return orgLeaveTypes.filter(leaveType => {
-    // If the leave type doesn't require balance tracking, always show it
-    if (!leaveType.requires_balance) {
-      return true
+    // For conditional leave types, check if user has them assigned via balance
+    if (conditionalLeaveTypes.includes(leaveType.name)) {
+      // Find the user's balance for this leave type
+      const balance = leaveBalances.find(b => b.leave_type_id === leaveType.id)
+      
+      // If no balance exists or user has 0 entitled days, don't show it
+      if (!balance || balance.entitled_days === 0) {
+        return false
+      }
     }
     
-    // Find the user's balance for this leave type
-    const balance = leaveBalances.find(b => b.leave_type_id === leaveType.id)
-    
-    // If no balance exists, don't show it (shouldn't happen with proper setup)
-    if (!balance) {
-      return false
+    // For regular leave types that require balance tracking, check entitled days
+    if (leaveType.requires_balance && !conditionalLeaveTypes.includes(leaveType.name)) {
+      const balance = leaveBalances.find(b => b.leave_type_id === leaveType.id)
+      
+      // If no balance exists, don't show it (shouldn't happen with proper setup)
+      if (!balance) {
+        return false
+      }
+      
+      // Only show if user has entitled days (> 0)
+      return balance.entitled_days > 0
     }
     
-    // Only show if user has entitled days (> 0)
-    return balance.entitled_days > 0
+    // Show all other leave types (general purpose ones like unpaid leave, circumstantial leave)
+    return true
   })
 }
 
