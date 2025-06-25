@@ -4,6 +4,7 @@ import * as React from "react"
 import { Search, Settings, Info, AlertCircle, ChevronDown, Plus, Download, Trash2 } from "lucide-react"
 import { useState } from "react"
 import dynamic from 'next/dynamic'
+import { useSonnerToast, useLeaveSystemToasts } from "@/hooks/use-sonner-toast"
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -128,6 +129,11 @@ export default function ThemeDemo() {
   const [isCollapsed, setIsCollapsed] = React.useState(false)
   const [commandOpen, setCommandOpen] = React.useState(false)
   const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({})
+  const [iconsEnabled, setIconsEnabled] = useState(false) // New state for icon control
+  
+  // Toast notification hooks
+  const { showSuccess, showError, showWarning, showInfo } = useSonnerToast(iconsEnabled)
+  const leaveToasts = useLeaveSystemToasts(iconsEnabled)
 
   React.useEffect(() => {
     const timer = setTimeout(() => setProgress(66), 500)
@@ -923,8 +929,371 @@ export default function ThemeDemo() {
           </Card>
         </section>
 
+        {/* Toast Notifications */}
+        <section className="space-y-6">
+                      <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-semibold">Toast Notifications (nextjs-toast-notify)</h2>
+              <div className="flex items-center space-x-6">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    console.log("=== TOAST DOM INSPECTION ===");
+                    setTimeout(() => {
+                      const toasts = document.querySelectorAll('[class*="toast"], [class*="notification"]');
+                      toasts.forEach((toast, index) => {
+                        console.log(`Toast ${index + 1}:`, toast);
+                        console.log(`Classes:`, toast.className);
+                        console.log(`HTML:`, toast.outerHTML);
+                        console.log(`Children:`, Array.from(toast.children));
+                        console.log("---");
+                      });
+                    }, 100);
+                    showError("Inspect this toast in console!");
+                  }}
+                >
+                  🔍 Inspect Toast
+                </Button>
+                <div className="flex items-center space-x-3">
+                  <label htmlFor="icon-toggle" className="text-sm font-medium">
+                    Show Icons:
+                  </label>
+                  <Switch
+                    id="icon-toggle"
+                    checked={iconsEnabled}
+                    onCheckedChange={setIconsEnabled}
+                  />
+                </div>
+              </div>
+            </div>
+          <div className="grid gap-6">
+            {/* Toast Types */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Toast Types</CardTitle>
+                <CardDescription>Different notification types with various styling</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                  <Button 
+                    onClick={() => showSuccess("¡Success! Operation completed successfully!")}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    <CheckCircle2 className="w-4 h-4 mr-2" />
+                    Success Toast
+                  </Button>
+                  
+                  <Button 
+                    onClick={() => showError("Error! Something went wrong.")}
+                    variant="destructive"
+                  >
+                    <XCircle className="w-4 h-4 mr-2" />
+                    Error Toast
+                  </Button>
+                  
+                  <Button 
+                    onClick={() => showWarning("Warning! Please check your input.")}
+                    className="bg-yellow-600 hover:bg-yellow-700"
+                  >
+                    <AlertTriangle className="w-4 h-4 mr-2" />
+                    Warning Toast
+                  </Button>
+                  
+                  <Button 
+                    onClick={() => showInfo("Info: Here's some helpful information.")}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Info className="w-4 h-4 mr-2" />
+                    Info Toast
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Toast Durations */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Toast Durations & Features</CardTitle>
+                <CardDescription>Different durations and advanced features</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 md:grid-cols-3">
+                  <Button 
+                    variant="outline"
+                    onClick={() => showSuccess("Duration: 2 seconds", {
+                      duration: 2000,
+                    })}
+                  >
+                    Short Duration
+                  </Button>
+                  
+                  <Button 
+                    variant="outline"
+                    onClick={() => showSuccess("Duration: 5 seconds", {
+                      duration: 5000,
+                    })}
+                  >
+                    Medium Duration
+                  </Button>
+                  
+                  <Button 
+                    variant="outline"
+                    onClick={() => showSuccess("Duration: 8 seconds", {
+                      duration: 8000,
+                    })}
+                  >
+                    Long Duration
+                  </Button>
+                  
+                  <Button 
+                    variant="outline"
+                    onClick={() => showInfo("Persistent toast", {
+                      duration: Infinity,
+                    })}
+                  >
+                    Persistent
+                  </Button>
+                  
+                  <Button 
+                    variant="outline"
+                    onClick={() => showInfo("With description", {
+                      duration: 4000,
+                      description: "This toast includes additional details"
+                    })}
+                  >
+                    With Description
+                  </Button>
+                  
+                  <Button 
+                    variant="outline"
+                    onClick={() => showSuccess("Dismissible toast", {
+                      duration: 6000,
+                      dismissible: true,
+                    })}
+                  >
+                    Dismissible
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Toast Actions & Buttons */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Toast Actions & Buttons</CardTitle>
+                <CardDescription>Toasts with action buttons and interactive features</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  <Button 
+                    variant="secondary"
+                    onClick={() => showSuccess("Task completed!", {
+                      duration: 5000,
+                      action: {
+                        label: "View",
+                        onClick: () => alert("Viewing task!")
+                      }
+                    })}
+                  >
+                    With Action
+                  </Button>
+                  
+                  <Button 
+                    variant="secondary"
+                    onClick={() => showWarning("Unsaved changes", {
+                      duration: 8000,
+                      action: {
+                        label: "Save",
+                        onClick: () => alert("Saving...")
+                      },
+                      cancel: {
+                        label: "Discard",
+                        onClick: () => alert("Discarded!")
+                      }
+                    })}
+                  >
+                    Save/Discard
+                  </Button>
+                  
+                  <Button 
+                    variant="secondary"
+                    onClick={() => showInfo("File uploaded", {
+                      duration: 6000,
+                      description: "Your file has been uploaded successfully",
+                      action: {
+                        label: "Open",
+                        onClick: () => alert("Opening file...")
+                      }
+                    })}
+                  >
+                    With Description
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Advanced Features */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Advanced Features</CardTitle>
+                <CardDescription>Custom icons, IDs, and dismissal controls</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                  <Button 
+                    onClick={() => showSuccess("Custom ID toast", {
+                      duration: 5000,
+                      id: "custom-toast-1",
+                      icon: iconsEnabled ? '🚀' : false,
+                    })}
+                  >
+                    Custom ID
+                  </Button>
+                  
+                  <Button 
+                    onClick={() => showInfo("Non-dismissible toast", {
+                      duration: 3000,
+                      dismissible: false,
+                      icon: iconsEnabled ? '🔒' : false,
+                    })}
+                  >
+                    No Dismiss
+                  </Button>
+                  
+                  <Button 
+                    onClick={() => showWarning("Long duration toast", {
+                      duration: 8000,
+                      description: "This toast will stay for 8 seconds",
+                      icon: iconsEnabled ? '⏰' : false,
+                    })}
+                  >
+                    Long Duration
+                  </Button>
+                  
+                  <Button 
+                    onClick={() => showError("Rich content toast", {
+                      duration: 6000,
+                      description: "This includes description and custom styling",
+                      icon: iconsEnabled ? '✨' : false,
+                      dismissible: true,
+                    })}
+                  >
+                    Rich Content
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Real-world Examples */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Real-world Examples</CardTitle>
+                <CardDescription>Common use cases in leave management system</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Button 
+                    onClick={leaveToasts.leaveRequestSubmitted}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    Leave Request Submitted
+                  </Button>
+                  
+                  <Button 
+                    onClick={leaveToasts.leaveRequestApproved}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    Leave Approved
+                  </Button>
+                  
+                  <Button 
+                    onClick={leaveToasts.insufficientBalance}
+                    variant="destructive"
+                  >
+                    Insufficient Balance
+                  </Button>
+                  
+                  <Button 
+                    onClick={() => leaveToasts.pendingApprovals(3)}
+                    className="bg-yellow-600 hover:bg-yellow-700"
+                  >
+                    Pending Reviews
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Custom Hook Examples */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Custom Hook Usage</CardTitle>
+                <CardDescription>Demonstrating the useLeaveSystemToasts hook with more examples</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                  <Button 
+                    onClick={leaveToasts.profileUpdated}
+                    variant="outline"
+                  >
+                    Profile Updated
+                  </Button>
+                  
+                  <Button 
+                    onClick={leaveToasts.settingsSaved}
+                    variant="outline"
+                  >
+                    Settings Saved
+                  </Button>
+                  
+                  <Button 
+                    onClick={leaveToasts.invitationSent}
+                    variant="outline"
+                  >
+                    Invitation Sent
+                  </Button>
+                  
+                  <Button 
+                    onClick={() => leaveToasts.upcomingLeave(7)}
+                    variant="outline"
+                  >
+                    Upcoming Leave
+                  </Button>
+                  
+                  <Button 
+                    onClick={leaveToasts.overlappingDates}
+                    variant="outline"
+                  >
+                    Overlapping Dates
+                  </Button>
+                  
+                  <Button 
+                    onClick={leaveToasts.leaveRequestRejected}
+                    variant="outline"
+                  >
+                    Leave Rejected
+                  </Button>
+                  
+                  <Button 
+                    onClick={leaveToasts.networkError}
+                    variant="outline"
+                  >
+                    Network Error
+                  </Button>
+                  
+                  <Button 
+                    onClick={leaveToasts.unexpectedError}
+                    variant="outline"
+                  >
+                    Unexpected Error
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+
         <div className="text-center text-muted-foreground mt-12">
-          <p>Complete showcase of all 47 shadcn/ui components</p>
+          <p>Complete showcase of all shadcn/ui components + Sonner toasts</p>
           <p>With persistent dark mode and clean professional styling!</p>
         </div>
       </div>

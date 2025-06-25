@@ -76,6 +76,14 @@ const getSettingsNavigation = (t: any) => [
     href: '/settings'
   },
   {
+    name: t('settings.designTokens'),
+    href: '/design-tokens'
+  },
+  {
+    name: t('settings.designSystem'),
+    href: '/design-system'
+  },
+  {
     name: t('navigation.profile'),
     href: '/profile'
   }

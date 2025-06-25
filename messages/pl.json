@@ -53,7 +53,7 @@
     "orContinueWith": "Lub kontynuuj z"
   },
   "navigation": {
-    "dashboard": "Panel główny",
+    "dashboard": "Dashboard",
     "leave": "Urlopy",
     "calendar": "Kalendarz",
     "team": "Zespół",
@@ -198,6 +198,8 @@
   "settings": {
     "title": "Ustawienia",
     "organization": "Organizacja",
+    "designTokens": "Tokeny Designu",
+    "designSystem": "System Designu",
     "leavePolicies": "Zasady urlopowe",
     "leaveTypes": "Rodzaje urlopów",
     "holidays": "Święta",
