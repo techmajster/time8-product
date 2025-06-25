@@ -2,8 +2,25 @@ export default function IconsPage() {
   return (
     <div className="p-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold mb-2">Icons</h1>
-        <p className="text-gray-600 mb-4">lucide-react</p>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h1 className="text-2xl font-bold">Icons</h1>
+            <p className="text-gray-600 mt-1">
+              Lucide React icon library browser
+            </p>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-4 text-sm text-gray-600">
+          <div className="flex items-center gap-1">
+            <span className="inline-flex items-center px-2 py-1 rounded-md bg-yellow-100 text-yellow-700 text-xs font-medium">
+              Phase 8
+            </span>
+            <span>Icon Browser</span>
+          </div>
+          <div className="h-4 w-px bg-gray-300" />
+          <span>Searchable icon gallery</span>
+        </div>
       </div>
       
       <div className="border rounded-lg p-8 bg-gray-50/50 text-center">

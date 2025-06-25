@@ -715,8 +715,25 @@ export function ComponentGrid() {
   return (
     <div className="p-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold mb-2">Your component library</h1>
-        <p className="text-gray-600 mb-4">Browse and preview all available UI components</p>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h1 className="text-2xl font-bold">Component Library</h1>
+            <p className="text-gray-600 mt-1">
+              Browse and preview all available UI components
+            </p>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-4 text-sm text-gray-600 mb-6">
+          <div className="flex items-center gap-1">
+            <span className="inline-flex items-center px-2 py-1 rounded-md bg-green-100 text-green-700 text-xs font-medium">
+              Phase 2
+            </span>
+            <span>Component Gallery</span>
+          </div>
+          <div className="h-4 w-px bg-gray-300" />
+          <span>Interactive component showcase</span>
+        </div>
         
         {/* Stats */}
         <div className="flex gap-4 mb-6">

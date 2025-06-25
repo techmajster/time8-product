@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { SidebarNav } from './components/sidebar-nav';
 
 const sidebarNavItems = [
@@ -13,6 +15,33 @@ export default function ThemeEditorLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+
+  // Scroll to top when route changes
+  useEffect(() => {
+    const scrollToTop = () => {
+      // Try multiple scroll reset methods
+      const mainContent = document.querySelector('[data-main-content]');
+      if (mainContent) {
+        mainContent.scrollTop = 0;
+        mainContent.scrollTo({ top: 0, behavior: 'instant' });
+      }
+      
+      // Also reset window scroll
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    };
+    
+    // Immediate scroll reset
+    scrollToTop();
+    
+    // Additional reset after content renders
+    setTimeout(scrollToTop, 0);
+    setTimeout(scrollToTop, 10);
+    setTimeout(scrollToTop, 50);
+  }, [pathname]);
+
   return (
     <div className="flex min-h-screen bg-white">
       {/* Sidebar */}
@@ -27,7 +56,7 @@ export default function ThemeEditorLayout({
       </div>
       
       {/* Main Content */}
-      <div className="flex-1 min-h-screen overflow-auto bg-white">
+      <div className="flex-1 min-h-screen overflow-auto bg-white" data-main-content>
         {children}
       </div>
     </div>
