@@ -35,7 +35,85 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/componen
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { AlertCircle, CheckCircle, Info, Calendar, HelpCircle, Settings, Plus, ChevronDown, Search, Bold, Italic, Home, Users, FileText } from 'lucide-react';
+import { AlertCircle, CheckCircle, Info, Calendar, HelpCircle, Settings, Plus, ChevronDown, Search, Bold, Italic, Home, Users, FileText, AlertTriangle, XCircle, CheckCircle2 } from 'lucide-react';
+import { useSonnerToast, useLeaveSystemToasts } from '@/hooks/use-sonner-toast';
+
+// Toast Preview Component
+function ToastPreview() {
+  const { showSuccess, showError, showWarning, showInfo } = useSonnerToast(true);
+  const leaveToasts = useLeaveSystemToasts(true);
+
+  return (
+    <div className="space-y-2">
+      {/* Basic Toast Types */}
+      <div className="grid grid-cols-2 gap-2">
+        <Button 
+          size="sm"
+          onClick={() => showSuccess("Success! Operation completed")}
+          className="bg-green-600 hover:bg-green-700 text-xs"
+        >
+          <CheckCircle2 className="w-3 h-3 mr-1" />
+          Success
+        </Button>
+        
+        <Button 
+          size="sm"
+          onClick={() => showError("Error! Something went wrong")}
+          variant="destructive"
+          className="text-xs"
+        >
+          <XCircle className="w-3 h-3 mr-1" />
+          Error
+        </Button>
+        
+        <Button 
+          size="sm"
+          onClick={() => showWarning("Warning! Check input")}
+          className="bg-yellow-600 hover:bg-yellow-700 text-xs"
+        >
+          <AlertTriangle className="w-3 h-3 mr-1" />
+          Warning
+        </Button>
+        
+        <Button 
+          size="sm"
+          onClick={() => showInfo("Info: Helpful information")}
+          className="bg-blue-600 hover:bg-blue-700 text-xs"
+        >
+          <Info className="w-3 h-3 mr-1" />
+          Info
+        </Button>
+      </div>
+
+      {/* Advanced Features */}
+      <div className="space-y-1">
+        <Button 
+          size="sm"
+          variant="outline"
+          onClick={() => showSuccess("With action button", {
+            duration: 5000,
+            action: {
+              label: "View",
+              onClick: () => alert("Action clicked!")
+            }
+          })}
+          className="w-full text-xs"
+        >
+          With Action
+        </Button>
+        
+        <Button 
+          size="sm"
+          variant="outline"
+          onClick={() => leaveToasts.leaveRequestSubmitted()}
+          className="w-full text-xs"
+        >
+          Leave System Toast
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 const components = [
   // Actions
@@ -617,6 +695,12 @@ const components = [
         </Alert>
       </div>
     )
+  },
+  { 
+    name: 'Toast Notifications', 
+    category: 'Feedback',
+    description: 'Real-time notifications with Sonner',
+    preview: <ToastPreview />
   },
 ];
 

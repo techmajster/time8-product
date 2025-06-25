@@ -14,18 +14,20 @@ export default function ThemeEditorLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex h-screen bg-white">
+    <div className="flex min-h-screen bg-white">
       {/* Sidebar */}
-      <div className="w-64 border-r bg-gray-50/50">
+      <div className="w-64 border-r bg-gray-50/50 flex flex-col">
         <div className="p-6 border-b">
           <h2 className="text-lg font-semibold">Design System</h2>
           <p className="text-sm text-gray-600 mt-1">Internal Tool</p>
         </div>
-        <SidebarNav items={sidebarNavItems} />
+        <div className="flex-1">
+          <SidebarNav items={sidebarNavItems} />
+        </div>
       </div>
       
       {/* Main Content */}
-      <div className="flex-1 overflow-auto bg-white">
+      <div className="flex-1 min-h-screen overflow-auto bg-white">
         {children}
       </div>
     </div>
