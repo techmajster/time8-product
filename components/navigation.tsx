@@ -78,6 +78,10 @@ const getSettingsNavigation = (t: any) => [
   {
     name: t('navigation.profile'),
     href: '/profile'
+  },
+  {
+    name: 'Design System',
+    href: '/theme-editor'
   }
 ]
 

@@ -54,6 +54,22 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(redirectUrl)
   }
 
+  // Check for internal theme-editor access
+  if (request.nextUrl.pathname.startsWith('/theme-editor')) {
+    // For now, allow access to authenticated users
+    // Later this can be enhanced with role-based access control
+    if (!user) {
+      const redirectUrl = new URL('/auth/login', request.url)
+      return NextResponse.redirect(redirectUrl)
+    }
+    
+    // Optional: Add role-based check here in the future
+    // const isInternalUser = await checkInternalAccess(user.id)
+    // if (!isInternalUser) {
+    //   return NextResponse.redirect(new URL('/dashboard', request.url))
+    // }
+  }
+
   return response
 }
 
