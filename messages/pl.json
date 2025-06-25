@@ -198,8 +198,6 @@
   "settings": {
     "title": "Ustawienia",
     "organization": "Organizacja",
-    "designTokens": "Tokeny Designu",
-    "designSystem": "System Designu",
     "leavePolicies": "Zasady urlopowe",
     "leaveTypes": "Rodzaje urlopów",
     "holidays": "Święta",
