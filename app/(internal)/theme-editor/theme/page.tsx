@@ -3,23 +3,53 @@
 import { useState } from 'react';
 import { ColorPicker } from '../components/editors/ColorPicker';
 import { NumberInput } from '../components/editors/NumberInput';
+import { ShadowInput } from '../components/editors/ShadowInput';
+import { ThemeApplier, exportThemeAsCSS, exportAsTailwindConfig } from '../components/theme-applier';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { Download, RotateCcw, Palette, Ruler, Type } from 'lucide-react';
+import { Download, RotateCcw, Palette, Type, Grid, Eye, FileText, Code } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
-interface ThemeTokens {
+// Our actual design system tokens that connect to CSS variables
+interface DesignSystemTokens {
   colors: {
-    primary: string;
-    secondary: string;
-    accent: string;
-    muted: string;
-    destructive: string;
-    background: string;
-    foreground: string;
-    border: string;
+    semantic: {
+      background: string;
+      foreground: string;
+      primary: string;
+      'primary-foreground': string;
+      secondary: string;
+      'secondary-foreground': string;
+      muted: string;
+      'muted-foreground': string;
+      accent: string;
+      'accent-foreground': string;
+      destructive: string;
+      'destructive-foreground': string;
+      success: string;
+      'success-foreground': string;
+      warning: string;
+      'warning-foreground': string;
+      info: string;
+      'info-foreground': string;
+      border: string;
+      input: string;
+      ring: string;
+    };
+  };
+  typography: {
+    fontSize: {
+      xs: number;
+      sm: number;
+      base: number;
+      lg: number;
+      xl: number;
+      '2xl': number;
+    };
   };
   spacing: {
     xs: number;
@@ -27,37 +57,59 @@ interface ThemeTokens {
     md: number;
     lg: number;
     xl: number;
+    '2xl': number;
   };
   borderRadius: {
     sm: number;
     md: number;
     lg: number;
   };
-  typography: {
-    fontSize: {
-      sm: number;
-      base: number;
-      lg: number;
-      xl: number;
-    };
-    lineHeight: {
-      tight: number;
-      normal: number;
-      relaxed: number;
-    };
+  shadows: {
+    xs: string;
+    sm: string;
+    md: string;
+    lg: string;
+    xl: string;
+    '2xl': string;
   };
 }
 
-const defaultTokens: ThemeTokens = {
+// Default tokens based on our actual system
+const defaultTokens: DesignSystemTokens = {
   colors: {
-    primary: '#0f172a',
-    secondary: '#64748b',
-    accent: '#3b82f6',
-    muted: '#f1f5f9',
-    destructive: '#ef4444',
-    background: '#ffffff',
-    foreground: '#0f172a',
-    border: '#e2e8f0',
+    semantic: {
+      background: 'hsl(0, 0%, 100%)',
+      foreground: 'hsl(240, 10%, 25%)',
+      primary: 'hsl(267, 85%, 60%)',
+      'primary-foreground': 'hsl(0, 0%, 100%)',
+      secondary: 'hsl(240, 5%, 93%)',
+      'secondary-foreground': 'hsl(240, 6%, 35%)',
+      muted: 'hsl(0, 0%, 86.67%)',
+      'muted-foreground': 'hsl(240, 4%, 54%)',
+      accent: 'hsl(270, 8%, 92%)',
+      'accent-foreground': 'hsl(240, 6%, 35%)',
+      destructive: 'hsl(0, 84%, 60%)',
+      'destructive-foreground': 'hsl(0, 0%, 100%)',
+      success: 'hsl(142, 76%, 36%)',
+      'success-foreground': 'hsl(0, 0%, 100%)',
+      warning: 'hsl(48, 96%, 53%)',
+      'warning-foreground': 'hsl(26, 83%, 14%)',
+      info: 'hsl(200, 89%, 48%)',
+      'info-foreground': 'hsl(0, 0%, 100%)',
+      border: 'hsl(240, 6%, 87%)',
+      input: 'hsl(240, 6%, 87%)',
+      ring: 'hsl(267, 85%, 60%)',
+    },
+  },
+  typography: {
+    fontSize: {
+      xs: 12,
+      sm: 14,
+      base: 16,
+      lg: 18,
+      xl: 20,
+      '2xl': 24,
+    },
   },
   spacing: {
     xs: 4,
@@ -65,509 +117,594 @@ const defaultTokens: ThemeTokens = {
     md: 16,
     lg: 24,
     xl: 32,
+    '2xl': 48,
   },
   borderRadius: {
     sm: 4,
-    md: 8,
-    lg: 12,
+    md: 6,
+    lg: 8,
   },
-  typography: {
-    fontSize: {
-      sm: 14,
-      base: 16,
-      lg: 18,
-      xl: 20,
-    },
-    lineHeight: {
-      tight: 1.25,
-      normal: 1.5,
-      relaxed: 1.75,
-    },
+  shadows: {
+    xs: '0px 1px 2px 0px rgba(0, 0, 0, 0.05)',
+    sm: '0px 1px 3px 0px rgba(0, 0, 0, 0.1), 0px 1px 2px 0px rgba(0, 0, 0, 0.06)',
+    md: '0px 4px 6px -1px rgba(0, 0, 0, 0.1), 0px 2px 4px -1px rgba(0, 0, 0, 0.06)',
+    lg: '0px 10px 15px -3px rgba(0, 0, 0, 0.1), 0px 4px 6px -2px rgba(0, 0, 0, 0.05)',
+    xl: '0px 20px 25px -5px rgba(0, 0, 0, 0.1), 0px 10px 10px -5px rgba(0, 0, 0, 0.04)',
+    '2xl': '0px 25px 50px -12px rgba(0, 0, 0, 0.25)',
   },
 };
 
-export default function ThemeEditorPage() {
-  const [tokens, setTokens] = useState<ThemeTokens>(defaultTokens);
 
-  const updateColorToken = (category: keyof ThemeTokens['colors'], value: string) => {
+
+// Live Preview Component
+function LivePreviewDialog({ tokens }: { tokens: DesignSystemTokens }) {
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button>
+          <Eye className="w-4 h-4 mr-2" />
+          Live Preview
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-auto">
+        <DialogHeader>
+          <DialogTitle>Live Theme Preview</DialogTitle>
+          <DialogDescription>
+            See how your design tokens affect real components. Changes are also applied live to the entire application!
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="space-y-6 p-6 bg-gray-50 rounded-lg">
+          {/* Header Section */}
+          <div 
+            className="p-6 rounded-lg border"
+            style={{
+              backgroundColor: tokens.colors.semantic.background,
+              borderColor: tokens.colors.semantic.border,
+              borderRadius: `${tokens.borderRadius.lg}px`,
+            }}
+          >
+            <h1 
+              style={{
+                color: tokens.colors.semantic.foreground,
+                fontSize: `${tokens.typography.fontSize['2xl']}px`,
+              }}
+              className="font-bold mb-2"
+            >
+              Dashboard
+            </h1>
+            <p 
+              style={{
+                color: tokens.colors.semantic['muted-foreground'],
+                fontSize: `${tokens.typography.fontSize.base}px`,
+              }}
+            >
+              Welcome to your application dashboard
+            </p>
+          </div>
+
+          {/* Buttons Section */}
+          <div className="space-y-4">
+            <h3 className="font-medium">Buttons</h3>
+            <div className="flex gap-3 flex-wrap">
+              <button
+                className="px-4 py-2 rounded font-medium transition-colors"
+                style={{
+                  backgroundColor: tokens.colors.semantic.primary,
+                  color: tokens.colors.semantic['primary-foreground'],
+                  borderRadius: `${tokens.borderRadius.md}px`,
+                  fontSize: `${tokens.typography.fontSize.sm}px`,
+                  padding: `${tokens.spacing.sm}px ${tokens.spacing.md}px`,
+                }}
+              >
+                Primary
+              </button>
+              
+              <button
+                className="px-4 py-2 rounded font-medium border transition-colors"
+                style={{
+                  backgroundColor: tokens.colors.semantic.secondary,
+                  color: tokens.colors.semantic['secondary-foreground'],
+                  borderColor: tokens.colors.semantic.border,
+                  borderRadius: `${tokens.borderRadius.md}px`,
+                  fontSize: `${tokens.typography.fontSize.sm}px`,
+                  padding: `${tokens.spacing.sm}px ${tokens.spacing.md}px`,
+                }}
+              >
+                Secondary
+              </button>
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// Export Command Component
+function ExportCommand({ 
+  exportTokens, 
+  exportCSS, 
+  exportTailwindConfig 
+}: {
+  exportTokens: () => void;
+  exportCSS: () => void;
+  exportTailwindConfig: () => void;
+}) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="outline">
+          <Download className="w-4 h-4 mr-2" />
+          Export
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-48 p-0" align="end">
+        <Command>
+          <CommandList>
+            <CommandGroup>
+              <CommandItem onSelect={exportTokens}>
+                <Download className="mr-2 h-4 w-4" />
+                <span>Export JSON</span>
+              </CommandItem>
+              <CommandItem onSelect={exportCSS}>
+                <FileText className="mr-2 h-4 w-4" />
+                <span>Export CSS</span>
+              </CommandItem>
+              <CommandItem onSelect={exportTailwindConfig}>
+                <Code className="mr-2 h-4 w-4" />
+                <span>Export Config</span>
+              </CommandItem>
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+export default function ThemeEditorPage() {
+  const [tokens, setTokens] = useState<DesignSystemTokens>(defaultTokens);
+
+  const updateSemanticColor = (key: keyof DesignSystemTokens['colors']['semantic'], value: string) => {
     setTokens(prev => ({
       ...prev,
       colors: {
         ...prev.colors,
-        [category]: value,
+        semantic: {
+          ...prev.colors.semantic,
+          [key]: value,
+        },
       },
     }));
   };
 
-  const updateSpacingToken = (size: keyof ThemeTokens['spacing'], value: number) => {
-    setTokens(prev => ({
-      ...prev,
-      spacing: {
-        ...prev.spacing,
-        [size]: value,
-      },
-    }));
-  };
-
-  const updateBorderRadiusToken = (size: keyof ThemeTokens['borderRadius'], value: number) => {
-    setTokens(prev => ({
-      ...prev,
-      borderRadius: {
-        ...prev.borderRadius,
-        [size]: value,
-      },
-    }));
-  };
-
-  const updateFontSizeToken = (size: keyof ThemeTokens['typography']['fontSize'], value: number) => {
+  const updateFontSize = (key: keyof DesignSystemTokens['typography']['fontSize'], value: number) => {
     setTokens(prev => ({
       ...prev,
       typography: {
         ...prev.typography,
         fontSize: {
           ...prev.typography.fontSize,
-          [size]: value,
+          [key]: value,
         },
       },
     }));
   };
 
-  const updateLineHeightToken = (size: keyof ThemeTokens['typography']['lineHeight'], value: number) => {
+  const updateSpacing = (key: keyof DesignSystemTokens['spacing'], value: number) => {
     setTokens(prev => ({
       ...prev,
-      typography: {
-        ...prev.typography,
-        lineHeight: {
-          ...prev.typography.lineHeight,
-          [size]: value,
-        },
+      spacing: {
+        ...prev.spacing,
+        [key]: value,
+      },
+    }));
+  };
+
+  const updateBorderRadius = (key: keyof DesignSystemTokens['borderRadius'], value: number) => {
+    setTokens(prev => ({
+      ...prev,
+      borderRadius: {
+        ...prev.borderRadius,
+        [key]: value,
+      },
+    }));
+  };
+
+  const updateShadow = (key: keyof DesignSystemTokens['shadows'], value: string) => {
+    setTokens(prev => ({
+      ...prev,
+      shadows: {
+        ...prev.shadows,
+        [key]: value,
       },
     }));
   };
 
   const resetToDefaults = () => {
     setTokens(defaultTokens);
+    toast.success("Theme reset to defaults", {
+      description: "All design tokens have been restored to their original values",
+      action: {
+        label: "Undo",
+        onClick: () => {
+          // Could implement undo functionality here
+          toast.info("Undo functionality coming soon");
+        },
+      },
+    });
   };
 
   const exportTokens = () => {
     const dataStr = JSON.stringify(tokens, null, 2);
     const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
     
-    const exportFileDefaultName = 'theme-tokens.json';
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', 'design-system-tokens.json');
+    linkElement.click();
+    
+    toast.success("Design tokens exported", {
+      description: "JSON file downloaded successfully",
+    });
+  };
+
+  const exportCSS = () => {
+    const cssContent = exportThemeAsCSS(tokens);
+    const dataUri = 'data:text/css;charset=utf-8,'+ encodeURIComponent(cssContent);
     
     const linkElement = document.createElement('a');
     linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.setAttribute('download', 'theme-variables.css');
     linkElement.click();
+    
+    toast.success("CSS variables exported", {
+      description: "Ready-to-use CSS file downloaded",
+    });
   };
+
+  const exportTailwindConfig = () => {
+    const configContent = exportAsTailwindConfig(tokens);
+    const dataUri = 'data:text/javascript;charset=utf-8,'+ encodeURIComponent(configContent);
+    
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', 'tailwind.config.js');
+    linkElement.click();
+    
+    toast.success("Tailwind config exported", {
+      description: "Configuration file ready for your project",
+    });
+  };
+
+
 
   return (
     <div className="p-8">
+      {/* Apply theme changes to the actual CSS variables in real-time */}
+      <ThemeApplier tokens={tokens} />
+      
+      {/* Header */}
       <div className="mb-8">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold">Theme Editor</h1>
-            <p className="text-gray-600 mt-1">
-              Edit design tokens with live preview
+            <h1 className="text-3xl font-bold">Design System Editor</h1>
+            <p className="text-gray-600 mt-2">
+              Edit design tokens and see changes applied in real-time to your entire application. 
+              Connected directly to your shadcn/ui system.
             </p>
+            <div className="flex items-center gap-2 mt-3">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+              <span className="text-sm text-green-600 font-medium">Live editing active</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <Button variant="outline" onClick={resetToDefaults}>
               <RotateCcw className="w-4 h-4 mr-2" />
               Reset
             </Button>
-            <Button onClick={exportTokens}>
-              <Download className="w-4 h-4 mr-2" />
-              Export
-            </Button>
+            <ExportCommand 
+              exportTokens={exportTokens}
+              exportCSS={exportCSS}
+              exportTailwindConfig={exportTailwindConfig}
+            />
+            <LivePreviewDialog tokens={tokens} />
           </div>
-        </div>
-        
-        <div className="flex items-center gap-4 text-sm text-gray-600">
-          <div className="flex items-center gap-1">
-            <Badge variant="secondary" className="bg-blue-100 text-blue-700">
-              Phase 3
-            </Badge>
-            <span>Basic Inline Editors</span>
-          </div>
-          <Separator orientation="vertical" className="h-4" />
-          <span>Live theme token editing</span>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Editors Panel */}
-        <div className="space-y-6">
-          <Tabs defaultValue="colors" className="w-full">
-            <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground">
-              <TabsTrigger value="colors" className="flex items-center gap-2">
-                <Palette className="w-4 h-4" />
-                Colors
-              </TabsTrigger>
-              <TabsTrigger value="spacing" className="flex items-center gap-2">
-                <Ruler className="w-4 h-4" />
-                Layout
-              </TabsTrigger>
-              <TabsTrigger value="typography" className="flex items-center gap-2">
-                <Type className="w-4 h-4" />
-                Typography
-              </TabsTrigger>
-            </TabsList>
+      {/* Main Content - All sections visible at once */}
+      <div className="space-y-12">
+          {/* Colors Section */}
+          <section id="colors" className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold mb-2">Colors</h2>
+              <p className="text-gray-600">Core design system colors that map to CSS variables</p>
+            </div>
 
-            <TabsContent value="colors" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Color Tokens</CardTitle>
-                  <CardDescription>
-                    Edit brand and semantic colors
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <ColorPicker
-                    label="Primary"
-                    value={tokens.colors.primary}
-                    onChange={(value) => updateColorToken('primary', value)}
-                    description="Main brand color"
-                  />
-                  <ColorPicker
-                    label="Secondary"
-                    value={tokens.colors.secondary}
-                    onChange={(value) => updateColorToken('secondary', value)}
-                    description="Secondary brand color"
-                  />
-                  <ColorPicker
-                    label="Accent"
-                    value={tokens.colors.accent}
-                    onChange={(value) => updateColorToken('accent', value)}
-                    description="Interactive elements"
-                  />
-                  <ColorPicker
-                    label="Muted"
-                    value={tokens.colors.muted}
-                    onChange={(value) => updateColorToken('muted', value)}
-                    description="Subtle backgrounds"
-                  />
-                  <ColorPicker
-                    label="Destructive"
-                    value={tokens.colors.destructive}
-                    onChange={(value) => updateColorToken('destructive', value)}
-                    description="Error and danger states"
-                  />
-                  <ColorPicker
-                    label="Border"
-                    value={tokens.colors.border}
-                    onChange={(value) => updateColorToken('border', value)}
-                    description="Element borders"
-                  />
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="spacing" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Spacing Tokens</CardTitle>
-                  <CardDescription>
-                    Adjust layout spacing values
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <NumberInput
-                    label="Extra Small (xs)"
-                    value={tokens.spacing.xs}
-                    onChange={(value) => updateSpacingToken('xs', value)}
-                    min={0}
-                    max={20}
-                    step={1}
-                    description="Tight spacing"
-                  />
-                  <NumberInput
-                    label="Small (sm)"
-                    value={tokens.spacing.sm}
-                    onChange={(value) => updateSpacingToken('sm', value)}
-                    min={0}
-                    max={30}
-                    step={2}
-                    description="Small spacing"
-                  />
-                  <NumberInput
-                    label="Medium (md)"
-                    value={tokens.spacing.md}
-                    onChange={(value) => updateSpacingToken('md', value)}
-                    min={0}
-                    max={50}
-                    step={4}
-                    description="Default spacing"
-                  />
-                  <NumberInput
-                    label="Large (lg)"
-                    value={tokens.spacing.lg}
-                    onChange={(value) => updateSpacingToken('lg', value)}
-                    min={0}
-                    max={80}
-                    step={4}
-                    description="Large spacing"
-                  />
-                  <NumberInput
-                    label="Extra Large (xl)"
-                    value={tokens.spacing.xl}
-                    onChange={(value) => updateSpacingToken('xl', value)}
-                    min={0}
-                    max={100}
-                    step={4}
-                    description="Maximum spacing"
-                  />
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Border Radius</CardTitle>
-                  <CardDescription>
-                    Adjust corner roundness
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <NumberInput
-                    label="Small (sm)"
-                    value={tokens.borderRadius.sm}
-                    onChange={(value) => updateBorderRadiusToken('sm', value)}
-                    min={0}
-                    max={20}
-                    step={1}
-                    description="Subtle rounding"
-                  />
-                  <NumberInput
-                    label="Medium (md)"
-                    value={tokens.borderRadius.md}
-                    onChange={(value) => updateBorderRadiusToken('md', value)}
-                    min={0}
-                    max={30}
-                    step={2}
-                    description="Default rounding"
-                  />
-                  <NumberInput
-                    label="Large (lg)"
-                    value={tokens.borderRadius.lg}
-                    onChange={(value) => updateBorderRadiusToken('lg', value)}
-                    min={0}
-                    max={50}
-                    step={2}
-                    description="Strong rounding"
-                  />
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="typography" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Font Sizes</CardTitle>
-                  <CardDescription>
-                    Adjust text sizing scale
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <NumberInput
-                    label="Small (sm)"
-                    value={tokens.typography.fontSize.sm}
-                    onChange={(value) => updateFontSizeToken('sm', value)}
-                    min={10}
-                    max={20}
-                    step={1}
-                    description="Small text"
-                  />
-                  <NumberInput
-                    label="Base"
-                    value={tokens.typography.fontSize.base}
-                    onChange={(value) => updateFontSizeToken('base', value)}
-                    min={12}
-                    max={24}
-                    step={1}
-                    description="Body text"
-                  />
-                  <NumberInput
-                    label="Large (lg)"
-                    value={tokens.typography.fontSize.lg}
-                    onChange={(value) => updateFontSizeToken('lg', value)}
-                    min={16}
-                    max={30}
-                    step={1}
-                    description="Large text"
-                  />
-                  <NumberInput
-                    label="Extra Large (xl)"
-                    value={tokens.typography.fontSize.xl}
-                    onChange={(value) => updateFontSizeToken('xl', value)}
-                    min={18}
-                    max={36}
-                    step={2}
-                    description="Heading text"
-                  />
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Line Heights</CardTitle>
-                  <CardDescription>
-                    Adjust text vertical spacing
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <NumberInput
-                    label="Tight"
-                    value={tokens.typography.lineHeight.tight}
-                    onChange={(value) => updateLineHeightToken('tight', value)}
-                    min={1}
-                    max={2}
-                    step={0.05}
-                    unit=""
-                    description="Compact line height"
-                  />
-                  <NumberInput
-                    label="Normal"
-                    value={tokens.typography.lineHeight.normal}
-                    onChange={(value) => updateLineHeightToken('normal', value)}
-                    min={1.2}
-                    max={2.5}
-                    step={0.05}
-                    unit=""
-                    description="Default line height"
-                  />
-                  <NumberInput
-                    label="Relaxed"
-                    value={tokens.typography.lineHeight.relaxed}
-                    onChange={(value) => updateLineHeightToken('relaxed', value)}
-                    min={1.4}
-                    max={3}
-                    step={0.05}
-                    unit=""
-                    description="Spacious line height"
-                  />
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        </div>
-
-        {/* Live Preview Panel */}
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Live Preview</CardTitle>
-              <CardDescription>
-                See your changes applied in real-time
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div 
-                className="p-6 rounded-lg border-2"
-                style={{
-                  backgroundColor: tokens.colors.background,
-                  borderColor: tokens.colors.border,
-                  borderRadius: `${tokens.borderRadius.lg}px`,
-                }}
-              >
-                <div className="space-y-4">
-                  <h3 
-                    style={{ 
-                      color: tokens.colors.primary,
-                      fontSize: `${tokens.typography.fontSize.xl}px`,
-                      lineHeight: tokens.typography.lineHeight.tight,
-                    }}
-                    className="font-bold"
-                  >
-                    Sample Heading
-                  </h3>
-                  
-                  <p 
-                    style={{ 
-                      color: tokens.colors.foreground,
-                      fontSize: `${tokens.typography.fontSize.base}px`,
-                      lineHeight: tokens.typography.lineHeight.normal,
-                    }}
-                  >
-                    This is sample body text that demonstrates how your typography tokens affect readability and visual hierarchy.
-                  </p>
-
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="px-4 py-2 rounded text-white font-medium"
-                      style={{
-                        backgroundColor: tokens.colors.primary,
-                        borderRadius: `${tokens.borderRadius.md}px`,
-                        fontSize: `${tokens.typography.fontSize.sm}px`,
-                        padding: `${tokens.spacing.sm}px ${tokens.spacing.md}px`,
-                      }}
-                    >
-                      Primary Button
-                    </div>
-                    
-                    <div
-                      className="px-4 py-2 rounded border"
-                      style={{
-                        backgroundColor: tokens.colors.background,
-                        borderColor: tokens.colors.border,
-                        color: tokens.colors.foreground,
-                        borderRadius: `${tokens.borderRadius.md}px`,
-                        fontSize: `${tokens.typography.fontSize.sm}px`,
-                        padding: `${tokens.spacing.sm}px ${tokens.spacing.md}px`,
-                      }}
-                    >
-                      Secondary Button
-                    </div>
-                  </div>
-
-                  <div
-                    className="p-4 rounded"
-                    style={{
-                      backgroundColor: tokens.colors.muted,
-                      borderRadius: `${tokens.borderRadius.sm}px`,
-                      padding: `${tokens.spacing.md}px`,
-                    }}
-                  >
-                    <p 
-                      style={{ 
-                        color: tokens.colors.secondary,
-                        fontSize: `${tokens.typography.fontSize.sm}px`,
-                        lineHeight: tokens.typography.lineHeight.relaxed,
-                      }}
-                    >
-                      This muted section shows how your color and spacing tokens work together to create visual hierarchy.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Color Palette</CardTitle>
-              <CardDescription>
-                Current color tokens visualization
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-4">
-                {Object.entries(tokens.colors).map(([name, value]) => (
-                  <div key={name} className="flex items-center gap-3">
-                    <div
-                      className="w-8 h-8 rounded border"
-                      style={{ backgroundColor: value }}
+            {/* Semantic Colors */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Palette className="w-5 h-5" />
+                  Semantic Colors
+                </CardTitle>
+                <CardDescription>
+                  The foundation colors used throughout your design system
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {Object.entries(tokens.colors.semantic).map(([key, value]) => (
+                    <ColorPicker
+                      key={key}
+                      label={key.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                      value={value}
+                      onChange={(newValue) => updateSemanticColor(key as keyof typeof tokens.colors.semantic, newValue)}
+                      description={`CSS var: --${key}`}
                     />
-                    <div>
-                      <div className="font-medium text-sm capitalize">{name}</div>
-                      <div className="text-xs text-gray-500 font-mono">{value}</div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Color Preview Grid */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Color Palette Overview</CardTitle>
+                <CardDescription>
+                  Visual overview of your complete color system
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                  {Object.entries(tokens.colors.semantic).map(([name, value]) => (
+                    <div key={name} className="space-y-2">
+                      <div
+                        className="w-full h-16 rounded-lg border shadow-sm"
+                        style={{ backgroundColor: value }}
+                      />
+                      <div className="text-xs">
+                        <div className="font-medium">{name}</div>
+                        <div className="text-gray-500 font-mono">{value}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </section>
+
+          {/* Typography Section */}
+          <section id="typography" className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold mb-2">Typography</h2>
+              <p className="text-gray-600">Font size scale and typography settings</p>
+            </div>
+
+            {/* Font Sizes */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Type className="w-5 h-5" />
+                  Font Size Scale
+                </CardTitle>
+                <CardDescription>
+                  Typographic scale for consistent sizing across components
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {Object.entries(tokens.typography.fontSize).map(([key, value]) => (
+                    <NumberInput
+                      key={key}
+                      label={key}
+                      value={value}
+                      onChange={(newValue) => updateFontSize(key as keyof typeof tokens.typography.fontSize, newValue)}
+                      min={8}
+                      max={72}
+                      step={1}
+                      unit="px"
+                      description={`text-${key}`}
+                    />
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Typography Preview */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Typography Scale Preview</CardTitle>
+                <CardDescription>
+                  See how your font sizes look in context
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {Object.entries(tokens.typography.fontSize).map(([key, value]) => (
+                  <div key={key} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div style={{ fontSize: `${value}px` }}>
+                      The quick brown fox jumps over the lazy dog
+                    </div>
+                    <div className="text-sm text-gray-500 font-mono">
+                      {key} • {value}px
                     </div>
                   </div>
                 ))}
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </section>
+
+          {/* Layout Section */}
+          <section id="layout" className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold mb-2">Layout</h2>
+              <p className="text-gray-600">Spacing, sizing, and layout tokens</p>
+            </div>
+
+            {/* Spacing Scale */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Grid className="w-5 h-5" />
+                  Spacing Scale
+                </CardTitle>
+                <CardDescription>
+                  Consistent spacing system for layouts and components
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {Object.entries(tokens.spacing).map(([key, value]) => (
+                    <NumberInput
+                      key={key}
+                      label={key}
+                      value={value}
+                      onChange={(newValue) => updateSpacing(key as keyof typeof tokens.spacing, newValue)}
+                      min={0}
+                      max={200}
+                      step={4}
+                      unit="px"
+                      description={`space-${key}`}
+                    />
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Border Radius with Integrated Preview */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Border Radius</CardTitle>
+                <CardDescription>
+                  Corner radius system for consistent roundness
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {Object.entries(tokens.borderRadius).map(([key, value]) => (
+                    <div key={key} className="space-y-4">
+                      {/* Visual Preview */}
+                      <div className="bg-gray-50 p-6 rounded-lg border">
+                        <div className="text-sm font-medium mb-3 text-gray-700">
+                          {key.charAt(0).toUpperCase() + key.slice(1)} Radius
+                        </div>
+                        <div
+                          className="w-20 h-20 bg-white border-2 border-gray-300 mx-auto shadow-sm"
+                          style={{ borderRadius: `${value}px` }}
+                        />
+                        <div className="text-xs text-gray-500 text-center mt-2">
+                          {value}px
+                        </div>
+                      </div>
+                      
+                      {/* Control */}
+                      <NumberInput
+                        label={`Radius ${key}`}
+                        value={value}
+                        onChange={(newValue) => updateBorderRadius(key as keyof typeof tokens.borderRadius, newValue)}
+                        min={0}
+                        max={50}
+                        step={1}
+                        unit="px"
+                        description={`rounded-${key}`}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Spacing Scale with Visual Bars */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Spacing Scale Preview</CardTitle>
+                <CardDescription>
+                  Visual representation of your spacing tokens
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {Object.entries(tokens.spacing).map(([key, value]) => (
+                    <div key={key} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
+                      <div className="w-16 text-sm font-mono font-medium">{key}</div>
+                      <div
+                        className="bg-blue-500 rounded"
+                        style={{ height: '12px', width: `${Math.min(value, 200)}px` }}
+                      />
+                      <div className="text-sm text-gray-600 font-medium">{value}px</div>
+                    </div>
+                  ))}
+                </div>
+                            </CardContent>
+            </Card>
+          </section>
+
+          {/* Shadows Section */}
+          <section id="shadows" className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold mb-2">Shadows</h2>
+              <p className="text-gray-600">Elevation system using box shadows for depth and hierarchy</p>
+            </div>
+
+            {/* Shadow System with Integrated Preview */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                  </svg>
+                  Shadow Scale
+                </CardTitle>
+                <CardDescription>
+                  Complete elevation system from subtle to dramatic shadows
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  {Object.entries(tokens.shadows).map(([key, value]) => (
+                    <ShadowInput
+                      key={key}
+                      label={`Shadow ${key.toUpperCase()}`}
+                      value={value}
+                      onChange={(newValue) => updateShadow(key as keyof typeof tokens.shadows, newValue)}
+                      description={`shadow-${key}`}
+                    />
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Shadow Scale Overview */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Shadow Scale Overview</CardTitle>
+                <CardDescription>
+                  Visual comparison of your complete shadow system
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+                  {Object.entries(tokens.shadows).map(([name, value]) => (
+                    <div key={name} className="text-center space-y-3">
+                      <div
+                        className="w-16 h-16 bg-white rounded-lg mx-auto border"
+                        style={{ boxShadow: value }}
+                      />
+                      <div className="space-y-1">
+                        <div className="text-sm font-medium">{name}</div>
+                        <div className="text-xs text-gray-500 font-mono break-all">
+                          shadow-{name}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </section>
         </div>
       </div>
-    </div>
-  );
-} 
+    );
+  } 
