@@ -19,7 +19,23 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { AlertCircle, CheckCircle, Info, Calendar, HelpCircle } from 'lucide-react';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Toggle } from '@/components/ui/toggle';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
+import { DatePicker } from '@/components/ui/date-picker';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { AlertCircle, CheckCircle, Info, Calendar, HelpCircle, Settings, Plus, ChevronDown, Search, Bold, Italic, Home, Users, FileText } from 'lucide-react';
 
 const components = [
   // Actions
@@ -32,8 +48,40 @@ const components = [
         <Button size="sm">Primary</Button>
         <Button size="sm" variant="outline">Outline</Button>
         <Button size="sm" variant="ghost">Ghost</Button>
+        <Button size="sm" variant="secondary">Secondary</Button>
         <Button size="sm" variant="destructive">Destructive</Button>
+        <Button size="sm" variant="link">Link</Button>
       </div>
+    )
+  },
+  { 
+    name: 'Toggle', 
+    category: 'Actions',
+    description: 'Toggle button for binary state',
+    preview: (
+      <div className="flex gap-2">
+        <Toggle>
+          <Bold className="h-4 w-4" />
+        </Toggle>
+        <Toggle pressed>
+          <Italic className="h-4 w-4" />
+        </Toggle>
+      </div>
+    )
+  },
+  { 
+    name: 'Toggle Group', 
+    category: 'Actions',
+    description: 'Group of toggle buttons for multiple selection',
+    preview: (
+      <ToggleGroup type="multiple" className="flex gap-1">
+        <ToggleGroupItem value="bold">
+          <Bold className="h-4 w-4" />
+        </ToggleGroupItem>
+        <ToggleGroupItem value="italic">
+          <Italic className="h-4 w-4" />
+        </ToggleGroupItem>
+      </ToggleGroup>
     )
   },
   
@@ -129,6 +177,31 @@ const components = [
       </div>
     )
   },
+  { 
+    name: 'Input OTP', 
+    category: 'Form',
+    description: 'One-time password input component',
+    preview: (
+      <InputOTP maxLength={6}>
+        <InputOTPGroup>
+          <InputOTPSlot index={0} />
+          <InputOTPSlot index={1} />
+          <InputOTPSlot index={2} />
+          <InputOTPSlot index={3} />
+          <InputOTPSlot index={4} />
+          <InputOTPSlot index={5} />
+        </InputOTPGroup>
+      </InputOTP>
+    )
+  },
+  { 
+    name: 'Date Picker', 
+    category: 'Form',
+    description: 'Calendar-based date selection',
+    preview: (
+      <DatePicker />
+    )
+  },
   
   // Layout
   { 
@@ -178,6 +251,154 @@ const components = [
           Content for tab 2
         </TabsContent>
       </Tabs>
+    )
+  },
+  { 
+    name: 'Accordion', 
+    category: 'Layout',
+    description: 'Collapsible content sections',
+    preview: (
+      <Accordion type="single" collapsible className="w-full max-w-sm">
+        <AccordionItem value="item-1">
+          <AccordionTrigger className="text-sm">Item 1</AccordionTrigger>
+          <AccordionContent className="text-xs text-gray-600">
+            Content for the first item.
+          </AccordionContent>
+        </AccordionItem>
+        <AccordionItem value="item-2">
+          <AccordionTrigger className="text-sm">Item 2</AccordionTrigger>
+          <AccordionContent className="text-xs text-gray-600">
+            Content for the second item.
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
+    )
+  },
+  { 
+    name: 'Collapsible', 
+    category: 'Layout',
+    description: 'Simple collapsible content container',
+    preview: (
+      <Collapsible className="w-full max-w-sm">
+        <CollapsibleTrigger asChild>
+          <Button variant="outline" size="sm" className="w-full justify-between">
+            Toggle Content
+            <ChevronDown className="h-4 w-4" />
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="text-sm text-gray-600 mt-2 p-2 border rounded">
+          This is collapsible content that can be shown or hidden.
+        </CollapsibleContent>
+      </Collapsible>
+    )
+  },
+  { 
+    name: 'Scroll Area', 
+    category: 'Layout',
+    description: 'Custom scrollable container',
+    preview: (
+      <ScrollArea className="h-24 w-48 rounded-md border p-2">
+        {Array.from({ length: 10 }, (_, i) => (
+          <div key={i} className="text-xs py-1">
+            Scrollable item {i + 1}
+          </div>
+        ))}
+      </ScrollArea>
+    )
+  },
+  { 
+    name: 'Resizable', 
+    category: 'Layout',
+    description: 'Resizable panel container',
+    preview: (
+      <ResizablePanelGroup direction="horizontal" className="h-20 w-48 rounded-lg border">
+        <ResizablePanel defaultSize={50}>
+          <div className="flex h-full items-center justify-center text-xs">
+            Left
+          </div>
+        </ResizablePanel>
+        <ResizableHandle />
+        <ResizablePanel defaultSize={50}>
+          <div className="flex h-full items-center justify-center text-xs">
+            Right
+          </div>
+        </ResizablePanel>
+      </ResizablePanelGroup>
+    )
+  },
+  { 
+    name: 'Table', 
+    category: 'Layout',
+    description: 'Structured data display',
+    preview: (
+      <div className="w-full max-w-sm">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="text-xs">Name</TableHead>
+              <TableHead className="text-xs">Status</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow>
+              <TableCell className="text-xs">John</TableCell>
+              <TableCell className="text-xs">Active</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell className="text-xs">Jane</TableCell>
+              <TableCell className="text-xs">Inactive</TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+      </div>
+    )
+  },
+  { 
+    name: 'Breadcrumb', 
+    category: 'Layout',
+    description: 'Navigation breadcrumb trail',
+    preview: (
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink href="#" className="text-xs">Home</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink href="#" className="text-xs">Components</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage className="text-xs">Breadcrumb</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+    )
+  },
+  { 
+    name: 'Pagination', 
+    category: 'Layout',
+    description: 'Page navigation component',
+    preview: (
+      <Pagination>
+        <PaginationContent>
+          <PaginationItem>
+            <PaginationPrevious href="#" className="text-xs" />
+          </PaginationItem>
+          <PaginationItem>
+            <PaginationLink href="#" className="text-xs">1</PaginationLink>
+          </PaginationItem>
+          <PaginationItem>
+            <PaginationLink href="#" className="text-xs" isActive>2</PaginationLink>
+          </PaginationItem>
+          <PaginationItem>
+            <PaginationLink href="#" className="text-xs">3</PaginationLink>
+          </PaginationItem>
+          <PaginationItem>
+            <PaginationNext href="#" className="text-xs" />
+          </PaginationItem>
+        </PaginationContent>
+      </Pagination>
     )
   },
   
@@ -257,6 +478,122 @@ const components = [
     )
   },
   
+  // Interactive/Overlay
+  { 
+    name: 'Dialog', 
+    category: 'Interactive',
+    description: 'Modal dialog overlay',
+    preview: (
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button variant="outline" size="sm">Open Dialog</Button>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-sm">Dialog Title</DialogTitle>
+            <DialogDescription className="text-xs">
+              This is a dialog description.
+            </DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
+    )
+  },
+  { 
+    name: 'Alert Dialog', 
+    category: 'Interactive',
+    description: 'Confirmation dialog with actions',
+    preview: (
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button variant="outline" size="sm">Show Alert</Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-sm">Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription className="text-xs">
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="text-xs">Cancel</AlertDialogCancel>
+            <AlertDialogAction className="text-xs">Continue</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    )
+  },
+  { 
+    name: 'Sheet', 
+    category: 'Interactive',
+    description: 'Slide-out panel overlay',
+    preview: (
+      <Sheet>
+        <SheetTrigger asChild>
+          <Button variant="outline" size="sm">Open Sheet</Button>
+        </SheetTrigger>
+        <SheetContent>
+          <SheetHeader>
+            <SheetTitle className="text-sm">Sheet Title</SheetTitle>
+            <SheetDescription className="text-xs">
+              This is a sheet description.
+            </SheetDescription>
+          </SheetHeader>
+        </SheetContent>
+      </Sheet>
+    )
+  },
+  { 
+    name: 'Drawer', 
+    category: 'Interactive',
+    description: 'Bottom slide-up overlay',
+    preview: (
+      <Drawer>
+        <DrawerTrigger asChild>
+          <Button variant="outline" size="sm">Open Drawer</Button>
+        </DrawerTrigger>
+        <DrawerContent>
+          <DrawerHeader>
+            <DrawerTitle className="text-sm">Drawer Title</DrawerTitle>
+            <DrawerDescription className="text-xs">
+              This is a drawer description.
+            </DrawerDescription>
+          </DrawerHeader>
+          <DrawerFooter>
+            <DrawerClose asChild>
+              <Button variant="outline" size="sm">Close</Button>
+            </DrawerClose>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+    )
+  },
+  { 
+    name: 'Command', 
+    category: 'Interactive',
+    description: 'Command palette interface',
+    preview: (
+      <div className="w-64">
+        <Command className="rounded-lg border shadow-md">
+          <CommandInput placeholder="Type a command..." className="text-xs" />
+          <CommandList>
+            <CommandEmpty className="text-xs">No results found.</CommandEmpty>
+            <CommandGroup heading="Suggestions">
+              <CommandItem className="text-xs">
+                <Settings className="mr-2 h-3 w-3" />
+                Settings
+              </CommandItem>
+              <CommandItem className="text-xs">
+                <Users className="mr-2 h-3 w-3" />
+                Users
+              </CommandItem>
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </div>
+    )
+  },
+  
   // Feedback
   { 
     name: 'Alert', 
@@ -284,7 +621,7 @@ const components = [
 ];
 
 export function ComponentGrid() {
-  const categories = ['All', 'Actions', 'Form', 'Layout', 'Display', 'Feedback'];
+  const categories = ['All', 'Actions', 'Form', 'Layout', 'Display', 'Interactive', 'Feedback'];
   const [selectedCategory, setSelectedCategory] = useState('All');
 
   const filteredComponents = selectedCategory === 'All' 
