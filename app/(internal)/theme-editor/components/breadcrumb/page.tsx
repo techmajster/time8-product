@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
@@ -205,7 +205,7 @@ function LiveBreadcrumbPreview({ properties }: { properties: BreadcrumbPropertie
               <BreadcrumbItem>
                 <BreadcrumbLink href={itemsToShow[0].href || '#'}>
                   {properties.showHome && properties.showIcons && (
-                    <itemsToShow[0].icon className="h-4 w-4 mr-1" />
+                    React.createElement(itemsToShow[0].icon, { className: "h-4 w-4 mr-1" })
                   )}
                   {itemsToShow[0].label}
                 </BreadcrumbLink>

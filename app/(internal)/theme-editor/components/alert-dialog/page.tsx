@@ -254,7 +254,7 @@ function LiveAlertDialogPreview({ properties }: { properties: AlertDialogPropert
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{properties.cancelActionText}</AlertDialogCancel>
-            <AlertDialogAction variant={getPrimaryActionVariant()}>
+            <AlertDialogAction className={getPrimaryActionVariant() === 'destructive' ? 'bg-destructive hover:bg-destructive/90' : ''}>
               {properties.primaryActionText}
             </AlertDialogAction>
           </AlertDialogFooter>

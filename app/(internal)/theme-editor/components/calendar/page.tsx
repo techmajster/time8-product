@@ -19,7 +19,7 @@ import {
   Clock,
   Users,
   MapPin,
-  Event,
+  Calendar as CalendarEvent,
   CalendarCheck
 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -434,7 +434,7 @@ export default function CalendarComponentPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Event className="h-5 w-5" />
+                <CalendarEvent className="h-5 w-5" />
                 Date Range
               </CardTitle>
               <CardDescription>

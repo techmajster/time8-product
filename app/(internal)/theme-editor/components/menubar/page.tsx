@@ -48,7 +48,7 @@ import {
   AlignCenter,
   AlignRight,
   Zap,
-  Help,
+  HelpCircle,
   Info
 } from 'lucide-react';
 
@@ -437,7 +437,7 @@ function LiveMenubarPreview({ properties }: { properties: MenubarProperties }) {
               <MenubarTrigger>Help</MenubarTrigger>
               <MenubarContent>
                 <MenubarItem>
-                  {properties.showIcons && <Help className="mr-2 h-4 w-4" />}
+                  {properties.showIcons && <HelpCircle className="mr-2 h-4 w-4" />}
                   Documentation
                 </MenubarItem>
                 <MenubarItem>
