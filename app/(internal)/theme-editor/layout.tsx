@@ -4,10 +4,20 @@ import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { SidebarNav } from './components/sidebar-nav';
 
-const sidebarNavItems = [
-  { title: 'Overview', href: '/theme-editor' },
-  { title: 'Theme', href: '/theme-editor/theme' },
-  { title: 'Icons', href: '/theme-editor/icons' },
+const sidebarNavSections = [
+  {
+    items: [
+      { title: 'Overview', href: '/theme-editor' },
+      { title: 'Theme', href: '/theme-editor/theme' },
+      { title: 'Icons', href: '/theme-editor/icons' },
+    ]
+  },
+  {
+    label: 'Components',
+    items: [
+      { title: 'Button', href: '/theme-editor/components/button' },
+    ]
+  }
 ];
 
 export default function ThemeEditorLayout({
@@ -51,7 +61,7 @@ export default function ThemeEditorLayout({
           <p className="text-sm text-gray-600 mt-1">Internal Tool</p>
         </div>
         <div className="flex-1">
-          <SidebarNav items={sidebarNavItems} />
+          <SidebarNav sections={sidebarNavSections} />
         </div>
       </div>
       
