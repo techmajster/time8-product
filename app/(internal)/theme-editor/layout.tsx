@@ -6,10 +6,10 @@ import { SidebarNav } from './components/sidebar-nav';
 
 const sidebarNavSections = [
   {
+    label: 'Basic',
     items: [
       { title: 'Overview', href: '/theme-editor' },
-      { title: 'Theme', href: '/theme-editor/theme' },
-      { title: 'Icons', href: '/theme-editor/icons' },
+      { title: 'Theme', href: '/theme-editor/theme' }
     ]
   },
   {
@@ -59,6 +59,12 @@ const sidebarNavSections = [
       { title: 'Sheet', href: '/theme-editor/components/sheet' },
       { title: 'Command', href: '/theme-editor/components/command' },
     ]
+  },
+  {
+    label: 'Feedback',
+    items: [
+      { title: 'Toast Notifications', href: '/theme-editor/components/toast-notifications' },
+    ]
   }
 ];
 
@@ -102,7 +108,7 @@ export default function ThemeEditorLayout({
           <h2 className="text-lg font-semibold">Design System</h2>
           <p className="text-sm text-gray-600 mt-1">Internal Tool</p>
         </div>
-        <div className="flex-1">
+        <div className="flex-1 pt-4">
           <SidebarNav sections={sidebarNavSections} />
         </div>
       </div>
