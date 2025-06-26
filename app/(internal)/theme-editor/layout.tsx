@@ -13,9 +13,51 @@ const sidebarNavSections = [
     ]
   },
   {
-    label: 'Components',
+    label: 'Actions',
     items: [
       { title: 'Button', href: '/theme-editor/components/button' },
+      { title: 'Toggle', href: '/theme-editor/components/toggle' },
+      { title: 'Toggle Group', href: '/theme-editor/components/toggle-group' },
+    ]
+  },
+  {
+    label: 'Form',
+    items: [
+      { title: 'Input', href: '/theme-editor/components/input' },
+      { title: 'Textarea', href: '/theme-editor/components/textarea' },
+      { title: 'Select', href: '/theme-editor/components/select' },
+      { title: 'Checkbox', href: '/theme-editor/components/checkbox' },
+      { title: 'Radio Group', href: '/theme-editor/components/radio-group' },
+      { title: 'Switch', href: '/theme-editor/components/switch' },
+      { title: 'Slider', href: '/theme-editor/components/slider' },
+      { title: 'Date Picker', href: '/theme-editor/components/date-picker' },
+    ]
+  },
+  {
+    label: 'Layout',
+    items: [
+      { title: 'Card', href: '/theme-editor/components/card' },
+      { title: 'Separator', href: '/theme-editor/components/separator' },
+      { title: 'Tabs', href: '/theme-editor/components/tabs' },
+      { title: 'Accordion', href: '/theme-editor/components/accordion' },
+      { title: 'Table', href: '/theme-editor/components/table' },
+    ]
+  },
+  {
+    label: 'Display',
+    items: [
+      { title: 'Badge', href: '/theme-editor/components/badge' },
+      { title: 'Avatar', href: '/theme-editor/components/avatar' },
+      { title: 'Progress', href: '/theme-editor/components/progress' },
+      { title: 'Alert', href: '/theme-editor/components/alert' },
+    ]
+  },
+  {
+    label: 'Interactive',
+    items: [
+      { title: 'Dialog', href: '/theme-editor/components/dialog' },
+      { title: 'Sheet', href: '/theme-editor/components/sheet' },
+      { title: 'Command', href: '/theme-editor/components/command' },
     ]
   }
 ];

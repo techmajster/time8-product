@@ -63,14 +63,14 @@ export default function ButtonComponentPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Live Preview */}
               <div className="lg:col-span-2">
-                <div className="flex items-center justify-center py-12 bg-gray-50/50 rounded-lg border-2 border-dashed border-gray-200">
+                <div className="flex items-center justify-center bg-gray-50/50 rounded-lg border-2 border-dashed border-gray-200 h-full min-h-[500px]">
                   <LiveButtonPreview properties={buttonProperties} />
                 </div>
               </div>
               
               {/* Properties Panel */}
               <div className="lg:col-span-1">
-                <div className="h-full border rounded-lg bg-gray-50/50">
+                <div className="h-full min-h-[500px] border rounded-lg bg-gray-50/50">
                   <PropertiesPanel 
                     componentType="button"
                     properties={buttonProperties}
@@ -395,40 +395,6 @@ export default function ButtonComponentPage() {
       </section>
 
       {/* Theme Integration Note */}
-      <section>
-        <Card className="border-blue-200 bg-blue-50/50">
-          <CardHeader>
-            <CardTitle className="text-blue-900">🎨 Live Theme Integration</CardTitle>
-            <CardDescription className="text-blue-700">
-              All buttons on this page automatically reflect your current theme settings. 
-              Try adjusting colors, typography, spacing, border radius, or shadows in the Theme editor 
-              to see how they affect each button variant, size, and state in real-time.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2 text-sm text-blue-700">
-              <Check className="w-4 h-4" />
-              <span>Colors from your semantic color palette</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-blue-700">
-              <Check className="w-4 h-4" />
-              <span>Typography scale from your font settings</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-blue-700">
-              <Check className="w-4 h-4" />
-              <span>Spacing and padding from your spacing tokens</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-blue-700">
-              <Check className="w-4 h-4" />
-              <span>Border radius from your border radius settings</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-blue-700">
-              <Check className="w-4 h-4" />
-              <span>Shadows from your elevation system</span>
-            </div>
-          </CardContent>
-        </Card>
-      </section>
     </div>
   );
 } 
