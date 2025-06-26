@@ -58,14 +58,14 @@ const contactSchema = z.object({
   email: z.string().email('Invalid email address'),
   subject: z.string().min(1, 'Subject is required'),
   message: z.string().min(10, 'Message must be at least 10 characters'),
-  urgent: z.boolean().default(false),
+  urgent: z.boolean(),
 });
 
 const settingsSchema = z.object({
-  notifications: z.boolean().default(true),
+  notifications: z.boolean(),
   theme: z.enum(['light', 'dark', 'system']),
   language: z.string(),
-  autoSave: z.boolean().default(true),
+  autoSave: z.boolean(),
 });
 
 const registrationSchema = z.object({
@@ -78,6 +78,12 @@ const registrationSchema = z.object({
   message: "Passwords don't match",
   path: ["confirmPassword"],
 });
+
+// Type definitions
+type ProfileFormData = z.infer<typeof profileSchema>;
+type ContactFormData = z.infer<typeof contactSchema>;
+type SettingsFormData = z.infer<typeof settingsSchema>;
+type RegistrationFormData = z.infer<typeof registrationSchema>;
 
 // Properties Panel Component
 function FormPropertiesPanel({ 
@@ -204,43 +210,21 @@ function FormPropertiesPanel({
   );
 }
 
-// Live Preview Component
-function LiveFormPreview({ properties }: { properties: FormProperties }) {
-  const getSchema = () => {
-    switch (properties.formType) {
-      case 'profile': return profileSchema;
-      case 'contact': return contactSchema;
-      case 'settings': return settingsSchema;
-      case 'registration': return registrationSchema;
-      default: return profileSchema;
-    }
-  };
-
-  const form = useForm({
-    resolver: zodResolver(getSchema()),
+// Profile Form Component
+function ProfileForm({ properties }: { properties: FormProperties }) {
+  const form = useForm<ProfileFormData>({
+    resolver: zodResolver(profileSchema),
     defaultValues: {
       firstName: '',
       lastName: '',
       email: '',
       phone: '',
       bio: '',
-      name: '',
-      subject: '',
-      message: '',
-      urgent: false,
-      notifications: true,
-      theme: 'system',
-      language: 'en',
-      autoSave: true,
-      username: '',
-      password: '',
-      confirmPassword: '',
-      terms: false,
     }
   });
 
-  const onSubmit = (data: any) => {
-    console.log('Form submitted:', data);
+  const onSubmit = (data: ProfileFormData) => {
+    console.log('Profile form submitted:', data);
   };
 
   const getSpacingClass = () => {
@@ -252,7 +236,7 @@ function LiveFormPreview({ properties }: { properties: FormProperties }) {
     }
   };
 
-  const renderProfileForm = () => (
+  return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className={getSpacingClass()}>
         <div className={properties.layout === 'horizontal' ? 'grid grid-cols-2 gap-4' : 'space-y-4'}>
@@ -361,8 +345,35 @@ function LiveFormPreview({ properties }: { properties: FormProperties }) {
       </form>
     </Form>
   );
+}
 
-  const renderContactForm = () => (
+// Contact Form Component
+function ContactForm({ properties }: { properties: FormProperties }) {
+  const form = useForm<ContactFormData>({
+    resolver: zodResolver(contactSchema),
+    defaultValues: {
+      name: '',
+      email: '',
+      subject: '',
+      message: '',
+      urgent: false,
+    }
+  });
+
+  const onSubmit = (data: ContactFormData) => {
+    console.log('Contact form submitted:', data);
+  };
+
+  const getSpacingClass = () => {
+    switch (properties.fieldSpacing) {
+      case 'compact': return 'space-y-3';
+      case 'normal': return 'space-y-4';
+      case 'relaxed': return 'space-y-6';
+      default: return 'space-y-4';
+    }
+  };
+
+  return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className={getSpacingClass()}>
         <FormField
@@ -462,8 +473,34 @@ function LiveFormPreview({ properties }: { properties: FormProperties }) {
       </form>
     </Form>
   );
+}
 
-  const renderSettingsForm = () => (
+// Settings Form Component
+function SettingsForm({ properties }: { properties: FormProperties }) {
+  const form = useForm<SettingsFormData>({
+    resolver: zodResolver(settingsSchema),
+    defaultValues: {
+      notifications: true,
+      theme: 'system',
+      language: 'en',
+      autoSave: true,
+    }
+  });
+
+  const onSubmit = (data: SettingsFormData) => {
+    console.log('Settings form submitted:', data);
+  };
+
+  const getSpacingClass = () => {
+    switch (properties.fieldSpacing) {
+      case 'compact': return 'space-y-3';
+      case 'normal': return 'space-y-4';
+      case 'relaxed': return 'space-y-6';
+      default: return 'space-y-4';
+    }
+  };
+
+  return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className={getSpacingClass()}>
         <FormField
@@ -541,8 +578,35 @@ function LiveFormPreview({ properties }: { properties: FormProperties }) {
       </form>
     </Form>
   );
+}
 
-  const renderRegistrationForm = () => (
+// Registration Form Component
+function RegistrationForm({ properties }: { properties: FormProperties }) {
+  const form = useForm<RegistrationFormData>({
+    resolver: zodResolver(registrationSchema),
+    defaultValues: {
+      username: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+      terms: false,
+    }
+  });
+
+  const onSubmit = (data: RegistrationFormData) => {
+    console.log('Registration form submitted:', data);
+  };
+
+  const getSpacingClass = () => {
+    switch (properties.fieldSpacing) {
+      case 'compact': return 'space-y-3';
+      case 'normal': return 'space-y-4';
+      case 'relaxed': return 'space-y-6';
+      default: return 'space-y-4';
+    }
+  };
+
+  return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className={getSpacingClass()}>
         <FormField
@@ -655,14 +719,17 @@ function LiveFormPreview({ properties }: { properties: FormProperties }) {
       </form>
     </Form>
   );
+}
 
+// Live Preview Component
+function LiveFormPreview({ properties }: { properties: FormProperties }) {
   const renderForm = () => {
     switch (properties.formType) {
-      case 'profile': return renderProfileForm();
-      case 'contact': return renderContactForm();
-      case 'settings': return renderSettingsForm();
-      case 'registration': return renderRegistrationForm();
-      default: return renderProfileForm();
+      case 'profile': return <ProfileForm properties={properties} />;
+      case 'contact': return <ContactForm properties={properties} />;
+      case 'settings': return <SettingsForm properties={properties} />;
+      case 'registration': return <RegistrationForm properties={properties} />;
+      default: return <ProfileForm properties={properties} />;
     }
   };
 
