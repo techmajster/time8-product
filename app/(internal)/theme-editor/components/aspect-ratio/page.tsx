@@ -194,7 +194,7 @@ function LiveAspectRatioPreview({ properties }: { properties: AspectRatioPropert
     }
   };
 
-  const getRatio = () => {
+  const getRatio = (): number => {
     if (properties.ratio === 'custom') {
       const custom = properties.customRatio;
       if (custom.includes('/')) {
@@ -203,7 +203,12 @@ function LiveAspectRatioPreview({ properties }: { properties: AspectRatioPropert
       }
       return parseFloat(custom) || 16/9;
     }
-    return properties.ratio;
+    // Convert string ratios to numbers
+    if (properties.ratio.includes('/')) {
+      const [w, h] = properties.ratio.split('/');
+      return parseFloat(w) / parseFloat(h);
+    }
+    return parseFloat(properties.ratio) || 16/9;
   };
 
   const renderContent = () => {
@@ -415,7 +420,7 @@ export default function AspectRatioComponentPage() {
                 <CardTitle className="text-lg">{ratio.label}</CardTitle>
               </CardHeader>
               <CardContent>
-                <AspectRatio ratio={ratio.value} className="mb-3">
+                <AspectRatio ratio={ratio.value.includes('/') ? parseFloat(ratio.value.split('/')[0]) / parseFloat(ratio.value.split('/')[1]) : parseFloat(ratio.value)} className="mb-3">
                   <div className="w-full h-full border-2 border-dashed border-muted-foreground/25 rounded flex items-center justify-center">
                     <span className="text-xs text-muted-foreground font-mono">{ratio.value}</span>
                   </div>
