@@ -1,9 +1,12 @@
 'use client';
 
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { PropertiesPanel, ButtonProperties } from '../properties-panel';
+import { LiveButtonPreview } from '../live-button-preview';
 import { 
   Download, 
   Plus, 
@@ -23,8 +26,21 @@ import {
 } from 'lucide-react';
 
 export default function ButtonComponentPage() {
+  const [propertiesPanelVisible, setPropertiesPanelVisible] = useState(true);
+  const [buttonProperties, setButtonProperties] = useState<ButtonProperties>({
+    disabled: false,
+    variant: 'default',
+    size: 'default',
+    children: 'Download Project',
+    icon: 'download',
+    iconRight: 'none',
+    loading: false,
+  });
   return (
-    <div className="p-8">
+    <div className="flex h-screen">
+      {/* Main Content */}
+      <div className={`flex-1 overflow-auto transition-all duration-300 ${propertiesPanelVisible ? 'mr-80' : ''}`}>
+        <div className="p-8">
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-4">
@@ -49,10 +65,7 @@ export default function ButtonComponentPage() {
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-center py-12 bg-gray-50/50 rounded-lg border-2 border-dashed border-gray-200">
-              <Button size="lg">
-                <Download className="w-4 h-4 mr-2" />
-                Download Project
-              </Button>
+              <LiveButtonPreview properties={buttonProperties} />
             </div>
           </CardContent>
         </Card>
@@ -402,6 +415,17 @@ export default function ButtonComponentPage() {
           </CardContent>
         </Card>
       </section>
+        </div>
+      </div>
+
+      {/* Properties Panel */}
+      <PropertiesPanel 
+        componentType="button"
+        properties={buttonProperties}
+        onPropertiesChange={setButtonProperties}
+        isVisible={propertiesPanelVisible}
+        onToggleVisibility={() => setPropertiesPanelVisible(!propertiesPanelVisible)}
+      />
     </div>
   );
 } 
