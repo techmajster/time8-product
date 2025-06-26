@@ -9,23 +9,47 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
+import { Slider } from '@/components/ui/slider';
 import { Separator } from '@/components/ui/separator';
 import { 
-  Calculator, 
+  Search, 
   Calendar, 
+  Smile, 
+  Calculator, 
+  User, 
   CreditCard, 
   Settings, 
-  Smile, 
-  User, 
-  FileText, 
-  Search,
-  Home,
-  Users,
+  Keyboard,
   Mail,
   MessageSquare,
   Plus,
-  Trash2
+  File,
+  FileText,
+  Folder,
+  Home,
+  Users,
+  Bell,
+  Download,
+  Upload,
+  Edit,
+  Trash,
+  Share,
+  Copy,
+  Scissors,
+  ClipboardPaste
 } from 'lucide-react';
+
+// Properties interface
+interface CommandProperties {
+  variant: 'default' | 'dialog';
+  placeholder: string;
+  emptyMessage: string;
+  showGroups: boolean;
+  showShortcuts: boolean;
+  showSeparators: boolean;
+  itemCount: number;
+  dialogOpen: boolean;
+}
 
 // Properties Panel Component
 function CommandPropertiesPanel({ 
@@ -38,7 +62,7 @@ function CommandPropertiesPanel({
   onReset: () => void;
 }) {
   return (
-    <div className="space-y-6 h-full min-h-[500px]">
+    <div className="space-y-6 h-full min-h-[500px] p-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Properties</h3>
         <Button variant="outline" size="sm" onClick={onReset}>
@@ -47,27 +71,50 @@ function CommandPropertiesPanel({
       </div>
       
       <div className="space-y-4">
-        {/* Layout Type */}
+        {/* Variant */}
         <div className="space-y-2">
-          <Label className="text-sm font-medium">Layout Type</Label>
-          <Select value={properties.layout} onValueChange={(value) => onChange('layout', value)}>
+          <Label className="text-sm font-medium">Variant</Label>
+          <Select value={properties.variant} onValueChange={(value) => onChange('variant', value)}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="inline">Inline Command</SelectItem>
-              <SelectItem value="dialog">Command Dialog</SelectItem>
+              <SelectItem value="default">Default</SelectItem>
+              <SelectItem value="dialog">Dialog</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         {/* Placeholder */}
         <div className="space-y-2">
-          <Label className="text-sm font-medium">Search Placeholder</Label>
+          <Label className="text-sm font-medium">Placeholder</Label>
           <Input
             value={properties.placeholder}
             onChange={(e) => onChange('placeholder', e.target.value)}
-            placeholder="Type a command or search..."
+            placeholder="Search placeholder"
+          />
+        </div>
+
+        {/* Empty Message */}
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">Empty Message</Label>
+          <Input
+            value={properties.emptyMessage}
+            onChange={(e) => onChange('emptyMessage', e.target.value)}
+            placeholder="No results message"
+          />
+        </div>
+
+        {/* Item Count */}
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">Items per Group: {properties.itemCount}</Label>
+          <Slider
+            value={[properties.itemCount]}
+            onValueChange={(value) => onChange('itemCount', value[0])}
+            max={6}
+            min={2}
+            step={1}
+            className="w-full"
           />
         </div>
 
@@ -89,48 +136,22 @@ function CommandPropertiesPanel({
           />
         </div>
 
-        {/* Show Icons */}
+        {/* Show Separators */}
         <div className="flex items-center justify-between">
-          <Label className="text-sm font-medium">Show Icons</Label>
+          <Label className="text-sm font-medium">Show Separators</Label>
           <Switch 
-            checked={properties.showIcons} 
-            onCheckedChange={(checked) => onChange('showIcons', checked)}
+            checked={properties.showSeparators} 
+            onCheckedChange={(checked) => onChange('showSeparators', checked)}
           />
         </div>
 
-        {/* Show Empty State */}
-        <div className="flex items-center justify-between">
-          <Label className="text-sm font-medium">Show Empty State</Label>
-          <Switch 
-            checked={properties.showEmpty} 
-            onCheckedChange={(checked) => onChange('showEmpty', checked)}
-          />
-        </div>
-
-        {/* Content Type */}
-        <div className="space-y-2">
-          <Label className="text-sm font-medium">Content Type</Label>
-          <Select value={properties.contentType} onValueChange={(value) => onChange('contentType', value)}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="navigation">Navigation</SelectItem>
-              <SelectItem value="actions">Actions</SelectItem>
-              <SelectItem value="settings">Settings</SelectItem>
-              <SelectItem value="mixed">Mixed Content</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Empty Message */}
-        {properties.showEmpty && (
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Empty Message</Label>
-            <Input
-              value={properties.emptyMessage}
-              onChange={(e) => onChange('emptyMessage', e.target.value)}
-              placeholder="No results found."
+        {/* Dialog State (only for dialog variant) */}
+        {properties.variant === 'dialog' && (
+          <div className="flex items-center justify-between">
+            <Label className="text-sm font-medium">Dialog Open</Label>
+            <Switch 
+              checked={properties.dialogOpen} 
+              onCheckedChange={(checked) => onChange('dialogOpen', checked)}
             />
           </div>
         )}
@@ -150,224 +171,200 @@ function CommandPropertiesPanel({
 }
 
 // Live Preview Component
-function LiveCommandPreview({ properties }: { properties: CommandProperties }) {
-  const [open, setOpen] = useState(false);
+function LiveCommandPreview({ properties, onChange }: { properties: CommandProperties; onChange: (key: keyof CommandProperties, value: any) => void }) {
+  const [search, setSearch] = useState('');
 
-  const getContentItems = () => {
-    switch (properties.contentType) {
-      case 'navigation':
-        return [
-          { group: 'Navigation', items: [
-            { icon: Home, text: 'Dashboard', shortcut: '⌘D' },
-            { icon: Users, text: 'Team', shortcut: '⌘T' },
-            { icon: Mail, text: 'Messages', shortcut: '⌘M' },
-            { icon: Settings, text: 'Settings', shortcut: '⌘S' }
-          ]},
-        ];
-      case 'actions':
-        return [
-          { group: 'Actions', items: [
-            { icon: Plus, text: 'Create New', shortcut: '⌘N' },
-            { icon: FileText, text: 'New Document', shortcut: '⌘⇧N' },
-            { icon: Mail, text: 'Send Message', shortcut: '⌘E' },
-            { icon: Trash2, text: 'Delete', shortcut: '⌫' }
-          ]},
-        ];
-      case 'settings':
-        return [
-          { group: 'Settings', items: [
-            { icon: User, text: 'Profile', shortcut: '⌘P' },
-            { icon: Settings, text: 'Preferences', shortcut: '⌘,' },
-            { icon: CreditCard, text: 'Billing', shortcut: '⌘B' },
-            { icon: Calculator, text: 'Advanced', shortcut: '⌘A' }
-          ]},
-        ];
-      default:
-        return [
-          { group: 'Suggestions', items: [
-            { icon: Calendar, text: 'Calendar', shortcut: '⌘K' },
-            { icon: Search, text: 'Search Emoji', shortcut: '⌘E' },
-            { icon: Calculator, text: 'Calculator', shortcut: '⌘C' }
-          ]},
-          { group: 'Settings', items: [
-            { icon: User, text: 'Profile', shortcut: '⌘P' },
-            { icon: CreditCard, text: 'Billing', shortcut: '⌘B' },
-            { icon: Settings, text: 'Settings', shortcut: '⌘S' }
-          ]},
-        ];
-    }
-  };
+  const sampleItems = [
+    { icon: Calendar, label: 'Calendar', shortcut: '⌘K' },
+    { icon: Smile, label: 'Search Emoji', shortcut: '⌘E' },
+    { icon: Calculator, label: 'Calculator', shortcut: '⌘C' },
+    { icon: User, label: 'Profile', shortcut: '⌘P' },
+    { icon: CreditCard, label: 'Billing', shortcut: '⌘B' },
+    { icon: Settings, label: 'Settings', shortcut: '⌘S' },
+  ];
+
+  const fileItems = [
+    { icon: File, label: 'New File', shortcut: '⌘N' },
+    { icon: Folder, label: 'New Folder', shortcut: '⌘⇧N' },
+    { icon: Download, label: 'Download', shortcut: '⌘D' },
+    { icon: Upload, label: 'Upload', shortcut: '⌘U' },
+  ];
+
+  const editItems = [
+    { icon: Copy, label: 'Copy', shortcut: '⌘C' },
+    { icon: Scissors, label: 'Cut', shortcut: '⌘X' },
+    { icon: ClipboardPaste, label: 'Paste', shortcut: '⌘V' },
+    { icon: Edit, label: 'Edit', shortcut: '⌘E' },
+  ];
 
   const renderCommand = () => (
-    <Command className="rounded-lg border shadow-md">
-      <CommandInput placeholder={properties.placeholder} />
+    <Command className="w-full max-w-md">
+      <CommandInput 
+        placeholder={properties.placeholder} 
+        value={search}
+        onValueChange={setSearch}
+      />
       <CommandList>
-        {properties.showEmpty && (
-          <CommandEmpty>{properties.emptyMessage}</CommandEmpty>
-        )}
-        {getContentItems().map((group, groupIndex) => (
-          <div key={groupIndex}>
-            {properties.showGroups && (
-              <CommandGroup heading={group.group}>
-                {group.items.map((item, itemIndex) => (
-                  <CommandItem key={itemIndex}>
-                    {properties.showIcons && <item.icon className="mr-2 h-4 w-4" />}
-                    <span>{item.text}</span>
-                    {properties.showShortcuts && (
-                      <CommandShortcut>{item.shortcut}</CommandShortcut>
-                    )}
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            )}
-            {!properties.showGroups && 
-              group.items.map((item, itemIndex) => (
-                <CommandItem key={itemIndex}>
-                  {properties.showIcons && <item.icon className="mr-2 h-4 w-4" />}
-                  <span>{item.text}</span>
+        <CommandEmpty>{properties.emptyMessage}</CommandEmpty>
+        
+        {properties.showGroups ? (
+          <>
+            <CommandGroup heading="Suggestions">
+              {sampleItems.slice(0, properties.itemCount).map((item, index) => (
+                <CommandItem key={index}>
+                  <item.icon className="mr-2 h-4 w-4" />
+                  <span>{item.label}</span>
+                  {properties.showShortcuts && (
+                    <CommandShortcut>{item.shortcut}</CommandShortcut>
+                  )}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+            
+            {properties.showSeparators && <CommandSeparator />}
+            
+            <CommandGroup heading="File">
+              {fileItems.slice(0, properties.itemCount).map((item, index) => (
+                <CommandItem key={index}>
+                  <item.icon className="mr-2 h-4 w-4" />
+                  <span>{item.label}</span>
+                  {properties.showShortcuts && (
+                    <CommandShortcut>{item.shortcut}</CommandShortcut>
+                  )}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+
+            {properties.showSeparators && <CommandSeparator />}
+            
+            <CommandGroup heading="Edit">
+              {editItems.slice(0, properties.itemCount).map((item, index) => (
+                <CommandItem key={index}>
+                  <item.icon className="mr-2 h-4 w-4" />
+                  <span>{item.label}</span>
+                  {properties.showShortcuts && (
+                    <CommandShortcut>{item.shortcut}</CommandShortcut>
+                  )}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </>
+        ) : (
+          // Flat list without groups
+          <>
+            {[...sampleItems, ...fileItems, ...editItems]
+              .slice(0, properties.itemCount * 3)
+              .map((item, index) => (
+                <CommandItem key={index}>
+                  <item.icon className="mr-2 h-4 w-4" />
+                  <span>{item.label}</span>
                   {properties.showShortcuts && (
                     <CommandShortcut>{item.shortcut}</CommandShortcut>
                   )}
                 </CommandItem>
               ))
             }
-            {groupIndex < getContentItems().length - 1 && <CommandSeparator />}
-          </div>
-        ))}
+          </>
+        )}
       </CommandList>
     </Command>
   );
 
-  if (properties.layout === 'dialog') {
+  if (properties.variant === 'dialog') {
     return (
-      <div className="h-full min-h-[500px] flex items-center justify-center">
-        <div className="space-y-4 text-center">
-          <Button onClick={() => setOpen(true)}>
+      <>
+        <div className="flex items-center justify-center">
+          <Button onClick={() => onChange('dialogOpen', true)}>
+            <Search className="mr-2 h-4 w-4" />
             Open Command Dialog
           </Button>
-          <p className="text-sm text-muted-foreground">
-            Press ⌘J to open the command dialog
-          </p>
-          <CommandDialog open={open} onOpenChange={setOpen}>
-            <CommandInput placeholder={properties.placeholder} />
-            <CommandList>
-              {properties.showEmpty && (
-                <CommandEmpty>{properties.emptyMessage}</CommandEmpty>
-              )}
-              {getContentItems().map((group, groupIndex) => (
-                <div key={groupIndex}>
-                  {properties.showGroups && (
-                    <CommandGroup heading={group.group}>
-                      {group.items.map((item, itemIndex) => (
-                        <CommandItem key={itemIndex}>
-                          {properties.showIcons && <item.icon className="mr-2 h-4 w-4" />}
-                          <span>{item.text}</span>
-                          {properties.showShortcuts && (
-                            <CommandShortcut>{item.shortcut}</CommandShortcut>
-                          )}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  )}
-                  {!properties.showGroups && 
-                    group.items.map((item, itemIndex) => (
-                      <CommandItem key={itemIndex}>
-                        {properties.showIcons && <item.icon className="mr-2 h-4 w-4" />}
-                        <span>{item.text}</span>
-                        {properties.showShortcuts && (
-                          <CommandShortcut>{item.shortcut}</CommandShortcut>
-                        )}
-                      </CommandItem>
-                    ))
-                  }
-                  {groupIndex < getContentItems().length - 1 && <CommandSeparator />}
-                </div>
-              ))}
-            </CommandList>
-          </CommandDialog>
         </div>
-      </div>
+        <CommandDialog open={properties.dialogOpen} onOpenChange={(open) => onChange('dialogOpen', open)}>
+          {renderCommand()}
+        </CommandDialog>
+      </>
     );
   }
 
   return (
-    <div className="h-full min-h-[500px] flex items-center justify-center">
-      <div className="w-full max-w-md">
-        {renderCommand()}
-      </div>
+    <div className="flex items-center justify-center">
+      {renderCommand()}
     </div>
   );
 }
 
-interface CommandProperties {
-  layout: string;
-  placeholder: string;
-  showGroups: boolean;
-  showShortcuts: boolean;
-  showIcons: boolean;
-  showEmpty: boolean;
-  contentType: string;
-  emptyMessage: string;
-}
-
-const defaultProperties: CommandProperties = {
-  layout: 'inline',
-  placeholder: 'Type a command or search...',
-  showGroups: true,
-  showShortcuts: true,
-  showIcons: true,
-  showEmpty: true,
-  contentType: 'mixed',
-  emptyMessage: 'No results found.',
-};
-
+// Generate code function
 function generateCommandCode(props: CommandProperties): string {
-  if (props.layout === 'dialog') {
-    return `const [open, setOpen] = useState(false)
-
-<Button onClick={() => setOpen(true)}>
-  Open Command Dialog
-</Button>
-
-<CommandDialog open={open} onOpenChange={setOpen}>
+  if (props.variant === 'dialog') {
+    return `<CommandDialog open={open} onOpenChange={setOpen}>
   <CommandInput placeholder="${props.placeholder}" />
   <CommandList>
-    ${props.showEmpty ? `<CommandEmpty>${props.emptyMessage}</CommandEmpty>` : ''}
-    ${props.showGroups ? `<CommandGroup heading="Suggestions">` : ''}
+    <CommandEmpty>${props.emptyMessage}</CommandEmpty>
+    ${props.showGroups ? `
+    <CommandGroup heading="Suggestions">
       <CommandItem>
-        ${props.showIcons ? '<Calendar className="mr-2 h-4 w-4" />' : ''}
+        <Calendar className="mr-2 h-4 w-4" />
         <span>Calendar</span>
         ${props.showShortcuts ? '<CommandShortcut>⌘K</CommandShortcut>' : ''}
       </CommandItem>
-    ${props.showGroups ? '</CommandGroup>' : ''}
+    </CommandGroup>` : `
+    <CommandItem>
+      <Calendar className="mr-2 h-4 w-4" />
+      <span>Calendar</span>
+      ${props.showShortcuts ? '<CommandShortcut>⌘K</CommandShortcut>' : ''}
+    </CommandItem>`}
   </CommandList>
 </CommandDialog>`;
   }
 
-  return `<Command className="rounded-lg border shadow-md">
+  return `<Command>
   <CommandInput placeholder="${props.placeholder}" />
   <CommandList>
-    ${props.showEmpty ? `<CommandEmpty>${props.emptyMessage}</CommandEmpty>` : ''}
-    ${props.showGroups ? `<CommandGroup heading="Suggestions">` : ''}
+    <CommandEmpty>${props.emptyMessage}</CommandEmpty>
+    ${props.showGroups ? `
+    <CommandGroup heading="Suggestions">
       <CommandItem>
-        ${props.showIcons ? '<Calendar className="mr-2 h-4 w-4" />' : ''}
+        <Calendar className="mr-2 h-4 w-4" />
         <span>Calendar</span>
         ${props.showShortcuts ? '<CommandShortcut>⌘K</CommandShortcut>' : ''}
       </CommandItem>
-    ${props.showGroups ? '</CommandGroup>' : ''}
+    </CommandGroup>` : `
+    <CommandItem>
+      <Calendar className="mr-2 h-4 w-4" />
+      <span>Calendar</span>
+      ${props.showShortcuts ? '<CommandShortcut>⌘K</CommandShortcut>' : ''}
+    </CommandItem>`}
   </CommandList>
 </Command>`;
 }
 
 export default function CommandComponentPage() {
-  const [properties, setProperties] = useState<CommandProperties>(defaultProperties);
+  const [commandProperties, setCommandProperties] = useState<CommandProperties>({
+    variant: 'default',
+    placeholder: 'Type a command or search...',
+    emptyMessage: 'No results found.',
+    showGroups: true,
+    showShortcuts: true,
+    showSeparators: true,
+    itemCount: 3,
+    dialogOpen: false,
+  });
 
   const handlePropertyChange = (key: keyof CommandProperties, value: any) => {
-    setProperties(prev => ({ ...prev, [key]: value }));
+    setCommandProperties(prev => ({ ...prev, [key]: value }));
   };
 
   const handleReset = () => {
-    setProperties(defaultProperties);
+    setCommandProperties({
+      variant: 'default',
+      placeholder: 'Type a command or search...',
+      emptyMessage: 'No results found.',
+      showGroups: true,
+      showShortcuts: true,
+      showSeparators: true,
+      itemCount: 3,
+      dialogOpen: false,
+    });
   };
 
   return (
@@ -379,99 +376,65 @@ export default function CommandComponentPage() {
           <Badge variant="outline">Interactive Component</Badge>
         </div>
         <p className="text-lg text-muted-foreground max-w-2xl">
-          Fast, composable, unstyled command menu for React.
+          A fast, composable, unstyled command menu for React. Perfect for building search interfaces, 
+          command palettes, and autocomplete experiences.
         </p>
       </div>
 
-      {/* Interactive Example */}
+      {/* Live Preview Section */}
       <section className="mb-12">
-        <h2 className="text-2xl font-bold mb-6">Interactive Example</h2>
+        <h2 className="text-2xl font-bold mb-6">Live Preview</h2>
         <Card>
           <CardHeader>
-            <CardTitle>Live Preview</CardTitle>
+            <CardTitle>Interactive Example</CardTitle>
             <CardDescription>
-              Customize the command properties and see the changes in real-time
+              Customize the command properties below and see changes in real-time.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-3 gap-6">
-              <div className="col-span-2">
-                <LiveCommandPreview properties={properties} />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Live Preview */}
+              <div className="lg:col-span-2">
+                <div className="flex items-center justify-center bg-gray-50/50 rounded-lg border-2 border-dashed border-gray-200 h-full min-h-[500px]">
+                  <LiveCommandPreview 
+                    properties={commandProperties} 
+                    onChange={handlePropertyChange}
+                  />
+                </div>
               </div>
-              <div className="col-span-1 border-l pl-6">
-                <CommandPropertiesPanel
-                  properties={properties}
-                  onChange={handlePropertyChange}
-                  onReset={handleReset}
-                />
+              
+              {/* Properties Panel */}
+              <div className="lg:col-span-1">
+                <div className="h-full min-h-[500px] border rounded-lg bg-gray-50/50">
+                  <CommandPropertiesPanel 
+                    properties={commandProperties}
+                    onChange={handlePropertyChange}
+                    onReset={handleReset}
+                  />
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
       </section>
 
-      {/* Basic Usage */}
+      {/* Variants Section */}
       <section className="mb-12">
-        <h2 className="text-2xl font-bold mb-6">Basic Usage</h2>
-        <Card>
-          <CardHeader>
-            <CardTitle>Simple Command Menu</CardTitle>
-            <CardDescription>Basic command menu with search</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Command className="rounded-lg border shadow-md max-w-md">
-              <CommandInput placeholder="Type a command or search..." />
-              <CommandList>
-                <CommandEmpty>No results found.</CommandEmpty>
-                <CommandGroup heading="Suggestions">
-                  <CommandItem>
-                    <Calendar className="mr-2 h-4 w-4" />
-                    <span>Calendar</span>
-                  </CommandItem>
-                  <CommandItem>
-                    <Smile className="mr-2 h-4 w-4" />
-                    <span>Search Emoji</span>
-                  </CommandItem>
-                  <CommandItem>
-                    <Calculator className="mr-2 h-4 w-4" />
-                    <span>Calculator</span>
-                  </CommandItem>
-                </CommandGroup>
-              </CommandList>
-            </Command>
-          </CardContent>
-        </Card>
-      </section>
-
-      {/* Command Dialog */}
-      <section className="mb-12">
-        <h2 className="text-2xl font-bold mb-6">Command Dialog</h2>
-        <Card>
-          <CardHeader>
-            <CardTitle>Modal Command Interface</CardTitle>
-            <CardDescription>Command menu as a modal dialog</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <CommandDialogExample />
-          </CardContent>
-        </Card>
-      </section>
-
-      {/* Usage Examples */}
-      <section className="mb-12">
-        <h2 className="text-2xl font-bold mb-6">Usage Examples</h2>
+        <h2 className="text-2xl font-bold mb-6">Variants</h2>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
-              <CardTitle>Application Launcher</CardTitle>
-              <CardDescription>Quick access to app features</CardDescription>
+              <CardTitle>Default Command</CardTitle>
+              <CardDescription>
+                Inline command component for embedding in your interface
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <Command className="rounded-lg border shadow-md">
-                <CommandInput placeholder="Search apps..." />
+              <Command className="max-w-sm">
+                <CommandInput placeholder="Search..." />
                 <CommandList>
-                  <CommandEmpty>No applications found.</CommandEmpty>
-                  <CommandGroup heading="Applications">
+                  <CommandEmpty>No results found.</CommandEmpty>
+                  <CommandGroup heading="Quick Actions">
                     <CommandItem>
                       <Calendar className="mr-2 h-4 w-4" />
                       <span>Calendar</span>
@@ -479,26 +442,8 @@ export default function CommandComponentPage() {
                     </CommandItem>
                     <CommandItem>
                       <Mail className="mr-2 h-4 w-4" />
-                      <span>Email</span>
-                      <CommandShortcut>⌘E</CommandShortcut>
-                    </CommandItem>
-                    <CommandItem>
-                      <MessageSquare className="mr-2 h-4 w-4" />
-                      <span>Messages</span>
+                      <span>Mail</span>
                       <CommandShortcut>⌘M</CommandShortcut>
-                    </CommandItem>
-                  </CommandGroup>
-                  <CommandSeparator />
-                  <CommandGroup heading="Tools">
-                    <CommandItem>
-                      <Calculator className="mr-2 h-4 w-4" />
-                      <span>Calculator</span>
-                      <CommandShortcut>⌘C</CommandShortcut>
-                    </CommandItem>
-                    <CommandItem>
-                      <Settings className="mr-2 h-4 w-4" />
-                      <span>Settings</span>
-                      <CommandShortcut>⌘,</CommandShortcut>
                     </CommandItem>
                   </CommandGroup>
                 </CommandList>
@@ -508,63 +453,118 @@ export default function CommandComponentPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Search & Actions</CardTitle>
-              <CardDescription>Combined search and quick actions</CardDescription>
+              <CardTitle>Command Dialog</CardTitle>
+              <CardDescription>
+                Modal command palette triggered by keyboard shortcut or button
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <Command className="rounded-lg border shadow-md">
-                <CommandInput placeholder="Search or run a command..." />
-                <CommandList>
-                  <CommandEmpty>No results found.</CommandEmpty>
-                  <CommandGroup heading="Quick Actions">
-                    <CommandItem>
-                      <Plus className="mr-2 h-4 w-4" />
-                      <span>Create New</span>
-                      <CommandShortcut>⌘N</CommandShortcut>
-                    </CommandItem>
-                    <CommandItem>
-                      <FileText className="mr-2 h-4 w-4" />
-                      <span>New Document</span>
-                      <CommandShortcut>⌘⇧N</CommandShortcut>
-                    </CommandItem>
-                    <CommandItem>
-                      <Users className="mr-2 h-4 w-4" />
-                      <span>Invite Team</span>
-                      <CommandShortcut>⌘I</CommandShortcut>
-                    </CommandItem>
-                  </CommandGroup>
-                  <CommandSeparator />
-                  <CommandGroup heading="Recent">
-                    <CommandItem>
-                      <FileText className="mr-2 h-4 w-4" />
-                      <span>Project Proposal</span>
-                    </CommandItem>
-                    <CommandItem>
-                      <FileText className="mr-2 h-4 w-4" />
-                      <span>Meeting Notes</span>
-                    </CommandItem>
-                  </CommandGroup>
-                </CommandList>
-              </Command>
+              <Button className="w-full">
+                <Keyboard className="mr-2 h-4 w-4" />
+                Press ⌘K to open command palette
+              </Button>
+              <p className="text-xs text-muted-foreground mt-2">
+                * Dialog variant shown in live preview above
+              </p>
             </CardContent>
           </Card>
         </div>
       </section>
 
-      {/* Advanced Features */}
+      {/* Features Section */}
       <section className="mb-12">
-        <h2 className="text-2xl font-bold mb-6">Advanced Features</h2>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <h2 className="text-2xl font-bold mb-6">Features</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Fast Search</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                Built-in filtering with fuzzy search capabilities for instant results.
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Keyboard Navigation</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                Full keyboard support with arrow keys, enter, and escape.
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Grouped Items</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                Organize commands into logical groups with separators.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+
+      {/* Usage Examples */}
+      <section className="mb-12">
+        <h2 className="text-2xl font-bold mb-6">Usage Examples</h2>
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Search Interface</CardTitle>
+              <CardDescription>
+                Command component used for global search with multiple result types
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Command className="max-w-lg">
+                <CommandInput placeholder="Search files, users, and more..." />
+                <CommandList>
+                  <CommandEmpty>No results found.</CommandEmpty>
+                  <CommandGroup heading="Files">
+                    <CommandItem>
+                      <FileText className="mr-2 h-4 w-4" />
+                      <span>project-proposal.pdf</span>
+                    </CommandItem>
+                    <CommandItem>
+                      <File className="mr-2 h-4 w-4" />
+                      <span>meeting-notes.txt</span>
+                    </CommandItem>
+                  </CommandGroup>
+                  <CommandSeparator />
+                  <CommandGroup heading="People">
+                    <CommandItem>
+                      <User className="mr-2 h-4 w-4" />
+                      <span>John Doe</span>
+                    </CommandItem>
+                    <CommandItem>
+                      <User className="mr-2 h-4 w-4" />
+                      <span>Jane Smith</span>
+                    </CommandItem>
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>Navigation Menu</CardTitle>
-              <CardDescription>Command-based navigation</CardDescription>
+              <CardDescription>
+                Quick navigation with keyboard shortcuts
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <Command className="rounded-lg border shadow-md">
-                <CommandInput placeholder="Go to..." />
+              <Command className="max-w-lg">
+                <CommandInput placeholder="Navigate to..." />
                 <CommandList>
-                  <CommandGroup heading="Navigation">
+                  <CommandEmpty>No pages found.</CommandEmpty>
+                  <CommandGroup heading="Pages">
                     <CommandItem>
                       <Home className="mr-2 h-4 w-4" />
                       <span>Dashboard</span>
@@ -576,11 +576,6 @@ export default function CommandComponentPage() {
                       <CommandShortcut>⌘T</CommandShortcut>
                     </CommandItem>
                     <CommandItem>
-                      <FileText className="mr-2 h-4 w-4" />
-                      <span>Projects</span>
-                      <CommandShortcut>⌘P</CommandShortcut>
-                    </CommandItem>
-                    <CommandItem>
                       <Settings className="mr-2 h-4 w-4" />
                       <span>Settings</span>
                       <CommandShortcut>⌘S</CommandShortcut>
@@ -590,112 +585,38 @@ export default function CommandComponentPage() {
               </Command>
             </CardContent>
           </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Contextual Commands</CardTitle>
-              <CardDescription>Context-aware command suggestions</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Command className="rounded-lg border shadow-md">
-                <CommandInput placeholder="What would you like to do?" />
-                <CommandList>
-                  <CommandGroup heading="File Actions">
-                    <CommandItem>
-                      <FileText className="mr-2 h-4 w-4" />
-                      <span>Open File</span>
-                      <CommandShortcut>⌘O</CommandShortcut>
-                    </CommandItem>
-                    <CommandItem>
-                      <Plus className="mr-2 h-4 w-4" />
-                      <span>Create File</span>
-                      <CommandShortcut>⌘N</CommandShortcut>
-                    </CommandItem>
-                    <CommandItem>
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      <span>Delete File</span>
-                      <CommandShortcut>⌫</CommandShortcut>
-                    </CommandItem>
-                  </CommandGroup>
-                  <CommandSeparator />
-                  <CommandGroup heading="Edit Actions">
-                    <CommandItem>
-                      <span>Copy</span>
-                      <CommandShortcut>⌘C</CommandShortcut>
-                    </CommandItem>
-                    <CommandItem>
-                      <span>Paste</span>
-                      <CommandShortcut>⌘V</CommandShortcut>
-                    </CommandItem>
-                    <CommandItem>
-                      <span>Undo</span>
-                      <CommandShortcut>⌘Z</CommandShortcut>
-                    </CommandItem>
-                  </CommandGroup>
-                </CommandList>
-              </Command>
-            </CardContent>
-          </Card>
         </div>
       </section>
-    </div>
-  );
-}
 
-// Command Dialog Example Component
-function CommandDialogExample() {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <div className="space-y-4">
-      <Button onClick={() => setOpen(true)}>
-        Open Command Dialog
-      </Button>
-      <p className="text-sm text-muted-foreground">
-        Try searching for "calendar", "email", or "settings"
-      </p>
-      
-      <CommandDialog open={open} onOpenChange={setOpen}>
-        <CommandInput placeholder="Type a command or search..." />
-        <CommandList>
-          <CommandEmpty>No results found.</CommandEmpty>
-          <CommandGroup heading="Suggestions">
-            <CommandItem>
-              <Calendar className="mr-2 h-4 w-4" />
-              <span>Calendar</span>
-              <CommandShortcut>⌘K</CommandShortcut>
-            </CommandItem>
-            <CommandItem>
-              <Mail className="mr-2 h-4 w-4" />
-              <span>Email</span>
-              <CommandShortcut>⌘E</CommandShortcut>
-            </CommandItem>
-            <CommandItem>
-              <MessageSquare className="mr-2 h-4 w-4" />
-              <span>Messages</span>
-              <CommandShortcut>⌘M</CommandShortcut>
-            </CommandItem>
-          </CommandGroup>
-          <CommandSeparator />
-          <CommandGroup heading="Settings">
-            <CommandItem>
-              <User className="mr-2 h-4 w-4" />
-              <span>Profile</span>
-              <CommandShortcut>⌘P</CommandShortcut>
-            </CommandItem>
-            <CommandItem>
-              <CreditCard className="mr-2 h-4 w-4" />
-              <span>Billing</span>
-              <CommandShortcut>⌘B</CommandShortcut>
-            </CommandItem>
-            <CommandItem>
-              <Settings className="mr-2 h-4 w-4" />
-              <span>Settings</span>
-              <CommandShortcut>⌘S</CommandShortcut>
-            </CommandItem>
-          </CommandGroup>
-        </CommandList>
-      </CommandDialog>
+      {/* Technical Notes */}
+      <section>
+        <h2 className="text-2xl font-bold mb-6">Technical Notes</h2>
+        <Card>
+          <CardHeader>
+            <CardTitle>Implementation Details</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <h4 className="font-medium mb-2">Accessibility</h4>
+              <p className="text-sm text-muted-foreground">
+                Built with full keyboard navigation, ARIA labels, and screen reader support.
+              </p>
+            </div>
+            <div>
+              <h4 className="font-medium mb-2">Performance</h4>
+              <p className="text-sm text-muted-foreground">
+                Virtualized list rendering for handling large datasets efficiently.
+              </p>
+            </div>
+            <div>
+              <h4 className="font-medium mb-2">Customization</h4>
+              <p className="text-sm text-muted-foreground">
+                Fully customizable with CSS variables and theme integration.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
     </div>
   );
 } 
