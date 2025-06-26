@@ -16,14 +16,12 @@ const getAllIcons = () => {
   ]);
   
   const iconEntries = Object.entries(LucideIcons).filter(([name, component]) => {
-    return (
-      !excludedNames.has(name) &&
-      typeof component === 'function' &&
-      name[0] === name[0].toUpperCase() && // Icon names start with uppercase
-      name.length > 1 // Ensure it's a proper name
-    );
+    const isComponent = typeof component === 'object' && component !== null;
+    const isNotExcluded = !excludedNames.has(name);
+    const startsWithUpper = name[0] === name[0].toUpperCase();
+    
+    return isComponent && isNotExcluded && startsWithUpper;
   }) as [string, React.ComponentType<any>][];
-  
   return iconEntries;
 };
 
@@ -61,7 +59,7 @@ export default function IconsPage() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="p-8 space-y-8">
       {/* Header */}
       <div className="space-y-4">
         <div>
@@ -106,9 +104,12 @@ export default function IconsPage() {
         </div>
       </div>
 
+      
+
       {/* Icon Grid */}
-      <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 xl:grid-cols-14 2xl:grid-cols-16 gap-3">
-        {filteredIcons.map(([iconName, IconComponent]) => {
+      {filteredIcons.length > 0 ? (
+        <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 xl:grid-cols-14 2xl:grid-cols-16 gap-3">
+          {filteredIcons.map(([iconName, IconComponent]) => {
           const isCopied = copiedIcon === iconName;
           
           return (
@@ -161,7 +162,16 @@ export default function IconsPage() {
             </Card>
           );
         })}
-      </div>
+        </div>
+      ) : (
+        <div className="text-center py-12">
+          <div className="text-muted-foreground mb-4">
+            <Search size={48} className="mx-auto mb-4 opacity-50" />
+            <h3 className="text-lg font-medium mb-2">No icons loaded</h3>
+            <p>Unable to load Lucide icons. Please check the console for errors.</p>
+          </div>
+        </div>
+      )}
 
       {/* No Results */}
       {filteredIcons.length === 0 && searchQuery && (

@@ -5,12 +5,17 @@ import { ColorPicker } from '../components/editors/ColorPicker';
 import { NumberInput } from '../components/editors/NumberInput';
 import { ShadowInput } from '../components/editors/ShadowInput';
 import { ThemeApplier, exportThemeAsCSS, exportAsTailwindConfig } from '../components/theme-applier';
+import { ThemeManager, type DesignTokens as ThemeManagerTokens } from '../components/theme/ThemeManager';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Download, RotateCcw, Palette, Type, Grid, Eye, FileText, Code } from 'lucide-react';
+import { Download, RotateCcw, Palette, Type, Grid, Eye, FileText, Code, Search, Calendar, CheckCircle, DollarSign, Upload, CreditCard, Users, Clock, Wrench, PieChart, Paintbrush } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Input } from '@/components/ui/input';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -146,73 +151,237 @@ function LivePreviewDialog({ tokens }: { tokens: DesignSystemTokens }) {
           Live Preview
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-auto">
-        <DialogHeader>
+      <DialogContent className="w-[90vw] h-[90vh] max-w-none overflow-hidden p-0">
+        <DialogHeader className="p-6 pb-0">
           <DialogTitle>Live Theme Preview</DialogTitle>
           <DialogDescription>
             See how your design tokens affect real components. Changes are also applied live to the entire application!
           </DialogDescription>
         </DialogHeader>
         
-        <div className="space-y-6 p-6 bg-gray-50 rounded-lg">
-          {/* Header Section */}
-          <div 
-            className="p-6 rounded-lg border"
-            style={{
-              backgroundColor: tokens.colors.semantic.background,
-              borderColor: tokens.colors.semantic.border,
-              borderRadius: `${tokens.borderRadius.lg}px`,
-            }}
-          >
-            <h1 
-              style={{
-                color: tokens.colors.semantic.foreground,
-                fontSize: `${tokens.typography.fontSize['2xl']}px`,
-              }}
-              className="font-bold mb-2"
-            >
-              Dashboard
-            </h1>
-            <p 
-              style={{
-                color: tokens.colors.semantic['muted-foreground'],
-                fontSize: `${tokens.typography.fontSize.base}px`,
-              }}
-            >
-              Welcome to your application dashboard
-            </p>
+        {/* Subframe-style Dashboard using shadcn/ui components */}
+        <div className="h-[calc(90vh-120px)] overflow-hidden bg-background">
+          {/* Top Navigation */}
+          <div className="border-b bg-background">
+            <div className="flex items-center justify-between px-6 py-4">
+              {/* Logo and Navigation */}
+              <div className="flex items-center gap-8">
+                <div className="w-6 h-6 bg-foreground rounded-sm" />
+                
+                <nav className="flex items-center">
+                  {['Home', 'Inbox', 'Reports'].map((item, idx) => (
+                    <Button
+                      key={item}
+                      variant={idx === 0 ? "ghost" : "ghost"}
+                      className={cn(
+                        "px-4 py-2 text-sm font-medium relative",
+                        idx === 0 ? "text-foreground" : "text-muted-foreground"
+                      )}
+                    >
+                      {item}
+                      {idx === 0 && (
+                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+                      )}
+                    </Button>
+                  ))}
+                </nav>
+              </div>
+              
+              {/* Search and Profile */}
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input placeholder="Search" className="pl-9 w-64" />
+                </div>
+                <Avatar className="h-8 w-8">
+                  <AvatarFallback>JD</AvatarFallback>
+                </Avatar>
+              </div>
+            </div>
           </div>
 
-          {/* Buttons Section */}
-          <div className="space-y-4">
-            <h3 className="font-medium">Buttons</h3>
-            <div className="flex gap-3 flex-wrap">
-              <button
-                className="px-4 py-2 rounded font-medium transition-colors"
-                style={{
-                  backgroundColor: tokens.colors.semantic.primary,
-                  color: tokens.colors.semantic['primary-foreground'],
-                  borderRadius: `${tokens.borderRadius.md}px`,
-                  fontSize: `${tokens.typography.fontSize.sm}px`,
-                  padding: `${tokens.spacing.sm}px ${tokens.spacing.md}px`,
-                }}
-              >
-                Primary
-              </button>
-              
-              <button
-                className="px-4 py-2 rounded font-medium border transition-colors"
-                style={{
-                  backgroundColor: tokens.colors.semantic.secondary,
-                  color: tokens.colors.semantic['secondary-foreground'],
-                  borderColor: tokens.colors.semantic.border,
-                  borderRadius: `${tokens.borderRadius.md}px`,
-                  fontSize: `${tokens.typography.fontSize.sm}px`,
-                  padding: `${tokens.spacing.sm}px ${tokens.spacing.md}px`,
-                }}
-              >
-                Secondary
-              </button>
+          {/* Main Content */}
+          <div className="p-6 h-[calc(100%-80px)] overflow-auto">
+            {/* Page Header */}
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+              <p className="text-sm text-muted-foreground">Monday, January 4</p>
+            </div>
+
+            {/* Content Grid */}
+            <div className="grid grid-cols-12 gap-6">
+              {/* Left Column - To-do (4 columns) */}
+              <div className="col-span-4 space-y-6">
+                {/* To-do Section */}
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-semibold">To-do</h2>
+                    <Button variant="link" size="sm" className="text-primary p-0 h-auto">
+                      View all
+                    </Button>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    {[
+                      { icon: CheckCircle, title: 'Review requests', desc: 'Approve new requests in your inbox', time: 'Today' },
+                      { icon: DollarSign, title: 'Process invoices', desc: 'You have 1 to review', time: 'Today' },
+                      { icon: Upload, title: 'Upload additional documents', desc: 'We need a few more details', time: 'Today' },
+                      { icon: CreditCard, title: 'Set up a payment method', desc: 'Avoid delaying invoices and payments', time: 'Yesterday' },
+                      { icon: CheckCircle, title: 'Finish verification', desc: 'Verify your account securely', time: 'Yesterday' }
+                    ].map((item, idx) => (
+                      <Card key={idx} className="p-4">
+                        <div className="flex items-start gap-3">
+                          <item.icon className="h-5 w-5 text-muted-foreground mt-0.5" />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm text-foreground mb-1">
+                              {item.title}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {item.desc}
+                            </div>
+                          </div>
+                          <Badge variant="secondary" className="text-xs">
+                            {item.time}
+                          </Badge>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Upcoming Events */}
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-semibold">Upcoming events</h2>
+                    <Button variant="link" size="sm" className="text-primary p-0 h-auto">
+                      View all
+                    </Button>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    {[
+                      { title: 'Department Offsite', date: 'Monday, Nov 13, 2023', time: 'All-day' },
+                      { title: 'Quarterly Review', date: 'Tuesday, Nov 3, 2023', time: '9:00 AM' },
+                      { title: 'Project kick-off', date: 'Monday, Nov 13, 2023', time: '3:00 PM' }
+                    ].map((event, idx) => (
+                      <Card key={idx} className="p-4">
+                        <div className="flex items-start gap-3">
+                          <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm text-foreground mb-1">
+                              {event.title}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {event.date}
+                            </div>
+                          </div>
+                          <Badge variant="outline" className="text-xs">
+                            {event.time}
+                          </Badge>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column - Updates, Departments, Recently joined (8 columns) */}
+              <div className="col-span-8 space-y-6">
+                {/* Updates Section */}
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-semibold">Updates</h2>
+                    <Button variant="link" size="sm" className="text-primary p-0 h-auto">
+                      View all
+                    </Button>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4 mb-6">
+                    <Card className="p-4 bg-accent">
+                      <div className="flex items-center gap-3">
+                        <Users className="h-5 w-5 text-primary" />
+                        <div>
+                          <div className="font-medium text-sm">5 new members</div>
+                          <div className="text-xs text-muted-foreground">1 onboarding now</div>
+                        </div>
+                      </div>
+                    </Card>
+                    
+                    <Card className="p-4 bg-destructive/10">
+                      <div className="flex items-center gap-3">
+                        <Clock className="h-5 w-5 text-destructive" />
+                        <div>
+                          <div className="font-medium text-sm">3 reminders</div>
+                          <div className="text-xs text-muted-foreground">2 overdue</div>
+                        </div>
+                      </div>
+                    </Card>
+                  </div>
+                </div>
+
+                {/* Departments & Recently Joined */}
+                <div className="grid grid-cols-2 gap-6">
+                  {/* Departments */}
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-lg font-semibold">Departments</h2>
+                      <Button variant="link" size="sm" className="text-primary p-0 h-auto">
+                        View all
+                      </Button>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      {[
+                        { icon: Wrench, name: 'Engineering', count: 12 },
+                        { icon: PieChart, name: 'Product', count: 5 },
+                        { icon: Paintbrush, name: 'Design', count: 3 }
+                      ].map((dept, idx) => (
+                        <Card key={idx} className="p-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <dept.icon className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm font-medium">{dept.name}</span>
+                            </div>
+                            <Badge variant="secondary">{dept.count}</Badge>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Recently Joined */}
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-lg font-semibold">Recently joined</h2>
+                      <Button variant="link" size="sm" className="text-primary p-0 h-auto">
+                        View all
+                      </Button>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      {[
+                        { name: 'Abigail', date: 'Oct 24', avatar: 'AB' },
+                        { name: 'Jonah', date: 'Nov 5', avatar: 'JH' },
+                        { name: 'Michael', date: 'Nov 23', avatar: 'MK' }
+                      ].map((person, idx) => (
+                        <Card key={idx} className="p-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <Avatar className="h-8 w-8">
+                                <AvatarFallback className="text-xs">{person.avatar}</AvatarFallback>
+                              </Avatar>
+                              <span className="text-sm font-medium">{person.name}</span>
+                            </div>
+                            <Badge variant="outline" className="text-xs">
+                              {person.date}
+                            </Badge>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -225,11 +394,13 @@ function LivePreviewDialog({ tokens }: { tokens: DesignSystemTokens }) {
 function ExportCommand({ 
   exportTokens, 
   exportCSS, 
-  exportTailwindConfig 
+  exportTailwindConfig,
+  exportTheme
 }: {
   exportTokens: () => void;
   exportCSS: () => void;
   exportTailwindConfig: () => void;
+  exportTheme: () => void;
 }) {
   return (
     <Popover>
@@ -254,6 +425,10 @@ function ExportCommand({
               <CommandItem onSelect={exportTailwindConfig}>
                 <Code className="mr-2 h-4 w-4" />
                 <span>Export Config</span>
+              </CommandItem>
+              <CommandItem onSelect={exportTheme}>
+                <Palette className="mr-2 h-4 w-4" />
+                <span>Export Theme</span>
               </CommandItem>
             </CommandGroup>
           </CommandList>
@@ -336,6 +511,88 @@ export default function ThemeEditorPage() {
     });
   };
 
+  // Convert our tokens to ThemeManager format
+  const convertToThemeManagerFormat = (tokens: DesignSystemTokens): ThemeManagerTokens => ({
+    colors: Object.fromEntries(
+      Object.entries(tokens.colors.semantic).map(([key, value]) => [key, value])
+    ),
+    typography: Object.fromEntries(
+      Object.entries(tokens.typography.fontSize).map(([key, value]) => [key, `${value}px`])
+    ),
+    spacing: Object.fromEntries(
+      Object.entries(tokens.spacing).map(([key, value]) => [key, `${value}px`])
+    ),
+    borderRadius: Object.fromEntries(
+      Object.entries(tokens.borderRadius).map(([key, value]) => [key, `${value}px`])
+    ),
+    shadows: { ...tokens.shadows }
+  });
+
+  // Convert ThemeManager format back to our tokens  
+  const convertFromThemeManagerFormat = (themeData: ThemeManagerTokens): DesignSystemTokens => ({
+    colors: {
+      semantic: {
+        background: themeData.colors.background || 'hsl(0, 0%, 100%)',
+        foreground: themeData.colors.foreground || 'hsl(240, 10%, 25%)',
+        primary: themeData.colors.primary || 'hsl(267, 85%, 60%)',
+        'primary-foreground': themeData.colors['primary-foreground'] || 'hsl(0, 0%, 100%)',
+        secondary: themeData.colors.secondary || 'hsl(240, 5%, 93%)',
+        'secondary-foreground': themeData.colors['secondary-foreground'] || 'hsl(240, 6%, 35%)',
+        muted: themeData.colors.muted || 'hsl(0, 0%, 86.67%)',
+        'muted-foreground': themeData.colors['muted-foreground'] || 'hsl(240, 4%, 54%)',
+        accent: themeData.colors.accent || 'hsl(270, 8%, 92%)',
+        'accent-foreground': themeData.colors['accent-foreground'] || 'hsl(240, 6%, 35%)',
+        destructive: themeData.colors.destructive || 'hsl(0, 84%, 60%)',
+        'destructive-foreground': themeData.colors['destructive-foreground'] || 'hsl(0, 0%, 100%)',
+        success: themeData.colors.success || 'hsl(142, 76%, 36%)',
+        'success-foreground': themeData.colors['success-foreground'] || 'hsl(0, 0%, 100%)',
+        warning: themeData.colors.warning || 'hsl(48, 96%, 53%)',
+        'warning-foreground': themeData.colors['warning-foreground'] || 'hsl(26, 83%, 14%)',
+        info: themeData.colors.info || 'hsl(200, 89%, 48%)',
+        'info-foreground': themeData.colors['info-foreground'] || 'hsl(0, 0%, 100%)',
+        border: themeData.colors.border || 'hsl(240, 6%, 87%)',
+        input: themeData.colors.input || 'hsl(240, 6%, 87%)',
+        ring: themeData.colors.ring || 'hsl(267, 85%, 60%)',
+      }
+    },
+    typography: {
+      fontSize: {
+        xs: parseInt(themeData.typography.xs?.replace('px', '') || '12'),
+        sm: parseInt(themeData.typography.sm?.replace('px', '') || '14'),
+        base: parseInt(themeData.typography.base?.replace('px', '') || '16'),
+        lg: parseInt(themeData.typography.lg?.replace('px', '') || '18'),
+        xl: parseInt(themeData.typography.xl?.replace('px', '') || '20'),
+        '2xl': parseInt(themeData.typography['2xl']?.replace('px', '') || '24'),
+      }
+    },
+    spacing: {
+      xs: parseInt(themeData.spacing.xs?.replace('px', '') || '4'),
+      sm: parseInt(themeData.spacing.sm?.replace('px', '') || '8'),
+      md: parseInt(themeData.spacing.md?.replace('px', '') || '16'),
+      lg: parseInt(themeData.spacing.lg?.replace('px', '') || '24'),
+      xl: parseInt(themeData.spacing.xl?.replace('px', '') || '32'),
+      '2xl': parseInt(themeData.spacing['2xl']?.replace('px', '') || '48'),
+    },
+    borderRadius: {
+      sm: parseInt(themeData.borderRadius.sm?.replace('px', '') || '4'),
+      md: parseInt(themeData.borderRadius.md?.replace('px', '') || '6'),
+      lg: parseInt(themeData.borderRadius.lg?.replace('px', '') || '8'),
+    },
+    shadows: {
+      xs: themeData.shadows.xs || '0px 1px 2px 0px rgba(0, 0, 0, 0.05)',
+      sm: themeData.shadows.sm || '0px 1px 3px 0px rgba(0, 0, 0, 0.1), 0px 1px 2px 0px rgba(0, 0, 0, 0.06)',
+      md: themeData.shadows.md || '0px 4px 6px -1px rgba(0, 0, 0, 0.1), 0px 2px 4px -1px rgba(0, 0, 0, 0.06)',
+      lg: themeData.shadows.lg || '0px 10px 15px -3px rgba(0, 0, 0, 0.1), 0px 4px 6px -2px rgba(0, 0, 0, 0.05)',
+      xl: themeData.shadows.xl || '0px 20px 25px -5px rgba(0, 0, 0, 0.1), 0px 10px 10px -5px rgba(0, 0, 0, 0.04)',
+      '2xl': themeData.shadows['2xl'] || '0px 25px 50px -12px rgba(0, 0, 0, 0.25)',
+    }
+  });
+
+  const handleThemeLoad = (themeData: ThemeManagerTokens) => {
+    const convertedTokens = convertFromThemeManagerFormat(themeData);
+    setTokens(convertedTokens);
+  };
+
   const exportTokens = () => {
     const dataStr = JSON.stringify(tokens, null, 2);
     const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
@@ -378,6 +635,29 @@ export default function ThemeEditorPage() {
     });
   };
 
+  const exportTheme = () => {
+    const themeExport = {
+      name: 'Custom Theme',
+      description: 'Exported theme from design system editor',
+      theme_data: convertToThemeManagerFormat(tokens),
+      exported_at: new Date().toISOString()
+    };
+
+    const blob = new Blob([JSON.stringify(themeExport, null, 2)], {
+      type: 'application/json'
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'design-theme-export.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    toast.success('Theme exported successfully!');
+  };
+
 
 
   return (
@@ -400,14 +680,16 @@ export default function ThemeEditorPage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="outline" onClick={resetToDefaults}>
-              <RotateCcw className="w-4 h-4 mr-2" />
-              Reset
-            </Button>
+            <ThemeManager 
+              currentTheme={convertToThemeManagerFormat(tokens)}
+              onThemeLoad={handleThemeLoad}
+              onThemeReset={resetToDefaults}
+            />
             <ExportCommand 
               exportTokens={exportTokens}
               exportCSS={exportCSS}
               exportTailwindConfig={exportTailwindConfig}
+              exportTheme={exportTheme}
             />
             <LivePreviewDialog tokens={tokens} />
           </div>
