@@ -26,7 +26,6 @@ import {
 } from 'lucide-react';
 
 export default function ButtonComponentPage() {
-  const [propertiesPanelVisible, setPropertiesPanelVisible] = useState(true);
   const [buttonProperties, setButtonProperties] = useState<ButtonProperties>({
     disabled: false,
     variant: 'default',
@@ -37,10 +36,7 @@ export default function ButtonComponentPage() {
     loading: false,
   });
   return (
-    <div className="flex h-screen">
-      {/* Main Content */}
-      <div className={`flex-1 overflow-auto transition-all duration-300 ${propertiesPanelVisible ? 'mr-80' : ''}`}>
-        <div className="p-8">
+    <div className="p-8">
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-4">
@@ -60,12 +56,30 @@ export default function ButtonComponentPage() {
           <CardHeader>
             <CardTitle>Interactive Example</CardTitle>
             <CardDescription>
-              This button uses your current theme settings. Adjust colors, typography, spacing, or border radius in the Theme editor to see live changes.
+              Customize the button properties below and see changes in real-time. This demonstrates how your theme settings affect the component.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-center py-12 bg-gray-50/50 rounded-lg border-2 border-dashed border-gray-200">
-              <LiveButtonPreview properties={buttonProperties} />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Live Preview */}
+              <div className="lg:col-span-2">
+                <div className="flex items-center justify-center py-12 bg-gray-50/50 rounded-lg border-2 border-dashed border-gray-200">
+                  <LiveButtonPreview properties={buttonProperties} />
+                </div>
+              </div>
+              
+              {/* Properties Panel */}
+              <div className="lg:col-span-1">
+                <div className="h-full border rounded-lg bg-gray-50/50">
+                  <PropertiesPanel 
+                    componentType="button"
+                    properties={buttonProperties}
+                    onPropertiesChange={setButtonProperties}
+                    isVisible={true}
+                    onToggleVisibility={() => {}}
+                  />
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -415,17 +429,6 @@ export default function ButtonComponentPage() {
           </CardContent>
         </Card>
       </section>
-        </div>
-      </div>
-
-      {/* Properties Panel */}
-      <PropertiesPanel 
-        componentType="button"
-        properties={buttonProperties}
-        onPropertiesChange={setButtonProperties}
-        isVisible={propertiesPanelVisible}
-        onToggleVisibility={() => setPropertiesPanelVisible(!propertiesPanelVisible)}
-      />
     </div>
   );
 } 

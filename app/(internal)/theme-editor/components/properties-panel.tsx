@@ -117,38 +117,29 @@ export function PropertiesPanel({
   }
 
   return (
-    <div className="w-80 border-l bg-gray-50/50 flex flex-col h-full overflow-hidden">
+    <div className="w-full bg-transparent flex flex-col">
       <Card className="border-0 shadow-none bg-transparent h-full flex flex-col">
-        <CardHeader className="border-b bg-white">
+        <CardHeader className="border-b bg-white px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <CardTitle className="text-lg">Properties</CardTitle>
+              <CardTitle className="text-base">Properties</CardTitle>
               <Badge variant="secondary" className="text-xs">
                 {componentType.charAt(0).toUpperCase() + componentType.slice(1)}
               </Badge>
             </div>
-            <div className="flex items-center gap-2">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={handleReset}
-                className="text-xs"
-              >
-                <RotateCcw className="w-3 h-3 mr-1" />
-                Reset
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={onToggleVisibility}
-              >
-                <EyeOff className="w-4 h-4" />
-              </Button>
-            </div>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleReset}
+              className="text-xs"
+            >
+              <RotateCcw className="w-3 h-3 mr-1" />
+              Reset
+            </Button>
           </div>
         </CardHeader>
 
-        <CardContent className="flex-1 overflow-auto p-6 space-y-6">
+        <CardContent className="flex-1 overflow-auto p-4 space-y-4">
           {/* Disabled Toggle */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
@@ -277,10 +268,10 @@ export function PropertiesPanel({
           </div>
 
           {/* Current Configuration Display */}
-          <div className="pt-4 mt-6 border-t">
+          <div className="pt-3 mt-4 border-t">
             <div className="text-xs text-gray-500 mb-2">Current Configuration:</div>
-            <div className="bg-gray-100 p-3 rounded-md">
-              <code className="text-xs text-gray-700">
+            <div className="bg-gray-100 p-2 rounded-md">
+              <code className="text-xs text-gray-700 leading-relaxed">
                 {`<Button
   variant="${properties.variant}"
   size="${properties.size}"${properties.disabled ? '\n  disabled' : ''}${properties.loading ? '\n  loading' : ''}
