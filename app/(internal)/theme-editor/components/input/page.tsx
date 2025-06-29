@@ -126,14 +126,14 @@ export default function InputComponentPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Live Preview */}
               <div className="lg:col-span-2">
-                <div className="flex items-center justify-center bg-gray-50/50 rounded-lg border-2 border-dashed border-gray-200 h-full min-h-[500px]">
+                <div className="flex items-center justify-center bg-muted/50 rounded-lg border-2 border-dashed border-border h-full min-h-[500px]">
                   <LiveInputPreview properties={inputProperties} />
                 </div>
               </div>
               
               {/* Properties Panel */}
               <div className="lg:col-span-1">
-                <div className="h-full min-h-[500px] border rounded-lg bg-gray-50/50">
+                <div className="h-full min-h-[500px] border rounded-lg bg-muted/50">
                   <InputPropertiesPanel 
                     properties={inputProperties}
                     onPropertiesChange={setInputProperties}

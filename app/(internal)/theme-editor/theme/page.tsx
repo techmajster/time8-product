@@ -336,7 +336,7 @@ const getFallbackColor = (name: string): string => {
     'info': 'hsl(200, 89%, 48%)',
     'info-foreground': 'hsl(0, 0%, 100%)',
     'border': 'hsl(240, 6%, 87%)',
-    'input': 'hsl(240, 6%, 87%)',
+    'input': 'hsl(0, 0%, 100%)',
     'ring': 'hsl(267, 85%, 60%)',
   };
   return fallbacks[name] || 'hsl(0, 0%, 50%)';
@@ -367,7 +367,7 @@ const getFallbackTokens = (): DesignSystemTokens => {
           info: 'hsl(200, 89%, 48%)',
           'info-foreground': 'hsl(0, 0%, 100%)',
           border: 'hsl(240, 6%, 87%)',
-          input: 'hsl(240, 6%, 87%)',
+          input: 'hsl(0, 0%, 100%)',
           ring: 'hsl(267, 85%, 60%)',
         },
         dark: {
@@ -390,7 +390,7 @@ const getFallbackTokens = (): DesignSystemTokens => {
           info: 'hsl(200, 89%, 48%)',
           'info-foreground': 'hsl(0, 0%, 100%)',
           border: 'hsl(240, 8%, 42%)',
-          input: 'hsl(240, 8%, 42%)',
+          input: 'hsl(240, 10%, 25%)',
           ring: 'hsl(267, 85%, 60%)',
         },
       },
