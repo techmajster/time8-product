@@ -1194,14 +1194,14 @@ export default function ThemeDemo() {
                 <div className="grid gap-4 md:grid-cols-2">
                   <Button 
                     onClick={leaveToasts.leaveRequestSubmitted}
-                    className="bg-green-600 hover:bg-green-700"
+                    className="bg-success hover:bg-success/90 text-success-foreground"
                   >
                     Leave Request Submitted
                   </Button>
                   
                   <Button 
                     onClick={leaveToasts.leaveRequestApproved}
-                    className="bg-blue-600 hover:bg-blue-700"
+                    className="bg-info hover:bg-info/90 text-info-foreground"
                   >
                     Leave Approved
                   </Button>
@@ -1215,7 +1215,7 @@ export default function ThemeDemo() {
                   
                   <Button 
                     onClick={() => leaveToasts.pendingApprovals(3)}
-                    className="bg-yellow-600 hover:bg-yellow-700"
+                    className="bg-warning hover:bg-warning/90 text-warning-foreground"
                   >
                     Pending Reviews
                   </Button>
