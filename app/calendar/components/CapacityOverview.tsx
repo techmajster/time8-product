@@ -224,11 +224,11 @@ export const CapacityOverview = React.memo(function CapacityOverview({ teamMembe
       <div className="pt-4 border-t">
         <div className="grid grid-cols-2 gap-4 text-center">
           <div>
-            <div className="text-lg font-bold text-gray-900">{totalTeamSize}</div>
+            <div className="text-lg font-bold text-foreground">{totalTeamSize}</div>
             <div className="text-xs text-muted-foreground">Członków zespołu</div>
           </div>
           <div>
-            <div className="text-lg font-bold text-gray-900">
+            <div className="text-lg font-bold text-foreground">
               {leaveRequests.filter(l => l.status === 'pending').length}
             </div>
             <div className="text-xs text-muted-foreground">Oczekujących wniosków</div>

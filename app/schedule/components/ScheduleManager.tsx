@@ -211,10 +211,10 @@ export function ScheduleManager({ teamMembers, userRole }: ScheduleManagerProps)
 
   const getScheduleCoverage = (info: EmployeeScheduleInfo) => {
     const weekCount = Math.ceil(info.schedule_count / 7)
-    if (weekCount >= 4) return { label: 'Pełne pokrycie', color: 'bg-green-100 text-green-800' }
-    if (weekCount >= 2) return { label: 'Częściowe pokrycie', color: 'bg-yellow-100 text-yellow-800' }
-    if (weekCount >= 1) return { label: 'Minimalne pokrycie', color: 'bg-orange-100 text-orange-800' }
-    return { label: 'Brak harmonogramu', color: 'bg-red-100 text-red-800' }
+    if (weekCount >= 4) return { label: 'Pełne pokrycie', color: 'bg-success/10 text-success' }
+    if (weekCount >= 2) return { label: 'Częściowe pokrycie', color: 'bg-warning/10 text-warning' }
+    if (weekCount >= 1) return { label: 'Minimalne pokrycie', color: 'bg-warning/15 text-warning' }
+    return { label: 'Brak harmonogramu', color: 'bg-destructive/10 text-destructive' }
   }
 
   const formatTime = (time?: string) => {
@@ -505,28 +505,28 @@ export function ScheduleManager({ teamMembers, userRole }: ScheduleManagerProps)
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="text-center p-4 border rounded-lg">
-              <div className="text-2xl font-bold text-green-600">
+              <div className="text-2xl font-bold text-success">
                 {scheduleInfo.filter(info => getScheduleCoverage(info).label === 'Pełne pokrycie').length}
               </div>
               <div className="text-sm text-muted-foreground">Pełne pokrycie</div>
             </div>
             
             <div className="text-center p-4 border rounded-lg">
-              <div className="text-2xl font-bold text-yellow-600">
+              <div className="text-2xl font-bold text-warning">
                 {scheduleInfo.filter(info => ['Częściowe pokrycie', 'Minimalne pokrycie'].includes(getScheduleCoverage(info).label)).length}
               </div>
               <div className="text-sm text-muted-foreground">Częściowe pokrycie</div>
             </div>
             
             <div className="text-center p-4 border rounded-lg">
-              <div className="text-2xl font-bold text-red-600">
+              <div className="text-2xl font-bold text-destructive">
                 {scheduleInfo.filter(info => getScheduleCoverage(info).label === 'Brak harmonogramu').length}
               </div>
               <div className="text-sm text-muted-foreground">Brak harmonogramu</div>
             </div>
             
             <div className="text-center p-4 border rounded-lg">
-              <div className="text-2xl font-bold text-blue-600">
+              <div className="text-2xl font-bold text-info">
                 {templates.length}
               </div>
               <div className="text-sm text-muted-foreground">Dostępne szablony</div>

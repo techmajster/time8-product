@@ -199,23 +199,23 @@ function LiveToastPreview({ properties }: { properties: ToastProperties }) {
 
   const getTypeIcon = () => {
     switch (properties.type) {
-      case 'success': return <CheckCircle2 className="w-5 h-5 text-green-500" />;
-      case 'error': return <XCircle className="w-5 h-5 text-red-500" />;
-      case 'warning': return <AlertTriangle className="w-5 h-5 text-yellow-500" />;
-      case 'info': return <Info className="w-5 h-5 text-blue-500" />;
-      case 'loading': return <Clock className="w-5 h-5 text-gray-500 animate-spin" />;
-      default: return <Bell className="w-5 h-5 text-gray-500" />;
+      case 'success': return <CheckCircle2 className="w-5 h-5 text-success" />;
+      case 'error': return <XCircle className="w-5 h-5 text-destructive" />;
+      case 'warning': return <AlertTriangle className="w-5 h-5 text-warning" />;
+      case 'info': return <Info className="w-5 h-5 text-info" />;
+      case 'loading': return <Clock className="w-5 h-5 text-muted-foreground animate-spin" />;
+      default: return <Bell className="w-5 h-5 text-muted-foreground" />;
     }
   };
 
   const getTypeColor = () => {
     switch (properties.type) {
-      case 'success': return 'border-green-200 bg-green-50';
-      case 'error': return 'border-red-200 bg-red-50';
-      case 'warning': return 'border-yellow-200 bg-yellow-50';
-      case 'info': return 'border-blue-200 bg-blue-50';
-      case 'loading': return 'border-gray-200 bg-gray-50';
-      default: return 'border-gray-200 bg-gray-50';
+      case 'success': return 'border-success/20 bg-success/5';
+      case 'error': return 'border-destructive/20 bg-destructive/5';
+      case 'warning': return 'border-warning/20 bg-warning/5';
+      case 'info': return 'border-info/20 bg-info/5';
+      case 'loading': return 'border-border bg-muted/50';
+      default: return 'border-border bg-muted/50';
     }
   };
 

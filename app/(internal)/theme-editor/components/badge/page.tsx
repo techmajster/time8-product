@@ -252,16 +252,16 @@ export default function BadgeComponentPage() {
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-4">
-              <Badge className="bg-green-100 text-green-800 hover:bg-green-200">
+              <Badge className="bg-success/10 text-success hover:bg-success/20">
                 Success
               </Badge>
-              <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200">
+              <Badge className="bg-warning/10 text-warning hover:bg-warning/20">
                 Warning
               </Badge>
-              <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200">
+              <Badge className="bg-info/10 text-info hover:bg-info/20">
                 Info
               </Badge>
-              <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-200">
+              <Badge className="bg-accent text-accent-foreground hover:bg-accent/80">
                 Premium
               </Badge>
               <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-200">

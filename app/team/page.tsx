@@ -182,7 +182,7 @@ export default async function TeamPage() {
                             ))}
                           </TableBody>
                         </Table>
-                        <div className="bg-neutral-50 border-t border-border h-[52px] flex items-center">
+                        <div className="bg-muted/50 border-t border-border h-[52px] flex items-center">
                           <div className="px-4">
                             <p className="text-sm font-normal text-muted-foreground">
                               {t('totalTeamMembers')}: {teamMembers?.length || 0}

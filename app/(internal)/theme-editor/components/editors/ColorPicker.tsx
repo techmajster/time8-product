@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { HexColorPicker } from 'react-colorful';
+import { useState, useEffect } from 'react';
+import { HslStringColorPicker } from 'react-colorful';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +19,11 @@ export function ColorPicker({ label, value, onChange, description }: ColorPicker
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState(value);
 
+  // Sync input value with prop value when it changes externally
+  useEffect(() => {
+    setInputValue(value);
+  }, [value]);
+
   const handleColorChange = (newColor: string) => {
     setInputValue(newColor);
     onChange(newColor);
@@ -28,15 +33,15 @@ export function ColorPicker({ label, value, onChange, description }: ColorPicker
     const newValue = e.target.value;
     setInputValue(newValue);
     
-    // Validate hex color format
-    if (/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(newValue)) {
+    // Validate HSL color format
+    if (/^hsl\(\s*\d+\s*,\s*\d+%\s*,\s*\d+%\s*\)$/.test(newValue)) {
       onChange(newValue);
     }
   };
 
   const handleInputBlur = () => {
     // Reset to current value if invalid
-    if (!/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(inputValue)) {
+    if (!/^hsl\(\s*\d+\s*,\s*\d+%\s*,\s*\d+%\s*\)$/.test(inputValue)) {
       setInputValue(value);
     }
   };
@@ -48,7 +53,7 @@ export function ColorPicker({ label, value, onChange, description }: ColorPicker
           {label}
         </Label>
         {description && (
-          <span className="text-xs text-gray-500">{description}</span>
+          <span className="text-xs text-muted-foreground">{description}</span>
         )}
       </div>
       
@@ -66,14 +71,14 @@ export function ColorPicker({ label, value, onChange, description }: ColorPicker
           </PopoverTrigger>
           <PopoverContent className="w-auto p-4" align="start">
             <div className="space-y-4">
-              <HexColorPicker color={value} onChange={handleColorChange} />
+              <HslStringColorPicker color={value} onChange={handleColorChange} />
               <div className="flex items-center gap-2">
-                <Palette className="w-4 h-4 text-gray-500" />
+                <Palette className="w-4 h-4 text-muted-foreground" />
                 <Input
                   value={inputValue}
                   onChange={handleInputChange}
                   onBlur={handleInputBlur}
-                  placeholder="#000000"
+                  placeholder="hsl(0, 0%, 0%)"
                   className="font-mono text-sm"
                 />
               </div>
@@ -86,7 +91,7 @@ export function ColorPicker({ label, value, onChange, description }: ColorPicker
           value={inputValue}
           onChange={handleInputChange}
           onBlur={handleInputBlur}
-          placeholder="#000000"
+          placeholder="hsl(0, 0%, 0%)"
           className="font-mono text-sm flex-1"
         />
       </div>

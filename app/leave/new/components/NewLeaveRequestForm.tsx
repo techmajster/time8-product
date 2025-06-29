@@ -613,8 +613,8 @@ export function NewLeaveRequestForm({ leaveTypes, leaveBalances, userProfile, on
 
         <Card>
           <CardHeader>
-            <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-orange-100">
-              <Calendar className="h-6 w-6 text-orange-600" />
+                      <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-warning/10">
+            <Calendar className="h-6 w-6 text-warning" />
             </div>
             <CardTitle>Nowy wniosek urlopowy</CardTitle>
             <CardDescription>

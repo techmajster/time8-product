@@ -11,17 +11,25 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-neutral-900 text-neutral-50 shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] hover:bg-neutral-900 hover:before:absolute hover:before:inset-0 hover:before:bg-white/10 hover:before:rounded-lg hover:before:pointer-events-none relative overflow-hidden",
-        destructive:
-          "bg-red-600 text-red-50 shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] hover:bg-red-700 focus-visible:ring-red-600",
-        outline:
-          "border border-neutral-200 bg-white text-neutral-950 shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] hover:bg-neutral-100 hover:text-neutral-900 focus-visible:ring-neutral-950",
+          "bg-primary text-primary-foreground shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] hover:bg-primary/90 hover:before:absolute hover:before:inset-0 hover:before:bg-white/10 hover:before:rounded-lg hover:before:pointer-events-none relative overflow-hidden",
+        primary:
+          "bg-primary text-primary-foreground shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] hover:bg-primary/90 hover:before:absolute hover:before:inset-0 hover:before:bg-white/10 hover:before:rounded-lg hover:before:pointer-events-none relative overflow-hidden",
         secondary:
-          "bg-neutral-100 text-neutral-900 shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] hover:bg-neutral-100 hover:before:absolute hover:before:inset-0 hover:before:bg-white/20 hover:before:rounded-lg hover:before:pointer-events-none relative overflow-hidden",
+          "bg-secondary text-secondary-foreground shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] hover:bg-secondary/80 hover:before:absolute hover:before:inset-0 hover:before:bg-white/20 hover:before:rounded-lg hover:before:pointer-events-none relative overflow-hidden",
+        destructive:
+          "bg-destructive text-destructive-foreground shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] hover:bg-destructive/90 focus-visible:ring-destructive",
+        success:
+          "bg-success text-success-foreground shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] hover:bg-success/90 focus-visible:ring-success",
+        warning:
+          "bg-warning text-warning-foreground shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] hover:bg-warning/90 focus-visible:ring-warning",
+        info:
+          "bg-info text-info-foreground shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] hover:bg-info/90 focus-visible:ring-info",
+        outline:
+          "border border-input bg-background text-foreground shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring",
         ghost: 
-          "text-neutral-950 hover:bg-neutral-100 hover:text-neutral-900",
+          "text-foreground hover:bg-accent hover:text-accent-foreground",
         link: 
-          "text-neutral-900 underline-offset-4 hover:underline",
+          "text-primary underline-offset-4 hover:underline",
       },
       size: {
         default: "h-9 px-4 py-2",

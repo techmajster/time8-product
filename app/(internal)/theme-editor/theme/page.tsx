@@ -1,50 +1,77 @@
 'use client';
 
-import { useState } from 'react';
-import { ColorPicker } from '../components/editors/ColorPicker';
-import { NumberInput } from '../components/editors/NumberInput';
-import { ShadowInput } from '../components/editors/ShadowInput';
-import { ThemeApplier, exportThemeAsCSS, exportAsTailwindConfig } from '../components/theme-applier';
-import { ThemeManager, type DesignTokens as ThemeManagerTokens } from '../components/theme/ThemeManager';
+import { useState, useEffect, useCallback } from 'react';
+import { applyThemePreview, resetThemePreview, applyExampleTailwindTheme, applyExampleTailwindThemeDark } from '../components/theme-applier';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ThemeManager } from '../components/theme/ThemeManager';
 import { Button } from '@/components/ui/button';
-import { Download, RotateCcw, Palette, Type, Grid, Eye, FileText, Code, Search, Calendar, CheckCircle, DollarSign, Upload, CreditCard, Users, Clock, Wrench, PieChart, Paintbrush } from 'lucide-react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from '@/components/ui/command';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Palette, Square, Type, Move, Moon, Sun, Eye, EyeOff, Settings } from 'lucide-react';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
+import { ColorPicker } from '../components/editors/ColorPicker';
 
-// Our actual design system tokens that connect to CSS variables
+// Enhanced Design system tokens interface with separate light/dark colors
 interface DesignSystemTokens {
   colors: {
     semantic: {
-      background: string;
-      foreground: string;
-      primary: string;
-      'primary-foreground': string;
-      secondary: string;
-      'secondary-foreground': string;
-      muted: string;
-      'muted-foreground': string;
-      accent: string;
-      'accent-foreground': string;
-      destructive: string;
-      'destructive-foreground': string;
-      success: string;
-      'success-foreground': string;
-      warning: string;
-      'warning-foreground': string;
-      info: string;
-      'info-foreground': string;
-      border: string;
-      input: string;
-      ring: string;
+      light: {
+        background: string;
+        foreground: string;
+        primary: string;
+        'primary-foreground': string;
+        secondary: string;
+        'secondary-foreground': string;
+        muted: string;
+        'muted-foreground': string;
+        accent: string;
+        'accent-foreground': string;
+        destructive: string;
+        'destructive-foreground': string;
+        success: string;
+        'success-foreground': string;
+        warning: string;
+        'warning-foreground': string;
+        info: string;
+        'info-foreground': string;
+        border: string;
+        input: string;
+        ring: string;
+      };
+      dark: {
+        background: string;
+        foreground: string;
+        primary: string;
+        'primary-foreground': string;
+        secondary: string;
+        'secondary-foreground': string;
+        muted: string;
+        'muted-foreground': string;
+        accent: string;
+        'accent-foreground': string;
+        destructive: string;
+        'destructive-foreground': string;
+        success: string;
+        'success-foreground': string;
+        warning: string;
+        'warning-foreground': string;
+        info: string;
+        'info-foreground': string;
+        border: string;
+        input: string;
+        ring: string;
+      };
     };
+  };
+  borderRadius: {
+    sm: number;
+    md: number;
+    lg: number;
+    xl: number;
   };
   typography: {
     fontSize: {
@@ -53,7 +80,11 @@ interface DesignSystemTokens {
       base: number;
       lg: number;
       xl: number;
-      '2xl': number;
+    };
+    lineHeight: {
+      tight: number;
+      normal: number;
+      relaxed: number;
     };
   };
   spacing: {
@@ -62,399 +93,510 @@ interface DesignSystemTokens {
     md: number;
     lg: number;
     xl: number;
-    '2xl': number;
-  };
-  borderRadius: {
-    sm: number;
-    md: number;
-    lg: number;
   };
   shadows: {
-    xs: string;
     sm: string;
     md: string;
     lg: string;
     xl: string;
-    '2xl': string;
   };
 }
 
-// Default tokens based on our actual system
-const defaultTokens: DesignSystemTokens = {
-  colors: {
-    semantic: {
-      background: 'hsl(0, 0%, 100%)',
-      foreground: 'hsl(240, 10%, 25%)',
-      primary: 'hsl(267, 85%, 60%)',
-      'primary-foreground': 'hsl(0, 0%, 100%)',
-      secondary: 'hsl(240, 5%, 93%)',
-      'secondary-foreground': 'hsl(240, 6%, 35%)',
-      muted: 'hsl(0, 0%, 86.67%)',
-      'muted-foreground': 'hsl(240, 4%, 54%)',
-      accent: 'hsl(270, 8%, 92%)',
-      'accent-foreground': 'hsl(240, 6%, 35%)',
-      destructive: 'hsl(0, 84%, 60%)',
-      'destructive-foreground': 'hsl(0, 0%, 100%)',
-      success: 'hsl(142, 76%, 36%)',
-      'success-foreground': 'hsl(0, 0%, 100%)',
-      warning: 'hsl(48, 96%, 53%)',
-      'warning-foreground': 'hsl(26, 83%, 14%)',
-      info: 'hsl(200, 89%, 48%)',
-      'info-foreground': 'hsl(0, 0%, 100%)',
-      border: 'hsl(240, 6%, 87%)',
-      input: 'hsl(240, 6%, 87%)',
-      ring: 'hsl(267, 85%, 60%)',
-    },
-  },
-  typography: {
-    fontSize: {
-      xs: 12,
-      sm: 14,
-      base: 16,
-      lg: 18,
-      xl: 20,
-      '2xl': 24,
-    },
-  },
-  spacing: {
-    xs: 4,
-    sm: 8,
-    md: 16,
-    lg: 24,
-    xl: 32,
-    '2xl': 48,
-  },
-  borderRadius: {
-    sm: 4,
-    md: 6,
-    lg: 8,
-  },
-  shadows: {
-    xs: '0px 1px 2px 0px rgba(0, 0, 0, 0.05)',
-    sm: '0px 1px 3px 0px rgba(0, 0, 0, 0.1), 0px 1px 2px 0px rgba(0, 0, 0, 0.06)',
-    md: '0px 4px 6px -1px rgba(0, 0, 0, 0.1), 0px 2px 4px -1px rgba(0, 0, 0, 0.06)',
-    lg: '0px 10px 15px -3px rgba(0, 0, 0, 0.1), 0px 4px 6px -2px rgba(0, 0, 0, 0.05)',
-    xl: '0px 20px 25px -5px rgba(0, 0, 0, 0.1), 0px 10px 10px -5px rgba(0, 0, 0, 0.04)',
-    '2xl': '0px 25px 50px -12px rgba(0, 0, 0, 0.25)',
-  },
+// Auto-generate dark mode variant function
+const generateDarkModeVariant = (lightColor: string): string => {
+  const match = lightColor.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
+  if (!match) return lightColor;
+  
+  const h = parseInt(match[1]);
+  const s = parseInt(match[2]);
+  const l = parseInt(match[3]);
+  
+  // Special handling for specific color types
+  if (lightColor.includes('100%')) {
+    // Pure white backgrounds become dark
+    return `hsl(${h}, ${Math.min(s, 15)}%, 4%)`;
+  }
+  if (lightColor.includes('0%') && s === 0) {
+    // Pure black text becomes light
+    return `hsl(${h}, ${s}%, 95%)`;
+  }
+  
+  // For colored elements, adjust based on lightness
+  if (l > 80) {
+    // Very light colors become dark
+    return `hsl(${h}, ${Math.max(s - 10, 0)}%, ${Math.max(l - 75, 5)}%)`;
+  } else if (l < 20) {
+    // Very dark colors become light
+    return `hsl(${h}, ${Math.max(s - 10, 0)}%, ${Math.min(l + 75, 95)}%)`;
+  } else if (l > 50) {
+    // Medium-light colors become darker
+    return `hsl(${h}, ${s}%, ${Math.max(l - 40, 10)}%)`;
+  } else {
+    // Medium-dark colors become lighter
+    return `hsl(${h}, ${s}%, ${Math.min(l + 40, 90)}%)`;
+  }
 };
 
-
-
-// Live Preview Component
-function LivePreviewDialog({ tokens }: { tokens: DesignSystemTokens }) {
-  return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button>
-          <Eye className="w-4 h-4 mr-2" />
-          Live Preview
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="w-[90vw] h-[90vh] max-w-none overflow-hidden p-0">
-        <DialogHeader className="p-6 pb-0">
-          <DialogTitle>Live Theme Preview</DialogTitle>
-          <DialogDescription>
-            See how your design tokens affect real components. Changes are also applied live to the entire application!
-          </DialogDescription>
-        </DialogHeader>
-        
-        {/* Subframe-style Dashboard using shadcn/ui components */}
-        <div className="h-[calc(90vh-120px)] overflow-hidden bg-background">
-          {/* Top Navigation */}
-          <div className="border-b bg-background">
-            <div className="flex items-center justify-between px-6 py-4">
-              {/* Logo and Navigation */}
-              <div className="flex items-center gap-8">
-                <div className="w-6 h-6 bg-foreground rounded-sm" />
-                
-                <nav className="flex items-center">
-                  {['Home', 'Inbox', 'Reports'].map((item, idx) => (
-                    <Button
-                      key={item}
-                      variant={idx === 0 ? "ghost" : "ghost"}
-                      className={cn(
-                        "px-4 py-2 text-sm font-medium relative",
-                        idx === 0 ? "text-foreground" : "text-muted-foreground"
-                      )}
-                    >
-                      {item}
-                      {idx === 0 && (
-                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
-                      )}
-                    </Button>
-                  ))}
-                </nav>
-              </div>
-              
-              {/* Search and Profile */}
-              <div className="flex items-center gap-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input placeholder="Search" className="pl-9 w-64" />
-                </div>
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback>JD</AvatarFallback>
-                </Avatar>
-              </div>
-            </div>
-          </div>
-
-          {/* Main Content */}
-          <div className="p-6 h-[calc(100%-80px)] overflow-auto">
-            {/* Page Header */}
-            <div className="mb-6">
-              <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-              <p className="text-sm text-muted-foreground">Monday, January 4</p>
-            </div>
-
-            {/* Content Grid */}
-            <div className="grid grid-cols-12 gap-6">
-              {/* Left Column - To-do (4 columns) */}
-              <div className="col-span-4 space-y-6">
-                {/* To-do Section */}
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-lg font-semibold">To-do</h2>
-                    <Button variant="link" size="sm" className="text-primary p-0 h-auto">
-                      View all
-                    </Button>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    {[
-                      { icon: CheckCircle, title: 'Review requests', desc: 'Approve new requests in your inbox', time: 'Today' },
-                      { icon: DollarSign, title: 'Process invoices', desc: 'You have 1 to review', time: 'Today' },
-                      { icon: Upload, title: 'Upload additional documents', desc: 'We need a few more details', time: 'Today' },
-                      { icon: CreditCard, title: 'Set up a payment method', desc: 'Avoid delaying invoices and payments', time: 'Yesterday' },
-                      { icon: CheckCircle, title: 'Finish verification', desc: 'Verify your account securely', time: 'Yesterday' }
-                    ].map((item, idx) => (
-                      <Card key={idx} className="p-4">
-                        <div className="flex items-start gap-3">
-                          <item.icon className="h-5 w-5 text-muted-foreground mt-0.5" />
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium text-sm text-foreground mb-1">
-                              {item.title}
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {item.desc}
-                            </div>
-                          </div>
-                          <Badge variant="secondary" className="text-xs">
-                            {item.time}
-                          </Badge>
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Upcoming Events */}
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-lg font-semibold">Upcoming events</h2>
-                    <Button variant="link" size="sm" className="text-primary p-0 h-auto">
-                      View all
-                    </Button>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    {[
-                      { title: 'Department Offsite', date: 'Monday, Nov 13, 2023', time: 'All-day' },
-                      { title: 'Quarterly Review', date: 'Tuesday, Nov 3, 2023', time: '9:00 AM' },
-                      { title: 'Project kick-off', date: 'Monday, Nov 13, 2023', time: '3:00 PM' }
-                    ].map((event, idx) => (
-                      <Card key={idx} className="p-4">
-                        <div className="flex items-start gap-3">
-                          <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium text-sm text-foreground mb-1">
-                              {event.title}
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {event.date}
-                            </div>
-                          </div>
-                          <Badge variant="outline" className="text-xs">
-                            {event.time}
-                          </Badge>
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Column - Updates, Departments, Recently joined (8 columns) */}
-              <div className="col-span-8 space-y-6">
-                {/* Updates Section */}
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-lg font-semibold">Updates</h2>
-                    <Button variant="link" size="sm" className="text-primary p-0 h-auto">
-                      View all
-                    </Button>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4 mb-6">
-                    <Card className="p-4 bg-accent">
-                      <div className="flex items-center gap-3">
-                        <Users className="h-5 w-5 text-primary" />
-                        <div>
-                          <div className="font-medium text-sm">5 new members</div>
-                          <div className="text-xs text-muted-foreground">1 onboarding now</div>
-                        </div>
-                      </div>
-                    </Card>
-                    
-                    <Card className="p-4 bg-destructive/10">
-                      <div className="flex items-center gap-3">
-                        <Clock className="h-5 w-5 text-destructive" />
-                        <div>
-                          <div className="font-medium text-sm">3 reminders</div>
-                          <div className="text-xs text-muted-foreground">2 overdue</div>
-                        </div>
-                      </div>
-                    </Card>
-                  </div>
-                </div>
-
-                {/* Departments & Recently Joined */}
-                <div className="grid grid-cols-2 gap-6">
-                  {/* Departments */}
-                  <div>
-                    <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-lg font-semibold">Departments</h2>
-                      <Button variant="link" size="sm" className="text-primary p-0 h-auto">
-                        View all
-                      </Button>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      {[
-                        { icon: Wrench, name: 'Engineering', count: 12 },
-                        { icon: PieChart, name: 'Product', count: 5 },
-                        { icon: Paintbrush, name: 'Design', count: 3 }
-                      ].map((dept, idx) => (
-                        <Card key={idx} className="p-3">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <dept.icon className="h-4 w-4 text-muted-foreground" />
-                              <span className="text-sm font-medium">{dept.name}</span>
-                            </div>
-                            <Badge variant="secondary">{dept.count}</Badge>
-                          </div>
-                        </Card>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Recently Joined */}
-                  <div>
-                    <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-lg font-semibold">Recently joined</h2>
-                      <Button variant="link" size="sm" className="text-primary p-0 h-auto">
-                        View all
-                      </Button>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      {[
-                        { name: 'Abigail', date: 'Oct 24', avatar: 'AB' },
-                        { name: 'Jonah', date: 'Nov 5', avatar: 'JH' },
-                        { name: 'Michael', date: 'Nov 23', avatar: 'MK' }
-                      ].map((person, idx) => (
-                        <Card key={idx} className="p-3">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <Avatar className="h-8 w-8">
-                                <AvatarFallback className="text-xs">{person.avatar}</AvatarFallback>
-                              </Avatar>
-                              <span className="text-sm font-medium">{person.name}</span>
-                            </div>
-                            <Badge variant="outline" className="text-xs">
-                              {person.date}
-                            </Badge>
-                          </div>
-                        </Card>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
+// Color utility functions
+function hslToHex(hslString: string): string {
+  // Parse HSL string like "hsl(267, 85%, 60%)"
+  const match = hslString.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
+  if (!match) return '#000000';
+  
+  const h = parseInt(match[1]) / 360;
+  const s = parseInt(match[2]) / 100;
+  const l = parseInt(match[3]) / 100;
+  
+  const hue2rgb = (p: number, q: number, t: number) => {
+    if (t < 0) t += 1;
+    if (t > 1) t -= 1;
+    if (t < 1/6) return p + (q - p) * 6 * t;
+    if (t < 1/2) return q;
+    if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+    return p;
+  };
+  
+  let r, g, b;
+  if (s === 0) {
+    r = g = b = l; // achromatic
+  } else {
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q;
+    r = hue2rgb(p, q, h + 1/3);
+    g = hue2rgb(p, q, h);
+    b = hue2rgb(p, q, h - 1/3);
+  }
+  
+  const toHex = (c: number) => {
+    const hex = Math.round(c * 255).toString(16);
+    return hex.length === 1 ? '0' + hex : hex;
+  };
+  
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
 
-// Export Command Component
-function ExportCommand({ 
-  exportTokens, 
-  exportCSS, 
-  exportTailwindConfig,
-  exportTheme
-}: {
-  exportTokens: () => void;
-  exportCSS: () => void;
-  exportTailwindConfig: () => void;
-  exportTheme: () => void;
-}) {
-  return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button variant="outline">
-          <Download className="w-4 h-4 mr-2" />
-          Export
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-48 p-0" align="end">
-        <Command>
-          <CommandList>
-            <CommandGroup>
-              <CommandItem onSelect={exportTokens}>
-                <Download className="mr-2 h-4 w-4" />
-                <span>Export JSON</span>
-              </CommandItem>
-              <CommandItem onSelect={exportCSS}>
-                <FileText className="mr-2 h-4 w-4" />
-                <span>Export CSS</span>
-              </CommandItem>
-              <CommandItem onSelect={exportTailwindConfig}>
-                <Code className="mr-2 h-4 w-4" />
-                <span>Export Config</span>
-              </CommandItem>
-              <CommandItem onSelect={exportTheme}>
-                <Palette className="mr-2 h-4 w-4" />
-                <span>Export Theme</span>
-              </CommandItem>
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
-  );
+function hexToHsl(hex: string): string {
+  // Convert hex to RGB first
+  const r = parseInt(hex.slice(1, 3), 16) / 255;
+  const g = parseInt(hex.slice(3, 5), 16) / 255;
+  const b = parseInt(hex.slice(5, 7), 16) / 255;
+  
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let h, s, l = (max + min) / 2;
+  
+  if (max === min) {
+    h = s = 0; // achromatic
+  } else {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+      case g: h = (b - r) / d + 2; break;
+      case b: h = (r - g) / d + 4; break;
+      default: h = 0; break;
+    }
+    h /= 6;
+  }
+  
+  return `hsl(${Math.round(h * 360)}, ${Math.round(s * 100)}%, ${Math.round(l * 100)}%)`;
 }
+
+// Function to read current CSS variables and create tokens
+const getCurrentThemeFromDOM = (): DesignSystemTokens => {
+  if (typeof window === 'undefined') {
+    // Server-side fallback - will be replaced when component mounts
+    return getFallbackTokens();
+  }
+
+  const root = document.documentElement;
+  const computedStyle = getComputedStyle(root);
+  
+  // Helper to get CSS variable value and convert to HSL format
+  const getCSSVar = (name: string): string => {
+    const value = computedStyle.getPropertyValue(`--${name}`).trim();
+    if (value) {
+      // Convert space-separated values back to HSL format
+      return `hsl(${value})`;
+    }
+    return getFallbackColor(name);
+  };
+
+  // Get current radius value
+  const radiusValue = computedStyle.getPropertyValue('--radius').trim();
+  const currentRadius = radiusValue ? parseFloat(radiusValue) * 16 : 8; // Convert rem to px
+
+  return {
+    colors: {
+      semantic: {
+        light: {
+          background: getCSSVar('background'),
+          foreground: getCSSVar('foreground'),
+          primary: getCSSVar('primary'),
+          'primary-foreground': getCSSVar('primary-foreground'),
+          secondary: getCSSVar('secondary'),
+          'secondary-foreground': getCSSVar('secondary-foreground'),
+          muted: getCSSVar('muted'),
+          'muted-foreground': getCSSVar('muted-foreground'),
+          accent: getCSSVar('accent'),
+          'accent-foreground': getCSSVar('accent-foreground'),
+          destructive: getCSSVar('destructive'),
+          'destructive-foreground': getCSSVar('destructive-foreground'),
+          success: getCSSVar('success'),
+          'success-foreground': getCSSVar('success-foreground'),
+          warning: getCSSVar('warning'),
+          'warning-foreground': getCSSVar('warning-foreground'),
+          info: getCSSVar('info'),
+          'info-foreground': getCSSVar('info-foreground'),
+          border: getCSSVar('border'),
+          input: getCSSVar('input'),
+          ring: getCSSVar('ring'),
+        },
+        dark: {
+          // Auto-generate dark colors from light colors using our smart algorithm
+          background: generateDarkModeVariant(getCSSVar('background')),
+          foreground: generateDarkModeVariant(getCSSVar('foreground')),
+          primary: getCSSVar('primary'), // Keep same primary in dark mode
+          'primary-foreground': generateDarkModeVariant(getCSSVar('primary-foreground')),
+          secondary: generateDarkModeVariant(getCSSVar('secondary')),
+          'secondary-foreground': generateDarkModeVariant(getCSSVar('secondary-foreground')),
+          muted: generateDarkModeVariant(getCSSVar('muted')),
+          'muted-foreground': generateDarkModeVariant(getCSSVar('muted-foreground')),
+          accent: generateDarkModeVariant(getCSSVar('accent')),
+          'accent-foreground': generateDarkModeVariant(getCSSVar('accent-foreground')),
+          destructive: getCSSVar('destructive'),
+          'destructive-foreground': generateDarkModeVariant(getCSSVar('destructive-foreground')),
+          success: getCSSVar('success'),
+          'success-foreground': generateDarkModeVariant(getCSSVar('success-foreground')),
+          warning: getCSSVar('warning'),
+          'warning-foreground': getCSSVar('warning-foreground'),
+          info: getCSSVar('info'),
+          'info-foreground': generateDarkModeVariant(getCSSVar('info-foreground')),
+          border: generateDarkModeVariant(getCSSVar('border')),
+          input: generateDarkModeVariant(getCSSVar('input')),
+          ring: getCSSVar('ring'),
+        },
+      },
+    },
+    borderRadius: {
+      sm: Math.max(currentRadius - 4, 0),
+      md: Math.max(currentRadius - 2, 0),
+      lg: currentRadius,
+      xl: currentRadius + 4,
+    },
+    typography: {
+      fontSize: {
+        xs: 12,
+        sm: 14,
+        base: 16,
+        lg: 18,
+        xl: 20,
+      },
+      lineHeight: {
+        tight: 1.25,
+        normal: 1.5,
+        relaxed: 1.75,
+      },
+    },
+    spacing: {
+      xs: 4,
+      sm: 8,
+      md: 16,
+      lg: 24,
+      xl: 32,
+    },
+    shadows: {
+      sm: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
+      md: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
+      lg: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
+      xl: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
+    },
+  };
+};
+
+// Fallback colors for when CSS variables aren't available
+const getFallbackColor = (name: string): string => {
+  const fallbacks: Record<string, string> = {
+    'background': 'hsl(0, 0%, 100%)',
+    'foreground': 'hsl(240, 10%, 25%)',
+    'primary': 'hsl(214, 100%, 44%)', // Your actual primary color
+    'primary-foreground': 'hsl(0, 0%, 100%)',
+    'secondary': 'hsl(240, 5%, 93%)',
+    'secondary-foreground': 'hsl(240, 6%, 35%)',
+    'muted': 'hsl(0, 0%, 86.67%)',
+    'muted-foreground': 'hsl(240, 4%, 54%)',
+    'accent': 'hsl(270, 8%, 92%)',
+    'accent-foreground': 'hsl(240, 6%, 35%)',
+    'destructive': 'hsl(0, 84%, 60%)',
+    'destructive-foreground': 'hsl(0, 0%, 100%)',
+    'success': 'hsl(142, 76%, 36%)',
+    'success-foreground': 'hsl(0, 0%, 100%)',
+    'warning': 'hsl(48, 96%, 53%)',
+    'warning-foreground': 'hsl(26, 83%, 14%)',
+    'info': 'hsl(200, 89%, 48%)',
+    'info-foreground': 'hsl(0, 0%, 100%)',
+    'border': 'hsl(240, 6%, 87%)',
+    'input': 'hsl(240, 6%, 87%)',
+    'ring': 'hsl(267, 85%, 60%)',
+  };
+  return fallbacks[name] || 'hsl(0, 0%, 50%)';
+};
+
+// Server-side fallback tokens
+const getFallbackTokens = (): DesignSystemTokens => {
+  return {
+    colors: {
+      semantic: {
+        light: {
+          background: 'hsl(0, 0%, 100%)',
+          foreground: 'hsl(240, 10%, 25%)',
+          primary: 'hsl(214, 100%, 44%)', // Your actual primary color
+          'primary-foreground': 'hsl(0, 0%, 100%)',
+          secondary: 'hsl(240, 5%, 93%)',
+          'secondary-foreground': 'hsl(240, 6%, 35%)',
+          muted: 'hsl(0, 0%, 86.67%)',
+          'muted-foreground': 'hsl(240, 4%, 54%)',
+          accent: 'hsl(270, 8%, 92%)',
+          'accent-foreground': 'hsl(240, 6%, 35%)',
+          destructive: 'hsl(0, 84%, 60%)',
+          'destructive-foreground': 'hsl(0, 0%, 100%)',
+          success: 'hsl(142, 76%, 36%)',
+          'success-foreground': 'hsl(0, 0%, 100%)',
+          warning: 'hsl(48, 96%, 53%)',
+          'warning-foreground': 'hsl(26, 83%, 14%)',
+          info: 'hsl(200, 89%, 48%)',
+          'info-foreground': 'hsl(0, 0%, 100%)',
+          border: 'hsl(240, 6%, 87%)',
+          input: 'hsl(240, 6%, 87%)',
+          ring: 'hsl(267, 85%, 60%)',
+        },
+        dark: {
+          background: 'hsl(240, 10%, 18%)',
+          foreground: 'hsl(240, 5%, 92%)',
+          primary: 'hsl(214, 100%, 44%)', // Your actual primary color
+          'primary-foreground': 'hsl(240, 10%, 18%)',
+          secondary: 'hsl(240, 8%, 30%)',
+          'secondary-foreground': 'hsl(240, 5%, 85%)',
+          muted: 'hsl(240, 10%, 25%)',
+          'muted-foreground': 'hsl(240, 5%, 70%)',
+          accent: 'hsl(240, 8%, 35%)',
+          'accent-foreground': 'hsl(240, 5%, 85%)',
+          destructive: 'hsl(0, 84%, 60%)',
+          'destructive-foreground': 'hsl(240, 10%, 18%)',
+          success: 'hsl(142, 76%, 36%)',
+          'success-foreground': 'hsl(145, 80%, 10%)',
+          warning: 'hsl(48, 96%, 53%)',
+          'warning-foreground': 'hsl(26, 83%, 14%)',
+          info: 'hsl(200, 89%, 48%)',
+          'info-foreground': 'hsl(0, 0%, 100%)',
+          border: 'hsl(240, 8%, 42%)',
+          input: 'hsl(240, 8%, 42%)',
+          ring: 'hsl(267, 85%, 60%)',
+        },
+      },
+    },
+    borderRadius: {
+      sm: 4,
+      md: 6,
+      lg: 8,
+      xl: 12,
+    },
+    typography: {
+      fontSize: {
+        xs: 12,
+        sm: 14,
+        base: 16,
+        lg: 18,
+        xl: 20,
+      },
+      lineHeight: {
+        tight: 1.25,
+        normal: 1.5,
+        relaxed: 1.75,
+      },
+    },
+    spacing: {
+      xs: 4,
+      sm: 8,
+      md: 16,
+      lg: 24,
+      xl: 32,
+    },
+    shadows: {
+      sm: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
+      md: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
+      lg: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
+      xl: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
+    },
+  };
+};
 
 export default function ThemeEditorPage() {
-  const [tokens, setTokens] = useState<DesignSystemTokens>(defaultTokens);
+  const [tokens, setTokens] = useState<DesignSystemTokens>(getFallbackTokens());
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isRealTimePreview, setIsRealTimePreview] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [currentThemeId, setCurrentThemeId] = useState<string | null>(null);
+  const [themeManagementOpen, setThemeManagementOpen] = useState(false);
 
-  const updateSemanticColor = (key: keyof DesignSystemTokens['colors']['semantic'], value: string) => {
+  // Load current theme from API on component mount
+  useEffect(() => {
+    const loadCurrentTheme = async () => {
+      try {
+        const response = await fetch('/api/themes');
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Loaded theme data:', data);
+          
+          if (data.currentTheme && data.currentTheme.tokens) {
+            // Convert old format to new format if needed
+            const loadedTokens = data.currentTheme.tokens;
+            
+            // Check if it's the old format (colors.semantic without light/dark)
+            if (loadedTokens.colors?.semantic && !loadedTokens.colors.semantic.light) {
+              console.log('Converting old format to new light/dark format');
+              const oldColors = loadedTokens.colors.semantic;
+              
+              // Create new format with light colors as the old colors
+              // and auto-generate dark colors
+              const newTokens = {
+                ...loadedTokens,
+                colors: {
+                  semantic: {
+                    light: oldColors,
+                    dark: Object.fromEntries(
+                      Object.entries(oldColors).map(([key, value]) => [
+                        key,
+                        generateDarkModeVariant(value as string)
+                      ])
+                    )
+                  }
+                }
+              };
+              
+              setTokens(newTokens);
+              setCurrentThemeId(data.currentTheme.id);
+            } else {
+              // Already in new format
+              setTokens(loadedTokens);
+              setCurrentThemeId(data.currentTheme.id);
+            }
+          } else {
+            // No saved theme, read current CSS variables
+            console.log('No saved theme found, reading from current CSS variables');
+            setTokens(getCurrentThemeFromDOM());
+          }
+        } else {
+          // API error, read current CSS variables
+          console.log('API error, reading from current CSS variables');
+          setTokens(getCurrentThemeFromDOM());
+        }
+      } catch (error) {
+        console.error('Error loading current theme:', error);
+        // Fallback to reading current CSS variables
+        setTokens(getCurrentThemeFromDOM());
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadCurrentTheme();
+  }, []);
+
+  // Apply theme preview when tokens change (if real-time preview is enabled)
+  useEffect(() => {
+    if (isRealTimePreview && tokens) {
+      // Use the appropriate color set based on dark mode
+      const colorSet = isDarkMode ? tokens.colors.semantic.dark : tokens.colors.semantic.light;
+      
+      // Create a temporary token structure for the applier
+      const previewTokens = {
+        ...tokens,
+        colors: {
+          semantic: colorSet
+        }
+      };
+      
+      applyThemePreview(previewTokens, false); // Don't auto-generate since we're using manual colors
+    }
+  }, [tokens, isDarkMode, isRealTimePreview]);
+
+  const updateLightColor = (colorKey: string, value: string) => {
     setTokens(prev => ({
       ...prev,
       colors: {
         ...prev.colors,
         semantic: {
           ...prev.colors.semantic,
-          [key]: value,
+          light: {
+            ...prev.colors.semantic.light,
+            [colorKey]: value,
+          },
         },
       },
     }));
   };
 
-  const updateFontSize = (key: keyof DesignSystemTokens['typography']['fontSize'], value: number) => {
+  const updateDarkColor = (colorKey: string, value: string) => {
+    setTokens(prev => ({
+      ...prev,
+      colors: {
+        ...prev.colors,
+        semantic: {
+          ...prev.colors.semantic,
+          dark: {
+            ...prev.colors.semantic.dark,
+            [colorKey]: value,
+          },
+        },
+      },
+    }));
+  };
+
+  const generateDarkColorsFromLight = () => {
+    const lightColors = tokens.colors.semantic.light;
+    const generatedDark = Object.fromEntries(
+      Object.entries(lightColors).map(([key, value]) => [
+        key,
+        generateDarkModeVariant(value)
+      ])
+    ) as typeof tokens.colors.semantic.dark;
+    
+    setTokens(prev => ({
+      ...prev,
+      colors: {
+        ...prev.colors,
+        semantic: {
+          ...prev.colors.semantic,
+          dark: generatedDark,
+        },
+      },
+    }));
+    
+    toast.success('Dark mode colors auto-generated from light colors');
+  };
+
+  const updateBorderRadius = (key: string, value: number) => {
+    setTokens(prev => ({
+      ...prev,
+      borderRadius: {
+        ...prev.borderRadius,
+        [key]: value,
+      },
+    }));
+  };
+
+  const updateSpacing = (key: string, value: number) => {
+    setTokens(prev => ({
+      ...prev,
+      spacing: {
+        ...prev.spacing,
+        [key]: value,
+      },
+    }));
+  };
+
+  const updateTypography = (key: string, value: number) => {
     setTokens(prev => ({
       ...prev,
       typography: {
@@ -467,526 +609,420 @@ export default function ThemeEditorPage() {
     }));
   };
 
-  const updateSpacing = (key: keyof DesignSystemTokens['spacing'], value: number) => {
-    setTokens(prev => ({
-      ...prev,
-      spacing: {
-        ...prev.spacing,
-        [key]: value,
-      },
-    }));
+  const toggleDarkMode = () => {
+    setIsDarkMode(!isDarkMode);
   };
 
-  const updateBorderRadius = (key: keyof DesignSystemTokens['borderRadius'], value: number) => {
-    setTokens(prev => ({
-      ...prev,
-      borderRadius: {
-        ...prev.borderRadius,
-        [key]: value,
-      },
-    }));
-  };
-
-  const updateShadow = (key: keyof DesignSystemTokens['shadows'], value: string) => {
-    setTokens(prev => ({
-      ...prev,
-      shadows: {
-        ...prev.shadows,
-        [key]: value,
-      },
-    }));
-  };
-
-  const resetToDefaults = () => {
-    setTokens(defaultTokens);
-    toast.success("Theme reset to defaults", {
-      description: "All design tokens have been restored to their original values",
-      action: {
-        label: "Undo",
-        onClick: () => {
-          // Could implement undo functionality here
-          toast.info("Undo functionality coming soon");
-        },
-      },
-    });
-  };
-
-  // Convert our tokens to ThemeManager format
-  const convertToThemeManagerFormat = (tokens: DesignSystemTokens): ThemeManagerTokens => ({
-    colors: Object.fromEntries(
-      Object.entries(tokens.colors.semantic).map(([key, value]) => [key, value])
-    ),
-    typography: Object.fromEntries(
-      Object.entries(tokens.typography.fontSize).map(([key, value]) => [key, `${value}px`])
-    ),
-    spacing: Object.fromEntries(
-      Object.entries(tokens.spacing).map(([key, value]) => [key, `${value}px`])
-    ),
-    borderRadius: Object.fromEntries(
-      Object.entries(tokens.borderRadius).map(([key, value]) => [key, `${value}px`])
-    ),
-    shadows: { ...tokens.shadows }
-  });
-
-  // Convert ThemeManager format back to our tokens  
-  const convertFromThemeManagerFormat = (themeData: ThemeManagerTokens): DesignSystemTokens => ({
-    colors: {
-      semantic: {
-        background: themeData.colors.background || 'hsl(0, 0%, 100%)',
-        foreground: themeData.colors.foreground || 'hsl(240, 10%, 25%)',
-        primary: themeData.colors.primary || 'hsl(267, 85%, 60%)',
-        'primary-foreground': themeData.colors['primary-foreground'] || 'hsl(0, 0%, 100%)',
-        secondary: themeData.colors.secondary || 'hsl(240, 5%, 93%)',
-        'secondary-foreground': themeData.colors['secondary-foreground'] || 'hsl(240, 6%, 35%)',
-        muted: themeData.colors.muted || 'hsl(0, 0%, 86.67%)',
-        'muted-foreground': themeData.colors['muted-foreground'] || 'hsl(240, 4%, 54%)',
-        accent: themeData.colors.accent || 'hsl(270, 8%, 92%)',
-        'accent-foreground': themeData.colors['accent-foreground'] || 'hsl(240, 6%, 35%)',
-        destructive: themeData.colors.destructive || 'hsl(0, 84%, 60%)',
-        'destructive-foreground': themeData.colors['destructive-foreground'] || 'hsl(0, 0%, 100%)',
-        success: themeData.colors.success || 'hsl(142, 76%, 36%)',
-        'success-foreground': themeData.colors['success-foreground'] || 'hsl(0, 0%, 100%)',
-        warning: themeData.colors.warning || 'hsl(48, 96%, 53%)',
-        'warning-foreground': themeData.colors['warning-foreground'] || 'hsl(26, 83%, 14%)',
-        info: themeData.colors.info || 'hsl(200, 89%, 48%)',
-        'info-foreground': themeData.colors['info-foreground'] || 'hsl(0, 0%, 100%)',
-        border: themeData.colors.border || 'hsl(240, 6%, 87%)',
-        input: themeData.colors.input || 'hsl(240, 6%, 87%)',
-        ring: themeData.colors.ring || 'hsl(267, 85%, 60%)',
-      }
-    },
-    typography: {
-      fontSize: {
-        xs: parseInt(themeData.typography.xs?.replace('px', '') || '12'),
-        sm: parseInt(themeData.typography.sm?.replace('px', '') || '14'),
-        base: parseInt(themeData.typography.base?.replace('px', '') || '16'),
-        lg: parseInt(themeData.typography.lg?.replace('px', '') || '18'),
-        xl: parseInt(themeData.typography.xl?.replace('px', '') || '20'),
-        '2xl': parseInt(themeData.typography['2xl']?.replace('px', '') || '24'),
-      }
-    },
-    spacing: {
-      xs: parseInt(themeData.spacing.xs?.replace('px', '') || '4'),
-      sm: parseInt(themeData.spacing.sm?.replace('px', '') || '8'),
-      md: parseInt(themeData.spacing.md?.replace('px', '') || '16'),
-      lg: parseInt(themeData.spacing.lg?.replace('px', '') || '24'),
-      xl: parseInt(themeData.spacing.xl?.replace('px', '') || '32'),
-      '2xl': parseInt(themeData.spacing['2xl']?.replace('px', '') || '48'),
-    },
-    borderRadius: {
-      sm: parseInt(themeData.borderRadius.sm?.replace('px', '') || '4'),
-      md: parseInt(themeData.borderRadius.md?.replace('px', '') || '6'),
-      lg: parseInt(themeData.borderRadius.lg?.replace('px', '') || '8'),
-    },
-    shadows: {
-      xs: themeData.shadows.xs || '0px 1px 2px 0px rgba(0, 0, 0, 0.05)',
-      sm: themeData.shadows.sm || '0px 1px 3px 0px rgba(0, 0, 0, 0.1), 0px 1px 2px 0px rgba(0, 0, 0, 0.06)',
-      md: themeData.shadows.md || '0px 4px 6px -1px rgba(0, 0, 0, 0.1), 0px 2px 4px -1px rgba(0, 0, 0, 0.06)',
-      lg: themeData.shadows.lg || '0px 10px 15px -3px rgba(0, 0, 0, 0.1), 0px 4px 6px -2px rgba(0, 0, 0, 0.05)',
-      xl: themeData.shadows.xl || '0px 20px 25px -5px rgba(0, 0, 0, 0.1), 0px 10px 10px -5px rgba(0, 0, 0, 0.04)',
-      '2xl': themeData.shadows['2xl'] || '0px 25px 50px -12px rgba(0, 0, 0, 0.25)',
+  const toggleRealTimePreview = () => {
+    const newValue = !isRealTimePreview;
+    setIsRealTimePreview(newValue);
+    
+    if (!newValue) {
+      // Reset to CSS defaults when disabling real-time preview
+      resetThemePreview();
     }
-  });
-
-  const handleThemeLoad = (themeData: ThemeManagerTokens) => {
-    const convertedTokens = convertFromThemeManagerFormat(themeData);
-    setTokens(convertedTokens);
   };
 
-  const exportTokens = () => {
-    const dataStr = JSON.stringify(tokens, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-    
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', 'design-system-tokens.json');
-    linkElement.click();
-    
-    toast.success("Design tokens exported", {
-      description: "JSON file downloaded successfully",
-    });
+  const handleApplyTheme = async () => {
+    try {
+      // Save all design tokens to database as current/default theme
+      const response = await fetch('/api/themes', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: currentThemeId, // If updating existing theme
+          tokens: tokens, // Send all design tokens
+          setAsDefault: true
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save theme');
+      }
+
+      const savedTheme = await response.json();
+      setCurrentThemeId(savedTheme.id);
+
+      // Apply the current preview
+      const colorSet = isDarkMode ? tokens.colors.semantic.dark : tokens.colors.semantic.light;
+      const previewTokens = {
+        ...tokens,
+        colors: {
+          semantic: colorSet
+        }
+      };
+      
+      applyThemePreview(previewTokens, false);
+      toast.success('Theme saved and applied to design system!');
+    } catch (error) {
+      console.error('Error saving and applying theme:', error);
+      toast.error('Error saving theme to database');
+    }
   };
 
-  const exportCSS = () => {
-    const cssContent = exportThemeAsCSS(tokens);
-    const dataUri = 'data:text/css;charset=utf-8,'+ encodeURIComponent(cssContent);
-    
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', 'theme-variables.css');
-    linkElement.click();
-    
-    toast.success("CSS variables exported", {
-      description: "Ready-to-use CSS file downloaded",
-    });
+  const handleResetToDefault = () => {
+    setTokens(getCurrentThemeFromDOM());
+    setCurrentThemeId(null);
+    toast.success('Reset to current theme');
   };
 
-  const exportTailwindConfig = () => {
-    const configContent = exportAsTailwindConfig(tokens);
-    const dataUri = 'data:text/javascript;charset=utf-8,'+ encodeURIComponent(configContent);
-    
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', 'tailwind.config.js');
-    linkElement.click();
-    
-    toast.success("Tailwind config exported", {
-      description: "Configuration file ready for your project",
-    });
+  const handleApplyLoadedTheme = async (loadedTokens: any, themeId?: string) => {
+    try {
+      console.log('Applying loaded theme:', loadedTokens);
+      
+      // Convert old format if needed
+      if (loadedTokens.colors?.semantic && !loadedTokens.colors.semantic.light) {
+        const oldColors = loadedTokens.colors.semantic;
+        const newTokens = {
+          ...loadedTokens,
+          colors: {
+            semantic: {
+              light: oldColors,
+              dark: Object.fromEntries(
+                Object.entries(oldColors).map(([key, value]) => [
+                  key,
+                  generateDarkModeVariant(value as string)
+                ])
+              )
+            }
+          }
+        };
+        setTokens(newTokens);
+      } else {
+        setTokens(loadedTokens);
+      }
+      
+      setCurrentThemeId(themeId || null);
+      
+      if (isRealTimePreview) {
+        const colorSet = isDarkMode ? loadedTokens.colors.semantic.dark : loadedTokens.colors.semantic.light;
+        const previewTokens = {
+          ...loadedTokens,
+          colors: {
+            semantic: colorSet
+          }
+        };
+        applyThemePreview(previewTokens, false);
+      }
+      
+      toast.success('Theme loaded and applied successfully!');
+    } catch (error) {
+      console.error('Error applying loaded theme:', error);
+      toast.error('Error applying theme globally');
+    }
   };
 
-  const exportTheme = () => {
-    const themeExport = {
-      name: 'Custom Theme',
-      description: 'Exported theme from design system editor',
-      theme_data: convertToThemeManagerFormat(tokens),
-      exported_at: new Date().toISOString()
-    };
-
-    const blob = new Blob([JSON.stringify(themeExport, null, 2)], {
-      type: 'application/json'
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'design-theme-export.json';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-
-    toast.success('Theme exported successfully!');
-  };
-
-
+  if (isLoading) {
+    return (
+      <div className="p-4 sm:p-6 lg:p-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold">Design System Editor</h1>
+          <p className="text-muted-foreground mt-2">
+            Loading current theme...
+          </p>
+        </div>
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-8">
-      {/* Apply theme changes to the actual CSS variables in real-time */}
-      <ThemeApplier tokens={tokens} />
-      
+    <div className="p-4 sm:p-6 lg:p-8">
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-3xl font-bold">Design System Editor</h1>
-            <p className="text-gray-600 mt-2">
-              Edit design tokens and see changes applied in real-time to your entire application. 
+            <p className="text-muted-foreground mt-2">
+              Edit design tokens with separate light and dark mode colors. 
               Connected directly to your shadcn/ui system.
             </p>
-            <div className="flex items-center gap-2 mt-3">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-              <span className="text-sm text-green-600 font-medium">Live editing active</span>
-            </div>
           </div>
           <div className="flex items-center gap-3">
-            <ThemeManager 
-              currentTheme={convertToThemeManagerFormat(tokens)}
-              onThemeLoad={handleThemeLoad}
-              onThemeReset={resetToDefaults}
-            />
-            <ExportCommand 
-              exportTokens={exportTokens}
-              exportCSS={exportCSS}
-              exportTailwindConfig={exportTailwindConfig}
-              exportTheme={exportTheme}
-            />
-            <LivePreviewDialog tokens={tokens} />
+            <Button variant="outline" onClick={handleResetToDefault}>
+              Reset to Current
+            </Button>
+
+            <Sheet open={themeManagementOpen} onOpenChange={setThemeManagementOpen}>
+              <SheetTrigger asChild>
+                <Button variant="outline">
+                  <Settings className="w-4 h-4 mr-2" />
+                  Theme Management
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-full sm:w-[540px] lg:w-[600px]">
+                <ThemeManager 
+                  currentTokens={{
+                    ...tokens,
+                    colors: {
+                      semantic: tokens.colors.semantic.light // Use light colors for backwards compatibility
+                    }
+                  }}
+                  onApplyTheme={handleApplyLoadedTheme}
+                />
+              </SheetContent>
+            </Sheet>
+
+            <Button onClick={handleApplyTheme}>
+              <Palette className="w-4 h-4 mr-2" />
+              Save as Current Theme
+            </Button>
           </div>
         </div>
+        
+        {/* Preview Controls */}
+        <div className="flex items-center gap-6 p-4 bg-muted rounded-lg">
+          <div className="flex items-center space-x-2">
+            <Switch 
+              id="real-time-preview" 
+              checked={isRealTimePreview} 
+              onCheckedChange={toggleRealTimePreview}
+            />
+            <Label htmlFor="real-time-preview" className="flex items-center gap-2">
+              {isRealTimePreview ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+              Real-time Preview
+            </Label>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <Switch 
+              id="dark-mode" 
+              checked={isDarkMode} 
+              onCheckedChange={toggleDarkMode}
+              disabled={!isRealTimePreview}
+            />
+            <Label htmlFor="dark-mode" className="flex items-center gap-2">
+              {isDarkMode ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+              Dark Mode Preview
+            </Label>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Badge variant={isRealTimePreview ? "default" : "secondary"}>
+              {isRealTimePreview ? "Live Preview" : "Manual Apply"}
+            </Badge>
+            {isDarkMode && <Badge variant="outline">Dark Mode</Badge>}
+          </div>
+        </div>
+
+
       </div>
 
-      {/* Main Content - All sections visible at once */}
+
+
+      {/* Main Content */}
       <div className="space-y-12">
-          {/* Colors Section */}
-          <section id="colors" className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold mb-2">Colors</h2>
-              <p className="text-gray-600">Core design system colors that map to CSS variables</p>
-            </div>
+        {/* Colors Section with Light/Dark Tabs */}
+        <section id="colors" className="space-y-6">
+          <div>
+            <h2 className="text-2xl font-bold mb-2">Colors</h2>
+            <p className="text-muted-foreground">
+              Design system colors with separate light and dark mode variants
+            </p>
+          </div>
 
-            {/* Semantic Colors */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Palette className="w-5 h-5" />
-                  Semantic Colors
-                </CardTitle>
-                <CardDescription>
-                  The foundation colors used throughout your design system
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {Object.entries(tokens.colors.semantic).map(([key, value]) => (
-                    <ColorPicker
-                      key={key}
-                      label={key.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                      value={value}
-                      onChange={(newValue) => updateSemanticColor(key as keyof typeof tokens.colors.semantic, newValue)}
-                      description={`CSS var: --${key}`}
-                    />
-                  ))}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Palette className="w-5 h-5" />
+                Semantic Colors
+                {isDarkMode && <Badge variant="outline">Previewing Dark Mode</Badge>}
+              </CardTitle>
+              <CardDescription>
+                Edit light and dark mode colors separately for complete control over your theme
+                {isRealTimePreview && " - Changes apply immediately"}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Tabs defaultValue="light" className="w-full">
+                <div className="flex items-center justify-between mb-6">
+                  <TabsList className="grid w-full max-w-[400px] grid-cols-2">
+                    <TabsTrigger value="light" className="flex items-center gap-2">
+                      <Sun className="w-4 h-4" />
+                      Light Mode
+                    </TabsTrigger>
+                    <TabsTrigger value="dark" className="flex items-center gap-2">
+                      <Moon className="w-4 h-4" />
+                      Dark Mode
+                    </TabsTrigger>
+                  </TabsList>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={generateDarkColorsFromLight}
+                  >
+                    Auto-Generate Dark Colors
+                  </Button>
                 </div>
-              </CardContent>
-            </Card>
 
-            {/* Color Preview Grid */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Color Palette Overview</CardTitle>
-                <CardDescription>
-                  Visual overview of your complete color system
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                  {Object.entries(tokens.colors.semantic).map(([name, value]) => (
-                    <div key={name} className="space-y-2">
-                      <div
-                        className="w-full h-16 rounded-lg border shadow-sm"
-                        style={{ backgroundColor: value }}
+                <TabsContent value="light" className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {Object.entries(tokens.colors.semantic.light).map(([key, value]) => (
+                      <ColorPicker
+                        key={key}
+                        label={key.replace('-', ' ')}
+                        value={value}
+                        onChange={(newValue) => updateLightColor(key, newValue)}
+                        description={`${key} color (light mode)`}
                       />
-                      <div className="text-xs">
-                        <div className="font-medium">{name}</div>
-                        <div className="text-gray-500 font-mono">{value}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </section>
+                    ))}
+                  </div>
+                </TabsContent>
 
-          {/* Typography Section */}
-          <section id="typography" className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold mb-2">Typography</h2>
-              <p className="text-gray-600">Font size scale and typography settings</p>
-            </div>
+                <TabsContent value="dark" className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {Object.entries(tokens.colors.semantic.dark).map(([key, value]) => (
+                      <ColorPicker
+                        key={key}
+                        label={key.replace('-', ' ')}
+                        value={value}
+                        onChange={(newValue) => updateDarkColor(key, newValue)}
+                        description={`${key} color (dark mode)`}
+                      />
+                    ))}
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+        </section>
 
-            {/* Font Sizes */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Type className="w-5 h-5" />
-                  Font Size Scale
-                </CardTitle>
-                <CardDescription>
-                  Typographic scale for consistent sizing across components
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {Object.entries(tokens.typography.fontSize).map(([key, value]) => (
-                    <NumberInput
-                      key={key}
-                      label={key}
+        {/* Border Radius Section */}
+        <section id="border-radius" className="space-y-6">
+          <div>
+            <h2 className="text-2xl font-bold mb-2">Border Radius</h2>
+            <p className="text-muted-foreground">Global border radius for consistent rounded corners</p>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Square className="w-5 h-5" />
+                Border Radius Scale
+              </CardTitle>
+              <CardDescription>
+                Consistent border radius values across your design system
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {Object.entries(tokens.borderRadius).map(([key, value]) => (
+                  <div key={key} className="space-y-2">
+                    <Label htmlFor={`radius-${key}`} className="text-sm font-medium capitalize">
+                      {key} ({value}px)
+                    </Label>
+                    <Input
+                      id={`radius-${key}`}
+                      type="number"
                       value={value}
-                      onChange={(newValue) => updateFontSize(key as keyof typeof tokens.typography.fontSize, newValue)}
-                      min={8}
-                      max={72}
-                      step={1}
-                      unit="px"
-                      description={`text-${key}`}
+                      onChange={(e) => updateBorderRadius(key, parseInt(e.target.value) || 0)}
+                      className="w-full"
                     />
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                    <div 
+                      className="w-16 h-16 bg-primary"
+                      style={{ borderRadius: `${value}px` }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </section>
 
-            {/* Typography Preview */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Typography Scale Preview</CardTitle>
-                <CardDescription>
-                  See how your font sizes look in context
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
+        {/* Typography Section */}
+        <section id="typography" className="space-y-6">
+          <div>
+            <h2 className="text-2xl font-bold mb-2">Typography</h2>
+            <p className="text-muted-foreground">Font size scale for consistent text hierarchy</p>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Type className="w-5 h-5" />
+                Font Size Scale
+              </CardTitle>
+              <CardDescription>
+                Base font sizes used throughout your design system
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
                 {Object.entries(tokens.typography.fontSize).map(([key, value]) => (
-                  <div key={key} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div style={{ fontSize: `${value}px` }}>
-                      The quick brown fox jumps over the lazy dog
-                    </div>
-                    <div className="text-sm text-gray-500 font-mono">
-                      {key} • {value}px
+                  <div key={key} className="space-y-2">
+                    <Label htmlFor={`font-${key}`} className="text-sm font-medium capitalize">
+                      {key} ({value}px)
+                    </Label>
+                    <Input
+                      id={`font-${key}`}
+                      type="number"
+                      value={value}
+                      onChange={(e) => updateTypography(key, parseInt(e.target.value) || 0)}
+                      className="w-full"
+                    />
+                    <div 
+                      className="text-foreground"
+                      style={{ fontSize: `${value}px` }}
+                    >
+                      Sample Text
                     </div>
                   </div>
                 ))}
-              </CardContent>
-            </Card>
-          </section>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
 
-          {/* Layout Section */}
-          <section id="layout" className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold mb-2">Layout</h2>
-              <p className="text-gray-600">Spacing, sizing, and layout tokens</p>
-            </div>
+        {/* Spacing Section */}
+        <section id="spacing" className="space-y-6">
+          <div>
+            <h2 className="text-2xl font-bold mb-2">Spacing</h2>
+            <p className="text-muted-foreground">Consistent spacing scale for layout and components</p>
+          </div>
 
-            {/* Spacing Scale */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Grid className="w-5 h-5" />
-                  Spacing Scale
-                </CardTitle>
-                <CardDescription>
-                  Consistent spacing system for layouts and components
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {Object.entries(tokens.spacing).map(([key, value]) => (
-                    <NumberInput
-                      key={key}
-                      label={key}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Move className="w-5 h-5" />
+                Spacing Scale
+              </CardTitle>
+              <CardDescription>
+                Spacing values for margins, padding, and gaps
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+                {Object.entries(tokens.spacing).map(([key, value]) => (
+                  <div key={key} className="space-y-2">
+                    <Label htmlFor={`spacing-${key}`} className="text-sm font-medium capitalize">
+                      {key} ({value}px)
+                    </Label>
+                    <Input
+                      id={`spacing-${key}`}
+                      type="number"
                       value={value}
-                      onChange={(newValue) => updateSpacing(key as keyof typeof tokens.spacing, newValue)}
-                      min={0}
-                      max={200}
-                      step={4}
-                      unit="px"
-                      description={`space-${key}`}
+                      onChange={(e) => updateSpacing(key, parseInt(e.target.value) || 0)}
+                      className="w-full"
                     />
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Border Radius with Integrated Preview */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Border Radius</CardTitle>
-                <CardDescription>
-                  Corner radius system for consistent roundness
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {Object.entries(tokens.borderRadius).map(([key, value]) => (
-                    <div key={key} className="space-y-4">
-                      {/* Visual Preview */}
-                      <div className="bg-gray-50 p-6 rounded-lg border">
-                        <div className="text-sm font-medium mb-3 text-gray-700">
-                          {key.charAt(0).toUpperCase() + key.slice(1)} Radius
-                        </div>
-                        <div
-                          className="w-20 h-20 bg-white border-2 border-gray-300 mx-auto shadow-sm"
-                          style={{ borderRadius: `${value}px` }}
-                        />
-                        <div className="text-xs text-gray-500 text-center mt-2">
-                          {value}px
-                        </div>
-                      </div>
-                      
-                      {/* Control */}
-                      <NumberInput
-                        label={`Radius ${key}`}
-                        value={value}
-                        onChange={(newValue) => updateBorderRadius(key as keyof typeof tokens.borderRadius, newValue)}
-                        min={0}
-                        max={50}
-                        step={1}
-                        unit="px"
-                        description={`rounded-${key}`}
+                    <div className="flex items-center gap-2">
+                      <div 
+                        className="bg-primary"
+                        style={{ width: `${value}px`, height: '16px' }}
                       />
+                      <span className="text-xs text-muted-foreground">{value}px</span>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Spacing Scale with Visual Bars */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Spacing Scale Preview</CardTitle>
-                <CardDescription>
-                  Visual representation of your spacing tokens
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {Object.entries(tokens.spacing).map(([key, value]) => (
-                    <div key={key} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
-                      <div className="w-16 text-sm font-mono font-medium">{key}</div>
-                      <div
-                        className="bg-blue-500 rounded"
-                        style={{ height: '12px', width: `${Math.min(value, 200)}px` }}
-                      />
-                      <div className="text-sm text-gray-600 font-medium">{value}px</div>
-                    </div>
-                  ))}
-                </div>
-                            </CardContent>
-            </Card>
-          </section>
-
-          {/* Shadows Section */}
-          <section id="shadows" className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold mb-2">Shadows</h2>
-              <p className="text-gray-600">Elevation system using box shadows for depth and hierarchy</p>
-            </div>
-
-            {/* Shadow System with Integrated Preview */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                  </svg>
-                  Shadow Scale
-                </CardTitle>
-                <CardDescription>
-                  Complete elevation system from subtle to dramatic shadows
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {Object.entries(tokens.shadows).map(([key, value]) => (
-                    <ShadowInput
-                      key={key}
-                      label={`Shadow ${key.toUpperCase()}`}
-                      value={value}
-                      onChange={(newValue) => updateShadow(key as keyof typeof tokens.shadows, newValue)}
-                      description={`shadow-${key}`}
-                    />
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Shadow Scale Overview */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Shadow Scale Overview</CardTitle>
-                <CardDescription>
-                  Visual comparison of your complete shadow system
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
-                  {Object.entries(tokens.shadows).map(([name, value]) => (
-                    <div key={name} className="text-center space-y-3">
-                      <div
-                        className="w-16 h-16 bg-white rounded-lg mx-auto border"
-                        style={{ boxShadow: value }}
-                      />
-                      <div className="space-y-1">
-                        <div className="text-sm font-medium">{name}</div>
-                        <div className="text-xs text-gray-500 font-mono break-all">
-                          shadow-{name}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </section>
-        </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </section>
       </div>
-    );
-  } 
+    </div>
+  );
+} 

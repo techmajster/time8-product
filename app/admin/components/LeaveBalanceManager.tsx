@@ -478,7 +478,7 @@ export function LeaveBalanceManager({
                       <Alert>
                         <AlertDescription>
                           <div className="flex items-center gap-2">
-                            <span className="text-green-600">✓</span>
+                            <span className="text-success">✓</span>
                             Wszyscy użytkownicy posiadają już wszystkie wymagane salda urlopowe. 
                             Nie ma nic do utworzenia.
                           </div>

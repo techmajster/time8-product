@@ -96,7 +96,7 @@ export default function ForgotPasswordPage() {
           
           <Link 
             href="/auth/login" 
-            className="text-sm text-muted-foreground hover:text-gray-900 flex items-center justify-center gap-1"
+            className="text-sm text-muted-foreground hover:text-foreground flex items-center justify-center gap-1"
           >
             <ArrowLeft className="h-3 w-3" />
             Back to login

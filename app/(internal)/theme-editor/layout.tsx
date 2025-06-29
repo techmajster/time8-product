@@ -101,12 +101,12 @@ export default function ThemeEditorLayout({
   }, [pathname]);
 
   return (
-    <div className="flex min-h-screen bg-white">
+    <div className="flex min-h-screen bg-background">
       {/* Sidebar */}
-      <div className="w-64 border-r bg-gray-50/50 flex flex-col">
-        <div className="p-6 border-b">
-          <h2 className="text-lg font-semibold">Design System</h2>
-          <p className="text-sm text-gray-600 mt-1">Internal Tool</p>
+      <div className="w-64 border-r border-border bg-muted/30 flex flex-col">
+        <div className="p-6 border-b border-border">
+          <h2 className="text-lg font-semibold text-foreground">Design System</h2>
+          <p className="text-sm text-muted-foreground mt-1">Internal Tool</p>
         </div>
         <div className="flex-1 pt-4">
           <SidebarNav sections={sidebarNavSections} />
@@ -114,7 +114,7 @@ export default function ThemeEditorLayout({
       </div>
       
       {/* Main Content */}
-      <div className="flex-1 min-h-screen overflow-auto bg-white" data-main-content>
+      <div className="flex-1 min-h-screen overflow-auto bg-background" data-main-content>
         {children}
       </div>
     </div>

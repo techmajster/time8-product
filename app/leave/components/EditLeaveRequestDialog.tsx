@@ -28,7 +28,7 @@ export function EditLeaveRequestDialog({ leaveTypes, leaveBalances, request, use
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl font-semibold text-gray-900">
+          <DialogTitle className="text-xl font-semibold text-foreground">
             Edytuj wniosek urlopowy
           </DialogTitle>
         </DialogHeader>
