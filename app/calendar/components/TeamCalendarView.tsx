@@ -401,7 +401,7 @@ export const TeamCalendarView = React.memo(function TeamCalendarView({ teamMembe
                 key={index}
                 className={`border-r border-b border-border min-h-40 p-2 cursor-pointer transition-colors hover:bg-muted relative ${
                   !isCurrentMonth(date) 
-                    ? 'bg-muted text-gray-400' 
+                    ? 'bg-muted text-muted-foreground' 
                     : isToday(date)
                     ? 'bg-primary/5 border-primary/20'
                     : isNonWorkingDay
@@ -486,7 +486,7 @@ export const TeamCalendarView = React.memo(function TeamCalendarView({ teamMembe
               {/* Weekend Information */}
               {selectedDay.isWeekend && (
                 <div className="p-3 bg-muted border border-border rounded-lg">
-                  <h4 className="font-medium text-gray-700">
+                  <h4 className="font-medium text-foreground">
                     Weekend
                   </h4>
                   <p className="text-sm text-muted-foreground">

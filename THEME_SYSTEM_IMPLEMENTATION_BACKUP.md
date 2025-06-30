@@ -3,6 +3,27 @@
 
 ## 🎯 What We've Achieved
 
+### ✅ **CSS Precedence Issue Fixed** *(January 26, 2025)*
+**Problem**: Theme changes from the theme editor weren't applying to `@/components` because inline CSS variables (from `applyThemePreview()`) have higher priority than CSS file styles.
+
+**Root Cause**: Two different theme application systems:
+1. **Preview System** (client-side): Uses `document.documentElement.style.setProperty()` (inline styles)
+2. **Global System** (server-side): Writes to `app/globals.css` file
+
+**Solution Implemented**:
+1. **Fixed API Route**: Updated `/api/themes/apply` to handle new theme format with `light`/`dark` color separation
+2. **Added Global Application**: New `handleApplyThemeGlobally()` function that writes to CSS file AND clears inline styles
+3. **CSS Clearing Function**: `clearAllInlineThemeStyles()` removes all inline CSS variables so file styles take precedence
+4. **UI Improvements**: Added "Apply to Design System" button that persists themes globally
+
+**Key Changes**:
+- `app/api/themes/apply/route.ts`: Fixed `generateCSSVariables()` to handle new theme format
+- `ThemeManager.tsx`: Updated `applyThemeGlobally()` to call API + clear inline styles
+- `theme/page.tsx`: Added `handleApplyThemeGlobally()` with proper CSS clearing
+- `theme-applier.tsx`: Added `clearAllInlineThemeStyles()` function
+
+**Result**: Theme changes now properly apply to all components and persist across app restarts! 🎉
+
 ### ✅ **Phase 1: Theme Editor Foundation**
 Successfully created a comprehensive theme editor at `/theme-editor/theme` with:
 

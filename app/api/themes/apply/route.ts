@@ -14,53 +14,80 @@ function hslStringToValues(hslString: string): string {
 }
 
 function generateCSSVariables(tokens: any): string {
-  const colors = tokens.colors.semantic
+  // Handle both old and new format
+  let lightColors: Record<string, string>;
+  let darkColors: Record<string, string>;
+  
+  if (tokens.colors.semantic.light && tokens.colors.semantic.dark) {
+    // New format with light/dark separation
+    lightColors = tokens.colors.semantic.light;
+    darkColors = tokens.colors.semantic.dark;
+  } else {
+    // Old format - use semantic as light colors and generate dark variants
+    lightColors = tokens.colors.semantic;
+    // For now, use the light colors for dark mode too (can be enhanced later)
+    darkColors = tokens.colors.semantic;
+  }
   
   // Generate the replacement for the @layer base :root section
   return `@layer base {
   :root {
-    --background: ${hslStringToValues(colors.background)};
-    --foreground: ${hslStringToValues(colors.foreground)};
-    --card: ${hslStringToValues(colors.background)};
-    --card-foreground: ${hslStringToValues(colors.foreground)};
-    --popover: ${hslStringToValues(colors.background)};
-    --popover-foreground: ${hslStringToValues(colors.foreground)};
-    --primary: ${hslStringToValues(colors.primary)};
-    --primary-foreground: ${hslStringToValues(colors['primary-foreground'])};
-    --secondary: ${hslStringToValues(colors.secondary)};
-    --secondary-foreground: ${hslStringToValues(colors['secondary-foreground'])};
-    --muted: ${hslStringToValues(colors.muted)};
-    --muted-foreground: ${hslStringToValues(colors['muted-foreground'])};
-    --accent: ${hslStringToValues(colors.accent)};
-    --accent-foreground: ${hslStringToValues(colors['accent-foreground'])};
-    --destructive: ${hslStringToValues(colors.destructive)};
-    --destructive-foreground: ${hslStringToValues(colors['destructive-foreground'])};
-    --border: ${hslStringToValues(colors.border)};
-    --input: ${hslStringToValues(colors.input)};
-    --ring: ${hslStringToValues(colors.ring)};
-    --chart-1: ${hslStringToValues(colors.primary)};
+    --background: ${hslStringToValues(lightColors.background)};
+    --foreground: var(--text-primary);
+    --card: ${hslStringToValues(lightColors.background)};
+    --card-foreground: var(--text-primary);
+    --popover: ${hslStringToValues(lightColors.background)};
+    --popover-foreground: var(--text-primary);
+    --primary: ${hslStringToValues(lightColors.primary)};
+    --primary-foreground: ${hslStringToValues(lightColors['primary-foreground'])};
+    --secondary: ${hslStringToValues(lightColors.secondary)};
+    --secondary-foreground: var(--text-secondary);
+    --muted: ${hslStringToValues(lightColors.muted)};
+    --muted-foreground: var(--text-tertiary);
+    --accent: ${hslStringToValues(lightColors.accent)};
+    --accent-foreground: var(--text-secondary);
+    --destructive: ${hslStringToValues(lightColors.destructive)};
+    --destructive-foreground: ${hslStringToValues(lightColors['destructive-foreground'])};
+    --border: ${hslStringToValues(lightColors.border)};
+    --input: ${hslStringToValues(lightColors.input)};
+    --input-border: ${hslStringToValues(lightColors['input-border'] || lightColors.border)};
+    --ring: ${hslStringToValues(lightColors.ring)};
+    --chart-1: ${hslStringToValues(lightColors.primary)};
     --chart-2: 270 75% 55%;
     --chart-3: 273 65% 50%;
     --chart-4: 276 55% 45%;
     --chart-5: 279 45% 40%;
     --sidebar: 240 5% 96%;
-    --sidebar-foreground: ${hslStringToValues(colors.foreground)};
-    --sidebar-primary: ${hslStringToValues(colors.primary)};
-    --sidebar-primary-foreground: ${hslStringToValues(colors['primary-foreground'])};
-    --sidebar-accent: ${hslStringToValues(colors.accent)};
-    --sidebar-accent-foreground: ${hslStringToValues(colors['accent-foreground'])};
-    --sidebar-border: ${hslStringToValues(colors.border)};
-    --sidebar-ring: ${hslStringToValues(colors.ring)};
+    --sidebar-foreground: var(--text-primary);
+    --sidebar-primary: ${hslStringToValues(lightColors.primary)};
+    --sidebar-primary-foreground: ${hslStringToValues(lightColors['primary-foreground'])};
+    --sidebar-accent: ${hslStringToValues(lightColors.accent)};
+    --sidebar-accent-foreground: var(--text-secondary);
+    --sidebar-border: ${hslStringToValues(lightColors.border)};
+    --sidebar-ring: ${hslStringToValues(lightColors.ring)};
     --radius: ${tokens.borderRadius?.lg ? tokens.borderRadius.lg / 16 : 0.5}rem;
 
     /* Semantic colors for status states */
-    --success: ${hslStringToValues(colors.success)};
-    --success-foreground: ${hslStringToValues(colors['success-foreground'])};
-    --warning: ${hslStringToValues(colors.warning)};
-    --warning-foreground: ${hslStringToValues(colors['warning-foreground'])};
-    --info: ${hslStringToValues(colors.info)};
-    --info-foreground: ${hslStringToValues(colors['info-foreground'])};
+    --success: ${hslStringToValues(lightColors.success)};
+    --success-foreground: ${hslStringToValues(lightColors['success-foreground'])};
+    --warning: ${hslStringToValues(lightColors.warning)};
+    --warning-foreground: ${hslStringToValues(lightColors['warning-foreground'])};
+    --info: ${hslStringToValues(lightColors.info)};
+    --info-foreground: ${hslStringToValues(lightColors['info-foreground'])};
     --sidebar-background: 0 0% 98%;
+    
+    /* Typography color tokens */
+    --text-primary: ${hslStringToValues(lightColors['text-primary'] || lightColors.foreground)};
+    --text-secondary: ${hslStringToValues(lightColors['text-secondary'] || lightColors['secondary-foreground'])};
+    --text-tertiary: ${hslStringToValues(lightColors['text-tertiary'] || lightColors['muted-foreground'])};
+    --text-disabled: ${hslStringToValues(lightColors['text-disabled'] || '240 3% 70%')};
+    --text-inverse: ${hslStringToValues(lightColors['text-inverse'] || lightColors.background)};
+    --text-link: ${hslStringToValues(lightColors['text-link'] || lightColors.primary)};
+    --text-link-hover: ${hslStringToValues(lightColors['text-link-hover'] || lightColors.primary)};
+    --text-placeholder: ${hslStringToValues(lightColors['text-placeholder'] || lightColors['muted-foreground'])};
+    --heading-primary: ${hslStringToValues(lightColors['heading-primary'] || lightColors.foreground)};
+    --heading-secondary: ${hslStringToValues(lightColors['heading-secondary'] || lightColors['secondary-foreground'])};
+    
     --font-sans: Inter, sans-serif;
     --font-serif: Merriweather, serif;
     --font-mono: JetBrains Mono, monospace;
@@ -84,48 +111,62 @@ function generateCSSVariables(tokens: any): string {
   }
 
   .dark {
-    --background: 240 10% 18%;
-    --foreground: 240 5% 92%;
-    --card: 240 10% 25%;
-    --card-foreground: 240 5% 92%;
-    --popover: 240 10% 25%;
-    --popover-foreground: 240 5% 92%;
-    --primary: ${hslStringToValues(colors.primary)};
-    --primary-foreground: 240 10% 18%;
-    --secondary: 240 8% 30%;
-    --secondary-foreground: 240 5% 85%;
-    --muted: 240 10% 25%;
-    --muted-foreground: 240 5% 70%;
-    --accent: 240 8% 35%;
-    --accent-foreground: 240 5% 85%;
-    --destructive: ${hslStringToValues(colors.destructive)};
-    --destructive-foreground: 240 10% 18%;
-    --border: 240 8% 42%;
-    --input: 240 8% 42%;
-    --ring: ${hslStringToValues(colors.ring)};
-    --chart-1: ${hslStringToValues(colors.primary)};
+    --background: ${hslStringToValues(darkColors.background)};
+    --foreground: var(--text-primary);
+    --card: ${hslStringToValues(darkColors.background)};
+    --card-foreground: var(--text-primary);
+    --popover: ${hslStringToValues(darkColors.background)};
+    --popover-foreground: var(--text-primary);
+    --primary: ${hslStringToValues(darkColors.primary)};
+    --primary-foreground: ${hslStringToValues(darkColors['primary-foreground'])};
+    --secondary: ${hslStringToValues(darkColors.secondary)};
+    --secondary-foreground: var(--text-secondary);
+    --muted: ${hslStringToValues(darkColors.muted)};
+    --muted-foreground: var(--text-tertiary);
+    --accent: ${hslStringToValues(darkColors.accent)};
+    --accent-foreground: var(--text-secondary);
+    --destructive: ${hslStringToValues(darkColors.destructive)};
+    --destructive-foreground: ${hslStringToValues(darkColors['destructive-foreground'])};
+    --border: ${hslStringToValues(darkColors.border)};
+    --input: ${hslStringToValues(darkColors.input)};
+    --input-border: ${hslStringToValues(darkColors['input-border'] || darkColors.border)};
+    --ring: ${hslStringToValues(darkColors.ring)};
+    --chart-1: ${hslStringToValues(darkColors.primary)};
     --chart-2: 267 85% 60%;
     --chart-3: 270 75% 55%;
     --chart-4: 273 65% 50%;
     --chart-5: 276 55% 45%;
-    --sidebar: 240 10% 25%;
-    --sidebar-foreground: 240 5% 92%;
-    --sidebar-primary: ${hslStringToValues(colors.primary)};
-    --sidebar-primary-foreground: 240 10% 18%;
-    --sidebar-accent: 240 8% 35%;
-    --sidebar-accent-foreground: 240 5% 85%;
-    --sidebar-border: 240 8% 42%;
-    --sidebar-ring: ${hslStringToValues(colors.ring)};
+    --sidebar: ${hslStringToValues(darkColors.background)};
+    --sidebar-foreground: var(--text-primary);
+    --sidebar-primary: ${hslStringToValues(darkColors.primary)};
+    --sidebar-primary-foreground: ${hslStringToValues(darkColors['primary-foreground'])};
+    --sidebar-accent: ${hslStringToValues(darkColors.accent)};
+    --sidebar-accent-foreground: var(--text-secondary);
+    --sidebar-border: ${hslStringToValues(darkColors.border)};
+    --sidebar-ring: ${hslStringToValues(darkColors.ring)};
     --radius: ${tokens.borderRadius?.lg ? tokens.borderRadius.lg / 16 : 0.5}rem;
 
     /* Semantic colors for status states (dark mode) */
-    --success: ${hslStringToValues(colors.success)};
-    --success-foreground: 145 80% 10%;
-    --warning: ${hslStringToValues(colors.warning)};
-    --warning-foreground: 26 83% 14%;
-    --info: ${hslStringToValues(colors.info)};
-    --info-foreground: 0 0% 100%;
-    --sidebar-background: 240 5.9% 10%;
+    --success: ${hslStringToValues(darkColors.success)};
+    --success-foreground: ${hslStringToValues(darkColors['success-foreground'])};
+    --warning: ${hslStringToValues(darkColors.warning)};
+    --warning-foreground: ${hslStringToValues(darkColors['warning-foreground'])};
+    --info: ${hslStringToValues(darkColors.info)};
+    --info-foreground: ${hslStringToValues(darkColors['info-foreground'])};
+    --sidebar-background: ${hslStringToValues(darkColors.background)};
+    
+    /* Typography color tokens (dark mode) */
+    --text-primary: ${hslStringToValues(darkColors['text-primary'] || darkColors.foreground)};
+    --text-secondary: ${hslStringToValues(darkColors['text-secondary'] || darkColors['secondary-foreground'])};
+    --text-tertiary: ${hslStringToValues(darkColors['text-tertiary'] || darkColors['muted-foreground'])};
+    --text-disabled: ${hslStringToValues(darkColors['text-disabled'] || '240 4% 40%')};
+    --text-inverse: ${hslStringToValues(darkColors['text-inverse'] || darkColors.background)};
+    --text-link: ${hslStringToValues(darkColors['text-link'] || darkColors.primary)};
+    --text-link-hover: ${hslStringToValues(darkColors['text-link-hover'] || darkColors.primary)};
+    --text-placeholder: ${hslStringToValues(darkColors['text-placeholder'] || darkColors['muted-foreground'])};
+    --heading-primary: ${hslStringToValues(darkColors['heading-primary'] || darkColors.foreground)};
+    --heading-secondary: ${hslStringToValues(darkColors['heading-secondary'] || darkColors['secondary-foreground'])};
+    
     --font-sans: Inter, sans-serif;
     --font-serif: Merriweather, serif;
     --font-mono: JetBrains Mono, monospace;

@@ -475,7 +475,7 @@ export function EditEmployeeScheduleDialog({ employee, onScheduleUpdated, trigge
 
           {/* Danger Zone */}
           {schedules.length > 0 && (
-            <Card className="border-red-200">
+            <Card className="border-destructive/20">
               <CardHeader>
                 <CardTitle className="text-sm text-destructive">Strefa niebezpieczna</CardTitle>
               </CardHeader>

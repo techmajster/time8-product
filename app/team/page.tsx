@@ -202,7 +202,7 @@ export default async function TeamPage() {
 
                 {/* Permission Notice for Non-Admins */}
                 {!canManageTeam && (
-                  <Alert className="mt-6 border-amber-200 bg-amber-50 text-amber-800">
+                  <Alert className="mt-6 border-warning/20 bg-warning/10 text-warning-foreground">
                     <AlertDescription>
                       {t('permissionNotice')}
                     </AlertDescription>

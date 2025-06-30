@@ -20,6 +20,7 @@ module.exports = {
   		colors: {
   			border: 'hsl(var(--border))',
   			input: 'hsl(var(--input))',
+  			'input-border': 'hsl(var(--input-border))',
   			ring: 'hsl(var(--ring))',
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
@@ -76,11 +77,25 @@ module.exports = {
   				DEFAULT: 'hsl(var(--warning))',
   				foreground: 'hsl(var(--warning-foreground))'
   			},
-  			info: {
-  				DEFAULT: 'hsl(var(--info))',
-  				foreground: 'hsl(var(--info-foreground))'
-  			}
-  		},
+  						info: {
+				DEFAULT: 'hsl(var(--info))',
+				foreground: 'hsl(var(--info-foreground))'
+			},
+			text: {
+				primary: 'hsl(var(--text-primary))',
+				secondary: 'hsl(var(--text-secondary))',
+				tertiary: 'hsl(var(--text-tertiary))',
+				disabled: 'hsl(var(--text-disabled))',
+				inverse: 'hsl(var(--text-inverse))',
+				link: 'hsl(var(--text-link))',
+				'link-hover': 'hsl(var(--text-link-hover))',
+				placeholder: 'hsl(var(--text-placeholder))'
+			},
+			heading: {
+				primary: 'hsl(var(--heading-primary))',
+				secondary: 'hsl(var(--heading-secondary))'
+			}
+		},
   		borderRadius: {
   			lg: 'var(--radius)',
   			md: 'calc(var(--radius) - 2px)',

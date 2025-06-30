@@ -25,7 +25,7 @@ const buttonVariants = cva(
         info:
           "bg-info text-info-foreground shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] hover:bg-info/90 focus-visible:ring-info",
         outline:
-          "border border-input bg-background text-foreground shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring",
+          "border border-border bg-background text-foreground shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring",
         ghost: 
           "text-foreground hover:bg-accent hover:text-accent-foreground",
         link: 

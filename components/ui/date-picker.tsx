@@ -36,7 +36,7 @@ export function DatePicker({
           disabled={disabled}
           data-empty={!date}
           className={cn(
-            "data-[empty=true]:text-muted-foreground w-[280px] justify-start text-left font-normal",
+            "data-[empty=true]:text-muted-foreground w-[280px] justify-start text-left font-normal border-input-border bg-background",
             className
           )}
         >
@@ -74,7 +74,7 @@ export function DatePickerWithDropdown({
           variant="outline"
           disabled={disabled}
           className={cn(
-            "w-48 justify-between font-normal",
+            "w-48 justify-between font-normal border-input-border bg-background",
             !date && "text-muted-foreground",
             className
           )}

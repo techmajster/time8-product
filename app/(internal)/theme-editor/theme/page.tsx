@@ -40,7 +40,18 @@ interface DesignSystemTokens {
         'info-foreground': string;
         border: string;
         input: string;
+        'input-border': string;
         ring: string;
+        'text-primary': string;
+        'text-secondary': string;
+        'text-tertiary': string;
+        'text-disabled': string;
+        'text-inverse': string;
+        'text-link': string;
+        'text-link-hover': string;
+        'text-placeholder': string;
+        'heading-primary': string;
+        'heading-secondary': string;
       };
       dark: {
         background: string;
@@ -63,7 +74,18 @@ interface DesignSystemTokens {
         'info-foreground': string;
         border: string;
         input: string;
+        'input-border': string;
         ring: string;
+        'text-primary': string;
+        'text-secondary': string;
+        'text-tertiary': string;
+        'text-disabled': string;
+        'text-inverse': string;
+        'text-link': string;
+        'text-link-hover': string;
+        'text-placeholder': string;
+        'heading-primary': string;
+        'heading-secondary': string;
       };
     };
   };
@@ -250,7 +272,18 @@ const getCurrentThemeFromDOM = (): DesignSystemTokens => {
           'info-foreground': getCSSVar('info-foreground'),
           border: getCSSVar('border'),
           input: getCSSVar('input'),
+          'input-border': getCSSVar('input-border') || getCSSVar('border'),
           ring: getCSSVar('ring'),
+          'text-primary': getCSSVar('text-primary'),
+          'text-secondary': getCSSVar('text-secondary'),
+          'text-tertiary': getCSSVar('text-tertiary'),
+          'text-disabled': getCSSVar('text-disabled'),
+          'text-inverse': getCSSVar('text-inverse'),
+          'text-link': getCSSVar('text-link'),
+          'text-link-hover': getCSSVar('text-link-hover'),
+          'text-placeholder': getCSSVar('text-placeholder'),
+          'heading-primary': getCSSVar('heading-primary'),
+          'heading-secondary': getCSSVar('heading-secondary'),
         },
         dark: {
           // Auto-generate dark colors from light colors using our smart algorithm
@@ -274,7 +307,18 @@ const getCurrentThemeFromDOM = (): DesignSystemTokens => {
           'info-foreground': generateDarkModeVariant(getCSSVar('info-foreground')),
           border: generateDarkModeVariant(getCSSVar('border')),
           input: generateDarkModeVariant(getCSSVar('input')),
+          'input-border': getCSSVar('input-border') ? generateDarkModeVariant(getCSSVar('input-border')) : generateDarkModeVariant(getCSSVar('border')),
           ring: getCSSVar('ring'),
+          'text-primary': generateDarkModeVariant(getCSSVar('text-primary')),
+          'text-secondary': generateDarkModeVariant(getCSSVar('text-secondary')),
+          'text-tertiary': generateDarkModeVariant(getCSSVar('text-tertiary')),
+          'text-disabled': generateDarkModeVariant(getCSSVar('text-disabled')),
+          'text-inverse': generateDarkModeVariant(getCSSVar('text-inverse')),
+          'text-link': generateDarkModeVariant(getCSSVar('text-link')),
+          'text-link-hover': generateDarkModeVariant(getCSSVar('text-link-hover')),
+          'text-placeholder': generateDarkModeVariant(getCSSVar('text-placeholder')),
+          'heading-primary': generateDarkModeVariant(getCSSVar('heading-primary')),
+          'heading-secondary': generateDarkModeVariant(getCSSVar('heading-secondary')),
         },
       },
     },
@@ -337,7 +381,18 @@ const getFallbackColor = (name: string): string => {
     'info-foreground': 'hsl(0, 0%, 100%)',
     'border': 'hsl(240, 6%, 87%)',
     'input': 'hsl(0, 0%, 100%)',
+    'input-border': 'hsl(240, 6%, 87%)',
     'ring': 'hsl(267, 85%, 60%)',
+    'text-primary': 'hsl(240, 10%, 25%)',
+    'text-secondary': 'hsl(240, 6%, 35%)',
+    'text-tertiary': 'hsl(240, 4%, 54%)',
+    'text-disabled': 'hsl(240, 3%, 70%)',
+    'text-inverse': 'hsl(0, 0%, 100%)',
+    'text-link': 'hsl(214, 100%, 44%)',
+    'text-link-hover': 'hsl(214, 100%, 35%)',
+    'text-placeholder': 'hsl(240, 4%, 54%)',
+    'heading-primary': 'hsl(240, 10%, 25%)',
+    'heading-secondary': 'hsl(240, 6%, 35%)',
   };
   return fallbacks[name] || 'hsl(0, 0%, 50%)';
 };
@@ -368,7 +423,18 @@ const getFallbackTokens = (): DesignSystemTokens => {
           'info-foreground': 'hsl(0, 0%, 100%)',
           border: 'hsl(240, 6%, 87%)',
           input: 'hsl(0, 0%, 100%)',
+          'input-border': 'hsl(240, 6%, 87%)',
           ring: 'hsl(267, 85%, 60%)',
+          'text-primary': 'hsl(240, 10%, 25%)',
+          'text-secondary': 'hsl(240, 6%, 35%)',
+          'text-tertiary': 'hsl(240, 4%, 54%)',
+          'text-disabled': 'hsl(240, 3%, 70%)',
+          'text-inverse': 'hsl(0, 0%, 100%)',
+          'text-link': 'hsl(214, 100%, 44%)',
+          'text-link-hover': 'hsl(214, 100%, 35%)',
+          'text-placeholder': 'hsl(240, 4%, 54%)',
+          'heading-primary': 'hsl(240, 10%, 25%)',
+          'heading-secondary': 'hsl(240, 6%, 35%)',
         },
         dark: {
           background: 'hsl(240, 10%, 18%)',
@@ -391,7 +457,18 @@ const getFallbackTokens = (): DesignSystemTokens => {
           'info-foreground': 'hsl(0, 0%, 100%)',
           border: 'hsl(240, 8%, 42%)',
           input: 'hsl(240, 10%, 25%)',
+          'input-border': 'hsl(240, 8%, 42%)',
           ring: 'hsl(267, 85%, 60%)',
+          'text-primary': 'hsl(240, 5%, 92%)',
+          'text-secondary': 'hsl(240, 5%, 85%)',
+          'text-tertiary': 'hsl(240, 5%, 70%)',
+          'text-disabled': 'hsl(240, 4%, 40%)',
+          'text-inverse': 'hsl(240, 10%, 18%)',
+          'text-link': 'hsl(214, 100%, 44%)',
+          'text-link-hover': 'hsl(214, 100%, 55%)',
+          'text-placeholder': 'hsl(240, 5%, 50%)',
+          'heading-primary': 'hsl(240, 5%, 92%)',
+          'heading-secondary': 'hsl(240, 5%, 85%)',
         },
       },
     },
@@ -662,11 +739,79 @@ export default function ThemeEditorPage() {
     }
   };
 
-  const handleResetToDefault = () => {
-    setTokens(getCurrentThemeFromDOM());
-    setCurrentThemeId(null);
-    toast.success('Reset to current theme');
+  const handleApplyThemeGlobally = async () => {
+    try {
+      let savedTheme;
+      
+      if (currentThemeId) {
+        // Update existing theme
+        const response = await fetch('/api/themes', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            id: currentThemeId,
+            tokens: tokens,
+            setAsDefault: true
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to update theme');
+        }
+
+        savedTheme = await response.json();
+      } else {
+        // Create new default theme
+        const response = await fetch('/api/themes', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            tokens: tokens,
+            setAsDefault: true
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to create default theme');
+        }
+
+        savedTheme = await response.json();
+        setCurrentThemeId(savedTheme.id);
+      }
+
+      // Then apply it globally by writing to globals.css
+      const applyResponse = await fetch('/api/themes/apply', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          themeId: savedTheme.id
+        }),
+      });
+
+      if (!applyResponse.ok) {
+        const error = await applyResponse.json();
+        throw new Error(error.error || 'Failed to apply theme globally');
+      }
+
+      // Clear all inline styles so CSS file styles take precedence
+      resetThemePreview();
+
+      toast.success('Theme applied to design system globally!', {
+        description: 'Changes have been written to globals.css and will persist across app restarts.'
+      });
+    } catch (error) {
+      console.error('Error applying theme globally:', error);
+      toast.error('Error applying theme globally: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    }
   };
+
+
 
   const handleApplyLoadedTheme = async (loadedTokens: any, themeId?: string) => {
     try {
@@ -743,10 +888,6 @@ export default function ThemeEditorPage() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="outline" onClick={handleResetToDefault}>
-              Reset to Current
-            </Button>
-
             <Sheet open={themeManagementOpen} onOpenChange={setThemeManagementOpen}>
               <SheetTrigger asChild>
                 <Button variant="outline">
@@ -767,9 +908,14 @@ export default function ThemeEditorPage() {
               </SheetContent>
             </Sheet>
 
-            <Button onClick={handleApplyTheme}>
+            <Button variant="outline" onClick={handleApplyTheme}>
               <Palette className="w-4 h-4 mr-2" />
               Save as Current Theme
+            </Button>
+
+            <Button onClick={handleApplyThemeGlobally}>
+              <Square className="w-4 h-4 mr-2" />
+              Apply to Design System
             </Button>
           </div>
         </div>
@@ -806,6 +952,9 @@ export default function ThemeEditorPage() {
               {isRealTimePreview ? "Live Preview" : "Manual Apply"}
             </Badge>
             {isDarkMode && <Badge variant="outline">Dark Mode</Badge>}
+            <Badge variant="outline" className="text-xs">
+              CSS File Active
+            </Badge>
           </div>
         </div>
 
@@ -860,31 +1009,79 @@ export default function ThemeEditorPage() {
                   </Button>
                 </div>
 
-                <TabsContent value="light" className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {Object.entries(tokens.colors.semantic.light).map(([key, value]) => (
-                      <ColorPicker
-                        key={key}
-                        label={key.replace('-', ' ')}
-                        value={value}
-                        onChange={(newValue) => updateLightColor(key, newValue)}
-                        description={`${key} color (light mode)`}
-                      />
-                    ))}
+                <TabsContent value="light" className="space-y-8">
+                  {/* UI Component Colors */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">UI Component Colors</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {Object.entries(tokens.colors.semantic.light)
+                        .filter(([key]) => !key.startsWith('text-') && !key.startsWith('heading-'))
+                        .map(([key, value]) => (
+                          <ColorPicker
+                            key={key}
+                            label={key.replace('-', ' ')}
+                            value={value}
+                            onChange={(newValue) => updateLightColor(key, newValue)}
+                            description={`${key} color (light mode)`}
+                          />
+                        ))}
+                    </div>
+                  </div>
+
+                  {/* Typography Colors */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">Typography Colors</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {Object.entries(tokens.colors.semantic.light)
+                        .filter(([key]) => key.startsWith('text-') || key.startsWith('heading-'))
+                        .map(([key, value]) => (
+                          <ColorPicker
+                            key={key}
+                            label={key.replace(/^(text-|heading-)/, '').replace('-', ' ')}
+                            value={value}
+                            onChange={(newValue) => updateLightColor(key, newValue)}
+                            description={`${key.replace('-', ' ')} (light mode)`}
+                          />
+                        ))}
+                    </div>
                   </div>
                 </TabsContent>
 
-                <TabsContent value="dark" className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {Object.entries(tokens.colors.semantic.dark).map(([key, value]) => (
-                      <ColorPicker
-                        key={key}
-                        label={key.replace('-', ' ')}
-                        value={value}
-                        onChange={(newValue) => updateDarkColor(key, newValue)}
-                        description={`${key} color (dark mode)`}
-                      />
-                    ))}
+                <TabsContent value="dark" className="space-y-8">
+                  {/* UI Component Colors */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">UI Component Colors</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {Object.entries(tokens.colors.semantic.dark)
+                        .filter(([key]) => !key.startsWith('text-') && !key.startsWith('heading-'))
+                        .map(([key, value]) => (
+                          <ColorPicker
+                            key={key}
+                            label={key.replace('-', ' ')}
+                            value={value}
+                            onChange={(newValue) => updateDarkColor(key, newValue)}
+                            description={`${key} color (dark mode)`}
+                          />
+                        ))}
+                    </div>
+                  </div>
+
+                  {/* Typography Colors */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">Typography Colors</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {Object.entries(tokens.colors.semantic.dark)
+                        .filter(([key]) => key.startsWith('text-') || key.startsWith('heading-'))
+                        .map(([key, value]) => (
+                          <ColorPicker
+                            key={key}
+                            label={key.replace(/^(text-|heading-)/, '').replace('-', ' ')}
+                            value={value}
+                            onChange={(newValue) => updateDarkColor(key, newValue)}
+                            description={`${key.replace('-', ' ')} (dark mode)`}
+                          />
+                        ))}
+                    </div>
                   </div>
                 </TabsContent>
               </Tabs>

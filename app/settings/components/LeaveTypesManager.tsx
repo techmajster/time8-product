@@ -288,7 +288,7 @@ export function LeaveTypesManager({ leaveTypes, organizationId }: LeaveTypesMana
       )}
 
       {success && (
-        <Alert className="bg-green-50 border-green-200 text-green-800">
+        <Alert className="bg-success/10 border-success/20 text-success">
           <AlertDescription>{success}</AlertDescription>
         </Alert>
       )}
@@ -441,7 +441,7 @@ export function LeaveTypesManager({ leaveTypes, organizationId }: LeaveTypesMana
             )}
 
             {success && (
-              <Alert className="bg-green-50 border-green-200 text-green-800">
+              <Alert className="bg-success/10 border-success/20 text-success">
                 <AlertDescription>{success}</AlertDescription>
               </Alert>
             )}
@@ -541,7 +541,7 @@ export function LeaveTypesManager({ leaveTypes, organizationId }: LeaveTypesMana
             )}
 
             {success && (
-              <Alert className="bg-green-50 border-green-200 text-green-800">
+              <Alert className="bg-success/10 border-success/20 text-success">
                 <AlertDescription>{success}</AlertDescription>
               </Alert>
             )}

@@ -48,12 +48,12 @@ export function ColorPicker({ label, value, onChange, description }: ColorPicker
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between">
+      <div className="space-y-1">
         <Label htmlFor={`color-${label}`} className="text-sm font-medium">
           {label}
         </Label>
         {description && (
-          <span className="text-xs text-muted-foreground">{description}</span>
+          <div className="text-xs text-muted-foreground">{description}</div>
         )}
       </div>
       
