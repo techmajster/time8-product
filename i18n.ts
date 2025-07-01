@@ -9,20 +9,9 @@ export type Locale = (typeof locales)[number];
 export const defaultLocale: Locale = 'pl';
 
 export default getRequestConfig(async () => {
-  // Get the user's preferred locale using our hierarchy
-  let locale: Locale;
-  
-  try {
-    locale = await getUserLocale();
-  } catch (error) {
-    console.error('Error getting user locale:', error);
-    locale = defaultLocale;
-  }
-
-  // Validate locale
-  if (!locales.includes(locale)) {
-    locale = defaultLocale;
-  }
+  // Use default locale for static generation
+  // Components will handle dynamic locale switching at runtime
+  const locale = defaultLocale;
 
   return {
     locale,

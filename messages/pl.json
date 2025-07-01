@@ -79,7 +79,8 @@
     "schedule": "Harmonogram",
     "settings": "Ustawienia",
     "profile": "Profil",
-    "admin": "Administrator"
+    "admin": "Administrator",
+    "holidays": "Święta"
   },
   "leave": {
     "title": "Zarządzanie urlopami",

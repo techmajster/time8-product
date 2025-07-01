@@ -79,7 +79,8 @@
     "schedule": "Schedule",
     "settings": "Settings",
     "profile": "Profile",
-    "admin": "Admin"
+    "admin": "Admin",
+    "holidays": "Holidays"
   },
   "leave": {
     "title": "Leave Management",

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useTranslations, useLocale } from 'next-intl'
 import { GalleryVerticalEnd } from "lucide-react"
@@ -12,7 +12,7 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher"
 
 type AuthMode = 'login' | 'signup' | 'forgot-password' | 'reset-password'
 
-export default function LoginPage() {
+function LoginPageContent() {
   const searchParams = useSearchParams()
   const t = useTranslations('auth')
   const locale = useLocale()
@@ -84,5 +84,13 @@ export default function LoginPage() {
         />
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LoginPageContent />
+    </Suspense>
   )
 }
