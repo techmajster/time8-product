@@ -288,7 +288,7 @@ export function LeaveTypesManager({ leaveTypes, organizationId }: LeaveTypesMana
       )}
 
       {success && (
-        <Alert className="bg-green-50 border-green-200 text-green-800">
+        <Alert className="bg-success/10 border-success/20 text-success">
           <AlertDescription>{success}</AlertDescription>
         </Alert>
       )}
@@ -408,7 +408,7 @@ export function LeaveTypesManager({ leaveTypes, organizationId }: LeaveTypesMana
                     key={color.value}
                     type="button"
                     onClick={() => setFormData(prev => ({ ...prev, color: color.value }))}
-                    className={`w-full h-10 rounded-md border-2 ${formData.color === color.value ? 'border-gray-900' : 'border-border'}`}
+                    className={`w-full h-10 rounded-md border-2 ${formData.color === color.value ? 'border-primary' : 'border-border'}`}
                     style={{ backgroundColor: color.value }}
                     title={color.name}
                   />
@@ -441,7 +441,7 @@ export function LeaveTypesManager({ leaveTypes, organizationId }: LeaveTypesMana
             )}
 
             {success && (
-              <Alert className="bg-green-50 border-green-200 text-green-800">
+              <Alert className="bg-success/10 border-success/20 text-success">
                 <AlertDescription>{success}</AlertDescription>
               </Alert>
             )}
@@ -508,7 +508,7 @@ export function LeaveTypesManager({ leaveTypes, organizationId }: LeaveTypesMana
                     key={color.value}
                     type="button"
                     onClick={() => setFormData(prev => ({ ...prev, color: color.value }))}
-                    className={`w-full h-10 rounded-md border-2 ${formData.color === color.value ? 'border-gray-900' : 'border-border'}`}
+                    className={`w-full h-10 rounded-md border-2 ${formData.color === color.value ? 'border-primary' : 'border-border'}`}
                     style={{ backgroundColor: color.value }}
                     title={color.name}
                   />
@@ -541,7 +541,7 @@ export function LeaveTypesManager({ leaveTypes, organizationId }: LeaveTypesMana
             )}
 
             {success && (
-              <Alert className="bg-green-50 border-green-200 text-green-800">
+              <Alert className="bg-success/10 border-success/20 text-success">
                 <AlertDescription>{success}</AlertDescription>
               </Alert>
             )}

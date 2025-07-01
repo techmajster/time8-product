@@ -60,13 +60,13 @@ export function LeaveBalanceCard({
     return (
       <Card className={`transition-shadow hover:shadow-md ${className}`}>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-          <CardTitle className="text-sm font-medium text-gray-700">Pozostały urlop</CardTitle>
+                      <CardTitle className="text-sm font-medium text-muted-foreground">Pozostały urlop</CardTitle>
           <div className="h-8 w-8 bg-primary/10 rounded-full flex items-center justify-center">
             <CheckCircle className="h-4 w-4 text-primary" />
           </div>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-gray-900">
+          <div className="text-2xl font-bold text-foreground">
             {vacationBalance ? `${vacationBalance.remaining_days}` : `${totalRemainingDays}`}
           </div>
           <p className="text-xs text-muted-foreground mt-1">

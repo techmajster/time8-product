@@ -25,8 +25,8 @@ export default function OnboardingCompletePage() {
     <div className="min-h-screen flex items-center justify-center bg-background p-6">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center pb-4">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
-            <CheckCircle className="h-6 w-6 text-green-600" />
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-success/10">
+            <CheckCircle className="h-6 w-6 text-success" />
           </div>
           <CardTitle className="text-xl font-semibold">
             {t('setupComplete')}

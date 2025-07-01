@@ -72,7 +72,7 @@ export default function ForgotPasswordPage() {
 
           {message && (
             <div className="text-sm text-muted-foreground space-y-2 bg-muted p-3 rounded-md">
-              <p className="font-medium">Next steps:</p>
+              <p className="font-medium text-foreground">Next steps:</p>
               <ol className="list-decimal list-inside space-y-1 text-sm">
                 <li>Check your email inbox</li>
                 <li>Click the reset link in the email</li>
@@ -96,7 +96,7 @@ export default function ForgotPasswordPage() {
           
           <Link 
             href="/auth/login" 
-            className="text-sm text-muted-foreground hover:text-gray-900 flex items-center justify-center gap-1"
+            className="text-sm text-muted-foreground hover:text-foreground flex items-center justify-center gap-1"
           >
             <ArrowLeft className="h-3 w-3" />
             Back to login

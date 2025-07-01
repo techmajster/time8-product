@@ -217,7 +217,7 @@ export function LeaveRequestRow({ request, isManagerOrAdmin, currentUserId }: Le
                 {request.leave_types?.name || 'Nieznany typ'}
               </p>
               <Badge className={getStatusColor(request.status)}>
-                <span className="flex items-center gap-1">
+                                    <span className="flex items-center gap-1 text-foreground">
                   {getStatusIcon(request.status)}
                   {getStatusText(request.status)}
                 </span>

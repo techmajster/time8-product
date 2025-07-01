@@ -172,7 +172,7 @@ export function OrganizationBrandingForm({ organization }: OrganizationBrandingF
         <Label>Logo organizacji</Label>
         
         {logoPreview ? (
-          <div className="relative w-32 h-32 border border-border rounded-lg overflow-hidden bg-white">
+          <div className="relative w-32 h-32 border border-border rounded-lg overflow-hidden bg-background">
             <Image
               src={logoPreview}
               alt="Logo preview"

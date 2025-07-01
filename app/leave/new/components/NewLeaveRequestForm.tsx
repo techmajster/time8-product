@@ -310,7 +310,7 @@ export function NewLeaveRequestForm({ leaveTypes, leaveBalances, userProfile, on
                               className="w-3 h-3 rounded-full" 
                               style={{ backgroundColor: leaveType.color }}
                             />
-                            <span className="font-medium">{leaveType.name}</span>
+                            <span className="font-medium text-foreground">{leaveType.name}</span>
                           </div>
                         </TableCell>
                         <TableCell className="text-center">{balance.entitled_days}</TableCell>
@@ -613,8 +613,8 @@ export function NewLeaveRequestForm({ leaveTypes, leaveBalances, userProfile, on
 
         <Card>
           <CardHeader>
-            <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-orange-100">
-              <Calendar className="h-6 w-6 text-orange-600" />
+                      <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-warning/10">
+            <Calendar className="h-6 w-6 text-warning" />
             </div>
             <CardTitle>Nowy wniosek urlopowy</CardTitle>
             <CardDescription>

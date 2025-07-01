@@ -27,7 +27,7 @@ export function SidebarNav({ sections }: SidebarNavProps) {
         <div key={sectionIndex}>
           {section.label && (
             <div className="px-3 mb-2">
-              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 {section.label}
               </h3>
             </div>
@@ -40,8 +40,8 @@ export function SidebarNav({ sections }: SidebarNavProps) {
                 className={cn(
                   'flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors',
                   pathname === item.href
-                    ? 'bg-gray-200 text-gray-900'
-                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                    ? 'bg-accent text-accent-foreground'
+                    : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
                 )}
               >
                 {item.title}

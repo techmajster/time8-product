@@ -299,7 +299,7 @@ export const TeamCalendarView = React.memo(function TeamCalendarView({ teamMembe
         </div>
 
         {/* Calendar Days */}
-        <div className="grid grid-cols-7 bg-white relative">
+        <div className="grid grid-cols-7 bg-background relative">
           {/* Holiday badges layer - positioned above leave blocks */}
           <div className="absolute inset-0 z-20 pointer-events-none">
             {calendarDays.map((date, index) => {
@@ -329,7 +329,7 @@ export const TeamCalendarView = React.memo(function TeamCalendarView({ teamMembe
                     className={`text-xs w-full justify-start ${
                       holiday.holiday_type === 'national' 
                         ? 'bg-destructive/10 text-destructive-foreground border-destructive/20' 
-                        : 'bg-orange-100 text-orange-800 border-orange-200'
+                        : 'bg-warning/10 text-warning border-warning/20'
                     }`}
                   >
                     {holiday.name.length > 12 ? holiday.name.substring(0, 12) + '...' : holiday.name}
@@ -401,12 +401,12 @@ export const TeamCalendarView = React.memo(function TeamCalendarView({ teamMembe
                 key={index}
                 className={`border-r border-b border-border min-h-40 p-2 cursor-pointer transition-colors hover:bg-muted relative ${
                   !isCurrentMonth(date) 
-                    ? 'bg-muted text-gray-400' 
+                    ? 'bg-muted text-muted-foreground' 
                     : isToday(date)
                     ? 'bg-primary/5 border-primary/20'
                     : isNonWorkingDay
                     ? 'bg-muted opacity-75'
-                    : 'bg-white'
+                    : 'bg-background'
                 }`}
                 onClick={() => handleDayClick(date)}
               >
@@ -416,7 +416,7 @@ export const TeamCalendarView = React.memo(function TeamCalendarView({ teamMembe
                     ? 'font-bold text-primary' 
                     : isNonWorkingDay
                     ? 'text-muted-foreground'
-                    : 'text-gray-900'
+                    : 'text-foreground'
                 }`}>
                   {date.getDate()}
                 </div>
@@ -444,7 +444,7 @@ export const TeamCalendarView = React.memo(function TeamCalendarView({ teamMembe
           <span>Święta państwowe</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 bg-orange-100 border border-orange-200 rounded"></div>
+          <div className="w-3 h-3 bg-warning/10 border border-warning/20 rounded"></div>
           <span>Święta firmowe</span>
         </div>
         <div className="flex items-center gap-2">
@@ -486,7 +486,7 @@ export const TeamCalendarView = React.memo(function TeamCalendarView({ teamMembe
               {/* Weekend Information */}
               {selectedDay.isWeekend && (
                 <div className="p-3 bg-muted border border-border rounded-lg">
-                  <h4 className="font-medium text-gray-700">
+                  <h4 className="font-medium text-foreground">
                     Weekend
                   </h4>
                   <p className="text-sm text-muted-foreground">
@@ -543,7 +543,7 @@ export const TeamCalendarView = React.memo(function TeamCalendarView({ teamMembe
                 !selectedDay.holiday && !selectedDay.isWeekend && (
                   <div className="text-center py-4 text-muted-foreground">
                     <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mx-auto mb-2">
-                      <User className="h-6 w-6 text-gray-400" />
+                      <User className="h-6 w-6 text-muted-foreground" />
                     </div>
                     <p className="text-sm">Brak urlopów w tym dniu</p>
                     <p className="text-xs">Wszyscy członkowie zespołu dostępni</p>

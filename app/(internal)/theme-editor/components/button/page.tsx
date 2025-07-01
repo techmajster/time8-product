@@ -96,26 +96,44 @@ export default function ButtonComponentPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {/* Primary Variants */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* Semantic Action Variants */}
               <div className="space-y-4">
-                <h3 className="font-semibold text-sm text-gray-700 uppercase tracking-wide">Primary</h3>
+                <h3 className="font-semibold text-sm text-gray-700 uppercase tracking-wide">Action Variants</h3>
+                <p className="text-sm text-gray-600">Semantic variants that adapt to your theme colors</p>
                 <div className="space-y-3">
                   <div className="flex flex-col items-start gap-2">
-                    <Button variant="default">Default</Button>
-                    <code className="text-xs text-gray-500">variant="default"</code>
+                    <Button variant="primary">Primary Action</Button>
+                    <code className="text-xs text-gray-500">variant="primary"</code>
+                  </div>
+                  <div className="flex flex-col items-start gap-2">
+                    <Button variant="secondary">Secondary Action</Button>
+                    <code className="text-xs text-gray-500">variant="secondary"</code>
+                  </div>
+                  <div className="flex flex-col items-start gap-2">
+                    <Button variant="success">Success Action</Button>
+                    <code className="text-xs text-gray-500">variant="success"</code>
+                  </div>
+                  <div className="flex flex-col items-start gap-2">
+                    <Button variant="warning">Warning Action</Button>
+                    <code className="text-xs text-gray-500">variant="warning"</code>
+                  </div>
+                  <div className="flex flex-col items-start gap-2">
+                    <Button variant="info">Info Action</Button>
+                    <code className="text-xs text-gray-500">variant="info"</code>
+                  </div>
+                  <div className="flex flex-col items-start gap-2">
+                    <Button variant="destructive">Destructive Action</Button>
+                    <code className="text-xs text-gray-500">variant="destructive"</code>
                   </div>
                 </div>
               </div>
 
-              {/* Secondary Variants */}
+              {/* Style Variants */}
               <div className="space-y-4">
-                <h3 className="font-semibold text-sm text-gray-700 uppercase tracking-wide">Secondary</h3>
+                <h3 className="font-semibold text-sm text-gray-700 uppercase tracking-wide">Style Variants</h3>
+                <p className="text-sm text-gray-600">Different visual presentations for various contexts</p>
                 <div className="space-y-3">
-                  <div className="flex flex-col items-start gap-2">
-                    <Button variant="secondary">Secondary</Button>
-                    <code className="text-xs text-gray-500">variant="secondary"</code>
-                  </div>
                   <div className="flex flex-col items-start gap-2">
                     <Button variant="outline">Outline</Button>
                     <code className="text-xs text-gray-500">variant="outline"</code>
@@ -123,17 +141,6 @@ export default function ButtonComponentPage() {
                   <div className="flex flex-col items-start gap-2">
                     <Button variant="ghost">Ghost</Button>
                     <code className="text-xs text-gray-500">variant="ghost"</code>
-                  </div>
-                </div>
-              </div>
-
-              {/* Special Variants */}
-              <div className="space-y-4">
-                <h3 className="font-semibold text-sm text-gray-700 uppercase tracking-wide">Special</h3>
-                <div className="space-y-3">
-                  <div className="flex flex-col items-start gap-2">
-                    <Button variant="destructive">Destructive</Button>
-                    <code className="text-xs text-gray-500">variant="destructive"</code>
                   </div>
                   <div className="flex flex-col items-start gap-2">
                     <Button variant="link">Link</Button>

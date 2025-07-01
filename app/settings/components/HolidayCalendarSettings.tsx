@@ -93,7 +93,7 @@ export function HolidayCalendarSettings({ organizationId, currentCountryCode }: 
                     <div className="flex items-center gap-2 mb-1">
                       <h3 className="font-medium">{calendar.name}</h3>
                                              {calendar.holidayCount > 0 ? (
-                         <Badge className="text-xs bg-green-100 text-green-800 border-green-200">
+                         <Badge className="text-xs bg-success/10 text-success border-success/20">
                            {calendar.holidayCount} świąt
                          </Badge>
                        ) : (

@@ -35,7 +35,7 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/componen
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { AlertCircle, CheckCircle, Info, Calendar, HelpCircle, Settings, Plus, ChevronDown, Search, Bold, Italic, Home, Users, FileText, AlertTriangle, XCircle, CheckCircle2 } from 'lucide-react';
+import { AlertCircle, CheckCircle, Info, Calendar, HelpCircle, Settings, Plus, ChevronDown, Search, Bold, Italic, Home, Users, FileText, AlertTriangle, XCircle, CheckCircle2, Bell } from 'lucide-react';
 import { useSonnerToast, useLeaveSystemToasts } from '@/hooks/use-sonner-toast';
 
 // Toast Preview Component
@@ -50,7 +50,7 @@ function ToastPreview() {
         <Button 
           size="sm"
           onClick={() => showSuccess("Success! Operation completed")}
-          className="bg-green-600 hover:bg-green-700 text-xs"
+          className="bg-success hover:bg-success/90 text-success-foreground text-xs"
         >
           <CheckCircle2 className="w-3 h-3 mr-1" />
           Success
@@ -69,7 +69,7 @@ function ToastPreview() {
         <Button 
           size="sm"
           onClick={() => showWarning("Warning! Check input")}
-          className="bg-yellow-600 hover:bg-yellow-700 text-xs"
+          className="bg-warning hover:bg-warning/90 text-warning-foreground text-xs"
         >
           <AlertTriangle className="w-3 h-3 mr-1" />
           Warning
@@ -78,7 +78,7 @@ function ToastPreview() {
         <Button 
           size="sm"
           onClick={() => showInfo("Info: Helpful information")}
-          className="bg-blue-600 hover:bg-blue-700 text-xs"
+          className="bg-info hover:bg-info/90 text-info-foreground text-xs"
         >
           <Info className="w-3 h-3 mr-1" />
           Info
@@ -484,13 +484,16 @@ const components = [
   { 
     name: 'Badge', 
     category: 'Display',
-    description: 'Small status indicators and labels',
+    description: 'Status indicators with semantic color system',
     preview: (
-      <div className="flex gap-2 flex-wrap">
-        <Badge>Default</Badge>
+      <div className="flex gap-1 flex-wrap">
+        <Badge>Primary</Badge>
         <Badge variant="secondary">Secondary</Badge>
         <Badge variant="destructive">Error</Badge>
         <Badge variant="outline">Outline</Badge>
+        <Badge className="bg-success/10 text-success hover:bg-success/20 border-success/20">Success</Badge>
+        <Badge className="bg-warning/10 text-warning hover:bg-warning/20 border-warning/20">Warning</Badge>
+        <Badge className="bg-info/10 text-info hover:bg-info/20 border-info/20">Info</Badge>
       </div>
     )
   },
@@ -702,10 +705,191 @@ const components = [
     description: 'Real-time notifications with Sonner',
     preview: <ToastPreview />
   },
+  
+  // Complex Combinations
+  { 
+    name: 'Status Card', 
+    category: 'Complex',
+    description: 'Card with status indicators and actions',
+    preview: (
+      <Card className="w-64">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm">Leave Request</CardTitle>
+            <Badge className="bg-warning/10 text-warning border-warning/20">Pending</Badge>
+          </div>
+          <CardDescription className="text-xs">Dec 25-31, 2024</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Avatar className="h-6 w-6">
+              <AvatarFallback className="text-xs">JD</AvatarFallback>
+            </Avatar>
+            <span className="text-xs text-muted-foreground">John Doe</span>
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" className="bg-success hover:bg-success/90 text-success-foreground text-xs flex-1">
+              Approve
+            </Button>
+            <Button size="sm" variant="destructive" className="text-xs flex-1">
+              Reject
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  },
+  { 
+    name: 'Settings Panel', 
+    category: 'Complex',
+    description: 'Form with multiple input types and actions',
+    preview: (
+      <Card className="w-72">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm">Notification Settings</CardTitle>
+          <CardDescription className="text-xs">Manage your notification preferences</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <Label className="text-xs">Email notifications</Label>
+            <Switch />
+          </div>
+          <div className="flex items-center justify-between">
+            <Label className="text-xs">Push notifications</Label>
+            <Switch defaultChecked />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-xs">Frequency</Label>
+            <Select>
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue placeholder="Select frequency" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="immediate">Immediate</SelectItem>
+                <SelectItem value="daily">Daily digest</SelectItem>
+                <SelectItem value="weekly">Weekly summary</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex gap-2 pt-2">
+            <Button size="sm" className="text-xs flex-1">Save</Button>
+            <Button size="sm" variant="outline" className="text-xs">Cancel</Button>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  },
+  { 
+    name: 'Data Table Row', 
+    category: 'Complex',
+    description: 'Table row with actions and status indicators',
+    preview: (
+      <div className="w-80 border rounded-lg overflow-hidden">
+        <div className="p-3 border-b bg-muted/50">
+          <div className="text-xs font-medium text-muted-foreground">Employee Schedule</div>
+        </div>
+        <div className="p-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Avatar className="h-8 w-8">
+                <AvatarFallback className="text-xs">AM</AvatarFallback>
+              </Avatar>
+              <div>
+                <div className="text-sm font-medium">Anna Miller</div>
+                <div className="text-xs text-muted-foreground">Product Manager</div>
+              </div>
+            </div>
+            <Badge className="bg-success/10 text-success border-success/20 text-xs">Active</Badge>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Calendar className="h-3 w-3" />
+            <span>Mon-Fri, 9:00 AM - 5:00 PM</span>
+          </div>
+          <div className="flex gap-2 pt-1">
+            <Button size="sm" variant="outline" className="text-xs h-7">
+              <Settings className="h-3 w-3 mr-1" />
+              Edit
+            </Button>
+            <Button size="sm" variant="outline" className="text-xs h-7">
+              <Users className="h-3 w-3 mr-1" />
+              View Team
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  },
+  { 
+    name: 'Alert Variants', 
+    category: 'Complex',
+    description: 'Alert components with semantic color variations',
+    preview: (
+      <div className="space-y-3 w-72">
+        <Alert className="bg-info/10 border-info/20">
+          <Info className="h-4 w-4 text-info" />
+          <AlertTitle className="text-sm text-info">Information</AlertTitle>
+          <AlertDescription className="text-xs text-info/80">
+            New features have been added to your dashboard.
+          </AlertDescription>
+        </Alert>
+        <Alert className="bg-success/10 border-success/20">
+          <CheckCircle2 className="h-4 w-4 text-success" />
+          <AlertTitle className="text-sm text-success">Success</AlertTitle>
+          <AlertDescription className="text-xs text-success/80">
+            Your changes have been saved successfully.
+          </AlertDescription>
+        </Alert>
+        <Alert className="bg-warning/10 border-warning/20">
+          <AlertTriangle className="h-4 w-4 text-warning" />
+          <AlertTitle className="text-sm text-warning">Warning</AlertTitle>
+          <AlertDescription className="text-xs text-warning/80">
+            Please review your settings before proceeding.
+          </AlertDescription>
+        </Alert>
+      </div>
+    )
+  },
+  { 
+    name: 'Navigation Menu', 
+    category: 'Complex',
+    description: 'Multi-level navigation with icons and badges',
+    preview: (
+      <div className="w-56 border rounded-lg overflow-hidden bg-card">
+        <div className="p-3 border-b">
+          <div className="text-sm font-medium">Leave System</div>
+          <div className="text-xs text-muted-foreground">Navigation Menu</div>
+        </div>
+        <div className="p-2 space-y-1">
+          <div className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-primary/10 text-primary">
+            <Calendar className="h-4 w-4" />
+            <span className="text-sm">Dashboard</span>
+          </div>
+          <div className="flex items-center justify-between px-2 py-1.5 rounded-md hover:bg-muted/50 text-foreground">
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              <span className="text-sm">Requests</span>
+            </div>
+            <Badge className="bg-warning/10 text-warning border-warning/20 text-xs">3</Badge>
+          </div>
+          <div className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-muted/50 text-foreground">
+            <Settings className="h-4 w-4" />
+            <span className="text-sm">Settings</span>
+          </div>
+          <div className="flex items-center justify-between px-2 py-1.5 rounded-md hover:bg-muted/50 text-foreground">
+            <div className="flex items-center gap-2">
+              <Bell className="h-4 w-4" />
+              <span className="text-sm">Notifications</span>
+            </div>
+            <Badge className="bg-destructive/10 text-destructive border-destructive/20 text-xs">!</Badge>
+          </div>
+        </div>
+      </div>
+    )
+  },
 ];
 
 export function ComponentGrid() {
-  const categories = ['All', 'Actions', 'Form', 'Layout', 'Display', 'Interactive', 'Feedback'];
+  const categories = ['All', 'Actions', 'Form', 'Layout', 'Display', 'Interactive', 'Feedback', 'Complex'];
   const [selectedCategory, setSelectedCategory] = useState('All');
 
   const filteredComponents = selectedCategory === 'All' 
@@ -714,36 +898,44 @@ export function ComponentGrid() {
 
   return (
     <div className="p-8">
-      <div className="mb-8">
+              <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-2xl font-bold">Component Library</h1>
-            <p className="text-gray-600 mt-1">
+            <p className="text-muted-foreground mt-1">
               Browse and preview all available UI components
             </p>
           </div>
         </div>
         
-        <div className="flex items-center gap-4 text-sm text-gray-600 mb-6">
+        <div className="flex items-center gap-4 text-sm text-muted-foreground mb-6">
           <div className="flex items-center gap-1">
-            <span className="inline-flex items-center px-2 py-1 rounded-md bg-green-100 text-green-700 text-xs font-medium">
+            <span className="inline-flex items-center px-2 py-1 rounded-md bg-success/10 text-success text-xs font-medium">
               Phase 2
             </span>
             <span>Component Gallery</span>
           </div>
-          <div className="h-4 w-px bg-gray-300" />
+          <div className="h-4 w-px bg-border" />
           <span>Interactive component showcase</span>
         </div>
         
         {/* Stats */}
         <div className="flex gap-4 mb-6">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2">
-            <div className="text-sm font-medium text-blue-900">{components.length} Components</div>
-            <div className="text-xs text-blue-600">Total available</div>
+          <div className="bg-info/10 border border-info/20 rounded-lg px-4 py-2">
+            <div className="text-sm font-medium text-info">{components.length} Components</div>
+            <div className="text-xs text-muted-foreground">Total available</div>
           </div>
-          <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-2">
-            <div className="text-sm font-medium text-green-900">{categories.length - 1} Categories</div>
-            <div className="text-xs text-green-600">Organized groups</div>
+          <div className="bg-success/10 border border-success/20 rounded-lg px-4 py-2">
+            <div className="text-sm font-medium text-success">{categories.length - 1} Categories</div>
+            <div className="text-xs text-muted-foreground">Organized groups</div>
+          </div>
+          <div className="bg-warning/10 border border-warning/20 rounded-lg px-4 py-2">
+            <div className="text-sm font-medium text-warning">Live Demos</div>
+            <div className="text-xs text-muted-foreground">Interactive previews</div>
+          </div>
+          <div className="bg-accent border border-accent rounded-lg px-4 py-2">
+            <div className="text-sm font-medium text-accent-foreground">Semantic Colors</div>
+            <div className="text-xs text-muted-foreground">Design system ready</div>
           </div>
         </div>
         
@@ -768,10 +960,10 @@ export function ComponentGrid() {
         {filteredComponents.map((component) => (
           <div 
             key={component.name} 
-            className="group border rounded-lg overflow-hidden hover:shadow-md transition-all duration-200 hover:border-gray-300 bg-white"
+            className="group border rounded-lg overflow-hidden hover:shadow-md transition-all duration-200 hover:border-primary/20 bg-card"
           >
             {/* Preview Area */}
-            <div className="p-6 min-h-[140px] flex items-center justify-center bg-gray-50/50">
+            <div className="p-6 min-h-[140px] flex items-center justify-center bg-muted/50">
               <div className="w-full flex items-center justify-center">
                 {component.preview}
               </div>
@@ -780,12 +972,12 @@ export function ComponentGrid() {
             {/* Component Info */}
             <div className="p-4 border-t">
               <div className="flex items-center justify-between mb-2">
-                <h3 className="font-medium text-gray-900">{component.name}</h3>
+                <h3 className="font-medium text-foreground">{component.name}</h3>
                 <Badge variant="outline" className="text-xs">
                   {component.category}
                 </Badge>
               </div>
-              <p className="text-sm text-gray-500 leading-relaxed">
+              <p className="text-sm text-muted-foreground leading-relaxed">
                 {component.description}
               </p>
             </div>
@@ -795,7 +987,7 @@ export function ComponentGrid() {
       
       {filteredComponents.length === 0 && (
         <div className="text-center py-12">
-          <p className="text-gray-500">No components found in this category.</p>
+          <p className="text-muted-foreground">No components found in this category.</p>
         </div>
       )}
     </div>

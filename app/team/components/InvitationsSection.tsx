@@ -172,7 +172,7 @@ export default function InvitationsSection({ invitations, canManageTeam }: Invit
                       {getStatusIcon(isExpired ? 'expired' : invitation.status)}
                     </div>
                     <div>
-                      <p className="font-medium">{invitation.email}</p>
+                      <p className="font-medium text-foreground">{invitation.email}</p>
                       <p className="text-sm text-muted-foreground">
                          {t('invitedBy')} {
                            Array.isArray(invitation.profiles) 
@@ -190,7 +190,7 @@ export default function InvitationsSection({ invitations, canManageTeam }: Invit
                         {invitation.invitation_code && !isExpired && (
                           <div className="flex items-center gap-1 px-2 py-1 bg-muted rounded text-xs font-mono">
                             <span className="text-muted-foreground">{t('code')}:</span>
-                            <span className="font-bold">{invitation.invitation_code}</span>
+                            <span className="font-bold text-foreground">{invitation.invitation_code}</span>
                             <Button
                               variant="ghost"
                               size="sm"
@@ -198,7 +198,7 @@ export default function InvitationsSection({ invitations, canManageTeam }: Invit
                               onClick={() => handleCopyInvitationCode(invitation.invitation_code!)}
                             >
                               {copiedCode === invitation.invitation_code ? (
-                                <Check className="h-3 w-3 text-green-500" />
+                                <Check className="h-3 w-3 text-success" />
                               ) : (
                                 <Copy className="h-3 w-3" />
                               )}
@@ -239,7 +239,7 @@ export default function InvitationsSection({ invitations, canManageTeam }: Invit
         ) : (
           /* Empty State based on Figma design */
           <div className="flex flex-col items-center justify-center py-12">
-            <div className="bg-white border border-border rounded-lg shadow-sm size-12 flex items-center justify-center mb-6">
+            <div className="bg-background border border-border rounded-lg shadow-sm size-12 flex items-center justify-center mb-6">
               <Mail className="h-6 w-6 text-foreground" />
             </div>
             <div className="text-center space-y-2 mb-6">

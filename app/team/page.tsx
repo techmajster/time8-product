@@ -182,7 +182,7 @@ export default async function TeamPage() {
                             ))}
                           </TableBody>
                         </Table>
-                        <div className="bg-neutral-50 border-t border-border h-[52px] flex items-center">
+                        <div className="bg-muted/50 border-t border-border h-[52px] flex items-center">
                           <div className="px-4">
                             <p className="text-sm font-normal text-muted-foreground">
                               {t('totalTeamMembers')}: {teamMembers?.length || 0}
@@ -202,7 +202,7 @@ export default async function TeamPage() {
 
                 {/* Permission Notice for Non-Admins */}
                 {!canManageTeam && (
-                  <Alert className="mt-6 border-amber-200 bg-amber-50 text-amber-800">
+                  <Alert className="mt-6 border-warning/20 bg-warning/10 text-warning-foreground">
                     <AlertDescription>
                       {t('permissionNotice')}
                     </AlertDescription>

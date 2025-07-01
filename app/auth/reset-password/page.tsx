@@ -128,7 +128,7 @@ export default function ResetPasswordPage() {
           )}
 
           <div className="text-xs text-muted-foreground bg-muted p-3 rounded-md">
-            <p className="font-medium mb-1">Password requirements:</p>
+            <p className="font-medium text-foreground mb-1">Password requirements:</p>
             <ul className="space-y-1">
               <li className={password.length >= 6 ? 'text-success' : ''}>
                 • At least 6 characters

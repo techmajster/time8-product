@@ -297,7 +297,7 @@ export function WeeklyScheduleView({ teamMembers, userRole }: WeeklyScheduleView
                           <div className="space-y-1">
                             <Badge 
                               variant="default" 
-                              className="text-xs bg-green-100 text-green-800 border-green-200"
+                              className="text-xs bg-success/10 text-success border-success/20"
                             >
                               <Clock className="h-3 w-3 mr-1" />
                               Praca
@@ -330,7 +330,7 @@ export function WeeklyScheduleView({ teamMembers, userRole }: WeeklyScheduleView
             <span>Dziś</span>
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant="default" className="text-xs bg-green-100 text-green-800 border-green-200">
+                              <Badge variant="default" className="text-xs bg-success/10 text-success border-success/20">
               Praca
             </Badge>
             <span>Dzień roboczy</span>

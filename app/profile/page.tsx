@@ -134,7 +134,7 @@ export default async function ProfilePage() {
                       
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-muted-foreground">Organizacja:</span>
-                        <span className="text-sm font-medium">
+                        <span className="text-sm font-medium text-foreground">
                           {profile.organizations?.name}
                         </span>
                       </div>
@@ -142,15 +142,15 @@ export default async function ProfilePage() {
                       {profile.employment_start_date && (
                         <div className="flex items-center justify-between">
                           <span className="text-sm text-muted-foreground">Data zatrudnienia:</span>
-                          <span className="text-sm">
+                          <span className="text-sm text-foreground">
                             {new Date(profile.employment_start_date).toLocaleDateString('pl-PL')}
                           </span>
                         </div>
                       )}
 
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Konto utworzone:</span>
-                        <span className="text-sm">
+                                              <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">Konto utworzone:</span>
+                          <span className="text-sm text-foreground">
                           {new Date(profile.created_at).toLocaleDateString('pl-PL')}
                         </span>
                       </div>
@@ -176,9 +176,9 @@ export default async function ProfilePage() {
                                 className="w-3 h-3 rounded-full"
                                 style={{ backgroundColor: balance.leave_types?.color }}
                               />
-                              <span className="text-sm">{balance.leave_types?.name}</span>
+                              <span className="text-sm text-foreground">{balance.leave_types?.name}</span>
                             </div>
-                            <span className="font-medium">
+                            <span className="font-medium text-foreground">
                               {balance.remaining_days} dni
                             </span>
                           </div>

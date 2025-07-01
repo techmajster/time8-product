@@ -272,7 +272,7 @@ export function ScheduleTemplateManager({ userRole }: ScheduleTemplateManagerPro
                       
                       <div className="space-y-1">
                         <p className="text-sm">
-                          <span className="font-medium">Dni robocze:</span> {getWorkingDays(template)}
+                          <span className="font-medium text-foreground">Dni robocze:</span> {getWorkingDays(template)}
                         </p>
                         
                         {template.schedule_type === 'fixed' && (

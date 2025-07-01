@@ -301,9 +301,9 @@ export function InputPropertiesPanel({
 
           {/* Current Configuration Display */}
           <div className="pt-3 mt-4 border-t">
-            <div className="text-xs text-gray-500 mb-2">Current Configuration:</div>
-            <div className="bg-gray-100 p-2 rounded-md">
-              <code className="text-xs text-gray-700 leading-relaxed">
+            <div className="text-xs text-muted-foreground mb-2">Current Configuration:</div>
+            <div className="bg-muted p-2 rounded-md">
+              <code className="text-xs text-foreground leading-relaxed">
                 {`<Input
   type="${properties.type}"
   placeholder="${properties.placeholder}"${properties.disabled ? '\n  disabled' : ''}${properties.required ? '\n  required' : ''}

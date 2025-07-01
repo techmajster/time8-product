@@ -262,15 +262,15 @@ export function EditEmployeeScheduleDialog({ employee, onScheduleUpdated, trigge
             <CardContent>
               <div className="grid grid-cols-3 gap-4">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">{stats.totalDays}</div>
+                  <div className="text-2xl font-bold text-info">{stats.totalDays}</div>
                   <div className="text-sm text-muted-foreground">Łączne dni</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">{stats.workingDays}</div>
+                  <div className="text-2xl font-bold text-success">{stats.workingDays}</div>
                   <div className="text-sm text-muted-foreground">Dni robocze</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-gray-600">{stats.nonWorkingDays}</div>
+                  <div className="text-2xl font-bold text-muted-foreground">{stats.nonWorkingDays}</div>
                   <div className="text-sm text-muted-foreground">Dni wolne</div>
                 </div>
               </div>
@@ -372,8 +372,8 @@ export function EditEmployeeScheduleDialog({ employee, onScheduleUpdated, trigge
                   </Select>
                 </div>
                 
-                <div className="bg-yellow-50 p-3 rounded border">
-                  <p className="text-sm text-yellow-800">
+                <div className="bg-warning/10 p-3 rounded border border-warning/20">
+                  <p className="text-sm text-warning-foreground">
                     ⚠️ Przypisanie szablonu zastąpi wszystkie istniejące harmonogramy dla tego pracownika.
                   </p>
                 </div>
@@ -475,9 +475,9 @@ export function EditEmployeeScheduleDialog({ employee, onScheduleUpdated, trigge
 
           {/* Danger Zone */}
           {schedules.length > 0 && (
-            <Card className="border-red-200">
+            <Card className="border-destructive/20">
               <CardHeader>
-                <CardTitle className="text-sm text-red-600">Strefa niebezpieczna</CardTitle>
+                <CardTitle className="text-sm text-destructive">Strefa niebezpieczna</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground mb-4">

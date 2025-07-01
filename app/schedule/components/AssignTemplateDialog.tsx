@@ -239,11 +239,11 @@ export function AssignTemplateDialog({ template, onAssignmentComplete, trigger }
 
           {/* Warning */}
           {selectedEmployees.length > 0 && (
-            <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+            <div className="bg-warning/10 p-4 rounded-lg border border-warning/20">
               <div className="flex items-start gap-2">
-                <div className="text-yellow-600 text-sm">⚠️</div>
-                <div className="text-sm text-yellow-800">
-                  <p className="font-medium mb-1">Uwaga!</p>
+                <div className="text-warning text-sm">⚠️</div>
+                <div className="text-sm text-warning-foreground">
+                                          <p className="font-medium text-foreground mb-1">Uwaga!</p>
                   <p>
                     Przypisanie szablonu do {selectedEmployees.length} pracowników zastąpi wszystkie ich 
                     istniejące harmonogramy. Ta akcja nie może zostać cofnięta.

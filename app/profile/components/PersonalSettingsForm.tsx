@@ -172,7 +172,7 @@ export function PersonalSettingsForm({ userId }: PersonalSettingsFormProps) {
               </p>
               
                               <div className="bg-muted/50 p-3 rounded border text-xs font-mono text-foreground mb-4">
-                <p className="mb-2 font-semibold">Uruchom ten SQL w Supabase SQL Editor:</p>
+                <p className="mb-2 font-semibold text-foreground">Uruchom ten SQL w Supabase SQL Editor:</p>
                 <pre className="whitespace-pre-wrap text-xs">CREATE TABLE user_settings (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES auth.users(id) UNIQUE NOT NULL,

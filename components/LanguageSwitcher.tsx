@@ -8,14 +8,26 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Languages } from 'lucide-react';
+import { Languages, ChevronDown } from 'lucide-react';
 import { type Locale } from '@/lib/i18n-utils';
+import { toast } from 'sonner';
 
 const languages = [
-  { code: 'pl' as Locale, name: 'Polski', flag: '🇵🇱' },
-  { code: 'en' as Locale, name: 'English', flag: '🇬🇧' },
+  { 
+    code: 'pl' as Locale, 
+    name: 'Polski', 
+    flag: '🇵🇱',
+    englishName: 'Polish'
+  },
+  { 
+    code: 'en' as Locale, 
+    name: 'English', 
+    flag: '🇬🇧',
+    englishName: 'English'
+  },
 ];
 
 export function LanguageSwitcher() {
@@ -28,9 +40,12 @@ export function LanguageSwitcher() {
   const switchLanguage = async (newLocale: Locale) => {
     if (newLocale === locale) return;
 
+    setIsOpen(false);
+
     startTransition(async () => {
       try {
-        // Set cookie for immediate locale change
+        console.log(`Switching language from ${locale} to ${newLocale}`);
+        
         const response = await fetch('/api/locale', {
           method: 'POST',
           headers: {
@@ -39,16 +54,27 @@ export function LanguageSwitcher() {
           body: JSON.stringify({ locale: newLocale }),
         });
 
+        console.log('Locale API response:', response.status, response.ok);
+
         if (response.ok) {
-          // Reload the page to apply the new locale
-          window.location.reload();
+          const data = await response.json();
+          console.log('Response data:', data);
+          
+          const languageName = languages.find(l => l.code === newLocale)?.name;
+          toast.success(`Language changed to ${languageName}`);
+          
+          // Refresh the current page to apply the new locale without changing URL
+          router.refresh();
+        } else {
+          const errorData = await response.json();
+          console.error('Language switch failed:', errorData);
+          toast.error('Failed to change language');
         }
       } catch (error) {
         console.error('Failed to switch language:', error);
+        toast.error('Failed to change language');
       }
     });
-
-    setIsOpen(false);
   };
 
   const currentLanguage = languages.find(lang => lang.code === locale);
@@ -57,34 +83,35 @@ export function LanguageSwitcher() {
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
           disabled={isPending}
-          className="w-auto h-8 px-2"
+          className="gap-2 h-8"
         >
-          <Languages className="h-4 w-4 mr-2" />
-          <span className="hidden sm:inline">
-            {currentLanguage?.flag} {currentLanguage?.name}
+          <span className="text-base">{currentLanguage?.flag}</span>
+          <span className="hidden sm:inline text-sm font-medium">
+            {currentLanguage?.name}
           </span>
-          <span className="sm:hidden">
-            {currentLanguage?.flag}
-          </span>
+          <ChevronDown className="h-3 w-3 opacity-50" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-40">
-        {languages.map((language) => (
-          <DropdownMenuItem
-            key={language.code}
-            onClick={() => switchLanguage(language.code)}
-            disabled={isPending || language.code === locale}
-            className="cursor-pointer"
-          >
-            <span className="mr-2">{language.flag}</span>
-            {language.name}
-            {language.code === locale && (
-              <span className="ml-auto text-xs opacity-60">✓</span>
-            )}
-          </DropdownMenuItem>
+      
+      <DropdownMenuContent align="end" className="w-48">
+        {languages.map((language, index) => (
+          <div key={language.code}>
+            <DropdownMenuItem
+              onClick={() => switchLanguage(language.code)}
+              disabled={isPending}
+              className="cursor-pointer gap-2 px-2 py-1.5"
+            >
+              <span className="text-base">{language.flag}</span>
+              <span className="text-sm font-medium">{language.name}</span>
+              {language.code === locale && (
+                <span className="ml-auto text-xs opacity-60">✓</span>
+              )}
+            </DropdownMenuItem>
+            {index < languages.length - 1 && <DropdownMenuSeparator />}
+          </div>
         ))}
       </DropdownMenuContent>
     </DropdownMenu>

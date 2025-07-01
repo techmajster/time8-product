@@ -977,7 +977,7 @@ export default function ThemeDemo() {
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                   <Button 
                     onClick={() => showSuccess("¡Success! Operation completed successfully!")}
-                    className="bg-green-600 hover:bg-green-700"
+                    className="bg-success hover:bg-success/90 text-success-foreground"
                   >
                     <CheckCircle2 className="w-4 h-4 mr-2" />
                     Success Toast
@@ -993,7 +993,7 @@ export default function ThemeDemo() {
                   
                   <Button 
                     onClick={() => showWarning("Warning! Please check your input.")}
-                    className="bg-yellow-600 hover:bg-yellow-700"
+                    className="bg-warning hover:bg-warning/90 text-warning-foreground"
                   >
                     <AlertTriangle className="w-4 h-4 mr-2" />
                     Warning Toast
@@ -1001,7 +1001,7 @@ export default function ThemeDemo() {
                   
                   <Button 
                     onClick={() => showInfo("Info: Here's some helpful information.")}
-                    className="bg-blue-600 hover:bg-blue-700"
+                    className="bg-info hover:bg-info/90 text-info-foreground"
                   >
                     <Info className="w-4 h-4 mr-2" />
                     Info Toast
@@ -1194,14 +1194,14 @@ export default function ThemeDemo() {
                 <div className="grid gap-4 md:grid-cols-2">
                   <Button 
                     onClick={leaveToasts.leaveRequestSubmitted}
-                    className="bg-green-600 hover:bg-green-700"
+                    className="bg-success hover:bg-success/90 text-success-foreground"
                   >
                     Leave Request Submitted
                   </Button>
                   
                   <Button 
                     onClick={leaveToasts.leaveRequestApproved}
-                    className="bg-blue-600 hover:bg-blue-700"
+                    className="bg-info hover:bg-info/90 text-info-foreground"
                   >
                     Leave Approved
                   </Button>
@@ -1215,7 +1215,7 @@ export default function ThemeDemo() {
                   
                   <Button 
                     onClick={() => leaveToasts.pendingApprovals(3)}
-                    className="bg-yellow-600 hover:bg-yellow-700"
+                    className="bg-warning hover:bg-warning/90 text-warning-foreground"
                   >
                     Pending Reviews
                   </Button>

@@ -1,43 +1,45 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { ThemeProvider } from "@/components/theme-provider";
-import { Toaster } from "@/components/ui/sonner";
 import { NextIntlClientProvider } from 'next-intl';
-import { getMessages } from 'next-intl/server';
-import { getUserLocale } from '@/lib/i18n-utils';
+import { getMessages, getLocale } from 'next-intl/server';
+import { Toaster } from "@/components/ui/sonner";
+import { ThemeProvider } from "@/components/theme-provider";
 
-const inter = Inter({ subsets: ["latin"] });
+const geist = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
 
-export const metadata: Metadata = {
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+export const metadata = {
   title: "System Zarządzania Urlopami",
   description: "Uspraw zarządzanie urlopami w swojej organizacji dzięki naszemu kompleksowemu rozwiązaniu SaaS",
 };
 
 export default async function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
-  // Get the user's preferred locale
-  const locale = await getUserLocale();
-  
-  // Get messages for the detected locale
-  const messages = await getMessages({ locale });
+}) {
+  const locale = await getLocale();
+  const messages = await getMessages();
 
   return (
     <html lang={locale} suppressHydrationWarning>
-      <body className={inter.className}>
-        <NextIntlClientProvider messages={messages} locale={locale}>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-          >
-            {children}
-            <Toaster />
-          </ThemeProvider>
-        </NextIntlClientProvider>
+      <body className={`${geist.variable} ${geistMono.variable}`}>
+        <ThemeProvider>
+          <NextIntlClientProvider 
+            locale={locale} 
+            messages={messages}
+            >
+              {children}
+              <Toaster />
+          </NextIntlClientProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

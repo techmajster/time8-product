@@ -1,14 +1,11 @@
 import { AppLayout } from '@/components/app-layout'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { LeaveBalanceCard } from '../leave/components/LeaveBalanceCard'
-import { getTranslations } from 'next-intl/server'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { PageHeader } from '@/components/ui/page-header'
+import { Calendar, Users, Clock, TrendingUp } from 'lucide-react'
 
 export default async function DashboardPage() {
-  const t = await getTranslations('dashboard')
-  const tCommon = await getTranslations('common')
-  
   const supabase = await createClient()
   
   const { data: { user } } = await supabase.auth.getUser()
@@ -24,8 +21,7 @@ export default async function DashboardPage() {
       *,
       organizations (
         id,
-        name,
-        subscription_tier
+        name
       )
     `)
     .eq('id', user.id)
@@ -35,111 +31,131 @@ export default async function DashboardPage() {
     redirect('/onboarding')
   }
 
-  // Get leave balances for current user
-  const { data: leaveBalances } = await supabase
-    .from('leave_balances')
-    .select(`
-      *,
-      leave_types (
-        name,
-        color
-      )
-    `)
-    .eq('user_id', user.id)
-    .eq('year', new Date().getFullYear())
-
-  // Get team count for organization
-  const { count: teamCount } = await supabase
-    .from('profiles')
-    .select('*', { count: 'exact', head: true })
-    .eq('organization_id', profile.organization_id)
-
-  // Get pending leave requests count
-  const { count: pendingRequestsCount } = await supabase
-    .from('leave_requests')
-    .select('*', { count: 'exact', head: true })
-    .eq('organization_id', profile.organization_id)
-    .eq('status', 'pending')
-
-  // Calculate vacation balance for quick display
-  const vacationBalance = leaveBalances?.find(b => b.leave_types?.name === 'Urlop wypoczynkowy')
-
   return (
     <AppLayout>
-      <div className="min-h-screen bg-background">
-        <div className="p-6 lg:p-8">
-          <div className="max-w-7xl mx-auto">
-            {/* Two-column layout */}
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-              {/* Main content - Left column (3/4 width) */}
-              <div className="lg:col-span-3">
-                {/* Header */}
-                <div className="mb-8">
-                  <h1 className="text-2xl font-semibold text-foreground">{t('title')}</h1>
-                  <p className="text-muted-foreground mt-1">{t('welcome')}, {profile.full_name || user.email}</p>
+      <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+        <PageHeader
+          title={`Welcome back, ${profile.full_name || user.email?.split('@')[0] || 'User'}!`}
+          description="Here's an overview of your leave management dashboard"
+        />
+        
+        <div className="grid auto-rows-min gap-4 md:grid-cols-3">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Pending Requests
+              </CardTitle>
+              <Clock className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">3</div>
+              <p className="text-xs text-muted-foreground">
+                Awaiting approval
+              </p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Team Members
+              </CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">12</div>
+              <p className="text-xs text-muted-foreground">
+                In your organization
+              </p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Available Days
+              </CardTitle>
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">18</div>
+              <p className="text-xs text-muted-foreground">
+                Remaining this year
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+        
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Activity</CardTitle>
+              <CardDescription>
+                Your latest leave requests and updates
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center space-x-4">
+                  <div className="flex h-2 w-2 bg-green-500 rounded-full" />
+                  <div className="flex-1 space-y-1">
+                    <p className="text-sm font-medium leading-none">
+                      Annual leave approved
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      March 15-19, 2024
+                    </p>
+                  </div>
                 </div>
-
-                {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                  {/* Leave Balance Card */}
-                  <Card className="bg-card border-border shadow-sm">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium text-muted-foreground">{t('leaveBalance')}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      {vacationBalance ? (
-                        <>
-                          <div className="text-2xl font-bold text-foreground">
-                            {vacationBalance.remaining_days} {t('days')}
-                          </div>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {t('remainingThisYear')}
-                          </p>
-                        </>
-                      ) : (
-                        <div className="text-sm text-muted-foreground">{t('noData')}</div>
-                      )}
-                    </CardContent>
-                  </Card>
-
-                  {/* Team Members Card */}
-                  <Card className="bg-card border-border shadow-sm">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium text-muted-foreground">{t('team')}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold text-foreground">{teamCount || 0}</div>
-                      <p className="text-xs text-muted-foreground mt-1">{t('organizationMembers')}</p>
-                    </CardContent>
-                  </Card>
-
-                  {/* Pending Requests Card - only for managers/admins */}
-                  {profile.role === 'admin' && (
-                    <Card className="bg-card border-border shadow-sm">
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">{t('pendingRequests')}</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-2xl font-bold text-foreground">{pendingRequestsCount || 0}</div>
-                        <p className="text-xs text-muted-foreground mt-1">{t('toApprove')}</p>
-                      </CardContent>
-                    </Card>
-                  )}
-                </div>
-                </div>
-
-              {/* Right column - Leave Balance */}
-              <div className="lg:col-span-1">
-                <div className="sticky top-6">
-                  <LeaveBalanceCard 
-                    leaveBalances={leaveBalances || []} 
-                    showDetails={true} 
-                    displayMode="vertical"
-                  />
+                <div className="flex items-center space-x-4">
+                  <div className="flex h-2 w-2 bg-yellow-500 rounded-full" />
+                  <div className="flex-1 space-y-1">
+                    <p className="text-sm font-medium leading-none">
+                      Sick leave pending
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Submitted 2 hours ago
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Team Calendar</CardTitle>
+              <CardDescription>
+                Upcoming team leave and holidays
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center space-x-4">
+                  <div className="flex h-2 w-2 bg-blue-500 rounded-full" />
+                  <div className="flex-1 space-y-1">
+                    <p className="text-sm font-medium leading-none">
+                      John Smith - Annual Leave
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Tomorrow - Friday
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-4">
+                  <div className="flex h-2 w-2 bg-purple-500 rounded-full" />
+                  <div className="flex-1 space-y-1">
+                    <p className="text-sm font-medium leading-none">
+                      Easter Holiday
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      April 1-2, 2024
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </AppLayout>
