@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { format } from "date-fns"
-import { Calendar as CalendarIcon, ChevronDownIcon } from "lucide-react"
+import { CalendarIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/popover"
 
 interface DatePickerProps {
+  value?: Date
   date?: Date
   onDateChange?: (date: Date | undefined) => void
   placeholder?: string
@@ -22,95 +23,39 @@ interface DatePickerProps {
 }
 
 export function DatePicker({ 
+  value, 
   date, 
   onDateChange, 
   placeholder = "Pick a date", 
   disabled = false,
   className 
 }: DatePickerProps) {
+  // Support both 'value' and 'date' props for compatibility
+  const selectedDate = value || date
   return (
     <Popover>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
-          disabled={disabled}
-          data-empty={!date}
           className={cn(
-            "data-[empty=true]:text-muted-foreground w-[280px] justify-start text-left font-normal border-input-border bg-background",
+            "w-full justify-start text-left font-normal",
+            !selectedDate && "text-muted-foreground",
             className
           )}
-        >
-          <CalendarIcon />
-          {date ? format(date, "PPP") : <span>{placeholder}</span>}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-auto p-0">
-        <Calendar 
-          mode="single" 
-          selected={date} 
-          onSelect={onDateChange} 
-          initialFocus
-          disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-        />
-      </PopoverContent>
-    </Popover>
-  )
-}
-
-// Date Picker with dropdown year/month navigation (like official shadcn example)
-export function DatePickerWithDropdown({ 
-  date, 
-  onDateChange, 
-  placeholder = "Select date", 
-  disabled = false,
-  className 
-}: DatePickerProps) {
-  const [open, setOpen] = React.useState(false)
-
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
           disabled={disabled}
-          className={cn(
-            "w-48 justify-between font-normal border-input-border bg-background",
-            !date && "text-muted-foreground",
-            className
-          )}
         >
-          {date ? format(date, "dd.MM.yyyy") : placeholder}
-          <ChevronDownIcon className="h-4 w-4" />
+          <CalendarIcon className="mr-2 h-4 w-4" />
+          {selectedDate ? format(selectedDate, "PPP") : <span>{placeholder}</span>}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto overflow-hidden p-0" align="start">
+      <PopoverContent className="w-auto p-0" align="start">
         <Calendar
           mode="single"
-          selected={date}
-          onSelect={(date) => {
-            onDateChange?.(date)
-            setOpen(false)
-          }}
-          captionLayout="dropdown"
-          className="shadow-sm"
-          disabled={(date) =>
-            date > new Date() || date < new Date("1900-01-01")
-          }
+          selected={selectedDate}
+          onSelect={onDateChange}
+          initialFocus
         />
       </PopoverContent>
     </Popover>
-  )
-}
-
-// Also export a demo component for reference
-export function DatePickerDemo() {
-  const [date, setDate] = React.useState<Date>()
-
-  return (
-    <DatePicker
-      date={date}
-      onDateChange={setDate}
-      placeholder="Pick a date"
-    />
   )
 } 

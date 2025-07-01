@@ -8,7 +8,6 @@ import { Switch } from '@/components/ui/switch'
 import { Loader2, Save, Bell, Mail, Calendar, Moon } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { useUserTheme } from '@/hooks/use-user-theme'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 interface PersonalSettingsFormProps {
@@ -36,7 +35,6 @@ export function PersonalSettingsForm({ userId }: PersonalSettingsFormProps) {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [tableExists, setTableExists] = useState(true)
-  const { updateUserTheme } = useUserTheme(userId)
   const [settings, setSettings] = useState<UserSettings>({
     user_id: userId,
     email_notifications: true,
@@ -333,19 +331,9 @@ CREATE POLICY "Users can manage own settings" ON user_settings
             <Switch
               id="dark_mode"
               checked={settings.dark_mode}
-              onCheckedChange={async (checked) => {
-                try {
-                  // Update theme immediately
-                  await updateUserTheme(checked)
+              onCheckedChange={(checked) => {
                   // Update local state
                   setSettings(prev => ({ ...prev, dark_mode: checked }))
-                  setSuccess('Motyw został zaktualizowany!')
-                  setTimeout(() => setSuccess(null), 3000)
-                } catch (error) {
-                  console.error('Error updating theme:', error)
-                  setError('Błąd podczas zmiany motywu')
-                  setTimeout(() => setError(null), 5000)
-                }
               }}
               disabled={loading}
             />

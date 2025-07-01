@@ -1,6 +1,5 @@
 import { notFound } from 'next/navigation';
 import { getRequestConfig } from 'next-intl/server';
-import { cookies } from 'next/headers';
 import { getUserLocale } from '@/lib/i18n-utils';
 
 // Our supported locales
@@ -11,7 +10,19 @@ export const defaultLocale: Locale = 'pl';
 
 export default getRequestConfig(async () => {
   // Get the user's preferred locale using our hierarchy
-  const locale = await getUserLocale();
+  let locale: Locale;
+  
+  try {
+    locale = await getUserLocale();
+  } catch (error) {
+    console.error('Error getting user locale:', error);
+    locale = defaultLocale;
+  }
+
+  // Validate locale
+  if (!locales.includes(locale)) {
+    locale = defaultLocale;
+  }
 
   return {
     locale,
