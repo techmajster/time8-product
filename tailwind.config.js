@@ -69,18 +69,29 @@ module.exports = {
   				border: 'hsl(var(--sidebar-border))',
   				ring: 'hsl(var(--sidebar-ring))'
   			},
-  			success: {
-  				DEFAULT: 'hsl(var(--success))',
-  				foreground: 'hsl(var(--success-foreground))'
-  			},
-  			warning: {
-  				DEFAULT: 'hsl(var(--warning))',
-  				foreground: 'hsl(var(--warning-foreground))'
-  			},
-  						info: {
+  						success: {
+				DEFAULT: 'hsl(var(--success))',
+				foreground: 'hsl(var(--success-foreground))'
+			},
+			warning: {
+				DEFAULT: 'hsl(var(--warning))',
+				foreground: 'hsl(var(--warning-foreground))'
+			},
+			info: {
 				DEFAULT: 'hsl(var(--info))',
 				foreground: 'hsl(var(--info-foreground))'
 			},
+			'accent-success': 'hsl(var(--accent-success))',
+			'accent-warning': 'hsl(var(--accent-warning))',
+			'accent-info': 'hsl(var(--accent-info))',
+			'accent-destructive': 'hsl(var(--accent-destructive))',
+			'surface-primary': 'hsl(var(--surface-primary))',
+			'surface-secondary': 'hsl(var(--surface-secondary))',
+			'surface-tertiary': 'hsl(var(--surface-tertiary))',
+			'border-success': 'hsl(var(--border-success))',
+			'border-warning': 'hsl(var(--border-warning))',
+			'border-info': 'hsl(var(--border-info))',
+			'border-destructive': 'hsl(var(--border-destructive))',
 			text: {
 				primary: 'hsl(var(--text-primary))',
 				secondary: 'hsl(var(--text-secondary))',
@@ -113,7 +124,39 @@ module.exports = {
   			mono: [
   				'var(--font-mono)',
   				'monospace'
+  			],
+  			display: [
+  				'var(--font-display)',
+  				'sans-serif'
   			]
+  		},
+  		fontSize: {
+  			'type-xs': 'var(--type-xs)',
+  			'type-sm': 'var(--type-sm)',
+  			'type-base': 'var(--type-base)',
+  			'type-lg': 'var(--type-lg)',
+  			'type-xl': 'var(--type-xl)',
+  			'type-2xl': 'var(--type-2xl)',
+  			'type-3xl': 'var(--type-3xl)',
+  			'type-4xl': 'var(--type-4xl)',
+  			'type-5xl': 'var(--type-5xl)',
+  			'type-6xl': 'var(--type-6xl)'
+  		},
+  		lineHeight: {
+  			'none': 'var(--leading-none)',
+  			'tight': 'var(--leading-tight)',
+  			'snug': 'var(--leading-snug)',
+  			'normal': 'var(--leading-normal)',
+  			'relaxed': 'var(--leading-relaxed)',
+  			'loose': 'var(--leading-loose)'
+  		},
+  		letterSpacing: {
+  			'tighter': 'var(--tracking-tighter)',
+  			'tight': 'var(--tracking-tight)',
+  			'normal': 'var(--tracking-normal)',
+  			'wide': 'var(--tracking-wide)',
+  			'wider': 'var(--tracking-wider)',
+  			'widest': 'var(--tracking-widest)'
   		},
   		boxShadow: {
   			'2xs': 'var(--shadow-2xs)',

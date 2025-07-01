@@ -603,7 +603,7 @@ export function LeaveBalanceManager({
                   <div className="flex items-center gap-3">
                     <div>
                       <div className="flex items-center gap-2">
-                        <p className="font-medium">
+                        <p className="font-medium text-foreground">
                           {userBalance.user.full_name || userBalance.user.email}
                         </p>
                         <Badge variant="outline" className="text-xs">
@@ -688,11 +688,11 @@ export function LeaveBalanceManager({
                         <div className="grid grid-cols-3 gap-2 text-xs">
                           <div>
                             <p className="text-muted-foreground">Przyznane</p>
-                            <p className="font-medium">{balance.allocated_days}</p>
+                            <p className="font-medium text-foreground">{balance.allocated_days}</p>
                           </div>
                           <div>
                             <p className="text-muted-foreground">Użyte</p>
-                            <p className="font-medium">{balance.used_days}</p>
+                            <p className="font-medium text-foreground">{balance.used_days}</p>
                           </div>
                           <div>
                             <p className="text-muted-foreground">Pozostałe</p>

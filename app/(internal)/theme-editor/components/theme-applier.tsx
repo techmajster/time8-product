@@ -23,9 +23,31 @@ interface DesignSystemTokens {
         'warning-foreground': string;
         info: string;
         'info-foreground': string;
+        'accent-success': string;
+        'accent-warning': string;
+        'accent-info': string;
+        'accent-destructive': string;
+        'surface-primary': string;
+        'surface-secondary': string;
+        'surface-tertiary': string;
+        'border-success': string;
+        'border-warning': string;
+        'border-info': string;
+        'border-destructive': string;
         border: string;
         input: string;
+        'input-border': string;
         ring: string;
+        'text-primary': string;
+        'text-secondary': string;
+        'text-tertiary': string;
+        'text-disabled': string;
+        'text-inverse': string;
+        'text-link': string;
+        'text-link-hover': string;
+        'text-placeholder': string;
+        'heading-primary': string;
+        'heading-secondary': string;
       };
       dark: {
         background: string;
@@ -46,9 +68,31 @@ interface DesignSystemTokens {
         'warning-foreground': string;
         info: string;
         'info-foreground': string;
+        'accent-success': string;
+        'accent-warning': string;
+        'accent-info': string;
+        'accent-destructive': string;
+        'surface-primary': string;
+        'surface-secondary': string;
+        'surface-tertiary': string;
+        'border-success': string;
+        'border-warning': string;
+        'border-info': string;
+        'border-destructive': string;
         border: string;
         input: string;
+        'input-border': string;
         ring: string;
+        'text-primary': string;
+        'text-secondary': string;
+        'text-tertiary': string;
+        'text-disabled': string;
+        'text-inverse': string;
+        'text-link': string;
+        'text-link-hover': string;
+        'text-placeholder': string;
+        'heading-primary': string;
+        'heading-secondary': string;
       };
     };
   };
@@ -379,13 +423,6 @@ export function exportAsTailwindConfig(tokens: DesignSystemTokens | SimpleTokens
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)'
-      },
-      fontSize: {
-        xs: '${tokens.typography?.fontSize.xs ? tokens.typography.fontSize.xs / 16 : 0.75}rem',
-        sm: '${tokens.typography?.fontSize.sm ? tokens.typography.fontSize.sm / 16 : 0.875}rem',
-        base: '${tokens.typography?.fontSize.base ? tokens.typography.fontSize.base / 16 : 1}rem',
-        lg: '${tokens.typography?.fontSize.lg ? tokens.typography.fontSize.lg / 16 : 1.125}rem',
-        xl: '${tokens.typography?.fontSize.xl ? tokens.typography.fontSize.xl / 16 : 1.25}rem',
       },
       spacing: {
         xs: '${tokens.spacing?.xs ? tokens.spacing.xs / 16 : 0.25}rem',

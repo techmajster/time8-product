@@ -72,7 +72,7 @@ export default function ForgotPasswordPage() {
 
           {message && (
             <div className="text-sm text-muted-foreground space-y-2 bg-muted p-3 rounded-md">
-              <p className="font-medium">Next steps:</p>
+              <p className="font-medium text-foreground">Next steps:</p>
               <ol className="list-decimal list-inside space-y-1 text-sm">
                 <li>Check your email inbox</li>
                 <li>Click the reset link in the email</li>

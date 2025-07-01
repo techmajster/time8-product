@@ -411,7 +411,7 @@ export function ScheduleManager({ teamMembers, userRole }: ScheduleManagerProps)
                               </AvatarFallback>
                             </Avatar>
                             <div>
-                              <div className="font-medium">{info.employee.full_name}</div>
+                              <div className="font-medium text-foreground">{info.employee.full_name}</div>
                               <div className="text-sm text-muted-foreground">{info.employee.email}</div>
                             </div>
                           </div>

@@ -14,6 +14,8 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTr
 import { Palette, Square, Type, Move, Moon, Sun, Eye, EyeOff, Settings } from 'lucide-react';
 import { toast } from 'sonner';
 import { ColorPicker } from '../components/editors/ColorPicker';
+import { AdvancedColorTools } from '../components/AdvancedColorTools';
+
 
 // Enhanced Design system tokens interface with separate light/dark colors
 interface DesignSystemTokens {
@@ -38,6 +40,17 @@ interface DesignSystemTokens {
         'warning-foreground': string;
         info: string;
         'info-foreground': string;
+        'accent-success': string;
+        'accent-warning': string;
+        'accent-info': string;
+        'accent-destructive': string;
+        'surface-primary': string;
+        'surface-secondary': string;
+        'surface-tertiary': string;
+        'border-success': string;
+        'border-warning': string;
+        'border-info': string;
+        'border-destructive': string;
         border: string;
         input: string;
         'input-border': string;
@@ -72,6 +85,17 @@ interface DesignSystemTokens {
         'warning-foreground': string;
         info: string;
         'info-foreground': string;
+        'accent-success': string;
+        'accent-warning': string;
+        'accent-info': string;
+        'accent-destructive': string;
+        'surface-primary': string;
+        'surface-secondary': string;
+        'surface-tertiary': string;
+        'border-success': string;
+        'border-warning': string;
+        'border-info': string;
+        'border-destructive': string;
         border: string;
         input: string;
         'input-border': string;
@@ -234,7 +258,7 @@ const getCurrentThemeFromDOM = (): DesignSystemTokens => {
   const root = document.documentElement;
   const computedStyle = getComputedStyle(root);
   
-  // Helper to get CSS variable value and convert to HSL format
+  // Helper to get CSS variable value and convert to HSL format (for colors)
   const getCSSVar = (name: string): string => {
     const value = computedStyle.getPropertyValue(`--${name}`).trim();
     if (value) {
@@ -243,6 +267,8 @@ const getCurrentThemeFromDOM = (): DesignSystemTokens => {
     }
     return getFallbackColor(name);
   };
+
+
 
   // Get current radius value
   const radiusValue = computedStyle.getPropertyValue('--radius').trim();
@@ -270,6 +296,17 @@ const getCurrentThemeFromDOM = (): DesignSystemTokens => {
           'warning-foreground': getCSSVar('warning-foreground'),
           info: getCSSVar('info'),
           'info-foreground': getCSSVar('info-foreground'),
+          'accent-success': getCSSVar('accent-success'),
+          'accent-warning': getCSSVar('accent-warning'),
+          'accent-info': getCSSVar('accent-info'),
+          'accent-destructive': getCSSVar('accent-destructive'),
+          'surface-primary': getCSSVar('surface-primary'),
+          'surface-secondary': getCSSVar('surface-secondary'),
+          'surface-tertiary': getCSSVar('surface-tertiary'),
+          'border-success': getCSSVar('border-success'),
+          'border-warning': getCSSVar('border-warning'),
+          'border-info': getCSSVar('border-info'),
+          'border-destructive': getCSSVar('border-destructive'),
           border: getCSSVar('border'),
           input: getCSSVar('input'),
           'input-border': getCSSVar('input-border') || getCSSVar('border'),
@@ -305,6 +342,17 @@ const getCurrentThemeFromDOM = (): DesignSystemTokens => {
           'warning-foreground': getCSSVar('warning-foreground'),
           info: getCSSVar('info'),
           'info-foreground': generateDarkModeVariant(getCSSVar('info-foreground')),
+          'accent-success': getCSSVar('accent-success'),
+          'accent-warning': getCSSVar('accent-warning'),
+          'accent-info': getCSSVar('accent-info'),
+          'accent-destructive': getCSSVar('accent-destructive'),
+          'surface-primary': getCSSVar('surface-primary'),
+          'surface-secondary': getCSSVar('surface-secondary'),
+          'surface-tertiary': getCSSVar('surface-tertiary'),
+          'border-success': getCSSVar('border-success'),
+          'border-warning': getCSSVar('border-warning'),
+          'border-info': getCSSVar('border-info'),
+          'border-destructive': getCSSVar('border-destructive'),
           border: generateDarkModeVariant(getCSSVar('border')),
           input: generateDarkModeVariant(getCSSVar('input')),
           'input-border': getCSSVar('input-border') ? generateDarkModeVariant(getCSSVar('input-border')) : generateDarkModeVariant(getCSSVar('border')),
@@ -421,6 +469,17 @@ const getFallbackTokens = (): DesignSystemTokens => {
           'warning-foreground': 'hsl(26, 83%, 14%)',
           info: 'hsl(200, 89%, 48%)',
           'info-foreground': 'hsl(0, 0%, 100%)',
+          'accent-success': 'hsl(142, 76%, 40%)',
+          'accent-warning': 'hsl(48, 96%, 56%)',
+          'accent-info': 'hsl(200, 89%, 52%)',
+          'accent-destructive': 'hsl(0, 84%, 64%)',
+          'surface-primary': 'hsl(0, 0%, 98%)',
+          'surface-secondary': 'hsl(240, 6%, 96%)',
+          'surface-tertiary': 'hsl(240, 4%, 94%)',
+          'border-success': 'hsl(142, 76%, 36%)',
+          'border-warning': 'hsl(48, 96%, 53%)',
+          'border-info': 'hsl(200, 89%, 48%)',
+          'border-destructive': 'hsl(0, 84%, 60%)',
           border: 'hsl(240, 6%, 87%)',
           input: 'hsl(0, 0%, 100%)',
           'input-border': 'hsl(240, 6%, 87%)',
@@ -455,6 +514,17 @@ const getFallbackTokens = (): DesignSystemTokens => {
           'warning-foreground': 'hsl(26, 83%, 14%)',
           info: 'hsl(200, 89%, 48%)',
           'info-foreground': 'hsl(0, 0%, 100%)',
+          'accent-success': 'hsl(142, 76%, 40%)',
+          'accent-warning': 'hsl(48, 96%, 56%)',
+          'accent-info': 'hsl(200, 89%, 52%)',
+          'accent-destructive': 'hsl(0, 84%, 64%)',
+          'surface-primary': 'hsl(240, 6%, 12%)',
+          'surface-secondary': 'hsl(240, 4%, 16%)',
+          'surface-tertiary': 'hsl(240, 4%, 20%)',
+          'border-success': 'hsl(142, 76%, 36%)',
+          'border-warning': 'hsl(48, 96%, 53%)',
+          'border-info': 'hsl(200, 89%, 48%)',
+          'border-destructive': 'hsl(0, 84%, 60%)',
           border: 'hsl(240, 8%, 42%)',
           input: 'hsl(240, 10%, 25%)',
           'input-border': 'hsl(240, 8%, 42%)',
@@ -586,7 +656,7 @@ export default function ThemeEditorPage() {
       // Use the appropriate color set based on dark mode
       const colorSet = isDarkMode ? tokens.colors.semantic.dark : tokens.colors.semantic.light;
       
-      // Create a temporary token structure for the applier
+      // Create a temporary token structure for the applier with full tokens including fonts
       const previewTokens = {
         ...tokens,
         colors: {
@@ -594,6 +664,7 @@ export default function ThemeEditorPage() {
         }
       };
       
+      console.log('🎨 Applying theme preview');
       applyThemePreview(previewTokens, false); // Don't auto-generate since we're using manual colors
     }
   }, [tokens, isDarkMode, isRealTimePreview]);
@@ -686,6 +757,10 @@ export default function ThemeEditorPage() {
     }));
   };
 
+
+
+
+
   const toggleDarkMode = () => {
     setIsDarkMode(!isDarkMode);
   };
@@ -722,7 +797,7 @@ export default function ThemeEditorPage() {
       const savedTheme = await response.json();
       setCurrentThemeId(savedTheme.id);
 
-      // Apply the current preview
+      // Apply the current preview with full token data including fonts
       const colorSet = isDarkMode ? tokens.colors.semantic.dark : tokens.colors.semantic.light;
       const previewTokens = {
         ...tokens,
@@ -731,6 +806,7 @@ export default function ThemeEditorPage() {
         }
       };
       
+      console.log('📝 Applying saved theme');
       applyThemePreview(previewTokens, false);
       toast.success('Theme saved and applied to design system!');
     } catch (error) {
@@ -810,8 +886,6 @@ export default function ThemeEditorPage() {
       toast.error('Error applying theme globally: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
   };
-
-
 
   const handleApplyLoadedTheme = async (loadedTokens: any, themeId?: string) => {
     try {
@@ -958,10 +1032,7 @@ export default function ThemeEditorPage() {
           </div>
         </div>
 
-
       </div>
-
-
 
       {/* Main Content */}
       <div className="space-y-12">
@@ -1010,12 +1081,12 @@ export default function ThemeEditorPage() {
                 </div>
 
                 <TabsContent value="light" className="space-y-8">
-                  {/* UI Component Colors */}
+                  {/* Base UI Colors */}
                   <div>
-                    <h3 className="text-lg font-semibold mb-4">UI Component Colors</h3>
+                    <h3 className="text-lg font-semibold mb-4">Base UI Colors</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {Object.entries(tokens.colors.semantic.light)
-                        .filter(([key]) => !key.startsWith('text-') && !key.startsWith('heading-'))
+                        .filter(([key]) => ['background', 'foreground', 'primary', 'primary-foreground', 'secondary', 'secondary-foreground', 'muted', 'muted-foreground', 'accent', 'accent-foreground', 'border', 'input', 'input-border', 'ring'].includes(key))
                         .map(([key, value]) => (
                           <ColorPicker
                             key={key}
@@ -1023,6 +1094,42 @@ export default function ThemeEditorPage() {
                             value={value}
                             onChange={(newValue) => updateLightColor(key, newValue)}
                             description={`${key} color (light mode)`}
+                          />
+                        ))}
+                    </div>
+                  </div>
+
+                  {/* Status Colors */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">Status Colors</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {Object.entries(tokens.colors.semantic.light)
+                        .filter(([key]) => ['destructive', 'destructive-foreground', 'success', 'success-foreground', 'warning', 'warning-foreground', 'info', 'info-foreground'].includes(key))
+                        .map(([key, value]) => (
+                          <ColorPicker
+                            key={key}
+                            label={key.replace('-', ' ')}
+                            value={value}
+                            onChange={(newValue) => updateLightColor(key, newValue)}
+                            description={`${key} color (light mode)`}
+                          />
+                        ))}
+                    </div>
+                  </div>
+
+                  {/* Extended Semantic Colors */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">Extended Semantic Colors</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {Object.entries(tokens.colors.semantic.light)
+                        .filter(([key]) => key.startsWith('accent-') || key.startsWith('surface-') || key.startsWith('border-'))
+                        .map(([key, value]) => (
+                          <ColorPicker
+                            key={key}
+                            label={key.replace('-', ' ')}
+                            value={value}
+                            onChange={(newValue) => updateLightColor(key, newValue)}
+                            description={`${key} color for enhanced design system`}
                           />
                         ))}
                     </div>
@@ -1048,12 +1155,12 @@ export default function ThemeEditorPage() {
                 </TabsContent>
 
                 <TabsContent value="dark" className="space-y-8">
-                  {/* UI Component Colors */}
+                  {/* Base UI Colors */}
                   <div>
-                    <h3 className="text-lg font-semibold mb-4">UI Component Colors</h3>
+                    <h3 className="text-lg font-semibold mb-4">Base UI Colors</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {Object.entries(tokens.colors.semantic.dark)
-                        .filter(([key]) => !key.startsWith('text-') && !key.startsWith('heading-'))
+                        .filter(([key]) => ['background', 'foreground', 'primary', 'primary-foreground', 'secondary', 'secondary-foreground', 'muted', 'muted-foreground', 'accent', 'accent-foreground', 'border', 'input', 'input-border', 'ring'].includes(key))
                         .map(([key, value]) => (
                           <ColorPicker
                             key={key}
@@ -1061,6 +1168,42 @@ export default function ThemeEditorPage() {
                             value={value}
                             onChange={(newValue) => updateDarkColor(key, newValue)}
                             description={`${key} color (dark mode)`}
+                          />
+                        ))}
+                    </div>
+                  </div>
+
+                  {/* Status Colors */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">Status Colors</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {Object.entries(tokens.colors.semantic.dark)
+                        .filter(([key]) => ['destructive', 'destructive-foreground', 'success', 'success-foreground', 'warning', 'warning-foreground', 'info', 'info-foreground'].includes(key))
+                        .map(([key, value]) => (
+                          <ColorPicker
+                            key={key}
+                            label={key.replace('-', ' ')}
+                            value={value}
+                            onChange={(newValue) => updateDarkColor(key, newValue)}
+                            description={`${key} color (dark mode)`}
+                          />
+                        ))}
+                    </div>
+                  </div>
+
+                  {/* Extended Semantic Colors */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">Extended Semantic Colors</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {Object.entries(tokens.colors.semantic.dark)
+                        .filter(([key]) => key.startsWith('accent-') || key.startsWith('surface-') || key.startsWith('border-'))
+                        .map(([key, value]) => (
+                          <ColorPicker
+                            key={key}
+                            label={key.replace('-', ' ')}
+                            value={value}
+                            onChange={(newValue) => updateDarkColor(key, newValue)}
+                            description={`${key} color for enhanced design system`}
                           />
                         ))}
                     </div>
@@ -1085,6 +1228,32 @@ export default function ThemeEditorPage() {
                   </div>
                 </TabsContent>
               </Tabs>
+
+              {/* Advanced Color Tools */}
+              <div className="mt-8 pt-8 border-t">
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold mb-2">Advanced Color Tools</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Color harmony generation, accessibility checking, and extended color management
+                  </p>
+                </div>
+                <AdvancedColorTools 
+                  currentColors={isDarkMode ? tokens.colors.semantic.dark : tokens.colors.semantic.light}
+                  onColorsChange={(colors) => {
+                    // Apply the colors to the current mode
+                    if (isDarkMode) {
+                      Object.entries(colors).forEach(([key, value]) => {
+                        updateDarkColor(key, value);
+                      });
+                    } else {
+                      Object.entries(colors).forEach(([key, value]) => {
+                        updateLightColor(key, value);
+                      });
+                    }
+                  }}
+                  isDarkMode={isDarkMode}
+                />
+              </div>
             </CardContent>
           </Card>
         </section>
@@ -1134,42 +1303,20 @@ export default function ThemeEditorPage() {
         {/* Typography Section */}
         <section id="typography" className="space-y-6">
           <div>
-            <h2 className="text-2xl font-bold mb-2">Typography</h2>
-            <p className="text-muted-foreground">Font size scale for consistent text hierarchy</p>
+            <h2 className="text-2xl font-bold mb-2">Typography System</h2>
+            <p className="text-muted-foreground">Font management, typography scale, and spacing controls</p>
           </div>
-
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Type className="w-5 h-5" />
-                Font Size Scale
-              </CardTitle>
-              <CardDescription>
-                Base font sizes used throughout your design system
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-                {Object.entries(tokens.typography.fontSize).map(([key, value]) => (
-                  <div key={key} className="space-y-2">
-                    <Label htmlFor={`font-${key}`} className="text-sm font-medium capitalize">
-                      {key} ({value}px)
-                    </Label>
-                    <Input
-                      id={`font-${key}`}
-                      type="number"
-                      value={value}
-                      onChange={(e) => updateTypography(key, parseInt(e.target.value) || 0)}
-                      className="w-full"
-                    />
-                    <div 
-                      className="text-foreground"
-                      style={{ fontSize: `${value}px` }}
-                    >
-                      Sample Text
-                    </div>
-                  </div>
-                ))}
+            <CardContent className="p-8">
+              <div className="text-center py-12">
+                <Type className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium mb-2">Typography Management</h3>
+                <p className="text-muted-foreground mb-4">
+                  Typography settings have been removed due to integration issues.
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Font settings can be managed directly in your CSS files.
+                </p>
               </div>
             </CardContent>
           </Card>

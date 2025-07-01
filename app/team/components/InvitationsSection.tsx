@@ -172,7 +172,7 @@ export default function InvitationsSection({ invitations, canManageTeam }: Invit
                       {getStatusIcon(isExpired ? 'expired' : invitation.status)}
                     </div>
                     <div>
-                      <p className="font-medium">{invitation.email}</p>
+                      <p className="font-medium text-foreground">{invitation.email}</p>
                       <p className="text-sm text-muted-foreground">
                          {t('invitedBy')} {
                            Array.isArray(invitation.profiles) 
@@ -190,7 +190,7 @@ export default function InvitationsSection({ invitations, canManageTeam }: Invit
                         {invitation.invitation_code && !isExpired && (
                           <div className="flex items-center gap-1 px-2 py-1 bg-muted rounded text-xs font-mono">
                             <span className="text-muted-foreground">{t('code')}:</span>
-                            <span className="font-bold">{invitation.invitation_code}</span>
+                            <span className="font-bold text-foreground">{invitation.invitation_code}</span>
                             <Button
                               variant="ghost"
                               size="sm"

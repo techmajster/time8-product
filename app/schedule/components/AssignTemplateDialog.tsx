@@ -243,7 +243,7 @@ export function AssignTemplateDialog({ template, onAssignmentComplete, trigger }
               <div className="flex items-start gap-2">
                 <div className="text-warning text-sm">⚠️</div>
                 <div className="text-sm text-warning-foreground">
-                  <p className="font-medium mb-1">Uwaga!</p>
+                                          <p className="font-medium text-foreground mb-1">Uwaga!</p>
                   <p>
                     Przypisanie szablonu do {selectedEmployees.length} pracowników zastąpi wszystkie ich 
                     istniejące harmonogramy. Ta akcja nie może zostać cofnięta.

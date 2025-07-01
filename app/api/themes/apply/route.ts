@@ -88,9 +88,10 @@ function generateCSSVariables(tokens: any): string {
     --heading-primary: ${hslStringToValues(lightColors['heading-primary'] || lightColors.foreground)};
     --heading-secondary: ${hslStringToValues(lightColors['heading-secondary'] || lightColors['secondary-foreground'])};
     
-    --font-sans: Inter, sans-serif;
-    --font-serif: Merriweather, serif;
-    --font-mono: JetBrains Mono, monospace;
+    --font-sans: ${tokens.typography?.fonts?.sans || 'Inter, sans-serif'};
+    --font-serif: ${tokens.typography?.fonts?.serif || 'Merriweather, serif'};
+    --font-mono: ${tokens.typography?.fonts?.mono || 'JetBrains Mono, monospace'};
+    --font-display: ${tokens.typography?.fonts?.display || 'Inter, sans-serif'};
     --shadow-color: hsl(0 0% 0%);
     --shadow-opacity: 0.1;
     --shadow-blur: 8px;
@@ -167,9 +168,10 @@ function generateCSSVariables(tokens: any): string {
     --heading-primary: ${hslStringToValues(darkColors['heading-primary'] || darkColors.foreground)};
     --heading-secondary: ${hslStringToValues(darkColors['heading-secondary'] || darkColors['secondary-foreground'])};
     
-    --font-sans: Inter, sans-serif;
-    --font-serif: Merriweather, serif;
-    --font-mono: JetBrains Mono, monospace;
+    --font-sans: ${tokens.typography?.fonts?.sans || 'Inter, sans-serif'};
+    --font-serif: ${tokens.typography?.fonts?.serif || 'Merriweather, serif'};
+    --font-mono: ${tokens.typography?.fonts?.mono || 'JetBrains Mono, monospace'};
+    --font-display: ${tokens.typography?.fonts?.display || 'Inter, sans-serif'};
     --shadow-color: hsl(0 0% 0%);
     --shadow-opacity: 0.1;
     --shadow-blur: 8px;
