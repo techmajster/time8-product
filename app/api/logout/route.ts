@@ -1,10 +1,14 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
-export async function GET() {
+export async function GET(request: Request) {
   const supabase = await createClient()
   
   await supabase.auth.signOut()
   
-  return NextResponse.redirect(new URL('/login', process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3002'))
+  // Get the origin from the request URL instead of hardcoded localhost
+  const requestUrl = new URL(request.url)
+  const origin = requestUrl.origin
+  
+  return NextResponse.redirect(new URL('/login', origin))
 } 

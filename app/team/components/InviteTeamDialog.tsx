@@ -153,11 +153,15 @@ export function InviteTeamDialog() {
         if (response.ok) {
           setSuccess(`Invitation sent successfully to ${formData.email}! They will receive an email with instructions to join.`)
         } else {
-          setSuccess(`Invitation created for ${formData.email}. Note: Email sending failed, but you can share this link manually: ${window.location.origin}/auth/accept-invitation?token=${token}`)
+          // Use environment variable in production, fallback to current origin
+          const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
+          setSuccess(`Invitation created for ${formData.email}. Note: Email sending failed, but you can share this link manually: ${baseUrl}/auth/accept-invitation?token=${token}`)
         }
       } catch (emailError) {
         console.error('Email sending failed:', emailError)
-        setSuccess(`Invitation created for ${formData.email}. Note: Email sending failed, but you can share this link manually: ${window.location.origin}/auth/accept-invitation?token=${token}`)
+        // Use environment variable in production, fallback to current origin
+        const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
+        setSuccess(`Invitation created for ${formData.email}. Note: Email sending failed, but you can share this link manually: ${baseUrl}/auth/accept-invitation?token=${token}`)
       }
       
       // Reset form on success

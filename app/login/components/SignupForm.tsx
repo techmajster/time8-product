@@ -34,6 +34,9 @@ export function SignupForm({ onModeChange, className }: SignupFormProps) {
     try {
       const supabase = createClient()
       
+      // Use environment variable in production, fallback to current origin
+      const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
+      
       const { error: authError } = await supabase.auth.signUp({
         email,
         password,
@@ -41,7 +44,7 @@ export function SignupForm({ onModeChange, className }: SignupFormProps) {
           data: {
             full_name: fullName,
           },
-          emailRedirectTo: `${window.location.origin}/login?mode=login`,
+          emailRedirectTo: `${baseUrl}/login?mode=login`,
         },
       })
 

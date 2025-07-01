@@ -17,10 +17,14 @@ export function GoogleAuthButton({ mode }: GoogleAuthButtonProps) {
 
   const handleGoogleAuth = async () => {
     setLoading(true)
+    
+    // Use environment variable in production, fallback to current origin
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
+    
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/login/callback`
+        redirectTo: `${baseUrl}/login/callback`
       }
     })
 

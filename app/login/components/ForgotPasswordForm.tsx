@@ -32,8 +32,11 @@ export function ForgotPasswordForm({ onModeChange, className }: ForgotPasswordFo
     try {
       const supabase = createClient()
       
+      // Use environment variable in production, fallback to current origin
+      const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
+      
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/login?mode=reset-password`,
+        redirectTo: `${baseUrl}/login?mode=reset-password`,
       })
 
       if (resetError) {
