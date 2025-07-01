@@ -31,57 +31,68 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Get user session
+  // Get current user
   const { data: { user } } = await supabase.auth.getUser()
 
   // Public routes that don't require authentication
-  const publicRoutes = ['/auth/login', '/auth/signup', '/auth/callback', '/auth/forgot-password', '/auth/reset-password']
-  const isPublicRoute = publicRoutes.some(route => request.nextUrl.pathname.startsWith(route))
+  const publicRoutes = [
+    '/login',
+    '/login/callback',
+    '/signup',
+    '/forgot-password',
+    '/reset-password',
+    '/api/logout',
+    '/api/locale', // Add locale API route
+    '/favicon.ico',
+    '/_next',
+    '/images',
+  ]
 
-  // API routes that don't require authentication
-  const publicApiRoutes = ['/api/auth', '/api/cron', '/api/locale']
-  const isPublicApiRoute = publicApiRoutes.some(route => request.nextUrl.pathname.startsWith(route))
+  // Public API routes
+  const publicApiRoutes = [
+    '/api/logout',
+    '/api/locale', // Language switching API
+    '/api/auth',  // Keep for compatibility
+  ]
 
-  // If user is not signed in and trying to access protected route
-  if (!user && !isPublicRoute && !isPublicApiRoute) {
-    const redirectUrl = new URL('/auth/login', request.url)
-    return NextResponse.redirect(redirectUrl)
+  const { pathname } = request.nextUrl
+
+  // Allow public routes
+  if (publicRoutes.some(route => pathname.startsWith(route)) || 
+      publicApiRoutes.some(route => pathname.startsWith(route))) {
+    return response
   }
 
-  // If user is signed in and trying to access auth pages, redirect to dashboard
-  if (user && isPublicRoute) {
-    const redirectUrl = new URL('/dashboard', request.url)
-    return NextResponse.redirect(redirectUrl)
+  // If user is not authenticated, redirect to login
+  if (!user) {
+    const loginUrl = new URL('/login', request.url)
+    return NextResponse.redirect(loginUrl)
   }
 
-  // Check for internal theme-editor access
-  if (request.nextUrl.pathname.startsWith('/theme-editor')) {
-    // For now, allow access to authenticated users
-    // Later this can be enhanced with role-based access control
-    if (!user) {
-      const redirectUrl = new URL('/auth/login', request.url)
-      return NextResponse.redirect(redirectUrl)
+  // If user is authenticated, check if they have an organization
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('organization_id')
+      .eq('id', user.id)
+      .single()
+
+    // If user doesn't have an organization, redirect to onboarding
+    if (!profile?.organization_id && !pathname.startsWith('/onboarding')) {
+      const onboardingUrl = new URL('/onboarding', request.url)
+      return NextResponse.redirect(onboardingUrl)
     }
-    
-    // Optional: Add role-based check here in the future
-    // const isInternalUser = await checkInternalAccess(user.id)
-    // if (!isInternalUser) {
-    //   return NextResponse.redirect(new URL('/dashboard', request.url))
-    // }
+
+    // If user has organization but is on onboarding, redirect to dashboard
+    if (profile?.organization_id && pathname.startsWith('/onboarding')) {
+      const dashboardUrl = new URL('/dashboard', request.url)
+      return NextResponse.redirect(dashboardUrl)
+    }
   }
 
   return response
 }
 
 export const config = {
-  matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder
-     */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
-  ],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 }

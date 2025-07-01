@@ -15,7 +15,6 @@ import {
   DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu'
 import { SignOutButton } from '@/components/sign-out-button'
-import { ThemeToggle } from '@/components/theme-toggle'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 import { useTranslations } from 'next-intl'
 
@@ -78,10 +77,6 @@ const getSettingsNavigation = (t: any) => [
   {
     name: t('navigation.profile'),
     href: '/profile'
-  },
-  {
-    name: 'Design System',
-    href: '/theme-editor'
   }
 ]
 
@@ -188,7 +183,6 @@ export function Navigation({
         {/* Right side - User menu */}
         <div className="flex items-center gap-2">
           <LanguageSwitcher />
-          <ThemeToggle />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button

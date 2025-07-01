@@ -148,8 +148,8 @@ export default async function ProfilePage() {
                         </div>
                       )}
 
-                                              <div className="flex items-center justify-between">
-                          <span className="text-sm text-muted-foreground">Konto utworzone:</span>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">Konto utworzone:</span>
                           <span className="text-sm text-foreground">
                           {new Date(profile.created_at).toLocaleDateString('pl-PL')}
                         </span>

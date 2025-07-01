@@ -58,16 +58,17 @@ export async function updateSession(request: NextRequest) {
 
   // Public routes that don't require authentication
   const isAuthRoute = request.nextUrl.pathname.startsWith('/auth')
+  const isLoginRoute = request.nextUrl.pathname === '/login'
   const isPublicRoute = request.nextUrl.pathname === '/'
   const isOnboardingRoute = request.nextUrl.pathname.startsWith('/onboarding')
 
   // If user is not signed in and trying to access protected route
-  if (!user && !isAuthRoute && !isPublicRoute) {
-    return NextResponse.redirect(new URL('/auth/login', request.url))
+  if (!user && !isAuthRoute && !isLoginRoute && !isPublicRoute) {
+    return NextResponse.redirect(new URL('/login', request.url))
   }
 
   // If user is signed in, check if they have completed onboarding
-  if (user && !isAuthRoute && !isOnboardingRoute) {
+  if (user && !isAuthRoute && !isLoginRoute && !isOnboardingRoute) {
     const { data: profile } = await supabase
       .from('profiles')
       .select('organization_id')
