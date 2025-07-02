@@ -5,8 +5,17 @@ import {
   LogOut,
   Settings,
   User,
+  Languages,
+  Moon,
+  Sun,
+  Monitor,
 } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { useTranslations, useLocale } from 'next-intl'
+import { useTheme } from "next-themes"
+import { useState, useTransition } from 'react'
+import { type Locale } from '@/lib/i18n-utils'
+import { toast } from 'sonner'
 
 import {
   Avatar,
@@ -20,6 +29,9 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
   SidebarMenu,
@@ -27,6 +39,22 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
+import { Switch } from "@/components/ui/switch"
+
+const languages = [
+  { 
+    code: 'pl' as Locale, 
+    name: 'Polski', 
+    flag: '🇵🇱',
+    englishName: 'Polish'
+  },
+  { 
+    code: 'en' as Locale, 
+    name: 'English', 
+    flag: '🇬🇧',
+    englishName: 'English'
+  },
+];
 
 export function NavUser({
   user,
@@ -35,10 +63,15 @@ export function NavUser({
     name: string
     email: string
     avatar: string
+    role?: string
   }
 }) {
   const { isMobile } = useSidebar()
   const router = useRouter()
+  const t = useTranslations('navigation')
+  const locale = useLocale() as Locale
+  const { theme, setTheme } = useTheme()
+  const [isPending, startTransition] = useTransition()
 
   // Generate initials from name or email
   const getInitials = (name: string, email: string) => {
@@ -58,6 +91,38 @@ export function NavUser({
       console.error('Error signing out:', error)
     }
   }
+
+  const switchLanguage = async (newLocale: Locale) => {
+    if (newLocale === locale) return;
+
+    startTransition(async () => {
+      try {
+        const response = await fetch('/api/locale', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ locale: newLocale }),
+        });
+
+        if (response.ok) {
+          const languageName = languages.find(l => l.code === newLocale)?.name;
+          toast.success(`Language changed to ${languageName}`);
+          router.refresh();
+        } else {
+          toast.error('Failed to change language');
+        }
+      } catch (error) {
+        console.error('Failed to switch language:', error);
+        toast.error('Failed to change language');
+      }
+    });
+  };
+
+  // Check if user can access profile and settings
+  const canAccessProfileSettings = user.role === 'admin' || user.role === 'manager'
+
+  const isDarkMode = theme === 'dark'
 
   return (
     <SidebarMenu>
@@ -98,18 +163,64 @@ export function NavUser({
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => router.push('/profile')}>
-              <User />
-              Account
+            
+            {/* Dark Mode Toggle */}
+            <DropdownMenuItem className="flex items-center justify-between">
+              <div className="flex items-center">
+                {isDarkMode ? <Moon className="h-4 w-4 mr-2" /> : <Sun className="h-4 w-4 mr-2" />}
+                {t('userMenu.darkMode')}
+              </div>
+              <Switch 
+                checked={isDarkMode}
+                onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
+              />
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => router.push('/settings')}>
-              <Settings />
-              Settings
-            </DropdownMenuItem>
+
+            {/* Language Switcher */}
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>
+                <Languages className="h-4 w-4 mr-2" />
+                {t('userMenu.language')}
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent>
+                {languages.map((language) => (
+                  <DropdownMenuItem
+                    key={language.code}
+                    onClick={() => switchLanguage(language.code)}
+                    disabled={isPending}
+                    className="cursor-pointer"
+                  >
+                    <span className="mr-2">{language.flag}</span>
+                    {language.name}
+                    {language.code === locale && (
+                      <span className="ml-auto text-xs opacity-60">✓</span>
+                    )}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+
             <DropdownMenuSeparator />
+
+            {/* Profile and Settings (only for managers/admins) */}
+            {canAccessProfileSettings && (
+              <DropdownMenuItem onClick={() => router.push('/profile')}>
+                <User className="h-4 w-4 mr-2" />
+                {t('userMenu.account')}
+              </DropdownMenuItem>
+            )}
+            {canAccessProfileSettings && (
+              <DropdownMenuItem onClick={() => router.push('/settings')}>
+                <Settings className="h-4 w-4 mr-2" />
+                {t('userMenu.settings')}
+              </DropdownMenuItem>
+            )}
+            {canAccessProfileSettings && <DropdownMenuSeparator />}
+            
+            {/* Sign Out */}
             <DropdownMenuItem onClick={handleSignOut}>
-              <LogOut />
-              Sign Out
+              <LogOut className="h-4 w-4 mr-2" />
+              {t('userMenu.signOut')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

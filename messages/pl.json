@@ -73,14 +73,41 @@
   },
   "navigation": {
     "dashboard": "Dashboard",
-    "leave": "Urlopy",
+    "leaveRequests": "Urlopy",
     "calendar": "Kalendarz",
     "team": "Zespół",
     "schedule": "Harmonogram",
     "settings": "Ustawienia",
     "profile": "Profil",
     "admin": "Administrator",
-    "holidays": "Święta"
+    "holidays": "Święta",
+    "help": "Pomoc",
+    "groups": {
+      "manager": "Menedżer",
+      "admin": "Administrator"
+    },
+    "adminPages": {
+      "overview": "Przegląd",
+      "holidays": "Święta",
+      "fixBalance": "Popraw saldo",
+      "setupHolidays": "Konfiguruj święta",
+      "testEmail": "Test e-mail"
+    },
+    "teamPages": {
+      "members": "Członkowie zespołu",
+      "invite": "Zaproś członków"
+    },
+    "leavePages": {
+      "requests": "Moje wnioski",
+      "new": "Nowy wniosek"
+    },
+    "userMenu": {
+      "account": "Konto",
+      "settings": "Ustawienia",
+      "signOut": "Wyloguj się",
+      "darkMode": "Tryb ciemny",
+      "language": "Język"
+    }
   },
   "leave": {
     "title": "Zarządzanie urlopami",
@@ -193,6 +220,21 @@
       "admin": "Administrator",
       "manager": "Menedżer",
       "employee": "Pracownik"
+    },
+    "memberActions": {
+      "changeRole": "Zmień rolę",
+      "deleteMember": "Usuń członka",
+      "confirmDelete": "Czy na pewno chcesz usunąć tego członka zespołu?",
+      "confirmDeleteMessage": "Ta akcja usunie użytkownika {memberName} z organizacji. Straci on dostęp do wszystkich danych organizacji.",
+      "roleChanged": "Rola członka została zaktualizowana na {role}",
+      "memberRemoved": "{memberName} został usunięty z organizacji",
+      "failedToChangeRole": "Nie udało się zmienić roli członka",
+      "failedToRemoveMember": "Nie udało się usunąć członka",
+      "cannotRemoveSelf": "Nie możesz usunąć siebie z zespołu",
+      "cannotChangeOwnRole": "Nie możesz zmienić własnej roli",
+      "selectNewRole": "Wybierz nową rolę",
+      "changingRole": "Zmiana roli...",
+      "removingMember": "Usuwanie członka..."
     }
   },
   "schedule": {

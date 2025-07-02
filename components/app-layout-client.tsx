@@ -15,8 +15,6 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from '@/components/ui/sidebar'
-import { LanguageSwitcher } from './LanguageSwitcher'
-import { ModeToggle } from './mode-toggle'
 import { usePathname } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import React from 'react'
@@ -155,8 +153,7 @@ export function AppLayoutClient({
           </div>
           <div className="ml-auto px-4">
             <div className="flex items-center gap-2">
-              <LanguageSwitcher />
-              <ModeToggle />
+              {/* Language switcher and mode toggle moved to user dropdown */}
             </div>
           </div>
         </header>

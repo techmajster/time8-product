@@ -73,14 +73,41 @@
   },
   "navigation": {
     "dashboard": "Dashboard",
-    "leave": "Leave",
+    "leaveRequests": "Leave",
     "calendar": "Calendar",
     "team": "Team",
     "schedule": "Schedule",
     "settings": "Settings",
     "profile": "Profile",
     "admin": "Admin",
-    "holidays": "Holidays"
+    "holidays": "Holidays",
+    "help": "Help",
+    "groups": {
+      "manager": "Manager",
+      "admin": "Admin"
+    },
+    "adminPages": {
+      "overview": "Overview",
+      "holidays": "Holidays",
+      "fixBalance": "Fix Balance",
+      "setupHolidays": "Setup Holidays",
+      "testEmail": "Test Email"
+    },
+    "teamPages": {
+      "members": "Team Members",
+      "invite": "Invite Members"
+    },
+    "leavePages": {
+      "requests": "My Requests",
+      "new": "New Request"
+    },
+    "userMenu": {
+      "account": "Account",
+      "settings": "Settings",
+      "signOut": "Sign Out",
+      "darkMode": "Dark Mode",
+      "language": "Language"
+    }
   },
   "leave": {
     "title": "Leave Management",
@@ -193,6 +220,21 @@
       "admin": "Administrator",
       "manager": "Manager",
       "employee": "Employee"
+    },
+    "memberActions": {
+      "changeRole": "Change Role",
+      "deleteMember": "Remove Member",
+      "confirmDelete": "Are you sure you want to remove this member?",
+      "confirmDeleteMessage": "This action will remove {memberName} from your organization. They will lose access to all organization data.",
+      "roleChanged": "Member role has been updated to {role}",
+      "memberRemoved": "{memberName} has been removed from the organization",
+      "failedToChangeRole": "Failed to change member role",
+      "failedToRemoveMember": "Failed to remove member",
+      "cannotRemoveSelf": "You cannot remove yourself from the team",
+      "cannotChangeOwnRole": "You cannot change your own role",
+      "selectNewRole": "Select new role",
+      "changingRole": "Changing role...",
+      "removingMember": "Removing member..."
     }
   },
   "schedule": {

@@ -30,44 +30,73 @@ interface NavigationProps {
   teamInviteCount?: number
 }
 
-const getNavigationItems = (t: any) => [
-  {
-    name: t('navigation.dashboard'),
-    href: '/dashboard',
-    roles: ['admin', 'manager', 'employee']
-  },
-  {
-    name: t('navigation.team'),
-    href: '/team',
-    roles: ['admin', 'manager', 'employee'],
-    showBadge: true
-  },
-  {
-    name: t('navigation.leave'),
-    href: '/leave',
-    roles: ['admin', 'manager', 'employee']
-  },
-  {
-    name: t('navigation.schedule'),
-    href: '/schedule',
-    roles: ['admin', 'manager']
-  },
-  {
-    name: t('navigation.admin'),
-    href: '/admin',
-    roles: ['admin']
-  },
-  {
-    name: t('admin.holidayManagement'),
-    href: '/admin/holidays',
-    roles: ['admin']
-  },
-  {
-    name: t('navigation.calendar'),
-    href: '/calendar',
-    roles: ['admin', 'manager', 'employee']
+const getNavigationItems = (t: any, userRole: string) => {
+  // Employee navigation - simplified
+  if (userRole === 'employee') {
+    return [
+      {
+        name: t('navigation.dashboard'),
+        href: '/dashboard',
+        roles: ['employee']
+      },
+      {
+        name: t('navigation.leave'),
+        href: '/leave',
+        roles: ['employee']
+      },
+      {
+        name: t('navigation.calendar'),
+        href: '/calendar',
+        roles: ['employee']
+      },
+      {
+        name: t('navigation.help'),
+        href: '/help',
+        roles: ['employee']
+      }
+    ]
   }
-]
+
+  // Admin/Manager navigation - full access
+  return [
+    {
+      name: t('navigation.dashboard'),
+      href: '/dashboard',
+      roles: ['admin', 'manager']
+    },
+    {
+      name: t('navigation.team'),
+      href: '/team',
+      roles: ['admin', 'manager'],
+      showBadge: true
+    },
+    {
+      name: t('navigation.leave'),
+      href: '/leave',
+      roles: ['admin', 'manager']
+    },
+    {
+      name: t('navigation.schedule'),
+      href: '/schedule',
+      roles: ['admin', 'manager']
+    },
+    {
+      name: t('navigation.admin'),
+      href: '/admin',
+      roles: ['admin']
+    },
+    {
+      name: t('admin.holidayManagement'),
+      href: '/admin/holidays',
+      roles: ['admin']
+    },
+    {
+      name: t('navigation.calendar'),
+      href: '/calendar',
+      roles: ['admin', 'manager']
+    }
+  ]
+}
 
 const getSettingsNavigation = (t: any) => [
   {
@@ -90,12 +119,11 @@ export function Navigation({
   const pathname = usePathname()
   const t = useTranslations()
   
-  const navigation = getNavigationItems(t)
+  const navigation = getNavigationItems(t, userRole)
   const settingsNavigation = getSettingsNavigation(t)
 
-  const filteredNavigation = navigation.filter(item => 
-    item.roles.includes(userRole)
-  )
+  // Navigation is already filtered by role in getNavigationItems
+  const filteredNavigation = navigation
 
   const userDisplayName = userProfile?.full_name || userProfile?.email || 'User'
   const userInitials = userDisplayName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
@@ -153,7 +181,7 @@ export function Navigation({
               )
             })}
 
-            {/* Settings Dropdown */}
+            {/* Settings Dropdown - Only for admins/managers */}
             {(userRole === 'admin' || userRole === 'manager') && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -204,11 +232,14 @@ export function Navigation({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuItem asChild>
-                <Link href="/profile">
-                  {t('navigation.profile')}
-                </Link>
-              </DropdownMenuItem>
+              {/* Profile link - Only for admins/managers */}
+              {(userRole === 'admin' || userRole === 'manager') && (
+                <DropdownMenuItem asChild>
+                  <Link href="/profile">
+                    {t('navigation.profile')}
+                  </Link>
+                </DropdownMenuItem>
+              )}
               {(userRole === 'admin' || userRole === 'manager') && (
                 <DropdownMenuItem asChild>
                   <Link href="/settings">
@@ -216,7 +247,9 @@ export function Navigation({
                   </Link>
                 </DropdownMenuItem>
               )}
-              <DropdownMenuSeparator />
+              {(userRole === 'admin' || userRole === 'manager') && (
+                <DropdownMenuSeparator />
+              )}
               <DropdownMenuItem asChild>
                 <div className="w-full">
                   <SignOutButton />

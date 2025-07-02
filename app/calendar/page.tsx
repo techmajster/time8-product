@@ -74,12 +74,22 @@ export default async function CalendarPage() {
     redirect('/onboarding')
   }
 
-  // Get all team members
-  const { data: teamMembers } = await supabase
+  // Check user role for different views
+  const isEmployee = profile.role === 'employee'
+
+  // Get team members (employees only see themselves, admins/managers see all)
+  let teamMembersQuery = supabase
     .from('profiles')
     .select('id, email, full_name, role, avatar_url')
     .eq('organization_id', profile.organization_id)
     .order('full_name')
+
+  // Employees only see their own data
+  if (isEmployee) {
+    teamMembersQuery = teamMembersQuery.eq('id', user.id)
+  }
+
+  const { data: teamMembers } = await teamMembersQuery
 
   // Get leave requests for the next 12 months (extended from 3 months)
   const startDate = new Date()
@@ -93,7 +103,8 @@ export default async function CalendarPage() {
 
   console.log('User profile organization_id:', profile.organization_id)
 
-  const { data: leaveRequestsRaw, error: leaveRequestsError } = await supabase
+  // Get leave requests (employees only see their own, admins/managers see all)
+  let leaveRequestsQuery = supabase
     .from('leave_requests')
     .select(`
       id,
@@ -118,6 +129,13 @@ export default async function CalendarPage() {
     .lte('start_date', endDate.toISOString().split('T')[0])
     .in('status', ['approved', 'pending'])
     .order('start_date')
+
+  // Employees only see their own leave requests
+  if (isEmployee) {
+    leaveRequestsQuery = leaveRequestsQuery.eq('user_id', user.id)
+  }
+
+  const { data: leaveRequestsRaw, error: leaveRequestsError } = await leaveRequestsQuery
 
   // Transform the data to match the expected interface
   const leaveRequests = (leaveRequestsRaw || []).map((request: any) => ({
@@ -243,78 +261,130 @@ export default async function CalendarPage() {
       <div className="min-h-screen bg-background">
         <div className="p-6 lg:p-8">
           <div className="max-w-7xl mx-auto">
-            {/* Header */}
+            {/* Header - Different for employees vs managers */}
             <PageHeader
-              title="Kalendarz zespołu"
-              description="Zobacz, kto kiedy jest niedostępny i planuj obciążenie zespołu"
+              title={isEmployee ? "My Calendar" : "Team Calendar"}
+              description={isEmployee 
+                ? "View your schedule and upcoming leaves"
+                : "Zobacz, kto kiedy jest niedostępny i planuj obciążenie zespołu"
+              }
             />
 
-            {/* Capacity Overview Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Zespół</CardTitle>
-                  <Users className="h-4 w-4 text-primary" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{totalTeamMembers}</div>
-                  <p className="text-xs text-muted-foreground">
-                    aktywnych członków
-                  </p>
-                </CardContent>
-              </Card>
+            {/* Capacity Overview Cards - Only for managers/admins */}
+            {!isEmployee && (
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Zespół</CardTitle>
+                    <Users className="h-4 w-4 text-primary" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{totalTeamMembers}</div>
+                    <p className="text-xs text-muted-foreground">
+                      aktywnych członków
+                    </p>
+                  </CardContent>
+                </Card>
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Dostępność ten tydzień</CardTitle>
-                  <TrendingDown className={`h-4 w-4 ${capacityThisWeek >= 80 ? 'text-success' : capacityThisWeek >= 60 ? 'text-warning' : 'text-destructive'}`} />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{capacityThisWeek}%</div>
-                  <p className="text-xs text-muted-foreground">
-                    {peopleOutThisWeek} osób na urlopie
-                  </p>
-                </CardContent>
-              </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Dostępność ten tydzień</CardTitle>
+                    <TrendingDown className={`h-4 w-4 ${capacityThisWeek >= 80 ? 'text-success' : capacityThisWeek >= 60 ? 'text-warning' : 'text-destructive'}`} />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{capacityThisWeek}%</div>
+                    <p className="text-xs text-muted-foreground">
+                      {peopleOutThisWeek} osób na urlopie
+                    </p>
+                  </CardContent>
+                </Card>
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Dostępność przyszły tydzień</CardTitle>
-                  <TrendingDown className={`h-4 w-4 ${capacityNextWeek >= 80 ? 'text-success' : capacityNextWeek >= 60 ? 'text-warning' : 'text-destructive'}`} />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{capacityNextWeek}%</div>
-                  <p className="text-xs text-muted-foreground">
-                    {peopleOutNextWeek} osób na urlopie
-                  </p>
-                </CardContent>
-              </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Dostępność przyszły tydzień</CardTitle>
+                    <TrendingDown className={`h-4 w-4 ${capacityNextWeek >= 80 ? 'text-success' : capacityNextWeek >= 60 ? 'text-warning' : 'text-destructive'}`} />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{capacityNextWeek}%</div>
+                    <p className="text-xs text-muted-foreground">
+                      {peopleOutNextWeek} osób na urlopie
+                    </p>
+                  </CardContent>
+                </Card>
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Oczekujące wnioski</CardTitle>
-                  <AlertTriangle className={`h-4 w-4 ${pendingRequests > 0 ? 'text-warning' : 'text-success'}`} />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{pendingRequests}</div>
-                  <p className="text-xs text-muted-foreground">
-                    wymagają zatwierdzenia
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Oczekujące wnioski</CardTitle>
+                    <AlertTriangle className={`h-4 w-4 ${pendingRequests > 0 ? 'text-warning' : 'text-success'}`} />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{pendingRequests}</div>
+                    <p className="text-xs text-muted-foreground">
+                      wymagają zatwierdzenia
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
 
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+            {/* Employee-specific overview cards */}
+            {isEmployee && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">My Leaves</CardTitle>
+                    <CalendarDays className="h-4 w-4 text-primary" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{leaveRequests?.length || 0}</div>
+                    <p className="text-xs text-muted-foreground">
+                      upcoming leaves
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Pending Requests</CardTitle>
+                    <AlertTriangle className={`h-4 w-4 ${pendingRequests > 0 ? 'text-warning' : 'text-success'}`} />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{pendingRequests}</div>
+                    <p className="text-xs text-muted-foreground">
+                      awaiting approval
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Holidays</CardTitle>
+                    <Calendar className="h-4 w-4 text-primary" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{holidays?.length || 0}</div>
+                    <p className="text-xs text-muted-foreground">
+                      upcoming holidays
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            <div className={`grid gap-8 ${isEmployee ? 'grid-cols-1' : 'grid-cols-1 xl:grid-cols-3'}`}>
               {/* Main Calendar View */}
-              <div className="xl:col-span-2">
+              <div className={isEmployee ? '' : 'xl:col-span-2'}>
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Calendar className="h-5 w-5" />
-                      Kalendarz urlopów
+                      {isEmployee ? "My Schedule" : "Kalendarz urlopów"}
                     </CardTitle>
                     <CardDescription>
-                      Przegląd urlopów zespołu na najbliższe 3 miesiące
+                      {isEmployee 
+                        ? "Your personal leave schedule and company holidays"
+                        : "Przegląd urlopów zespołu na najbliższe 3 miesiące"
+                      }
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -327,37 +397,39 @@ export default async function CalendarPage() {
                 </Card>
               </div>
 
-              {/* Sidebar - Upcoming Leaves and Capacity Details */}
-              <div className="xl:col-span-1 space-y-6">
-                {/* Upcoming Leaves */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <CalendarDays className="h-5 w-5" />
-                      Nadchodzące urlopy
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <UpcomingLeaves leaveRequests={leaveRequests || []} />
-                  </CardContent>
-                </Card>
+              {/* Sidebar - Only for managers/admins */}
+              {!isEmployee && (
+                <div className="xl:col-span-1 space-y-6">
+                  {/* Upcoming Leaves */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <CalendarDays className="h-5 w-5" />
+                        Nadchodzące urlopy
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <UpcomingLeaves leaveRequests={leaveRequests || []} />
+                    </CardContent>
+                  </Card>
 
-                {/* Capacity Planning */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <TrendingDown className="h-5 w-5" />
-                      Planowanie obciążenia
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <CapacityOverview 
-                      teamMembers={teamMembers || []}
-                      leaveRequests={leaveRequests || []}
-                    />
-                  </CardContent>
-                </Card>
-              </div>
+                  {/* Capacity Planning */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <TrendingDown className="h-5 w-5" />
+                        Planowanie obciążenia
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <CapacityOverview 
+                        teamMembers={teamMembers || []}
+                        leaveRequests={leaveRequests || []}
+                      />
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
             </div>
           </div>
         </div>

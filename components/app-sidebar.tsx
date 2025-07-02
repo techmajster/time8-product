@@ -14,7 +14,9 @@ import {
   Shield,
   User,
   GalleryVerticalEnd,
+  HelpCircle,
 } from "lucide-react"
+import { useTranslations } from 'next-intl'
 
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
@@ -29,110 +31,6 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 
-const data = {
-  navMain: [
-    {
-      title: "Dashboard",
-      url: "/dashboard",
-      icon: Home,
-      isActive: true,
-    },
-    {
-      title: "Leave Requests",
-      url: "/leave",
-      icon: ClipboardList,
-      items: [
-        {
-          title: "My Requests",
-          url: "/leave",
-        },
-        {
-          title: "New Request",
-          url: "/leave/new",
-        },
-      ],
-    },
-    {
-      title: "Calendar",
-      url: "/calendar",
-      icon: Calendar,
-    },
-    {
-      title: "Team",
-      url: "/team",
-      icon: Users,
-      items: [
-        {
-          title: "Team Members",
-          url: "/team",
-        },
-        {
-          title: "Invite Members",
-          url: "/team/invite",
-        },
-      ],
-    },
-    {
-      title: "Schedule",
-      url: "/schedule",
-      icon: Clock,
-    },
-    {
-      title: "Profile",
-      url: "/profile",
-      icon: User,
-    },
-    {
-      title: "Settings",
-      url: "/settings",
-      icon: Settings,
-    },
-  ],
-  navSecondary: [
-    {
-      title: "Support",
-      url: "#",
-      icon: LifeBuoy,
-    },
-    {
-      title: "Feedback",
-      url: "#",
-      icon: Send,
-    },
-  ],
-}
-
-// Add admin navigation for admin users
-const getAdminNavItems = () => [
-  {
-    title: "Administration",
-    url: "/admin",
-    icon: Shield,
-    items: [
-      {
-        title: "Overview",
-        url: "/admin",
-      },
-      {
-        title: "Holidays",
-        url: "/admin/holidays",
-      },
-      {
-        title: "Fix Balance",
-        url: "/admin/fix-balance",
-      },
-      {
-        title: "Setup Holidays",
-        url: "/admin/setup-holidays",
-      },
-      {
-        title: "Test Email",
-        url: "/admin/test-email",
-      },
-    ],
-  },
-]
-
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   organizationName?: string | null
   organizationLogo?: string | null
@@ -145,17 +43,112 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 }
 
 export function AppSidebar({ organizationName, organizationLogo, userProfile, userRole, ...props }: AppSidebarProps) {
+  const t = useTranslations('navigation')
+  
   // Format user data for NavUser component
   const userData = {
     name: userProfile?.full_name || userProfile?.email?.split('@')[0] || 'User',
     email: userProfile?.email || '',
-    avatar: userProfile?.avatar_url || ''
+    avatar: userProfile?.avatar_url || '',
+    role: userRole || 'employee'
   }
 
-  // Add admin navigation if user is admin
-  const navigationItems = userRole === 'admin' 
-    ? [...data.navMain, ...getAdminNavItems()]
-    : data.navMain
+  // Base navigation items for all users
+  const getBaseNavItems = () => [
+    {
+      title: t('dashboard'),
+      url: "/dashboard",
+      icon: Home,
+      isActive: true,
+    },
+    {
+      title: t('leaveRequests'),
+      url: "/leave",
+      icon: ClipboardList,
+    },
+    {
+      title: t('calendar'),
+      url: "/calendar",
+      icon: Calendar,
+    },
+  ]
+
+  // Get manager/admin specific items
+  const getManagerItems = () => [
+    {
+      title: t('team'),
+      url: "/team",
+      icon: Users,
+      items: [
+        {
+          title: t('teamPages.members'),
+          url: "/team",
+        },
+        {
+          title: t('teamPages.invite'),
+          url: "/team/invite",
+        },
+      ],
+    },
+    {
+      title: t('schedule'),
+      url: "/schedule",
+      icon: Clock,
+    },
+    {
+      title: t('profile'),
+      url: "/profile",
+      icon: User,
+    },
+    {
+      title: t('settings'),
+      url: "/settings",
+      icon: Settings,
+    },
+  ]
+
+  const getAdminItems = () => [
+    {
+      title: t('adminPages.overview'),
+      url: "/admin",
+      icon: Shield,
+    },
+    {
+      title: t('adminPages.holidays'),
+      url: "/admin/holidays",
+      icon: Calendar,
+    },
+    {
+      title: t('adminPages.fixBalance'),
+      url: "/admin/fix-balance",
+      icon: Settings,
+    },
+    {
+      title: t('adminPages.setupHolidays'),
+      url: "/admin/setup-holidays",
+      icon: CalendarDays,
+    },
+    {
+      title: t('adminPages.testEmail'),
+      url: "/admin/test-email",
+      icon: Send,
+    },
+  ]
+
+  const navSecondaryData = [
+    {
+      title: t('help'),
+      url: "/help",
+      icon: LifeBuoy,
+    },
+  ]
+
+  // Get base navigation items (for all users)
+  const baseNavigationItems = getBaseNavItems()
+
+  // Check if user has manager/admin privileges
+  const hasManagerAccess = userRole === 'manager' || userRole === 'admin'
+  const hasAdminAccess = userRole === 'admin'
 
   return (
     <Sidebar variant="inset" {...props}>
@@ -181,8 +174,20 @@ export function AppSidebar({ organizationName, organizationLogo, userProfile, us
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={navigationItems} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
+        {/* Base navigation without label */}
+        <NavMain items={baseNavigationItems} />
+        
+        {/* Manager navigation with "Manager" label */}
+        {hasManagerAccess && (
+          <NavMain items={getManagerItems()} label={t('groups.manager')} />
+        )}
+        
+        {/* Admin navigation */}
+        {hasAdminAccess && (
+          <NavMain items={getAdminItems()} label={t('groups.admin')} />
+        )}
+        
+        <NavSecondary items={navSecondaryData} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={userData} />

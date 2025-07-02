@@ -13,6 +13,7 @@ import { Users, Plus, Mail } from 'lucide-react'
 import Link from 'next/link'
 import { InviteTeamDialog } from './components/InviteTeamDialog'
 import InvitationsSection from './components/InvitationsSection'
+import { TeamMemberActions } from './components/TeamMemberActions'
 import { getTranslations } from 'next-intl/server'
 
 export default async function TeamPage() {
@@ -172,11 +173,12 @@ export default async function TeamPage() {
                                   </span>
                                 </TableCell>
                                 <TableCell className="text-right">
-                                  {canManageTeam && member.id !== user.id && (
-                                    <Button variant="outline" size="icon">
-                                      <span className="text-lg">⋯</span>
-                                    </Button>
-                                  )}
+                                  <TeamMemberActions
+                                    member={member}
+                                    currentUserId={user.id}
+                                    canManageTeam={canManageTeam}
+                                    currentUserRole={profile.role}
+                                  />
                                 </TableCell>
                               </TableRow>
                             ))}
