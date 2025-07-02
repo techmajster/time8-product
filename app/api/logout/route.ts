@@ -7,6 +7,7 @@ export async function GET(request: Request) {
   await supabase.auth.signOut()
   
   // Get the origin from the request URL instead of hardcoded localhost
+  // Updated to fix production redirect issues
   const requestUrl = new URL(request.url)
   const origin = requestUrl.origin
   
