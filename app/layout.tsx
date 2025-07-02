@@ -1,9 +1,15 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { NextIntlClientProvider } from 'next-intl';
-import { getMessages, getLocale } from 'next-intl/server';
+import { cookies } from 'next/headers';
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
+
+// Import translation messages statically
+import plMessages from '@/messages/pl.json';
+import enMessages from '@/messages/en.json';
+
+type Locale = 'pl' | 'en';
 
 const geist = Geist({
   variable: "--font-geist-sans",
@@ -20,13 +26,30 @@ export const metadata = {
   description: "Uspraw zarządzanie urlopami w swojej organizacji dzięki naszemu kompleksowemu rozwiązaniu SaaS",
 };
 
+// Safe cookie-only locale detection to avoid OAuth interference
+async function getLayoutLocale(): Promise<Locale> {
+  try {
+    const cookieStore = await cookies();
+    const cookieLocale = cookieStore.get('locale')?.value as Locale;
+    
+    if (cookieLocale === 'pl' || cookieLocale === 'en') {
+      return cookieLocale;
+    }
+  } catch (error) {
+    // If cookies fail, use default
+    console.log('Layout cookie locale detection failed, using default:', error);
+  }
+  
+  return 'pl'; // Default to Polish
+}
+
 export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const locale = await getLocale();
-  const messages = await getMessages();
+  const locale = await getLayoutLocale();
+  const messages = locale === 'pl' ? plMessages : enMessages;
 
   return (
     <html lang={locale} suppressHydrationWarning>

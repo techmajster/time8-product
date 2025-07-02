@@ -1,6 +1,5 @@
-import { notFound } from 'next/navigation';
 import { getRequestConfig } from 'next-intl/server';
-import { getUserLocale } from '@/lib/i18n-utils';
+import { cookies } from 'next/headers';
 
 // Our supported locales
 export const locales = ['pl', 'en'] as const;
@@ -8,14 +7,39 @@ export type Locale = (typeof locales)[number];
 
 export const defaultLocale: Locale = 'pl';
 
+// Import messages statically to avoid dynamic import issues
+import plMessages from './messages/pl.json';
+import enMessages from './messages/en.json';
+
+const messages = {
+  pl: plMessages,
+  en: enMessages,
+};
+
+// Safe cookie-only locale detection to avoid OAuth interference
+async function getSafeLocale(): Promise<Locale> {
+  try {
+    const cookieStore = await cookies();
+    const cookieLocale = cookieStore.get('locale')?.value as Locale;
+    
+    if (cookieLocale && locales.includes(cookieLocale)) {
+      return cookieLocale;
+    }
+  } catch (error) {
+    // If cookies fail (e.g., during build), use default
+    console.log('Cookie locale detection failed, using default:', error);
+  }
+  
+  return defaultLocale;
+}
+
 export default getRequestConfig(async () => {
-  // Use default locale for static generation
-  // Components will handle dynamic locale switching at runtime
-  const locale = defaultLocale;
+  // Use safe cookie-only locale detection
+  const locale = await getSafeLocale();
 
   return {
     locale,
-    messages: (await import(`./messages/${locale}.json`)).default
+    messages: messages[locale]
   };
 });
 
