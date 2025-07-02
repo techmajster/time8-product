@@ -153,15 +153,19 @@ export function InviteTeamDialog() {
         if (response.ok) {
           setSuccess(`Invitation sent successfully to ${formData.email}! They will receive an email with instructions to join.`)
         } else {
-          // Use environment variable in production, fallback to current origin
-          const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
-          setSuccess(`Invitation created for ${formData.email}. Note: Email sending failed, but you can share this link manually: ${baseUrl}/auth/accept-invitation?token=${token}`)
+          // Use environment variables in order of preference, fallback to current origin
+          const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
+                         process.env.NEXT_PUBLIC_SITE_URL || 
+                         (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000')
+          setSuccess(`Invitation created for ${formData.email}. Note: Email sending failed, but you can share this link manually: ${baseUrl}/team/invite?token=${token}`)
         }
       } catch (emailError) {
         console.error('Email sending failed:', emailError)
-        // Use environment variable in production, fallback to current origin
-        const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
-        setSuccess(`Invitation created for ${formData.email}. Note: Email sending failed, but you can share this link manually: ${baseUrl}/auth/accept-invitation?token=${token}`)
+        // Use environment variables in order of preference, fallback to current origin
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
+                       process.env.NEXT_PUBLIC_SITE_URL || 
+                       (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000')
+        setSuccess(`Invitation created for ${formData.email}. Note: Email sending failed, but you can share this link manually: ${baseUrl}/team/invite?token=${token}`)
       }
       
       // Reset form on success

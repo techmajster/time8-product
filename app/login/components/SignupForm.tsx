@@ -34,8 +34,10 @@ export function SignupForm({ onModeChange, className }: SignupFormProps) {
     try {
       const supabase = createClient()
       
-      // Use environment variable in production, fallback to current origin
-      const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
+      // Use environment variables in order of preference, fallback to current origin
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
+                     process.env.NEXT_PUBLIC_SITE_URL || 
+                     (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000')
       
       const { error: authError } = await supabase.auth.signUp({
         email,

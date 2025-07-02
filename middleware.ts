@@ -52,7 +52,6 @@ export async function middleware(request: NextRequest) {
   const publicApiRoutes = [
     '/api/logout',
     '/api/locale', // Language switching API
-    '/api/auth',  // Keep for compatibility
   ]
 
   const { pathname } = request.nextUrl

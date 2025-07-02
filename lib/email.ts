@@ -145,7 +145,7 @@ export async function sendInvitationEmail(data: InvitationEmailData) {
     }
 
     // Construct the invitation URL
-    const invitationUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/accept-invitation?token=${data.invitationToken}`
+    const invitationUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/team/invite?token=${data.invitationToken}`
 
     const content = `
       <div class="header">
@@ -424,7 +424,7 @@ export async function sendTestEmail(data: { to: string; subject: string; content
 
 // Fallback function if email service is not configured
 export function createInvitationEmailContent(data: InvitationEmailData) {
-  const invitationUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/accept-invitation?token=${data.invitationToken}`
+  const invitationUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/team/invite?token=${data.invitationToken}`
   
   return {
     subject: `Zaproszenie do ${data.organizationName}`,
