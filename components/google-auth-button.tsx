@@ -18,12 +18,22 @@ export function GoogleAuthButton({ mode }: GoogleAuthButtonProps) {
   const handleGoogleAuth = async () => {
     setLoading(true)
     
-    // Use environment variables in order of preference, fallback to current origin
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
-                   process.env.NEXT_PUBLIC_SITE_URL || 
-                   (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000')
+    // Get base URL and ensure it has https protocol
+    let baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 
+                  process.env.NEXT_PUBLIC_APP_URL || 
+                  (typeof window !== 'undefined' ? window.location.origin : 'https://saas-leave-system.vercel.app')
+    
+    // Ensure the URL has https protocol
+    if (baseUrl && !baseUrl.startsWith('http')) {
+      baseUrl = `https://${baseUrl}`
+    }
     
     console.log('🔐 Google Auth redirectTo URL:', `${baseUrl}/login/callback`)
+    console.log('🔐 Environment vars:', {
+      NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
+      NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+      window_origin: typeof window !== 'undefined' ? window.location.origin : 'N/A'
+    })
     
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
