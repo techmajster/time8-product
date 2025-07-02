@@ -15,7 +15,7 @@ export default async function SchedulePage() {
   // Check authentication
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (authError || !user) {
-    redirect('/auth/login')
+    redirect('/login')
   }
 
   // Get user profile for role checking
@@ -26,7 +26,7 @@ export default async function SchedulePage() {
     .single()
 
   if (profileError || !profile) {
-    redirect('/auth/login')
+    redirect('/login')
   }
 
   // Get team members with full details for the weekly view

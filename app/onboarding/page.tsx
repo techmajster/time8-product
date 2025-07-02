@@ -11,7 +11,7 @@ export default async function OnboardingPage() {
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) {
-    redirect('/auth/login')
+    redirect('/login')
   }
 
   // Check if user already has an organization

@@ -18,7 +18,7 @@ export default async function LeaveRequestsPage({ searchParams }: {
   const { data: { user } } = await supabase.auth.getUser()
   
   if (!user) {
-    redirect('/auth/login')
+    redirect('/login')
   }
 
   // Await searchParams
