@@ -14,6 +14,7 @@ import Link from 'next/link'
 import { InviteTeamDialog } from './components/InviteTeamDialog'
 import InvitationsSection from './components/InvitationsSection'
 import { TeamMemberActions } from './components/TeamMemberActions'
+import { TeamManagement } from './components/TeamManagement'
 import { getTranslations } from 'next-intl/server'
 
 export default async function TeamPage() {
@@ -48,12 +49,56 @@ export default async function TeamPage() {
   // Check if user has permission to manage team
   const canManageTeam = profile.role === 'admin' || profile.role === 'manager'
 
-  // Get all team members
+  // Get all team members with team info
   const { data: teamMembers } = await supabase
     .from('profiles')
-    .select('id, email, full_name, role, auth_provider, created_at')
+    .select('id, email, full_name, role, auth_provider, created_at, team_id, avatar_url')
     .eq('organization_id', profile.organization_id)
     .order('created_at', { ascending: true })
+
+  // Get teams data if user can manage teams
+  let teams: any[] = []
+  let managers: any[] = []
+  
+  if (canManageTeam) {
+    // Get all teams in organization
+    const { data: teamsData } = await supabase
+      .from('teams')
+      .select(`
+        id,
+        name,
+        description,
+        color,
+        created_at,
+        updated_at,
+        manager:profiles!teams_manager_id_fkey (
+          id,
+          full_name,
+          email
+        ),
+        members:profiles!profiles_team_id_fkey (
+          id,
+          full_name,
+          email,
+          role,
+          avatar_url
+        )
+      `)
+      .eq('organization_id', profile.organization_id)
+      .order('name')
+
+    teams = teamsData || []
+
+    // Get all managers for team assignment
+    const { data: managersData } = await supabase
+      .from('profiles')
+      .select('id, full_name, email')
+      .eq('organization_id', profile.organization_id)
+      .in('role', ['admin', 'manager'])
+      .order('full_name')
+
+    managers = managersData || []
+  }
 
   // Get pending invitations with inviter details
   const { data: invitations } = await supabase
@@ -123,6 +168,11 @@ export default async function TeamPage() {
                 <TabsTrigger value="invitations">
                   {t('pendingInvitations')} ({invitations?.length || 0})
                 </TabsTrigger>
+                {canManageTeam && (
+                  <TabsTrigger value="teams">
+                    Teams ({teams.length})
+                  </TabsTrigger>
+                )}
               </TabsList>
             </div>
           </div>
@@ -219,6 +269,22 @@ export default async function TeamPage() {
                   canManageTeam={canManageTeam}
                 />
               </TabsContent>
+
+              {/* Team Management Tab Content */}
+              {canManageTeam && (
+                <TabsContent value="teams" className="mt-0">
+                  <Card className="bg-background border rounded-lg shadow-none">
+                    <CardContent className="p-8">
+                      <TeamManagement
+                        initialTeams={teams}
+                        allMembers={teamMembers || []}
+                        managers={managers}
+                        currentUserRole={profile.role}
+                      />
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              )}
             </div>
           </div>
         </div>

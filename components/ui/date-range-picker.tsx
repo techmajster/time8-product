@@ -1,9 +1,11 @@
 "use client"
 
 import * as React from "react"
-import { format } from "date-fns"
+import { format, Locale } from "date-fns"
+import { pl, enUS } from 'date-fns/locale'
 import { CalendarIcon } from "lucide-react"
 import { DateRange } from "react-day-picker"
+import { useTranslations, useLocale } from 'next-intl'
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -13,6 +15,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import { plWithCapitals } from "@/lib/utils"
 
 interface DateRangePickerProps {
   value?: DateRange
@@ -24,18 +27,59 @@ interface DateRangePickerProps {
   className?: string
 }
 
+// Helper function to capitalize first letter while preserving the rest of the string
+const capitalizeFirst = (str: string) => {
+  if (!str) return str
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase()
+}
+
+// Helper function to format date with capitalized month in Polish
+const formatDateWithCapitals = (date: Date, formatStr: string, locale: Locale) => {
+  // For Polish, we'll format month and day separately to ensure proper capitalization
+  if (locale === pl) {
+    const month = capitalizeFirst(format(date, "LLL", { locale }))
+    const day = format(date, "dd", { locale })
+    const year = format(date, "y", { locale })
+    return `${month} ${day}, ${year}`
+  }
+  return format(date, formatStr, { locale })
+}
+
 export function DateRangePicker({
   value,
   date,
   onDateRangeChange,
   onDateChange,
-  placeholder = "Pick a date range",
+  placeholder,
   disabled = false,
   className,
 }: DateRangePickerProps) {
+  const t = useTranslations('common')
+  const locale = useLocale()
+  const dateLocale = locale === 'pl' ? plWithCapitals : enUS
+  
   // Support both prop naming conventions for compatibility
   const selectedRange = value || date
   const handleChange = onDateRangeChange || onDateChange
+
+  // Custom formatters for the calendar
+  const customFormatters = {
+    formatCaption: (date: Date, options?: { locale?: Locale }) => {
+      if (options?.locale === pl) {
+        const month = capitalizeFirst(format(date, "LLLL", { locale: pl }))
+        const year = format(date, "y", { locale: pl })
+        return `${month} ${year}`
+      }
+      return format(date, "LLLL y", { locale: options?.locale })
+    },
+    formatWeekdayName: (date: Date, options?: { locale?: Locale }) => {
+      if (options?.locale === pl) {
+        return capitalizeFirst(format(date, "EEEEEE", { locale: pl }))
+      }
+      return format(date, "EEEEEE", { locale: options?.locale })
+    }
+  }
+
   return (
     <div className={cn("grid gap-2", className)}>
       <Popover>
@@ -53,14 +97,14 @@ export function DateRangePicker({
             {selectedRange?.from ? (
               selectedRange.to ? (
                 <>
-                  {format(selectedRange.from, "LLL dd, y")} -{" "}
-                  {format(selectedRange.to, "LLL dd, y")}
+                  {format(selectedRange.from, "LLL dd, y", { locale: dateLocale })} -{" "}
+                  {format(selectedRange.to, "LLL dd, y", { locale: dateLocale })}
                 </>
               ) : (
-                format(selectedRange.from, "LLL dd, y")
+                format(selectedRange.from, "LLL dd, y", { locale: dateLocale })
               )
             ) : (
-              <span>{placeholder}</span>
+              <span>{placeholder || t('datePicker.pickDateRange')}</span>
             )}
           </Button>
         </PopoverTrigger>
@@ -72,6 +116,9 @@ export function DateRangePicker({
             selected={selectedRange}
             onSelect={handleChange}
             numberOfMonths={2}
+            weekStartsOn={1}
+            locale={dateLocale}
+            formatters={customFormatters}
           />
         </PopoverContent>
       </Popover>

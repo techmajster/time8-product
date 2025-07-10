@@ -1,36 +1,37 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { NewLeaveRequestForm } from '../new/components/NewLeaveRequestForm'
 import { LeaveType, LeaveBalance, UserProfile } from '@/types/leave'
 import { useRouter, useSearchParams } from 'next/navigation'
 
-interface NewLeaveRequestDialogProps {
+interface NewLeaveRequestSheetProps {
   leaveTypes: LeaveType[]
   leaveBalances: LeaveBalance[]
   userProfile?: UserProfile
 }
 
-export function NewLeaveRequestDialog({ leaveTypes, leaveBalances, userProfile }: NewLeaveRequestDialogProps) {
+export function NewLeaveRequestSheet({ leaveTypes, leaveBalances, userProfile }: NewLeaveRequestSheetProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const isOpen = searchParams.get('new') === 'true'
 
   const handleClose = () => {
-    router.push('/leave')
+    const currentPath = window.location.pathname
+    router.push(currentPath)
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-semibold text-foreground">
+    <Sheet open={isOpen} onOpenChange={handleClose}>
+      <SheetContent side="right" className="w-full sm:max-w-4xl overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle className="text-xl font-semibold text-foreground">
             Nowy wniosek urlopowy
-          </DialogTitle>
-        </DialogHeader>
+          </SheetTitle>
+        </SheetHeader>
         
-        <div className="space-y-6">
+        <div className="space-y-6 mt-6">
           <NewLeaveRequestForm 
             leaveTypes={leaveTypes}
             leaveBalances={leaveBalances}
@@ -39,7 +40,7 @@ export function NewLeaveRequestDialog({ leaveTypes, leaveBalances, userProfile }
             inDialog={true}
           />
         </div>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   )
 } 

@@ -27,6 +27,7 @@ import {
   formatValidationErrors 
 } from '@/lib/leave-validation'
 import { LeaveType, LeaveBalance, UserProfile, LeaveCategory } from '@/types/leave'
+import { useLeaveSystemToasts } from '@/hooks/use-sonner-toast'
 
 interface NewLeaveRequestFormProps {
   leaveTypes: LeaveType[]
@@ -39,7 +40,6 @@ interface NewLeaveRequestFormProps {
 export function NewLeaveRequestForm({ leaveTypes, leaveBalances, userProfile, onSuccess, inDialog = false }: NewLeaveRequestFormProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
   const [validationMessages, setValidationMessages] = useState<string[]>([])
   const [formData, setFormData] = useState({
     leave_type_id: '',
@@ -52,8 +52,7 @@ export function NewLeaveRequestForm({ leaveTypes, leaveBalances, userProfile, on
   
   const router = useRouter()
   const supabase = createClient()
-
-
+  const { leaveRequestSubmitted } = useLeaveSystemToasts()
 
   // Filter leave types based on user eligibility
   const applicableLeaveTypes = userProfile 
@@ -174,7 +173,6 @@ export function NewLeaveRequestForm({ leaveTypes, leaveBalances, userProfile, on
     e.preventDefault()
     setLoading(true)
     setError(null)
-    setSuccess(null)
 
     try {
       if (!formData.leave_type_id || !formData.start_date || !formData.end_date) {
@@ -245,7 +243,7 @@ export function NewLeaveRequestForm({ leaveTypes, leaveBalances, userProfile, on
         throw new Error(result.error || result.details || `Failed to create leave request (${response.status})`)
       }
 
-      setSuccess('Wniosek urlopowy został pomyślnie złożony!')
+      setError(null)
       
       // Call onSuccess callback if provided, otherwise redirect
       if (onSuccess) {
@@ -257,6 +255,8 @@ export function NewLeaveRequestForm({ leaveTypes, leaveBalances, userProfile, on
           router.push('/leave')
         }, 2000)
       }
+      
+      leaveRequestSubmitted()
       
     } catch (err) {
       console.error('Error creating leave request:', err)
@@ -273,89 +273,6 @@ export function NewLeaveRequestForm({ leaveTypes, leaveBalances, userProfile, on
     <TooltipProvider>
       <form onSubmit={handleSubmit} className="space-y-6">
         
-        {/* Leave Balance Overview */}
-        {leaveBalances.length > 0 && (
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Label className="text-sm font-medium">Przegląd sald urlopowych</Label>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Aktualne stany Twoich urlopów na {new Date().getFullYear()} rok</p>
-                </TooltipContent>
-              </Tooltip>
-            </div>
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Typ urlopu</TableHead>
-                    <TableHead className="text-center">Przysługuje</TableHead>
-                    <TableHead className="text-center">Wykorzystane</TableHead>
-                    <TableHead className="text-center">Pozostało</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {leaveBalances.map((balance) => {
-                    const leaveType = leaveTypes.find(lt => lt.id === balance.leave_type_id)
-                    if (!leaveType) return null
-                    
-                    return (
-                      <TableRow key={balance.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <div 
-                              className="w-3 h-3 rounded-full" 
-                              style={{ backgroundColor: leaveType.color }}
-                            />
-                            <span className="font-medium text-foreground">{leaveType.name}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-center">{balance.entitled_days}</TableCell>
-                        <TableCell className="text-center">{balance.used_days}</TableCell>
-                        <TableCell className="text-center">
-                          <Badge variant={(() => {
-                            if (leaveType.name === 'Urlop na żądanie') {
-                              const vacationBalance = leaveBalances.find(b => {
-                                const vLeaveType = leaveTypes.find(lt => lt.id === b.leave_type_id)
-                                return vLeaveType?.name === 'Urlop wypoczynkowy'
-                              })
-                              if (vacationBalance) {
-                                const usedThisYear = Math.min(balance.used_days, 4)
-                                const remainingAnnual = 4 - usedThisYear
-                                const actualRemaining = Math.min(remainingAnnual, vacationBalance.remaining_days)
-                                return actualRemaining > 0 ? "default" : "destructive"
-                              }
-                            }
-                            return balance.remaining_days > 0 ? "default" : "destructive"
-                          })()}>
-                            {(() => {
-                              if (leaveType.name === 'Urlop na żądanie') {
-                                const vacationBalance = leaveBalances.find(b => {
-                                  const vLeaveType = leaveTypes.find(lt => lt.id === b.leave_type_id)
-                                  return vLeaveType?.name === 'Urlop wypoczynkowy'
-                                })
-                                if (vacationBalance) {
-                                  const usedThisYear = Math.min(balance.used_days, 4)
-                                  const remainingAnnual = 4 - usedThisYear
-                                  const actualRemaining = Math.min(remainingAnnual, vacationBalance.remaining_days)
-                                  return Math.max(0, actualRemaining)
-                                }
-                              }
-                              return Math.max(0, balance.remaining_days)
-                            })()}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          </div>
-        )}
       {/* Leave Type Selection */}
               <div className="space-y-2">
         <div className="flex items-center gap-2">
@@ -564,12 +481,6 @@ export function NewLeaveRequestForm({ leaveTypes, leaveBalances, userProfile, on
       {error && (
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      {success && (
-        <Alert className="bg-success/10 border-success/20 text-success">
-          <AlertDescription>{success}</AlertDescription>
         </Alert>
       )}
 

@@ -23,7 +23,13 @@
     "error": "Błąd",
     "success": "Sukces",
     "warning": "Ostrzeżenie",
-    "info": "Informacja"
+    "info": "Informacja",
+    "datePicker": {
+      "pickDate": "Wybierz datę",
+      "pickDateRange": "Wybierz zakres dat",
+      "from": "Od",
+      "to": "Do"
+    }
   },
   "auth": {
     "login": "Zaloguj się",
@@ -73,7 +79,9 @@
   },
   "navigation": {
     "dashboard": "Dashboard",
-    "leaveRequests": "Urlopy",
+    "leave": "Moje urlopy",
+    "leaveRequests": "Wnioski urlopowe",
+    "leave-requests": "Wnioski urlopowe",
     "calendar": "Kalendarz",
     "team": "Zespół",
     "schedule": "Harmonogram",

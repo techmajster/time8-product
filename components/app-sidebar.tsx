@@ -62,7 +62,7 @@ export function AppSidebar({ organizationName, organizationLogo, userProfile, us
       isActive: true,
     },
     {
-      title: t('leaveRequests'),
+      title: t('leave'),
       url: "/leave",
       icon: ClipboardList,
     },
@@ -75,6 +75,11 @@ export function AppSidebar({ organizationName, organizationLogo, userProfile, us
 
   // Get manager/admin specific items
   const getManagerItems = () => [
+    {
+      title: t('leaveRequests'),
+      url: "/leave-requests",
+      icon: ClipboardList,
+    },
     {
       title: t('team'),
       url: "/team",

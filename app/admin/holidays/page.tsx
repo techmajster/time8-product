@@ -22,24 +22,10 @@ import {
 } from '@/components/ui/dialog'
 import { useRouter } from 'next/navigation'
 import { DatePicker } from '@/components/ui/date-picker'
+import { LeaveType, LeaveBalance, UserProfile, Holiday } from '@/types/leave'
 
-interface Holiday {
-  id: string
-  name: string
-  date: string
-  type: string
-  organization_id: string | null
-  description?: string
-  holiday_type?: string
-  days_until?: number
-}
-
-interface UserProfile {
-  role: string
-  organization_id: string
-  organizations?: {
-    name: string
-  } | null
+interface HolidayWithDaysUntil extends Holiday {
+  days_until: number
 }
 
 function AddCompanyHolidayDialog({ organizationId, onHolidayAdded }: { organizationId: string, onHolidayAdded: () => void }) {
@@ -507,128 +493,139 @@ function DeleteHolidayButton({ holiday, onHolidayDeleted }: { holiday: Holiday, 
 
 export default function HolidaysPage() {
   const router = useRouter()
-  const [holidays, setHolidays] = useState<Holiday[]>([])
-  const [upcomingHolidays, setUpcomingHolidays] = useState<Holiday[]>([])
+  const [holidays, setHolidays] = useState<HolidayWithDaysUntil[]>([])
+  const [upcomingHolidays, setUpcomingHolidays] = useState<HolidayWithDaysUntil[]>([])
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([])
+  const [leaveBalances, setLeaveBalances] = useState<LeaveBalance[]>([])
 
   const supabase = createClient()
 
   const fetchData = async () => {
+    setLoading(true)
+    setError(null)
+
     try {
-      setLoading(true)
-      setError(null)
+      const supabase = createClient()
 
-      // Get user profile
+      // Fetch user profile
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.push('/login')
-        return
-      }
+      if (!user) throw new Error('Not authenticated')
 
-      const { data: userProfile } = await supabase
+      // Fetch profile data
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select(`
-          role, 
-          organization_id,
-          organizations (
-            name
-          )
-        `)
+        .select('*, organizations(name)')
         .eq('id', user.id)
         .single()
 
-      if (!userProfile || userProfile.role !== 'admin') {
-        router.push('/dashboard')
-        return
-      }
+      if (profileError) throw profileError
+      setProfile(profileData)
 
-      if (!userProfile.organization_id) {
-        router.push('/onboarding')
-        return
-      }
+      // Fetch leave types
+      const { data: rawLeaveTypes, error: leaveTypesError } = await supabase
+        .from('leave_types')
+        .select(`
+          id,
+          name,
+          color,
+          days_per_year,
+          organization_id,
+          is_paid,
+          requires_balance,
+          min_days_per_request,
+          max_days_per_request,
+          advance_notice_days,
+          max_consecutive_days,
+          requires_approval,
+          can_be_split,
+          carry_over_allowed,
+          leave_category,
+          special_rules,
+          description,
+          created_at,
+          updated_at
+        `)
+        .eq('organization_id', profileData.organization_id)
 
-      // Transform the data to match our interface
-      const transformedProfile: UserProfile = {
-        role: userProfile.role,
-        organization_id: userProfile.organization_id,
-        organizations: Array.isArray(userProfile.organizations) 
-          ? userProfile.organizations[0] || null 
-          : userProfile.organizations || null
-      }
+      if (leaveTypesError) throw leaveTypesError
 
-      setProfile(transformedProfile)
+      // Transform the data to match our expected types
+      const leaveTypesData = rawLeaveTypes.map(type => ({
+        ...type,
+        leave_category: type.leave_category || 'annual', // Provide default if missing
+        special_rules: type.special_rules || undefined
+      }))
 
-      // Get organization settings to filter holidays by country
-      const { data: orgData } = await supabase
-        .from('organizations')
-        .select('country_code')
-        .eq('id', userProfile.organization_id)
-        .single()
+      setLeaveTypes(leaveTypesData)
 
-      const countryCode = orgData?.country_code || 'PL'
+      // Fetch leave balances
+      const { data: rawLeaveBalances, error: leaveBalancesError } = await supabase
+        .from('leave_balances')
+        .select(`
+          id,
+          user_id,
+          leave_type_id,
+          year,
+          entitled_days,
+          used_days,
+          remaining_days,
+          carry_over_days,
+          organization_id,
+          leave_types!inner (
+            id,
+            name,
+            color,
+            leave_category
+          ),
+          profiles!inner (
+            id,
+            full_name,
+            email,
+            role
+          ),
+          created_at,
+          updated_at
+        `)
+        .eq('user_id', user.id)
+        .eq('year', new Date().getFullYear())
 
-      // Fetch holidays (national holidays for the selected country + organization holidays)
-      const currentYear = new Date().getFullYear()
+      if (leaveBalancesError) throw leaveBalancesError
+
+      // Transform the data to match our expected types
+      const leaveBalancesData = rawLeaveBalances.map(balance => ({
+        ...balance,
+        leave_types: balance.leave_types[0],
+        profiles: balance.profiles[0]
+      }))
+
+      setLeaveBalances(leaveBalancesData)
+
+      // Fetch holidays
       const { data: holidaysData, error: holidaysError } = await supabase
-        .from('company_holidays')
-        .select('id, name, date, type, organization_id, description, country_code')
-        .gte('date', `${currentYear}-01-01`)
-        .lte('date', `${currentYear}-12-31`)
-        .or(`organization_id.eq.${userProfile.organization_id},and(type.eq.national,country_code.eq.${countryCode})`)
+        .from('holidays')
+        .select('*')
+        .or(`organization_id.eq.${profileData.organization_id},holiday_type.eq.national`)
+        .gte('date', new Date().toISOString().split('T')[0])
         .order('date', { ascending: true })
 
-      if (holidaysError) {
-        throw holidaysError
-      }
+      if (holidaysError) throw holidaysError
 
-      // Transform holidays
-      const transformedHolidays = holidaysData?.map(holiday => ({
+      // Process holidays data
+      const now = new Date()
+      const processedHolidays = holidaysData.map(holiday => ({
         ...holiday,
-        holiday_type: holiday.type || 'organization',
-      })) || []
+        days_until: Math.ceil((new Date(holiday.date).getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+      }))
 
-      setHolidays(transformedHolidays)
+      setHolidays(processedHolidays)
+      setUpcomingHolidays(processedHolidays.filter(h => h.days_until <= 90))
 
-      // Fetch upcoming holidays (filtered by country)
-      const today = new Date().toISOString().split('T')[0]
-      const futureDate = new Date()
-      futureDate.setDate(futureDate.getDate() + 90)
-      const future = futureDate.toISOString().split('T')[0]
-
-      const { data: upcomingData, error: upcomingError } = await supabase
-        .from('company_holidays')
-        .select('id, name, date, type, organization_id, description, country_code')
-        .gte('date', today)
-        .lte('date', future)
-        .or(`organization_id.eq.${userProfile.organization_id},and(type.eq.national,country_code.eq.${countryCode})`)
-        .order('date', { ascending: true })
-        .limit(5)
-
-      if (upcomingError) {
-        throw upcomingError
-      }
-
-      // Transform upcoming holidays with days_until
-      const transformedUpcoming = upcomingData?.map(holiday => {
-        const holidayDate = new Date(holiday.date)
-        const todayDate = new Date()
-        const diffTime = holidayDate.getTime() - todayDate.getTime()
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-        
-        return {
-          ...holiday,
-          holiday_type: holiday.type || 'organization',
-          days_until: Math.max(0, diffDays)
-        }
-      }) || []
-
-      setUpcomingHolidays(transformedUpcoming)
-
-    } catch (error) {
-      console.error('Error fetching data:', error)
-      setError('Wystąpił błąd podczas ładowania danych')
+    } catch (err: any) {
+      console.error('Error fetching data:', err)
+      setError(err.message)
     } finally {
       setLoading(false)
     }
@@ -668,7 +665,11 @@ export default function HolidaysPage() {
 
   if (loading) {
     return (
-      <AppLayoutClient userRole="admin">
+      <AppLayoutClient 
+        userRole="admin"
+        leaveTypes={[]}
+        leaveBalances={[]}
+      >
         <div className="container mx-auto py-6 flex items-center justify-center">
           <div className="flex items-center gap-2">
             <Loader2 className="h-6 w-6 animate-spin" />
@@ -681,7 +682,11 @@ export default function HolidaysPage() {
 
   if (error) {
     return (
-      <AppLayoutClient userRole="admin">
+      <AppLayoutClient 
+        userRole="admin"
+        leaveTypes={[]}
+        leaveBalances={[]}
+      >
         <div className="container mx-auto py-6">
           <Alert variant="destructive">
             <AlertDescription>{error}</AlertDescription>
@@ -696,7 +701,11 @@ export default function HolidaysPage() {
   }
 
   return (
-    <AppLayoutClient userRole={profile.role}>
+    <AppLayoutClient 
+      userRole={profile.role}
+      leaveTypes={leaveTypes}
+      leaveBalances={leaveBalances}
+    >
       <div className="container mx-auto py-6 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">

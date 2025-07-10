@@ -23,7 +23,13 @@
     "error": "Error",
     "success": "Success",
     "warning": "Warning",
-    "info": "Information"
+    "info": "Information",
+    "datePicker": {
+      "pickDate": "Pick a date",
+      "pickDateRange": "Pick a date range",
+      "from": "From",
+      "to": "To"
+    }
   },
   "auth": {
     "login": "Sign In",
@@ -73,7 +79,9 @@
   },
   "navigation": {
     "dashboard": "Dashboard",
-    "leaveRequests": "Leave",
+    "leave": "My Leave",
+    "leaveRequests": "Leave Requests",
+    "leave-requests": "Leave Requests",
     "calendar": "Calendar",
     "team": "Team",
     "schedule": "Schedule",

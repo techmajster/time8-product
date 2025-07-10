@@ -7,9 +7,19 @@ import {
   ChevronRightIcon,
 } from "lucide-react"
 import { DayButton, DayPicker, getDefaultClassNames } from "react-day-picker"
+import { pl, enUS } from 'date-fns/locale'
+import { useLocale } from 'next-intl'
+import { format } from "date-fns"
 
 import { cn } from "@/lib/utils"
 import { Button, buttonVariants } from "@/components/ui/button"
+import { plWithCapitals } from "@/lib/utils"
+
+// Helper function to capitalize first letter
+const capitalizeFirst = (str: string) => {
+  if (!str) return str
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase()
+}
 
 function Calendar({
   className,
@@ -21,9 +31,46 @@ function Calendar({
   components,
   ...props
 }: React.ComponentProps<typeof DayPicker> & {
-  buttonVariant?: React.ComponentProps<typeof Button>["variant"]
+  buttonVariant?: "ghost" | "outline"
 }) {
   const defaultClassNames = getDefaultClassNames()
+  const locale = useLocale()
+  const localeMap = {
+    pl: plWithCapitals,
+    en: enUS
+  }
+  const currentLocale = localeMap[locale as keyof typeof localeMap]
+
+  // Custom formatters for proper Polish capitalization
+  const defaultFormatters = {
+    formatCaption: (date: Date) => {
+      if (locale === 'pl') {
+        const month = capitalizeFirst(format(date, 'LLLL', { locale: pl }))
+        const year = format(date, 'y', { locale: pl })
+        return `${month} ${year}`
+      }
+      return format(date, 'LLLL y', { locale: currentLocale })
+    },
+    formatWeekdayName: (date: Date) => {
+      if (locale === 'pl') {
+        return capitalizeFirst(format(date, 'EEEEEE', { locale: pl }))
+      }
+      return format(date, 'EEEEEE', { locale: currentLocale })
+    },
+    formatMonthCaption: (date: Date) => {
+      if (locale === 'pl') {
+        return capitalizeFirst(format(date, 'LLLL', { locale: pl }))
+      }
+      return format(date, 'LLLL', { locale: currentLocale })
+    },
+    formatMonthDropdown: (date: Date) => {
+      if (locale === 'pl') {
+        return capitalizeFirst(format(date, 'LLL', { locale: pl }))
+      }
+      return format(date, 'LLL', { locale: currentLocale })
+    },
+    ...formatters,
+  }
 
   return (
     <DayPicker
@@ -35,11 +82,9 @@ function Calendar({
         className
       )}
       captionLayout={captionLayout}
-      formatters={{
-        formatMonthDropdown: (date) =>
-          date.toLocaleString("default", { month: "short" }),
-        ...formatters,
-      }}
+      formatters={defaultFormatters}
+      weekStartsOn={1}
+      locale={currentLocale}
       classNames={{
         root: cn("w-fit", defaultClassNames.root),
         months: cn(

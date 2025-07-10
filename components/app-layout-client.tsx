@@ -18,6 +18,7 @@ import {
 import { usePathname } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import React from 'react'
+import { LeaveType, LeaveBalance, UserProfile } from '@/types/leave'
 
 interface Organization {
   id: string
@@ -31,12 +32,10 @@ interface AppLayoutClientProps {
   userRole?: string
   userId?: string
   organization?: Organization | null
-  userProfile?: {
-    full_name?: string | null
-    email: string
-    avatar_url?: string | null
-  }
+  userProfile?: UserProfile
   teamInviteCount?: number
+  leaveTypes: LeaveType[]
+  leaveBalances: LeaveBalance[]
 }
 
 // Function to generate breadcrumb items based on pathname
@@ -61,6 +60,7 @@ function getBreadcrumbItems(pathname: string, organizationName?: string | null, 
       const translations: Record<string, string> = {
         'dashboard': t?.('navigation.dashboard') || 'Dashboard',
         'leave': t?.('navigation.leave') || 'Leave Requests',
+        'leave-requests': t?.('navigation.leaveRequests') || 'Leave Requests',
         'calendar': t?.('navigation.calendar') || 'Calendar',
         'team': t?.('navigation.team') || 'Team',
         'schedule': t?.('navigation.schedule') || 'Schedule',
@@ -110,7 +110,9 @@ export function AppLayoutClient({
   userId, 
   organization, 
   userProfile, 
-  teamInviteCount 
+  teamInviteCount,
+  leaveTypes,
+  leaveBalances
 }: AppLayoutClientProps) {
   const pathname = usePathname()
   const t = useTranslations()
@@ -151,11 +153,7 @@ export function AppLayoutClient({
               </BreadcrumbList>
             </Breadcrumb>
           </div>
-          <div className="ml-auto px-4">
-            <div className="flex items-center gap-2">
-              {/* Language switcher and mode toggle moved to user dropdown */}
-            </div>
-          </div>
+
         </header>
         <main className="flex flex-1 flex-col gap-4 p-4 pt-0">
           {children}
