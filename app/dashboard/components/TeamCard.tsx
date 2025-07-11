@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
 import { TreePalm, UserCheck, Users } from 'lucide-react'
 
 interface TeamMember {
@@ -69,7 +70,7 @@ export function TeamCard({ allTeamMembers, absentMembers, teams, defaultTeamId, 
       <CardContent className="p-6 py-0">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-xl font-semibold text-neutral-950">
-            {selectedTeamId === 'all' ? 'Twój zespół' : selectedTeam?.name || 'Zespół'}
+            Twój zespół
           </h3>
           
           {teams.length > 0 && (userRole === 'admin' || teams.length > 1) && (
@@ -157,7 +158,7 @@ export function TeamCard({ allTeamMembers, absentMembers, teams, defaultTeamId, 
 
           {/* Working Today Section */}
           <div>
-            <h4 className="text-sm font-medium text-neutral-950">
+            <h4 className="text-sm font-medium text-neutral-950 pb-6">
               Dziś pracują {workingMembers.length > 0 && `(${workingMembers.length})`}
             </h4>
             <div className="space-y-4">
@@ -172,17 +173,15 @@ export function TeamCard({ allTeamMembers, absentMembers, teams, defaultTeamId, 
                         <AvatarFallback className="bg-neutral-100">{initials}</AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
-                        <div className="text-sm font-medium text-neutral-950">{member.full_name}</div>
+                        <div className="flex items-center gap-2">
+                          <div className="text-sm font-medium text-neutral-950">{member.full_name}</div>
+                          {member.teams && (
+                            <Badge variant="outline" className="text-xs">
+                              {member.teams.name}
+                            </Badge>
+                          )}
+                        </div>
                         <div className="text-sm text-neutral-500">{member.email}</div>
-                        {member.teams && (
-                          <div className="flex items-center gap-1 mt-1">
-                            <div 
-                              className="w-2 h-2 rounded-full" 
-                              style={{ backgroundColor: member.teams.color }}
-                            />
-                            <span className="text-xs text-neutral-400">{member.teams.name}</span>
-                          </div>
-                        )}
                       </div>
                       <div className="w-10 h-10 rounded-lg flex items-center justify-center">
                         <UserCheck className="w-6 h-6 text-neutral-950" />

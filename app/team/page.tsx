@@ -52,7 +52,21 @@ export default async function TeamPage() {
   // Get all team members with team info
   const { data: teamMembers } = await supabase
     .from('profiles')
-    .select('id, email, full_name, role, auth_provider, created_at, team_id, avatar_url')
+    .select(`
+      id, 
+      email, 
+      full_name, 
+      role, 
+      auth_provider, 
+      created_at, 
+      team_id, 
+      avatar_url,
+      teams!profiles_team_id_fkey (
+        id,
+        name,
+        color
+      )
+    `)
     .eq('organization_id', profile.organization_id)
     .order('created_at', { ascending: true })
 
@@ -203,9 +217,16 @@ export default async function TeamPage() {
                             {teamMembers.map((member) => (
                               <TableRow key={member.id}>
                                 <TableCell>
-                                  <span className="font-medium text-foreground">
-                                    {member.full_name || t('noName')}
-                                  </span>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium text-foreground">
+                                      {member.full_name || t('noName')}
+                                    </span>
+                                    {member.teams && (
+                                      <Badge variant="outline" className="text-xs">
+                                        {(member.teams as any)?.name || (member.teams as any)?.[0]?.name}
+                                      </Badge>
+                                    )}
+                                  </div>
                                 </TableCell>
                                 <TableCell>
                                   <span className="text-foreground">

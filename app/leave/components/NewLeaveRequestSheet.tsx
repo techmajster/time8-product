@@ -19,9 +19,10 @@ interface NewLeaveRequestSheetProps {
   leaveTypes: LeaveType[]
   leaveBalances: LeaveBalance[]
   userProfile?: UserProfile
+  initialDate?: Date // Add optional initial date prop
 }
 
-export function NewLeaveRequestSheet({ leaveTypes, leaveBalances, userProfile }: NewLeaveRequestSheetProps) {
+export function NewLeaveRequestSheet({ leaveTypes, leaveBalances, userProfile, initialDate }: NewLeaveRequestSheetProps) {
   const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
   const { leaveRequestSubmitted } = useLeaveSystemToasts()
@@ -29,15 +30,33 @@ export function NewLeaveRequestSheet({ leaveTypes, leaveBalances, userProfile }:
 
   // Listen for custom event to open the sheet
   useEffect(() => {
-    const handleOpenLeaveRequest = () => {
+    const handleOpenLeaveRequest = (event: CustomEvent) => {
       setIsOpen(true)
+      // If event has a date, set it as initial date range
+      if (event.detail?.date) {
+        const selectedDate = new Date(event.detail.date)
+        setDateRange({
+          from: selectedDate,
+          to: selectedDate
+        })
+      }
     }
 
-    window.addEventListener('openLeaveRequest', handleOpenLeaveRequest)
+    window.addEventListener('openLeaveRequest', handleOpenLeaveRequest as EventListener)
     return () => {
-      window.removeEventListener('openLeaveRequest', handleOpenLeaveRequest)
+      window.removeEventListener('openLeaveRequest', handleOpenLeaveRequest as EventListener)
     }
   }, [])
+
+  // Set initial date range if initialDate is provided
+  useEffect(() => {
+    if (initialDate && isOpen) {
+      setDateRange({
+        from: initialDate,
+        to: initialDate
+      })
+    }
+  }, [initialDate, isOpen])
 
   const [formData, setFormData] = useState({
     leave_type_id: '',

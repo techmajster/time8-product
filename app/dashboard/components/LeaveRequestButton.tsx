@@ -13,11 +13,12 @@ export function LeaveRequestButton() {
 
   return (
     <Button 
-      className="bg-neutral-900 text-neutral-50 h-9 px-4 gap-2 shadow-sm"
+      variant="default"
+      size="default"
       onClick={handleClick}
     >
       <Plus className="w-4 h-4" />
-      <span className="text-sm font-medium">Złóż wniosek o urlop</span>
+      Złóż wniosek o urlop
     </Button>
   )
 } 

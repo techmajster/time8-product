@@ -57,8 +57,9 @@ interface TeamManagementProps {
   currentUserRole: string
 }
 
-export function TeamManagement({ initialTeams, allMembers, managers, currentUserRole }: TeamManagementProps) {
+export function TeamManagement({ initialTeams, allMembers: initialAllMembers, managers, currentUserRole }: TeamManagementProps) {
   const [teams, setTeams] = useState<Team[]>(initialTeams)
+  const [allMembers, setAllMembers] = useState<TeamMember[]>(initialAllMembers)
   const [loading, setLoading] = useState(false)
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
@@ -81,7 +82,7 @@ export function TeamManagement({ initialTeams, allMembers, managers, currentUser
     setFormData({
       name: '',
       description: '',
-      manager_id: '',
+      manager_id: 'none',
       color: '#6366f1'
     })
   }
@@ -97,7 +98,10 @@ export function TeamManagement({ initialTeams, allMembers, managers, currentUser
       const response = await fetch('/api/teams', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          ...formData,
+          manager_id: formData.manager_id === 'none' ? null : formData.manager_id
+        })
       })
 
       const data = await response.json()
@@ -108,7 +112,8 @@ export function TeamManagement({ initialTeams, allMembers, managers, currentUser
 
       // Refresh teams list
       await refreshTeams()
-      toast.success(data.message || 'Team created successfully')
+      await refreshMembers()
+      toast.success('Team created successfully!')
       setIsCreateDialogOpen(false)
       resetForm()
 
@@ -128,7 +133,10 @@ export function TeamManagement({ initialTeams, allMembers, managers, currentUser
       const response = await fetch(`/api/teams/${selectedTeam.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          ...formData,
+          manager_id: formData.manager_id === 'none' ? null : formData.manager_id
+        })
       })
 
       const data = await response.json()
@@ -138,6 +146,7 @@ export function TeamManagement({ initialTeams, allMembers, managers, currentUser
       }
 
       await refreshTeams()
+      await refreshMembers()
       toast.success(data.message || 'Team updated successfully')
       setIsEditDialogOpen(false)
       setSelectedTeam(null)
@@ -185,7 +194,8 @@ export function TeamManagement({ initialTeams, allMembers, managers, currentUser
   }
 
   const handleManageMembers = async (action: 'add' | 'remove') => {
-    if (!selectedTeam || selectedMembers.length === 0) return
+    if (!selectedTeam) return
+    if (selectedMembers.length === 0) return
 
     setLoading(true)
     try {
@@ -202,6 +212,7 @@ export function TeamManagement({ initialTeams, allMembers, managers, currentUser
       }
 
       await refreshTeams()
+      await refreshMembers()
       toast.success(data.message)
       setSelectedMembers([])
       setIsMembersDialogOpen(false)
@@ -226,12 +237,26 @@ export function TeamManagement({ initialTeams, allMembers, managers, currentUser
     }
   }
 
+  const refreshMembers = async () => {
+    try {
+      const response = await fetch('/api/organization/members')
+      const data = await response.json()
+      if (response.ok) {
+        setAllMembers(data.members || [])
+      } else {
+        console.error('Error fetching members:', data.error)
+      }
+    } catch (error) {
+      console.error('Error refreshing members:', error)
+    }
+  }
+
   const openEditDialog = (team: Team) => {
     setSelectedTeam(team)
     setFormData({
       name: team.name,
       description: team.description || '',
-      manager_id: team.manager?.id || '',
+      manager_id: team.manager?.id || 'none',
       color: team.color
     })
     setIsEditDialogOpen(true)
@@ -244,7 +269,7 @@ export function TeamManagement({ initialTeams, allMembers, managers, currentUser
   }
 
   const availableMembers = allMembers.filter(member => !member.team_id)
-  const teamMembers = selectedTeam ? selectedTeam.members : []
+  const teamMembers = selectedTeam ? allMembers.filter(member => member.team_id === selectedTeam.id) : []
 
   if (!canCreateTeams) {
     return (
@@ -309,7 +334,7 @@ export function TeamManagement({ initialTeams, allMembers, managers, currentUser
                     <SelectValue placeholder="Select team manager (optional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No manager assigned</SelectItem>
+                    <SelectItem value="none">No manager assigned</SelectItem>
                     {managers.map((manager) => (
                       <SelectItem key={manager.id} value={manager.id}>
                         {manager.full_name || manager.email}
@@ -490,7 +515,7 @@ export function TeamManagement({ initialTeams, allMembers, managers, currentUser
                   <SelectValue placeholder="Select team manager (optional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No manager assigned</SelectItem>
+                  <SelectItem value="none">No manager assigned</SelectItem>
                   {managers.map((manager) => (
                     <SelectItem key={manager.id} value={manager.id}>
                       {manager.full_name || manager.email}

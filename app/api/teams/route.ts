@@ -141,6 +141,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to create team' }, { status: 500 })
     }
 
+    // Automatically assign the manager to their team if manager_id is provided
+    if (manager_id && team?.id) {
+      const { error: assignError } = await supabase
+        .from('profiles')
+        .update({ team_id: team.id })
+        .eq('id', manager_id)
+        .eq('organization_id', organizationId)
+
+      if (assignError) {
+        console.error('Error assigning manager to team:', assignError)
+        // Don't fail the team creation, just log the error
+      }
+    }
+
     return NextResponse.json({ team, message: 'Team created successfully' }, { status: 201 })
 
   } catch (error) {

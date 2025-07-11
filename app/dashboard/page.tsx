@@ -5,10 +5,12 @@ import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { CalendarDays, Clock, Gift, Users, ChevronLeft, ChevronRight, Plus, HelpCircle, Briefcase, TreePalm, UserCheck } from 'lucide-react'
+import { CalendarDays, Clock, Gift, Users, Plus, HelpCircle, Briefcase, TreePalm, UserCheck } from 'lucide-react'
 import { LeaveRequestButton } from './components/LeaveRequestButton'
 import { NewLeaveRequestSheet } from '@/app/leave/components/NewLeaveRequestSheet'
 import { TeamCard } from './components/TeamCard'
+import { getUserTeamScope, getTeamMemberIds } from '@/lib/team-utils'
+import CalendarClient from '@/app/calendar/components/CalendarClient'
 
 interface NearestBirthday {
   name: string
@@ -25,14 +27,15 @@ export default async function DashboardPage() {
     redirect('/login')
   }
 
-  // Get user profile with organization details
+  // Get user profile with organization details including country_code
   const { data: profile } = await supabase
     .from('profiles')
     .select(`
       *,
       organizations (
         id,
-        name
+        name,
+        country_code
       )
     `)
     .eq('id', user.id)
@@ -80,7 +83,11 @@ export default async function DashboardPage() {
     .eq('organization_id', profile.organization_id)
     .order('name')
 
-  // Get all team members with their details and team info
+  // Get team scope for filtering data
+  const teamScope = await getUserTeamScope(user.id)
+  const teamMemberIds = await getTeamMemberIds(teamScope)
+
+  // Get team members based on user's team scope (team filtering logic)
   const { data: allTeamMembers } = await supabase
     .from('profiles')
     .select(`
@@ -88,7 +95,6 @@ export default async function DashboardPage() {
       full_name,
       email,
       avatar_url,
-      date_of_birth,
       team_id,
       teams!profiles_team_id_fkey (
         id,
@@ -96,15 +102,19 @@ export default async function DashboardPage() {
         color
       )
     `)
-    .eq('organization_id', profile.organization_id)
+    .in('id', teamMemberIds)
     .order('full_name')
 
-  // Get all teams for filtering option
-  const { data: teams } = await supabase
-    .from('teams')
-    .select('id, name, color')
-    .eq('organization_id', profile.organization_id)
-    .order('name')
+  // Get all teams for filtering option (only if admin or no team assigned)
+  let teams: any[] = []
+  if (profile.role === 'admin' || teamScope.type === 'organization') {
+    const { data: teamsData } = await supabase
+      .from('teams')
+      .select('id, name, color')
+      .eq('organization_id', profile.organization_id)
+      .order('name')
+    teams = teamsData || []
+  }
 
   // Find the team where current user is a manager
   const { data: managedTeam } = await supabase
@@ -114,8 +124,13 @@ export default async function DashboardPage() {
     .eq('manager_id', user.id)
     .single()
 
-  // Filter team members with birthdays for birthday calculation
-  const teamMembersWithBirthdays = allTeamMembers?.filter(member => member.date_of_birth) || []
+  // Get colleagues' birthday data for birthday calculation (same as calendar)
+  const { data: teamMembersWithBirthdays } = await supabase
+    .from('profiles')
+    .select('id, full_name, birth_date')
+    .in('id', teamMemberIds)
+    .not('birth_date', 'is', null)
+    .order('full_name')
 
   // Calculate nearest birthday
   const calculateNearestBirthday = (): NearestBirthday | null => {
@@ -130,9 +145,9 @@ export default async function DashboardPage() {
     let minDaysUntilBirthday = Infinity
 
     teamMembersWithBirthdays.forEach((member: any) => {
-      if (!member.date_of_birth) return
+      if (!member.birth_date) return
       
-      const birthDate = new Date(member.date_of_birth)
+      const birthDate = new Date(member.birth_date)
       const thisYearBirthday = new Date(currentYear, birthDate.getMonth(), birthDate.getDate())
       
       // If birthday already passed this year, use next year's birthday
@@ -157,31 +172,23 @@ export default async function DashboardPage() {
 
   const nearestBirthday = calculateNearestBirthday()
 
-  // Get pending leave requests count for the organization
+  // Get pending leave requests count based on team scope
   let pendingCount = 0
   
   if (profile.role === 'admin' || profile.role === 'manager') {
-    // Managers and admins see all pending requests in their organization
-    // First get all user IDs from the organization
-    const { data: orgUsers } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('organization_id', profile.organization_id)
-    
-    const orgUserIds = orgUsers?.map(user => user.id) || []
-    
+    // Use team-based filtering for pending requests
     const { count } = await supabase
       .from('leave_requests')
       .select('id', { count: 'exact' })
       .eq('status', 'pending')
-      .in('user_id', orgUserIds)
+      .in('user_id', teamMemberIds)
     
     pendingCount = count || 0
   }
 
   const pendingRequestsCount = pendingCount || 0
 
-  // Get current active leave requests to determine who's absent today
+  // Get current active leave requests to determine who's absent today (team-filtered)
   const todayDate = new Date().toISOString().split('T')[0]
   const { data: currentLeaveRequests } = await supabase
     .from('leave_requests')
@@ -204,7 +211,7 @@ export default async function DashboardPage() {
     .eq('status', 'approved')
     .lte('start_date', todayDate)
     .gte('end_date', todayDate)
-    .in('user_id', allTeamMembers?.map((member: any) => member.id) || [])
+    .in('user_id', teamMemberIds)
 
   // Split team members into absent and working
   const absentMemberIds = new Set(currentLeaveRequests?.map(req => req.user_id) || [])
@@ -230,7 +237,7 @@ export default async function DashboardPage() {
           <div className="p-8">
           <div className="flex flex-col gap-6">
                         {/* Greeting Section */}
-            <div className="flex items-center justify-between py-3">
+            <div className="flex items-center justify-between py-2">
               <div className="flex items-center gap-3">
                 <span className="text-5xl font-light text-neutral-950">Cześć</span>
                 <Avatar className="w-12 h-12">
@@ -357,92 +364,24 @@ export default async function DashboardPage() {
 
               {/* Right Column - Calendar */}
               <div className="flex-1">
-                <Card className="border border-neutral-200 py-0">
-                  <CardContent className="p-6">
-                    <h3 className="text-xl font-semibold text-neutral-950 mb-6">Kalendarz urlopów</h3>
+                <Card className="border border-neutral-200">
+                  <CardContent className="p-6 py-0">
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className="text-xl font-semibold text-neutral-950">
+                        Kalendarz urlopów
+                      </h3>
+                    </div>
                     
-                    {/* Calendar Header */}
-                    <div className="flex items-center justify-between h-8 mb-6">
-                      <Button variant="ghost" size="sm" className="w-8 h-8 p-0 opacity-50">
-                        <ChevronLeft className="w-4 h-4" />
-                      </Button>
-                      <span className="text-base font-semibold text-neutral-950">Lipiec 2025</span>
-                      <Button variant="ghost" size="sm" className="w-8 h-8 p-0 opacity-50">
-                        <ChevronRight className="w-4 h-4" />
-                      </Button>
-                    </div>
-
-                    {/* Calendar Grid */}
-                    <div className="space-y-2">
-                      {/* Day Headers */}
-                      <div className="grid grid-cols-7 gap-2">
-                        {['Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota', 'Niedziela'].map((day) => (
-                          <div key={day} className="text-xs text-neutral-500 text-center p-2">
-                            {day.slice(0, 2)}
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Calendar Days */}
-                      <div className="grid grid-cols-7 gap-2">
-                        {/* Week 1 */}
-                        <div className="h-24 bg-neutral-100 rounded-lg p-1.5 opacity-50">
-                          <span className="text-base text-neutral-500">30</span>
-                        </div>
-                        <div className="h-24 bg-neutral-100 rounded-lg p-1.5">
-                          <span className="text-base text-neutral-950">1</span>
-                        </div>
-                        <div className="h-24 bg-neutral-100 rounded-lg p-1.5 relative">
-                          <span className="text-base text-neutral-950">2</span>
-                          <div className="absolute top-2 right-2 flex flex-col gap-1">
-                            <div className="w-8 h-8 bg-neutral-100 rounded-full border-2 border-white -mb-2" />
-                            <div className="w-8 h-8 bg-neutral-100 rounded-full border-2 border-white" />
-                          </div>
-                        </div>
-                        <div className="h-24 bg-neutral-100 rounded-lg p-1.5 relative">
-                          <span className="text-base text-neutral-950">3</span>
-                          <div className="absolute top-2 right-2 flex flex-col gap-1">
-                            <div className="w-8 h-8 bg-neutral-100 rounded-full border-2 border-white -mb-2" />
-                            <div className="w-8 h-8 bg-neutral-100 rounded-full border-2 border-white" />
-                          </div>
-                        </div>
-                        <div className="h-24 bg-neutral-100 rounded-lg p-1.5 relative">
-                          <span className="text-base text-neutral-950">4</span>
-                          <div className="absolute top-2 right-2 flex flex-col gap-1">
-                            <div className="w-8 h-8 bg-neutral-100 rounded-full border-2 border-white -mb-2" />
-                            <div className="w-8 h-8 bg-neutral-100 rounded-full border-2 border-white" />
-                          </div>
-                        </div>
-                        <div className="h-24 bg-neutral-100 rounded-lg p-1.5">
-                          <span className="text-base text-neutral-950">5</span>
-                        </div>
-                        <div className="h-24 bg-neutral-100 rounded-lg p-1.5">
-                          <span className="text-base text-neutral-950">6</span>
-                        </div>
-
-                        {/* Week 2 */}
-                        <div className="h-24 bg-neutral-100 rounded-lg p-1.5 relative">
-                          <span className="text-base text-neutral-950">7</span>
-                          <Gift className="w-5 h-5 absolute bottom-2 left-2" />
-                          <div className="absolute top-2 right-2 flex flex-col gap-1">
-                            <div className="w-8 h-8 bg-neutral-100 rounded-full border-2 border-white -mb-2" />
-                            <div className="w-8 h-8 bg-neutral-100 rounded-full border-2 border-white" />
-                          </div>
-                        </div>
-                        {Array.from({ length: 6 }, (_, i) => (
-                          <div key={i + 8} className="h-24 bg-neutral-100 rounded-lg p-1.5">
-                            <span className="text-base text-neutral-950">{i + 8}</span>
-                          </div>
-                        ))}
-
-                        {/* Remaining weeks */}
-                        {Array.from({ length: 21 }, (_, i) => (
-                          <div key={i + 14} className="h-24 bg-neutral-100 rounded-lg p-1.5">
-                            <span className="text-base text-neutral-950">{i + 14}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                    <CalendarClient 
+                      organizationId={profile.organization_id}
+                      countryCode={profile.organizations?.country_code || 'PL'}
+                      userId={user.id}
+                      colleagues={teamMembersWithBirthdays || []}
+                      teamMemberIds={teamMemberIds}
+                      teamScope={teamScope}
+                      showHeader={false}
+                      showPadding={false}
+                    />
                   </CardContent>
                 </Card>
               </div>
