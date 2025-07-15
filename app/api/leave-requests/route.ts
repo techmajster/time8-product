@@ -66,9 +66,18 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { leave_type_id, start_date, end_date, days_requested, reason } = await request.json()
+    const { 
+      leave_type_id, 
+      start_date, 
+      end_date, 
+      days_requested, 
+      reason, 
+      notes,
+      employee_id,
+      auto_approve = false 
+    } = await request.json()
 
-    if (!leave_type_id || !start_date || !end_date || !days_requested) {
+    if (!leave_type_id || !start_date || !end_date) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -78,7 +87,58 @@ export async function POST(request: NextRequest) {
     // Use optimized auth utility
     const auth = await getBasicAuth()
     if (!auth.success) return auth.error
-    const { user, organizationId } = auth
+    const { user, organizationId, role } = auth
+
+    // Handle admin-created requests
+    let targetUserId = user.id
+    let isAdminCreated = false
+
+    if (employee_id && isManagerOrAdmin(role)) {
+      // Admin/manager is creating request for another employee
+      targetUserId = employee_id
+      isAdminCreated = true
+      
+      // Verify the target employee belongs to the organization
+      const supabase = await createClient()
+      const { data: targetEmployee } = await supabase
+        .from('profiles')
+        .select('id, organization_id, team_id')
+        .eq('id', employee_id)
+        .eq('organization_id', organizationId)
+        .single()
+
+      if (!targetEmployee) {
+        return NextResponse.json(
+          { error: 'Employee not found or not in your organization' },
+          { status: 400 }
+        )
+      }
+
+      // If manager, verify they can manage this employee (same team)
+      if (role === 'manager') {
+        const { data: managerProfile } = await supabase
+          .from('profiles')
+          .select('team_id')
+          .eq('id', user.id)
+          .single()
+
+        if (!managerProfile?.team_id || managerProfile.team_id !== targetEmployee.team_id) {
+          return NextResponse.json(
+            { error: 'You can only create absences for members of your team' },
+            { status: 403 }
+          )
+        }
+      }
+    }
+
+    // Calculate days if not provided (for admin-created requests)
+    let calculatedDays = days_requested
+    if (!calculatedDays) {
+      const startDateObj = new Date(start_date)
+      const endDateObj = new Date(end_date)
+      const diffTime = Math.abs(endDateObj.getTime() - startDateObj.getTime())
+      calculatedDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1
+    }
 
     const supabase = await createClient()
 
@@ -97,37 +157,45 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check for overlapping requests
+    // Check for overlapping requests (for the target user)
     // Fixed overlap logic: two periods overlap if:
     // (start1 <= end2) AND (end1 >= start2)
     const { data: overlappingRequests } = await supabase
       .from('leave_requests')
       .select('id, start_date, end_date, status')
-      .eq('user_id', user.id)
+      .eq('user_id', targetUserId)
       .eq('organization_id', organizationId)
       .in('status', ['pending', 'approved'])
       .lte('start_date', end_date)
       .gte('end_date', start_date)
 
     if (overlappingRequests && overlappingRequests.length > 0) {
+      const employeeName = isAdminCreated ? 'Wybrany pracownik ma' : 'Masz'
       return NextResponse.json(
-        { error: 'Masz już zaplanowany lub oczekujący urlop w tym terminie' },
+        { error: `${employeeName} już zaplanowany lub oczekujący urlop w tym terminie` },
         { status: 400 }
       )
     }
+
+    // Determine status and reviewer
+    const requestStatus = auto_approve && isAdminCreated ? 'approved' : 'pending'
+    const reviewedBy = auto_approve && isAdminCreated ? user.id : null
+    const reviewedAt = auto_approve && isAdminCreated ? new Date().toISOString() : null
 
     // Create leave request
     const { data: leaveRequest, error: createError } = await supabase
       .from('leave_requests')
       .insert({
         organization_id: organizationId,
-        user_id: user.id,
+        user_id: targetUserId,
         leave_type_id,
         start_date,
         end_date,
-        days_requested,
-        reason: reason || null,
-        status: 'pending'
+        days_requested: calculatedDays,
+        reason: reason || notes || null,
+        status: requestStatus,
+        reviewed_by: reviewedBy,
+        reviewed_at: reviewedAt
       })
       .select()
       .single()
@@ -140,19 +208,30 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Send email notification about new request to managers
+    // Send email notification
     try {
       const { notifyLeaveRequestStatusChange } = await import('@/lib/notification-utils')
-      await notifyLeaveRequestStatusChange(leaveRequest.id, 'pending')
+      
+      if (auto_approve && isAdminCreated) {
+        // Notify employee that absence was added for them
+        await notifyLeaveRequestStatusChange(leaveRequest.id, 'approved')
+      } else {
+        // Normal flow - notify managers about new request
+        await notifyLeaveRequestStatusChange(leaveRequest.id, 'pending')
+      }
     } catch (emailError) {
       console.error('Error sending email notification:', emailError)
       // Don't fail the request if email fails
     }
 
+    const successMessage = isAdminCreated 
+      ? 'Nieobecność została pomyślnie dodana'
+      : 'Wniosek urlopowy został pomyślnie złożony'
+
     return NextResponse.json({
       success: true,
       leaveRequest,
-      message: 'Wniosek urlopowy został pomyślnie złożony'
+      message: successMessage
     })
 
   } catch (error) {

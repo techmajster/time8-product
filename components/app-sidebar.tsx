@@ -76,39 +76,23 @@ export function AppSidebar({ organizationName, organizationLogo, userProfile, us
   // Get manager/admin specific items
   const getManagerItems = () => [
     {
+      title: t('team'),
+      url: "/team",
+      icon: Users,
+    },
+    {
       title: t('leaveRequests'),
       url: "/leave-requests",
       icon: ClipboardList,
     },
     {
-      title: t('team'),
-      url: "/team",
-      icon: Users,
-      items: [
-        {
-          title: t('teamPages.members'),
-          url: "/team",
-        },
-        {
-          title: t('teamPages.invite'),
-          url: "/team/invite",
-        },
-      ],
-    },
-    {
-      title: t('schedule'),
-      url: "/schedule",
-      icon: Clock,
-    },
-    {
-      title: t('profile'),
-      url: "/profile",
-      icon: User,
-    },
-    {
-      title: t('settings'),
-      url: "/settings",
-      icon: Settings,
+      title: t('addAbsence'),
+      url: "#",
+      icon: Send,
+      onClick: () => {
+        const event = new CustomEvent('openAddAbsence')
+        window.dispatchEvent(event)
+      }
     },
   ]
 
@@ -117,6 +101,11 @@ export function AppSidebar({ organizationName, organizationLogo, userProfile, us
       title: t('adminPages.overview'),
       url: "/admin",
       icon: Shield,
+    },
+    {
+      title: t('adminPages.teamManagement'),
+      url: "/admin/team-management",
+      icon: Users,
     },
     {
       title: t('adminPages.holidays'),

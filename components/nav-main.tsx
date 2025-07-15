@@ -28,6 +28,7 @@ export function NavMain({
     url: string
     icon: LucideIcon
     isActive?: boolean
+    onClick?: () => void
     items?: {
       title: string
       url: string
@@ -43,10 +44,23 @@ export function NavMain({
           <Collapsible key={item.title} asChild defaultOpen={item.isActive}>
             <SidebarMenuItem>
               <SidebarMenuButton asChild tooltip={item.title}>
-                <a href={item.url}>
-                  <item.icon />
-                  <span>{item.title}</span>
-                </a>
+                {item.onClick ? (
+                  <button 
+                    onClick={(e) => {
+                      e.preventDefault()
+                      item.onClick?.()
+                    }}
+                    className="flex items-center gap-2 w-full"
+                  >
+                    <item.icon />
+                    <span>{item.title}</span>
+                  </button>
+                ) : (
+                  <a href={item.url}>
+                    <item.icon />
+                    <span>{item.title}</span>
+                  </a>
+                )}
               </SidebarMenuButton>
               {item.items?.length ? (
                 <>

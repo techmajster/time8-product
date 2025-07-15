@@ -98,7 +98,7 @@ export function LeaveBalanceManager({
   const router = useRouter()
   const supabase = createClient()
 
-  // Filter leave types to only those that require balances
+  // Filter leave types to only those that require balances (admin can assign all types)
   const balanceRequiredLeaveTypes = leaveTypes.filter(type => type.requires_balance)
 
   // Filter leave balances to only those for leave types that require balances
@@ -243,7 +243,7 @@ export function LeaveBalanceManager({
     setError(null)
 
     try {
-      // Calculate what balances would be created
+      // Calculate what balances would be created (exclude child-specific types from auto-assignment)
       const autoAssignedTypes = balanceRequiredLeaveTypes.filter(type => 
         type.days_per_year > 0 && 
         !['maternity', 'paternity', 'childcare'].includes(type.leave_category || '')
@@ -329,6 +329,37 @@ export function LeaveBalanceManager({
       } else {
         setError(err instanceof Error ? err.message : 'Wystąpił nieznany błąd podczas tworzenia brakujących sald')
       }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleCreateMissingLeaveTypes = async () => {
+    setLoading(true)
+    setError(null)
+    setSuccess(null)
+    
+    try {
+      const response = await fetch('/api/admin/create-default-leave-types', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      })
+
+      const result = await response.json()
+      
+      if (response.ok) {
+        if (result.created && result.created.length > 0) {
+          setSuccess(`Dodano brakujące typy urlopów: ${result.created.join(', ')}`)
+        } else {
+          setSuccess('Wszystkie domyślne typy urlopów już istnieją')
+        }
+        router.refresh()
+      } else {
+        setError(result.error || 'Błąd podczas dodawania typów urlopów')
+      }
+    } catch (error) {
+      console.error('Error creating missing leave types:', error)
+      setError('Błąd podczas dodawania typów urlopów')
     } finally {
       setLoading(false)
     }
@@ -576,18 +607,28 @@ export function LeaveBalanceManager({
               </DialogContent>
             </Dialog>
             
-            <Button 
-              variant="outline" 
-              onClick={handlePreviewMissingBalances}
-              disabled={loading}
-            >
-              {loading ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Plus className="h-4 w-4 mr-2" />
-              )}
-              Utwórz brakujące salda
-            </Button>
+            <div className="flex gap-4">
+              <Button 
+                variant="outline" 
+                onClick={handlePreviewMissingBalances}
+                disabled={loading}
+              >
+                {loading ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Plus className="h-4 w-4 mr-2" />
+                )}
+                Utwórz brakujące salda
+              </Button>
+              
+              <Button
+                variant="outline"
+                onClick={handleCreateMissingLeaveTypes}
+                disabled={loading}
+              >
+                Dodaj brakujące typy urlopów
+              </Button>
+            </div>
           </div>
         </div>
       </CardHeader>

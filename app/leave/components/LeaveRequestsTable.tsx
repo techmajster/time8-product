@@ -102,10 +102,10 @@ export function LeaveRequestsTable({ requests }: LeaveRequestsTableProps) {
             <TableHead className="h-10 px-2 py-0 text-left font-medium text-sm text-neutral-500 w-[419px]">
               Opis
             </TableHead>
-            <TableHead className="h-10 px-2 py-0 text-left font-medium text-sm text-neutral-500 w-[180px]">
+            <TableHead className="h-10 px-2 py-0 text-left font-medium text-sm text-neutral-500 w-[280px]">
               Typ
             </TableHead>
-            <TableHead className="h-10 px-2 py-0 text-right font-medium text-sm text-neutral-500 w-[110px]">
+            <TableHead className="h-10 px-2 py-0 text-left font-medium text-sm text-neutral-500 w-[110px]">
               Liczba dni
             </TableHead>
             <TableHead className="h-10 px-2 py-0 text-right font-medium text-sm text-neutral-500">
@@ -131,7 +131,7 @@ export function LeaveRequestsTable({ requests }: LeaveRequestsTableProps) {
               <TableCell className="h-[52px] p-2 align-middle font-normal text-sm text-neutral-950">
                 {request.leave_types?.name || 'Nieznany typ'}
               </TableCell>
-              <TableCell className="h-[52px] p-2 align-middle font-normal text-sm text-neutral-950 text-right">
+              <TableCell className="h-[52px] p-2 align-middle font-normal text-sm text-neutral-950 text-left">
                 {request.days_requested} {request.days_requested === 1 ? 'dzień' : 'dni'}
               </TableCell>
               <TableCell className="h-[52px] p-2 align-middle text-right">

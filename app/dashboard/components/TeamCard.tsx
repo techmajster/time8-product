@@ -66,10 +66,10 @@ export function TeamCard({ allTeamMembers, absentMembers, teams, defaultTeamId, 
   const selectedTeam = teams.find(team => team.id === selectedTeamId)
 
   return (
-    <Card className="border border-neutral-200">
+    <Card className="border border-border">
       <CardContent className="p-6 py-0">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-xl font-semibold text-neutral-950">
+          <h3 className="text-xl font-semibold text-foreground">
             Twój zespół
           </h3>
           
@@ -104,7 +104,7 @@ export function TeamCard({ allTeamMembers, absentMembers, teams, defaultTeamId, 
                 {userRole === 'admin' && allTeamMembers.filter(m => !m.team_id).length > 0 && (
                   <SelectItem value="no-team">
                     <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-gray-300" />
+                      <div className="w-3 h-3 rounded-full bg-muted" />
                       Bez zespołu ({allTeamMembers.filter(m => !m.team_id).length})
                     </div>
                   </SelectItem>
@@ -118,7 +118,7 @@ export function TeamCard({ allTeamMembers, absentMembers, teams, defaultTeamId, 
           {/* Absent Section - Only show if there are absent members */}
           {filteredAbsentMembers.length > 0 && (
             <div>
-              <h4 className="text-base font-semibold text-neutral-950 mb-6">
+              <h4 className="text-base font-semibold text-foreground mb-6">
                 Nieobecni ({filteredAbsentMembers.length})
               </h4>
               <div className="space-y-4">
@@ -133,21 +133,21 @@ export function TeamCard({ allTeamMembers, absentMembers, teams, defaultTeamId, 
                     <div key={index} className="flex items-center gap-4">
                       <Avatar className="w-10 h-10">
                         <AvatarImage src={member.avatar_url || undefined} />
-                        <AvatarFallback className="bg-neutral-100">{initials}</AvatarFallback>
+                        <AvatarFallback className="bg-muted">{initials}</AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
-                        <div className="text-sm font-medium text-neutral-950">{member.full_name}</div>
-                        <div className="text-sm text-neutral-500">{member.email}</div>
+                        <div className="text-sm font-medium text-foreground">{member.full_name}</div>
+                        <div className="text-sm text-muted-foreground">{member.email}</div>
                       </div>
                       <div className="text-right">
-                        <div className="text-sm font-medium text-neutral-950">{leaveTypeName}</div>
-                        <div className="text-sm text-neutral-500">do {endDate}</div>
+                        <div className="text-sm font-medium text-foreground">{leaveTypeName}</div>
+                        <div className="text-sm text-muted-foreground">do {endDate}</div>
                       </div>
                       <div 
                         className="w-10 h-10 rounded-lg flex items-center justify-center"
                         style={{ backgroundColor: `${leaveTypeColor}33` }}
                       >
-                        <TreePalm className="w-6 h-6 text-neutral-950" />
+                        <TreePalm className="w-6 h-6 text-foreground" />
                       </div>
                     </div>
                   )
@@ -158,7 +158,7 @@ export function TeamCard({ allTeamMembers, absentMembers, teams, defaultTeamId, 
 
           {/* Working Today Section */}
           <div>
-            <h4 className="text-sm font-medium text-neutral-950 pb-6">
+            <h4 className="text-sm font-medium text-foreground pb-6">
               Dziś pracują {workingMembers.length > 0 && `(${workingMembers.length})`}
             </h4>
             <div className="space-y-4">
@@ -170,33 +170,33 @@ export function TeamCard({ allTeamMembers, absentMembers, teams, defaultTeamId, 
                     <div key={index} className="flex items-center gap-4">
                       <Avatar className="w-10 h-10">
                         <AvatarImage src={member.avatar_url || undefined} />
-                        <AvatarFallback className="bg-neutral-100">{initials}</AvatarFallback>
+                        <AvatarFallback className="bg-muted">{initials}</AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <div className="text-sm font-medium text-neutral-950">{member.full_name}</div>
+                          <div className="text-sm font-medium text-foreground">{member.full_name}</div>
                           {member.teams && (
                             <Badge variant="outline" className="text-xs">
                               {member.teams.name}
                             </Badge>
                           )}
                         </div>
-                        <div className="text-sm text-neutral-500">{member.email}</div>
+                        <div className="text-sm text-muted-foreground">{member.email}</div>
                       </div>
                       <div className="w-10 h-10 rounded-lg flex items-center justify-center">
-                        <UserCheck className="w-6 h-6 text-neutral-950" />
+                        <UserCheck className="w-6 h-6 text-foreground" />
                       </div>
                     </div>
                   )
                 })
               ) : (
                 <div className="text-center py-4">
-                  <div className="text-sm text-neutral-500">Brak pracowników w pracy</div>
+                  <div className="text-sm text-muted-foreground">Brak pracowników w pracy</div>
                 </div>
               )}
               {workingMembers.length > 5 && (
                 <div className="text-center py-2">
-                  <div className="text-sm text-neutral-500">
+                  <div className="text-sm text-muted-foreground">
                     i jeszcze {workingMembers.length - 5} osób...
                   </div>
                 </div>

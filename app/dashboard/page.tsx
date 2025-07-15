@@ -232,26 +232,26 @@ export default async function DashboardPage() {
           userProfile={profile} 
         />
         
-        <div className="bg-white min-h-screen">
+        <div className="bg-background min-h-screen">
           {/* Main Content */}
           <div className="p-8">
           <div className="flex flex-col gap-6">
                         {/* Greeting Section */}
             <div className="flex items-center justify-between py-2">
               <div className="flex items-center gap-3">
-                <span className="text-5xl font-light text-neutral-950">Cześć</span>
+                <span className="text-5xl font-light text-foreground">Cześć</span>
                 <Avatar className="w-12 h-12">
                   <AvatarImage src="" />
-                  <AvatarFallback className="bg-neutral-100">
+                  <AvatarFallback className="bg-muted">
                     {profile.full_name?.split(' ').map((n: string) => n[0]).join('') || 'U'}
                   </AvatarFallback>
                 </Avatar>
-                <span className="text-5xl font-semibold text-neutral-950">
+                <span className="text-5xl font-semibold text-foreground">
                   {profile.full_name?.split(' ')[0] || 'Bartek'}!
                 </span>
               </div>
               <div className="flex items-center gap-6">
-                <div className="flex items-center gap-3 text-xl text-neutral-950">
+                <div className="flex items-center gap-3 text-xl text-foreground">
                   <span className="font-normal">Masz jeszcze</span>
                   <span className="font-semibold">{remainingVacationDays} dni urlopu</span>
                 </div>
@@ -265,22 +265,22 @@ export default async function DashboardPage() {
                 {/* Top Cards Row */}
                 <div className="flex gap-4">
                   {/* Today Card */}
-<div className="w-32 h-32 border border-neutral-200 rounded-xl bg-card flex flex-col items-center justify-center mb-1">
-                    <div className="text-sm font-medium text-center text-neutral-950">Dziś</div>
-                    <div className="text-5xl font-semibold text-center text-neutral-950 leading-none mb-1">
+                  <div className="w-32 h-32 border border-border rounded-xl bg-card flex flex-col items-center justify-center mb-1">
+                    <div className="text-sm font-medium text-center text-foreground">Dziś</div>
+                    <div className="text-5xl font-semibold text-center text-foreground leading-none mb-1">
                       {currentDay}
                     </div>
-                    <div className="text-sm font-medium text-center text-neutral-950">{currentMonth}</div>
+                    <div className="text-sm font-medium text-center text-foreground">{currentMonth}</div>
                   </div>
 
                   {/* Weekend Card */}
-                  <div className="flex-1 h-32 border border-neutral-200 rounded-xl bg-card p-6 flex flex-col justify-between">
+                  <div className="flex-1 h-32 border border-border rounded-xl bg-card p-6 flex flex-col justify-between">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-neutral-950">Weekend</span>
-                      <Clock className="w-4 h-4 text-neutral-950" />
+                      <span className="text-sm font-medium text-foreground">Weekend</span>
+                      <Clock className="w-4 h-4 text-foreground" />
                     </div>
                     <div className="flex flex-col gap-0.5">
-                      <div className="text-xl leading-7 text-neutral-950">
+                      <div className="text-xl leading-7 text-foreground">
                         {isWeekend ? (
                           <span className="font-semibold">Mamy weekend! 🎉</span>
                         ) : daysUntilWeekend === 1 ? (
@@ -299,16 +299,16 @@ export default async function DashboardPage() {
                   </div>
 
                   {/* Birthday Card */}
-                  <div className="flex-1 h-32 border border-neutral-200 rounded-xl bg-card p-6 flex flex-col justify-between">
+                  <div className="flex-1 h-32 border border-border rounded-xl bg-card p-6 flex flex-col justify-between">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-neutral-950">Najbliższe urodziny</span>
-                      <Gift className="w-4 h-4 text-neutral-950" />
+                      <span className="text-sm font-medium text-foreground">Najbliższe urodziny</span>
+                      <Gift className="w-4 h-4 text-foreground" />
                     </div>
                     <div className="flex flex-col">
                       {nearestBirthday ? (
                         <>
-                          <div className="text-sm font-semibold text-neutral-950">{nearestBirthday.name}</div>
-                          <div className="text-sm font-normal text-neutral-500">
+                          <div className="text-sm font-semibold text-foreground">{nearestBirthday.name}</div>
+                          <div className="text-sm font-normal text-muted-foreground">
                             {nearestBirthday.date.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long' })}, 
                             {nearestBirthday.daysUntil === 0 ? ' dziś!' : 
                              nearestBirthday.daysUntil === 1 ? ' jutro' :
@@ -317,8 +317,8 @@ export default async function DashboardPage() {
                         </>
                       ) : (
                         <>
-                          <div className="text-sm font-semibold text-neutral-950">Brak urodzin</div>
-                          <div className="text-sm font-normal text-neutral-500">w najbliższym czasie</div>
+                          <div className="text-sm font-semibold text-foreground">Brak urodzin</div>
+                          <div className="text-sm font-normal text-muted-foreground">w najbliższym czasie</div>
                         </>
                       )}
                     </div>
@@ -326,16 +326,16 @@ export default async function DashboardPage() {
                 </div>
 
                 {/* Leave Requests Card */}
-                <div className="border border-neutral-200 rounded-xl bg-card p-6 flex items-end justify-between">
+                <div className="border border-border rounded-xl bg-card p-6 flex items-end justify-between">
                   <div className="flex flex-col gap-2">
-                    <div className="text-sm font-medium text-neutral-950">Wnioski urlopowe</div>
-                    <div className="text-xl font-semibold text-neutral-950">
+                    <div className="text-sm font-medium text-foreground">Wnioski urlopowe</div>
+                    <div className="text-xl font-semibold text-foreground">
                       {pendingRequestsCount === 0 ? 'Brak oczekujących' : 
                        pendingRequestsCount === 1 ? '1 oczekujący' :
                        `${pendingRequestsCount} oczekujących`}
                     </div>
                   </div>
-                  <Button asChild className="bg-neutral-900 text-neutral-50 h-8 px-3 text-xs">
+                  <Button asChild className="h-8 px-3 text-xs">
                     <Link href="/leave-requests">Przejdź do wniosków</Link>
                   </Button>
                 </div>
@@ -364,10 +364,10 @@ export default async function DashboardPage() {
 
               {/* Right Column - Calendar */}
               <div className="flex-1">
-                <Card className="border border-neutral-200">
+                <Card className="border border-border">
                   <CardContent className="p-6 py-0">
                     <div className="flex items-center justify-between mb-6">
-                      <h3 className="text-xl font-semibold text-neutral-950">
+                      <h3 className="text-xl font-semibold text-foreground">
                         Kalendarz urlopów
                       </h3>
                     </div>

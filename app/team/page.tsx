@@ -1,20 +1,9 @@
 import { AppLayout } from '@/components/app-layout'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { PageHeader } from '@/components/ui/page-header'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Users, Plus, Mail } from 'lucide-react'
-import Link from 'next/link'
-import { InviteTeamDialog } from './components/InviteTeamDialog'
-import InvitationsSection from './components/InvitationsSection'
-import { TeamMemberActions } from './components/TeamMemberActions'
-import { TeamManagement } from './components/TeamManagement'
+import { ManagerTeamView } from './components/ManagerTeamView'
+import { AdminTeamView } from './components/AdminTeamView'
+import { getUserTeamScope, getTeamMemberIds } from '@/lib/team-utils'
 import { getTranslations } from 'next-intl/server'
 
 export default async function TeamPage() {
@@ -46,270 +35,163 @@ export default async function TeamPage() {
     redirect('/onboarding')
   }
 
-  // Check if user has permission to manage team
-  const canManageTeam = profile.role === 'admin' || profile.role === 'manager'
+  // Only managers and admins can access this page
+  if (profile.role !== 'manager' && profile.role !== 'admin') {
+    redirect('/dashboard')
+  }
 
-  // Get all team members with team info
-  const { data: teamMembers } = await supabase
+  // Admin view - can see all teams with dropdown selector
+  if (profile.role === 'admin') {
+    // Get all teams
+    const { data: teams } = await supabase
+      .from('teams')
+      .select(`
+        id,
+        name,
+        color
+      `)
+      .eq('organization_id', profile.organization_id)
+      .order('name')
+
+    // Get all team members
+    const { data: rawTeamMembers } = await supabase
+      .from('profiles')
+      .select(`
+        id, 
+        email, 
+        full_name, 
+        role, 
+        avatar_url,
+        team_id,
+        teams!profiles_team_id_fkey (
+          id,
+          name,
+          color
+        )
+      `)
+      .eq('organization_id', profile.organization_id)
+      .order('full_name', { ascending: true })
+
+    // Transform the data
+    const teamMembers = rawTeamMembers?.map(member => ({
+      ...member,
+      teams: Array.isArray(member.teams) ? member.teams[0] : member.teams
+    })) || []
+
+    // Get leave balances for all members
+    const memberIds = teamMembers.map(member => member.id)
+    const { data: leaveBalances } = await supabase
+      .from('leave_balances')
+      .select(`
+        *,
+        leave_types!inner (
+          id,
+          name,
+          color,
+          requires_balance
+        )
+      `)
+      .in('user_id', memberIds)
+      .eq('year', new Date().getFullYear())
+      .eq('leave_types.requires_balance', true)
+
+    return (
+      <AppLayout>
+        <AdminTeamView 
+          teamMembers={teamMembers}
+          leaveBalances={leaveBalances || []}
+          teams={teams || []}
+          currentUser={profile}
+        />
+      </AppLayout>
+    )
+  }
+
+  // Manager view - only their team
+  // Get team scope for manager (only their team)
+  const teamScope = await getUserTeamScope(user.id)
+  const teamMemberIds = await getTeamMemberIds(teamScope)
+
+  // Get team members (team-scoped)
+  const { data: rawTeamMembers } = await supabase
     .from('profiles')
     .select(`
       id, 
       email, 
       full_name, 
       role, 
-      auth_provider, 
-      created_at, 
-      team_id, 
       avatar_url,
+      team_id,
       teams!profiles_team_id_fkey (
         id,
         name,
         color
       )
     `)
-    .eq('organization_id', profile.organization_id)
-    .order('created_at', { ascending: true })
+    .in('id', teamMemberIds)
+    .order('full_name', { ascending: true })
 
-  // Get teams data if user can manage teams
-  let teams: any[] = []
-  let managers: any[] = []
-  
-  if (canManageTeam) {
-    // Get all teams in organization
-    const { data: teamsData } = await supabase
-      .from('teams')
-      .select(`
+  // Transform the data to match interface (teams is array, need single object)
+  const teamMembers = rawTeamMembers?.map(member => ({
+    ...member,
+    teams: Array.isArray(member.teams) ? member.teams[0] : member.teams
+  })) || []
+
+  // Get leave balances for team members
+  const { data: leaveBalances } = await supabase
+    .from('leave_balances')
+    .select(`
+      *,
+      leave_types!inner (
         id,
         name,
-        description,
         color,
-        created_at,
-        updated_at,
-        manager:profiles!teams_manager_id_fkey (
-          id,
-          full_name,
-          email
-        ),
-        members:profiles!profiles_team_id_fkey (
-          id,
-          full_name,
-          email,
-          role,
-          avatar_url
-        )
-      `)
-      .eq('organization_id', profile.organization_id)
-      .order('name')
-
-    teams = teamsData || []
-
-    // Get all managers for team assignment
-    const { data: managersData } = await supabase
-      .from('profiles')
-      .select('id, full_name, email')
-      .eq('organization_id', profile.organization_id)
-      .in('role', ['admin', 'manager'])
-      .order('full_name')
-
-    managers = managersData || []
-  }
-
-  // Get pending invitations with inviter details
-  const { data: invitations } = await supabase
-    .from('invitations')
-    .select(`
-      id, 
-      email, 
-      role, 
-      status, 
-      created_at,
-      expires_at,
-      invitation_code,
-      profiles!invitations_invited_by_fkey (
-        full_name,
-        email
+        requires_balance
       )
     `)
-    .eq('organization_id', profile.organization_id)
-    .eq('status', 'pending')
+    .in('user_id', teamMemberIds)
+    .eq('year', new Date().getFullYear())
+    .eq('leave_types.requires_balance', true)
+
+  // Get leave requests for team members
+  const { data: rawLeaveRequests } = await supabase
+    .from('leave_requests')
+    .select(`
+      id,
+      user_id,
+      start_date,
+      end_date,
+      status,
+      created_at,
+      leave_types (
+        name,
+        color
+      ),
+      user_profile:profiles!leave_requests_user_id_fkey (
+        full_name,
+        email,
+        avatar_url
+      )
+    `)
+    .in('user_id', teamMemberIds)
     .order('created_at', { ascending: false })
+    .limit(20)
 
-  const getRoleBadgeVariant = (role: string): "default" | "secondary" | "destructive" | "outline" => {
-    switch (role) {
-      case 'admin': return 'destructive'
-      case 'manager': return 'default' 
-      case 'employee': return 'secondary'
-      default: return 'outline'
-    }
-  }
-
-  const getRoleDisplayName = (role: string) => {
-    switch (role) {
-      case 'admin': return t('roles.admin')
-      case 'manager': return t('roles.manager')
-      case 'employee': return t('roles.employee')
-      default: return role
-    }
-  }
+  // Transform leave requests data to match interface
+  const leaveRequests = rawLeaveRequests?.map(request => ({
+    ...request,
+    leave_types: Array.isArray(request.leave_types) ? request.leave_types[0] : request.leave_types,
+    user_profile: Array.isArray(request.user_profile) ? request.user_profile[0] : request.user_profile
+  })) || []
 
   return (
     <AppLayout>
-      <InviteTeamDialog />
-      
-      <Tabs defaultValue="members" className="w-full">
-        {/* Row 1: Full-width white background with centered PageHeader + Tabs */}
-        <div className="w-full bg-background">
-          <PageHeader
-            title={t('title')}
-            description={t('description')}
-          >
-            {canManageTeam && (
-              <Link href="/team?invite=true">
-                <Button className="bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2 rounded-lg">
-                  {t('inviteMember')}
-                </Button>
-              </Link>
-            )}
-          </PageHeader>
-
-          {/* Tabs navigation */}
-          <div className="px-6 lg:px-8">
-            <div className="max-w-7xl mx-auto">
-              <TabsList>
-                <TabsTrigger value="members">
-                  {t('teamMembers')} ({teamMembers?.length || 0})
-                </TabsTrigger>
-                <TabsTrigger value="invitations">
-                  {t('pendingInvitations')} ({invitations?.length || 0})
-                </TabsTrigger>
-                {canManageTeam && (
-                  <TabsTrigger value="teams">
-                    Teams ({teams.length})
-                  </TabsTrigger>
-                )}
-              </TabsList>
-            </div>
-          </div>
-        </div>
-
-        {/* Row 2: Full-width muted background with centered tab content */}
-        <div className="w-full bg-content-area min-h-screen pt-6">
-          <div className="px-6 lg:px-8">
-            <div className="max-w-7xl mx-auto">
-              
-              {/* Members Tab Content */}
-              <TabsContent value="members" className="mt-0">
-                <Card className="bg-background border rounded-lg shadow-none">
-                  <CardContent className="p-6">
-                    {teamMembers && teamMembers.length > 0 ? (
-                      <div>
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>{t('user')}</TableHead>
-                              <TableHead>{t('email')}</TableHead>
-                              <TableHead>{t('accountType')}</TableHead>
-                              <TableHead>{t('joined')}</TableHead>
-                              <TableHead className="text-right">{t('actions')}</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {teamMembers.map((member) => (
-                              <TableRow key={member.id}>
-                                <TableCell>
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-medium text-foreground">
-                                      {member.full_name || t('noName')}
-                                    </span>
-                                    {member.teams && (
-                                      <Badge variant="outline" className="text-xs">
-                                        {(member.teams as any)?.name || (member.teams as any)?.[0]?.name}
-                                      </Badge>
-                                    )}
-                                  </div>
-                                </TableCell>
-                                <TableCell>
-                                  <span className="text-foreground">
-                                    {member.email}
-                                  </span>
-                                </TableCell>
-                                <TableCell>
-                                  <Badge variant={getRoleBadgeVariant(member.role)}>
-                                    {getRoleDisplayName(member.role)}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell>
-                                  <span className="text-foreground">
-                                    {new Date(member.created_at).toLocaleDateString('pl-PL')}
-                                  </span>
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  <TeamMemberActions
-                                    member={member}
-                                    currentUserId={user.id}
-                                    canManageTeam={canManageTeam}
-                                    currentUserRole={profile.role}
-                                  />
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                        <div className="bg-muted/50 border-t border-border h-[52px] flex items-center">
-                          <div className="px-4">
-                            <p className="text-sm font-normal text-muted-foreground">
-                              {t('totalTeamMembers')}: {teamMembers?.length || 0}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="text-center py-12">
-                        <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                        <p className="text-muted-foreground">{t('noTeamMembers')}</p>
-                        <p className="text-sm text-muted-foreground">{t('inviteFirstMember')}</p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* Permission Notice for Non-Admins */}
-                {!canManageTeam && (
-                  <Alert className="mt-6 border-warning/20 bg-warning/10 text-warning-foreground">
-                    <AlertDescription>
-                      {t('permissionNotice')}
-                    </AlertDescription>
-                  </Alert>
-                )}
-              </TabsContent>
-
-              {/* Invitations Tab Content */}
-              <TabsContent value="invitations" className="mt-0">
-                <InvitationsSection 
-                  invitations={invitations || []} 
-                  canManageTeam={canManageTeam}
-                />
-              </TabsContent>
-
-              {/* Team Management Tab Content */}
-              {canManageTeam && (
-                <TabsContent value="teams" className="mt-0">
-                  <Card className="bg-background border rounded-lg shadow-none">
-                    <CardContent className="p-8">
-                      <TeamManagement
-                        initialTeams={teams}
-                        allMembers={teamMembers || []}
-                        managers={managers}
-                        currentUserRole={profile.role}
-                      />
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-              )}
-            </div>
-          </div>
-        </div>
-      </Tabs>
+      <ManagerTeamView 
+        teamMembers={teamMembers}
+        leaveBalances={leaveBalances || []}
+        leaveRequests={leaveRequests}
+        managerName={profile.full_name || 'Manager'}
+      />
     </AppLayout>
   )
 } 

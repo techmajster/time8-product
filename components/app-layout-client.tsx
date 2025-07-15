@@ -19,6 +19,7 @@ import { usePathname } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import React from 'react'
 import { LeaveType, LeaveBalance, UserProfile } from '@/types/leave'
+import AddAbsenceSheet from './AddAbsenceSheet'
 
 interface Organization {
   id: string
@@ -36,6 +37,7 @@ interface AppLayoutClientProps {
   teamInviteCount?: number
   leaveTypes: LeaveType[]
   leaveBalances: LeaveBalance[]
+  preloadedEmployees?: any[]
 }
 
 // Function to generate breadcrumb items based on pathname
@@ -112,7 +114,8 @@ export function AppLayoutClient({
   userProfile, 
   teamInviteCount,
   leaveTypes,
-  leaveBalances
+  leaveBalances,
+  preloadedEmployees
 }: AppLayoutClientProps) {
   const pathname = usePathname()
   const t = useTranslations()
@@ -159,6 +162,11 @@ export function AppLayoutClient({
           {children}
         </main>
       </SidebarInset>
+      
+      {/* Add Absence Sheet */}
+      {(userRole === 'admin' || userRole === 'manager') && (
+        <AddAbsenceSheet preloadedEmployees={preloadedEmployees} userRole={userRole} />
+      )}
     </SidebarProvider>
   )
 } 

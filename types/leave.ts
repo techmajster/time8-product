@@ -437,13 +437,13 @@ export const DEFAULT_LEAVE_TYPES = [
   // Job search leave
   {
     name: 'Urlop na poszukiwanie pracy',
-    days_per_year: 0, // 2-3 days when terminated
+    days_per_year: 3, // 3 days when terminated (Polish labor law entitlement)
     color: '#DC2626',
-    requires_approval: false,
-    requires_balance: false,
+    requires_approval: true, // Should require approval from manager/admin
+    requires_balance: true, // Must track balance since there's a 3-day limit
     is_paid: true,
     leave_category: 'special',
-    description: '2-3 dni przy wypowiedzeniu, 100%'
+    description: '3 dni przy wypowiedzeniu, 100%'
   },
   // Force majeure leave
   {

@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
+import { format, differenceInDays, parseISO } from 'date-fns'
+import { pl } from 'date-fns/locale'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { LeaveType, LeaveBalance, UserProfile } from '@/types/leave'
@@ -12,8 +13,16 @@ import { DateRangePicker } from '@/components/ui/date-range-picker'
 import { useLeaveSystemToasts } from '@/hooks/use-sonner-toast'
 import { createClient } from '@/lib/supabase/client'
 import { DateRange } from 'react-day-picker'
-import { Plus } from 'lucide-react'
+import { Plus, ChevronDownIcon } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu'
 import { toast } from 'sonner'
+import { getApplicableLeaveTypes, isLeaveTypeDisabled } from '@/lib/leave-validation'
 
 interface NewLeaveRequestSheetProps {
   leaveTypes: LeaveType[]
@@ -122,12 +131,12 @@ export function NewLeaveRequestSheet({ leaveTypes, leaveBalances, userProfile, i
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!formData.leave_type_id || !dateRange?.from || !dateRange?.to || !userProfile?.organization_id || !userProfile?.id || !calculatedDays) {
+    if (!formData.leave_type_id || !dateRange?.from || !dateRange?.to || !userProfile?.organization_id || !userProfile?.id) {
       toast.error('Missing required information')
       return
     }
 
-    if (calculatedDays <= 0) {
+    if (!calculatedDays || calculatedDays <= 0) {
       toast.error('Invalid date range - no working days selected')
       return
     }
@@ -135,23 +144,32 @@ export function NewLeaveRequestSheet({ leaveTypes, leaveBalances, userProfile, i
     setIsSubmitting(true)
 
     try {
+      const requestPayload = {
+        leave_type_id: formData.leave_type_id,
+        start_date: dateRange.from.toISOString().split('T')[0],
+        end_date: dateRange.to.toISOString().split('T')[0],
+        days_requested: calculatedDays,
+        reason: formData.reason || null,
+      }
+      
+      console.log('Submitting leave request:', requestPayload)
+      
       // Use the API route instead of direct Supabase call to ensure proper validation and RLS
       const response = await fetch('/api/leave-requests', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          leave_type_id: formData.leave_type_id,
-          start_date: dateRange.from.toISOString().split('T')[0],
-          end_date: dateRange.to.toISOString().split('T')[0],
-          days_requested: calculatedDays,
-          reason: formData.reason || null,
-        }),
+        body: JSON.stringify(requestPayload),
       })
 
       if (!response.ok) {
         const errorData = await response.json()
+        console.error('Leave request API error:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorData: errorData
+        })
         throw new Error(errorData.error || 'Failed to submit leave request')
       }
 
@@ -165,6 +183,12 @@ export function NewLeaveRequestSheet({ leaveTypes, leaveBalances, userProfile, i
 
     } catch (error) {
       console.error('Error submitting leave request:', error)
+      console.error('Form data at time of error:', {
+        formData,
+        dateRange,
+        calculatedDays,
+        userProfile: userProfile ? { id: userProfile.id, organization_id: userProfile.organization_id } : null
+      })
       
       // Handle different types of errors
       let errorMessage = 'An unexpected error occurred while submitting your leave request'
@@ -193,37 +217,85 @@ export function NewLeaveRequestSheet({ leaveTypes, leaveBalances, userProfile, i
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
         <SheetContent 
           side="right" 
-          className="w-full sm:max-w-md p-0 bg-white"
+          size="content"
+          className="overflow-y-auto"
         >
-          <div className="p-6">
-            <SheetTitle className="text-lg font-semibold mb-6">Nowy wniosek urlopowy</SheetTitle>
+          <div className="bg-background relative rounded-lg h-full">
+            <div className="flex flex-col h-full">
+              <div className="flex flex-col gap-6 p-6 flex-1 overflow-y-auto">
+                <div className="flex flex-col gap-1.5 w-full">
+                  <SheetTitle className="text-lg font-semibold mb-6">Nowy wniosek urlopowy</SheetTitle>
+                </div>
 
-            {/* Minimal Form */}
-            <form onSubmit={handleSubmit} className="space-y-5">
+                {/* Minimal Form */}
+                <form onSubmit={handleSubmit} className="space-y-5 flex-1">
               {/* Leave Type Selection */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Jaki urlop chcesz wybrać?</Label>
-                <Select 
-                  value={formData.leave_type_id} 
-                  onValueChange={(value) => setFormData({ ...formData, leave_type_id: value })}
-                >
-                  <SelectTrigger className="h-9 w-full">
-                    <SelectValue placeholder="Wybierz typ urlopu" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {leaveTypes.map((type) => (
-                      <SelectItem key={type.id} value={type.id}>
-                        <div className="flex items-center gap-2">
-                          <div 
-                            className="w-3 h-3 rounded-full" 
-                            style={{ backgroundColor: type.color }}
-                          />
-                          <span>{type.name}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-between h-auto min-h-9 px-3 py-2"
+                    >
+                      {formData.leave_type_id ? (
+                        (() => {
+                          const selectedLeaveType = leaveTypes.find(type => type.id === formData.leave_type_id)
+                          const balance = leaveBalances.find(lb => lb.leave_type_id === formData.leave_type_id)
+                          return selectedLeaveType ? (
+                            <div className="flex flex-col items-start">
+                              <span className="font-medium text-sm">{selectedLeaveType.name}</span>
+                              {balance && (
+                                <span className="text-xs text-muted-foreground">
+                                  Dostępne {balance.remaining_days} dni
+                                </span>
+                              )}
+                            </div>
+                          ) : null
+                        })()
+                      ) : (
+                        <span className="text-muted-foreground">Wybierz typ urlopu</span>
+                      )}
+                      <ChevronDownIcon className="size-4 opacity-50" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-[var(--radix-dropdown-menu-trigger-width)]">
+                    {userProfile && getApplicableLeaveTypes(userProfile, leaveTypes, leaveBalances, userProfile.organization_id).map((type, index, array) => {
+                      const balance = leaveBalances.find(lb => lb.leave_type_id === type.id)
+                      const disabledState = isLeaveTypeDisabled(type, balance)
+                      
+                      return (
+                        <React.Fragment key={type.id}>
+                          <DropdownMenuItem
+                            onClick={() => !disabledState.disabled && setFormData({ ...formData, leave_type_id: type.id })}
+                            className={`${disabledState.disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                            disabled={disabledState.disabled}
+                          >
+                            <div className="flex flex-col">
+                              <span className="font-medium">{type.name}</span>
+                              {balance && (
+                                <span className="text-xs text-muted-foreground">
+                                  Dostępne {Math.max(0, balance.remaining_days)} dni
+                                </span>
+                              )}
+                              {!balance && (
+                                <span className="text-xs text-muted-foreground">
+                                  Bez limitu
+                                </span>
+                              )}
+                              {disabledState.reason && (
+                                <span className="text-xs text-red-500">
+                                  {disabledState.reason}
+                                </span>
+                              )}
+                            </div>
+                          </DropdownMenuItem>
+                          {index < array.length - 1 && <DropdownMenuSeparator />}
+                        </React.Fragment>
+                      )
+                    })}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
 
               {/* Date Selection */}
@@ -253,17 +325,25 @@ export function NewLeaveRequestSheet({ leaveTypes, leaveBalances, userProfile, i
                 />
               </div>
 
-              {/* Submit Button */}
-              <div className="flex justify-end pt-3">
+                </form>
+              </div>
+              
+              {/* Footer - Fixed at Bottom */}
+              <div className="flex flex-row gap-2 items-center justify-between w-full p-6 pt-0 bg-background">
+                <Button variant="outline" size="sm" onClick={handleClose}>
+                  Anuluj
+                </Button>
                 <Button 
                   type="submit" 
-                  className="h-10 bg-neutral-900 hover:bg-neutral-800 text-white"
+                  size="sm"
+                  className="bg-neutral-900 hover:bg-neutral-800 text-white"
                   disabled={!formData.leave_type_id || !dateRange?.from || !dateRange?.to || !calculatedDays || calculatedDays <= 0 || isSubmitting}
+                  onClick={handleSubmit}
                 >
                   {isSubmitting ? 'Składanie wniosku...' : 'Złóż wniosek urlopowy'}
                 </Button>
               </div>
-            </form>
+            </div>
           </div>
         </SheetContent>
       </Sheet>

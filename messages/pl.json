@@ -83,11 +83,13 @@
     "leaveRequests": "Wnioski urlopowe",
     "leave-requests": "Wnioski urlopowe",
     "calendar": "Kalendarz",
-    "team": "Zespół",
+    "team": "Mój zespół",
+    "team-management": "Zarządzanie zespołem",
     "schedule": "Harmonogram",
     "settings": "Ustawienia",
     "profile": "Profil",
     "admin": "Administrator",
+    "addAbsence": "Dodaj nieobecność",
     "holidays": "Święta",
     "help": "Pomoc",
     "groups": {
@@ -96,6 +98,7 @@
     },
     "adminPages": {
       "overview": "Przegląd",
+      "teamManagement": "Zarządzanie zespołem",
       "holidays": "Święta",
       "fixBalance": "Popraw saldo",
       "setupHolidays": "Konfiguruj święta",

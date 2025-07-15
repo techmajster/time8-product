@@ -47,6 +47,10 @@ export async function AppLayout({ children }: AppLayoutProps) {
   let leaveTypes: LeaveType[] = []
   let leaveBalances: LeaveBalance[] = []
   
+  // Preload employees for AddAbsenceSheet (only for managers/admins)
+  let employees: any[] = []
+  const hasManagerAccess = profile.role === 'manager' || profile.role === 'admin'
+  
   if (user) {
     // Create user profile for validation
     userProfile = {
@@ -85,6 +89,25 @@ export async function AppLayout({ children }: AppLayoutProps) {
       .eq('leave_types.requires_balance', true)
 
     leaveBalances = leaveBalancesData || []
+
+    // Preload employees for AddAbsenceSheet if user has manager/admin access
+    if (hasManagerAccess) {
+      let employeesQuery = supabase
+        .from('profiles')
+        .select('id, email, full_name, avatar_url, role, team_id')
+        .eq('organization_id', profile.organization_id)
+        .order('full_name', { ascending: true })
+
+      // Filter based on role
+      if (profile.role === 'manager' && profile.team_id) {
+        // Managers can only see their team members
+        employeesQuery = employeesQuery.eq('team_id', profile.team_id)
+      }
+      // Admins see everyone (no additional filter needed)
+
+      const { data: employeesData } = await employeesQuery
+      employees = employeesData || []
+    }
   }
 
   return (
@@ -96,6 +119,7 @@ export async function AppLayout({ children }: AppLayoutProps) {
       teamInviteCount={teamInviteCount || 0}
       leaveTypes={leaveTypes}
       leaveBalances={leaveBalances}
+      preloadedEmployees={employees}
     >
       {children}
     </AppLayoutClient>

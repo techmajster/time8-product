@@ -90,7 +90,7 @@ export default function JoinOrganizationPage() {
       // Look up invitation by invitation code
       const { data: invitation, error: invitationError } = await supabase
         .from('invitations')
-        .select('id, organization_id, email, role, status, expires_at')
+        .select('id, organization_id, email, role, team_id, status, expires_at')
         .eq('invitation_code', inviteCode.trim().toUpperCase())
         .eq('status', 'pending')
         .single()
@@ -119,12 +119,13 @@ export default function JoinOrganizationPage() {
         throw new Error(`This invitation is for ${invitation.email}. Please sign in with the correct email address or contact your admin.`)
       }
 
-      // Update user profile with organization and role from invitation
+      // Update user profile with organization, role, and team from invitation
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
           organization_id: invitation.organization_id,
           role: invitation.role,
+          team_id: invitation.team_id // Add team assignment
         })
         .eq('id', user.id)
 

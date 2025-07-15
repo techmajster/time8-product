@@ -27,24 +27,32 @@ export async function POST() {
       return NextResponse.json({ error: checkError.message }, { status: 400 })
     }
 
-    if (existingTypes && existingTypes.length > 0) {
+    // Instead of failing if types exist, check which ones are missing
+    const existingNames = existingTypes?.map(t => t.name) || []
+    const missingTypes = DEFAULT_LEAVE_TYPES.filter(defaultType => 
+      !existingNames.includes(defaultType.name)
+    )
+
+    if (missingTypes.length === 0) {
       return NextResponse.json({ 
-        error: 'Organization already has leave types. Delete existing types first if you want to recreate defaults.' 
-      }, { status: 400 })
+        message: 'All default leave types already exist for this organization.',
+        existing: existingNames
+      })
     }
 
-    // Create default leave types based on Polish labor law
+    // Create only the missing leave types
     const { data: createdTypes, error: createError } = await supabase
       .from('leave_types')
       .insert(
-        DEFAULT_LEAVE_TYPES.map(type => ({
+        missingTypes.map(type => ({
           organization_id: organizationId,
           name: type.name,
           days_per_year: type.days_per_year,
           color: type.color,
           requires_approval: type.requires_approval,
           requires_balance: type.requires_balance,
-          leave_category: type.leave_category
+          leave_category: type.leave_category,
+          description: type.description
         }))
       )
       .select()
@@ -96,7 +104,8 @@ export async function POST() {
 
     return NextResponse.json({ 
       success: true, 
-      message: `Created ${createdTypes?.length || 0} default leave types compliant with Polish labor law`,
+      message: `Created ${createdTypes?.length || 0} missing leave types: ${missingTypes.map(t => t.name).join(', ')}`,
+      created: createdTypes?.map(t => t.name),
       data: createdTypes 
     })
 

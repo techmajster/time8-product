@@ -587,7 +587,7 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
 
       {/* Day Details Sheet */}
       <Sheet open={!!selectedDay} onOpenChange={() => setSelectedDay(null)}>
-        <SheetContent className="w-full sm:max-w-md">
+        <SheetContent size="content">
           {/* Accessibility title - visually hidden */}
           <SheetTitle className="sr-only">
             Szczegóły wybranego dnia
