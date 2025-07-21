@@ -32,3 +32,53 @@ export const plWithCapitals = {
     }
   }
 }
+
+/**
+ * Get the current app URL dynamically
+ * Works with both production (app.time8.io) and development (localhost)
+ */
+export function getAppUrl(req?: Request): string {
+  // If we have a request object, use it to determine the URL
+  if (req) {
+    const host = req.headers.get('host') || ''
+    const protocol = host.includes('localhost') ? 'http' : 'https'
+    return `${protocol}://${host}`
+  }
+
+  // For server-side without request, use environment or defaults
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    return process.env.NEXT_PUBLIC_APP_URL
+  }
+
+  // Development fallback
+  if (process.env.NODE_ENV === 'development') {
+    return 'http://localhost:3000'
+  }
+
+  // Production fallback
+  return 'https://app.time8.io'
+}
+
+/**
+ * Get invite URL with proper domain
+ */
+export function getInviteUrl(token: string, req?: Request): string {
+  const baseUrl = getAppUrl(req)
+  return `${baseUrl}/team/invite?token=${token}`
+}
+
+/**
+ * Get login URL with proper domain
+ */
+export function getLoginUrl(req?: Request): string {
+  const baseUrl = getAppUrl(req)
+  return `${baseUrl}/login`
+}
+
+/**
+ * Get onboarding URL with proper domain
+ */
+export function getOnboardingUrl(req?: Request): string {
+  const baseUrl = getAppUrl(req)
+  return `${baseUrl}/onboarding`
+}

@@ -1,7 +1,25 @@
 import { Resend } from 'resend'
+import { getAppUrl, getInviteUrl, getLoginUrl, getOnboardingUrl } from './utils'
 
 // Initialize Resend only if API key is available
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
+
+// Smart email address selection
+const getFromEmail = (emailType: 'critical' | 'brand' | 'notification') => {
+  switch (emailType) {
+    case 'critical':
+      // High-deliverability for invitations, password resets, important system emails
+      return process.env.FROM_EMAIL || 'onboarding@resend.dev'
+    case 'brand':
+      // Time8 brand emails for general notifications, building domain reputation
+      return process.env.BRAND_EMAIL || process.env.FROM_EMAIL || 'noreply@time8.io'
+    case 'notification':
+      // Regular notifications - balance between reliability and branding
+      return process.env.NOTIFICATION_EMAIL || process.env.BRAND_EMAIL || 'notifications@time8.io'
+    default:
+      return process.env.FROM_EMAIL || 'noreply@yourdomain.com'
+  }
+}
 
 interface InvitationEmailData {
   to: string
@@ -58,6 +76,14 @@ interface WeeklySummaryData {
     startDate: string
     endDate: string
   }>
+}
+
+interface EmployeeVerificationData {
+  to: string
+  full_name: string
+  organization_name: string
+  temp_password: string
+  personal_message?: string
 }
 
 // Email templates
@@ -144,8 +170,8 @@ export async function sendInvitationEmail(data: InvitationEmailData) {
       return { success: false, error: 'Email service not configured' }
     }
 
-    // Construct the invitation URL
-    const invitationUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/team/invite?token=${data.invitationToken}`
+    // Construct the invitation URL using dynamic domain detection
+    const invitationUrl = getInviteUrl(data.invitationToken)
 
     const content = `
       <div class="header">
@@ -180,7 +206,7 @@ export async function sendInvitationEmail(data: InvitationEmailData) {
     `
 
     const result = await resend.emails.send({
-      from: process.env.FROM_EMAIL || 'noreply@yourdomain.com',
+      from: getFromEmail('critical'),
       to: data.to,
       subject: `Zaproszenie do ${data.organizationName}`,
       html: getEmailTemplate(content),
@@ -206,7 +232,7 @@ export async function sendLeaveRequestNotification(data: LeaveRequestNotificatio
     }
 
     const statusClass = `status-${data.status}`
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    const appUrl = getAppUrl()
 
     const content = `
       <div class="header">
@@ -230,7 +256,7 @@ export async function sendLeaveRequestNotification(data: LeaveRequestNotificatio
     `
 
     const result = await resend.emails.send({
-      from: process.env.FROM_EMAIL || 'noreply@yourdomain.com',
+      from: getFromEmail('notification'),
       to: data.to,
       subject: `Wniosek urlopowy ${statusText[data.status]} - ${data.organizationName}`,
       html: getEmailTemplate(content),
@@ -249,7 +275,7 @@ export async function sendTeamLeaveNotification(data: TeamLeaveNotificationData)
       return { success: false, error: 'Email service not configured' }
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    const appUrl = getAppUrl()
 
     const content = `
       <div class="header">
@@ -274,7 +300,7 @@ export async function sendTeamLeaveNotification(data: TeamLeaveNotificationData)
     `
 
     const result = await resend.emails.send({
-      from: process.env.FROM_EMAIL || 'noreply@yourdomain.com',
+      from: getFromEmail('notification'),
       to: data.to,
       subject: `Urlop w zespole: ${data.employeeName} - ${data.organizationName}`,
       html: getEmailTemplate(content),
@@ -293,7 +319,7 @@ export async function sendLeaveRequestReminder(data: LeaveRequestReminderData) {
       return { success: false, error: 'Email service not configured' }
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    const appUrl = getAppUrl()
 
     const requestsList = data.requests.map(request => `
       <div class="leave-item">
@@ -320,7 +346,7 @@ export async function sendLeaveRequestReminder(data: LeaveRequestReminderData) {
     `
 
     const result = await resend.emails.send({
-      from: process.env.FROM_EMAIL || 'noreply@yourdomain.com',
+      from: getFromEmail('notification'),
       to: data.to,
       subject: `Przypomnienie: ${data.pendingRequestsCount} oczekujących wniosków - ${data.organizationName}`,
       html: getEmailTemplate(content),
@@ -339,7 +365,7 @@ export async function sendWeeklySummary(data: WeeklySummaryData) {
       return { success: false, error: 'Email service not configured' }
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    const appUrl = getAppUrl()
 
     const upcomingLeavesList = data.upcomingLeaves.map(leave => `
       <div class="leave-item">
@@ -378,7 +404,7 @@ export async function sendWeeklySummary(data: WeeklySummaryData) {
     `
 
     const result = await resend.emails.send({
-      from: process.env.FROM_EMAIL || 'noreply@yourdomain.com',
+      from: getFromEmail('notification'),
       to: data.to,
       subject: `Cotygodniowe podsumowanie urlopów - ${data.organizationName}`,
       html: getEmailTemplate(content),
@@ -408,7 +434,7 @@ export async function sendTestEmail(data: { to: string; subject: string; content
     `
 
     const result = await resend.emails.send({
-      from: process.env.FROM_EMAIL || 'noreply@yourdomain.com',
+      from: getFromEmail('brand'),
       to: data.to,
       subject: data.subject,
       html: getEmailTemplate(content),
@@ -422,9 +448,70 @@ export async function sendTestEmail(data: { to: string; subject: string; content
   }
 }
 
+export async function sendEmployeeVerificationEmail(data: EmployeeVerificationData) {
+  try {
+    if (!resend) {
+      return { success: false, error: 'Email service not configured' }
+    }
+
+    const content = `
+      <div class="header">
+        <h1>🎉 Witamy w ${data.organization_name}!</h1>
+        <div class="brand">Time8 - Nowoczesne zarządzanie czasem pracy</div>
+      </div>
+      <div class="content">
+        <h2>Cześć ${data.full_name}!</h2>
+        <p>Twoje konto w systemie Time8 zostało utworzone. Aby aktywować konto i ustawić własne hasło, postępuj zgodnie z poniższymi instrukcjami.</p>
+        
+        ${data.personal_message ? `
+          <div style="background: #f0f9ff; padding: 15px; border-left: 4px solid #3b82f6; margin: 20px 0;">
+            <p style="margin: 0; font-style: italic; color: #1e40af;">"${data.personal_message}"</p>
+          </div>
+        ` : ''}
+        
+        <div class="leave-item" style="background: #fef3c7; border-left-color: #f59e0b;">
+          <h3 style="color: #92400e; margin-top: 0;">Dane logowania:</h3>
+          <p style="margin: 5px 0;"><strong>Email:</strong> ${data.to}</p>
+          <p style="margin: 5px 0;"><strong>Tymczasowe hasło:</strong> <code style="background: #fbbf24; padding: 2px 6px; border-radius: 3px; font-weight: bold;">${data.temp_password}</code></p>
+        </div>
+        
+        <div style="background: #fee2e2; padding: 15px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #ef4444;">
+          <p style="color: #991b1b; margin: 0;"><strong>⚠️ Ważne:</strong> Musisz zmienić hasło przy pierwszym logowaniu ze względów bezpieczeństwa.</p>
+        </div>
+        
+        <a href="${getLoginUrl()}" class="button">
+          Zaloguj się teraz
+        </a>
+        
+        <div style="margin-top: 30px;">
+          <h4>Co dalej?</h4>
+          <ol style="color: #4b5563;">
+            <li>Kliknij przycisk "Zaloguj się teraz"</li>
+            <li>Wprowadź swój email i tymczasowe hasło</li>
+            <li>Ustaw nowe, bezpieczne hasło</li>
+            <li>Uzupełnij profil pracownika</li>
+          </ol>
+        </div>
+      </div>
+    `
+
+    const result = await resend.emails.send({
+      from: getFromEmail('critical'), // Critical delivery for account setup
+      to: data.to,
+      subject: `Witamy w ${data.organization_name} - Aktywuj swoje konto Time8`,
+      html: getEmailTemplate(content),
+    })
+
+    return { success: true, messageId: result.data?.id }
+  } catch (error) {
+    console.error('Failed to send employee verification email:', error)
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+  }
+}
+
 // Fallback function if email service is not configured
 export function createInvitationEmailContent(data: InvitationEmailData) {
-  const invitationUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/team/invite?token=${data.invitationToken}`
+  const invitationUrl = getInviteUrl(data.invitationToken)
   
   return {
     subject: `Zaproszenie do ${data.organizationName}`,

@@ -17,22 +17,106 @@ Your leave management system now supports comprehensive email notifications incl
 Add these to your `.env.local` file:
 
 ```bash
-# Email Configuration (Resend)
+# Email Configuration (Time8 Smart Delivery)
 RESEND_API_KEY=re_your_actual_api_key_here
-FROM_EMAIL=noreply@yourdomain.com
 
-# For testing without domain verification:
-# FROM_EMAIL=onboarding@resend.dev
+# Critical emails (invitations, password resets) - High deliverability
+FROM_EMAIL=onboarding@resend.dev
+
+# Brand emails (leave notifications) - Building Time8 reputation  
+BRAND_EMAIL=noreply@time8.io
+
+# General notifications - Balance reliability and branding
+NOTIFICATION_EMAIL=notifications@time8.io
+
+# Alternative Time8 email addresses you can use:
+# BRAND_EMAIL=system@time8.io
+# BRAND_EMAIL=hello@time8.io  
+# NOTIFICATION_EMAIL=team@time8.io
 
 # Optional: Cron job security
 CRON_SECRET=your-secret-cron-key
 ```
 
-### 2. Resend Setup
+### 2. Smart Email Delivery Strategy
+
+The system now uses intelligent FROM_EMAIL selection:
+
+**🔴 Critical Emails (High Deliverability):**
+- Team invitations
+- Employee verification 
+- Password resets
+- Account setup
+- Uses: `FROM_EMAIL` (onboarding@resend.dev)
+
+**🔵 Brand Emails (Building Reputation):**
+- Test emails
+- General communications
+- Uses: `BRAND_EMAIL` (noreply@time8.io)
+
+**🟡 Notification Emails (Balanced Approach):**
+- Leave request updates
+- Team notifications
+- Reminders & summaries
+- Uses: `NOTIFICATION_EMAIL` (notifications@time8.io)
+
+### 3. Domain Reputation Building
+
+**Phase 1 (Week 1):** Critical emails use proven domain
+```bash
+FROM_EMAIL=onboarding@resend.dev
+BRAND_EMAIL=noreply@time8.io        # Low volume testing
+NOTIFICATION_EMAIL=notifications@time8.io
+```
+
+**Phase 2 (Week 2-3):** Increase Time8 volume
+```bash  
+FROM_EMAIL=onboarding@resend.dev
+BRAND_EMAIL=noreply@time8.io        # Medium volume
+NOTIFICATION_EMAIL=noreply@time8.io # Switch to Time8
+```
+
+**Phase 3 (Week 4+):** Full Time8 branding
+```bash
+FROM_EMAIL=noreply@time8.io         # All emails use Time8
+BRAND_EMAIL=noreply@time8.io
+NOTIFICATION_EMAIL=notifications@time8.io
+```
+
+### 4. DMARC Configuration (Recommended)
+
+To improve deliverability for `time8.io`, add this DMARC record:
+
+**Add to OVH DNS:**
+```
+Type: TXT
+Subdomain: _dmarc
+Target: v=DMARC1; p=quarantine; pct=25; rua=mailto:dmarc@time8.io
+TTL: 3600
+```
+
+**What this does:**
+- `p=quarantine` - Put questionable emails in spam (safer than reject for new domains)
+- `pct=25` - Apply policy to 25% of emails (gradual rollout)
+- `rua=mailto:dmarc@time8.io` - Send weekly reports to monitor performance
+
+**Gradual DMARC Rollout:**
+```bash
+# Week 1: Monitor mode
+v=DMARC1; p=none; pct=100; rua=mailto:dmarc@time8.io
+
+# Week 2-3: Quarantine 25%
+v=DMARC1; p=quarantine; pct=25; rua=mailto:dmarc@time8.io
+
+# Week 4+: Full quarantine
+v=DMARC1; p=quarantine; pct=100; rua=mailto:dmarc@time8.io
+```
+
+### 5. Resend Setup
 
 1. **Sign up**: Go to [resend.com](https://resend.com) (3,000 free emails/month)
 2. **Create API key**: In dashboard → API Keys → Create new
-3. **Domain setup** (optional): Add your domain for branded emails
+3. **Domain setup**: Add `time8.io` domain and verify DNS
 4. **Test**: Visit `/admin/test-email` to verify configuration
 
 ## 📋 User Settings Database
