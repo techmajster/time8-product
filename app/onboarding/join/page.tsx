@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
@@ -25,7 +25,7 @@ interface Invitation {
   team_name: string | null
 }
 
-export default function JoinPage() {
+function JoinPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const t = useTranslations('auth')
@@ -318,4 +318,19 @@ export default function JoinPage() {
       </div>
     </div>
   )
-} 
+}
+
+export default function JoinPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-neutral-900 mx-auto"></div>
+          <p className="mt-2 text-sm text-neutral-600">Ładowanie...</p>
+        </div>
+      </div>
+    }>
+      <JoinPageContent />
+    </Suspense>
+  )
+}
