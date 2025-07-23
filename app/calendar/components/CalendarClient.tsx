@@ -715,52 +715,47 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
                   </div>
                 )}
 
-                {/* Planned Leaves Section - Only show if there are planned leaves */}
+                {/* Planned Leaves Section - unified with Figma design */}
                 {selectedDay.plannedLeaves && selectedDay.plannedLeaves.length > 0 && (
-                  <div className="bg-white border border-gray-200 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-sm font-medium text-gray-900">
+                  <div className="bg-white border border-neutral-200 rounded-[10px] p-4">
+                    <div className="flex flex-row gap-3 items-start w-full mb-3">
+                      <Info className="w-4 h-4 text-neutral-950 mt-0.5 shrink-0" />
+                      <div className="text-sm font-medium leading-5 text-neutral-950">
                         Zaplanowane urlopy
-                      </h3>
-                      <Calendar className="h-4 w-4 text-gray-400" />
+                      </div>
                     </div>
                     
-                    <div className="space-y-3">
+                    <div className="flex flex-col gap-8 w-full">
                       {selectedDay.plannedLeaves.map((leave) => {
                         const endDate = new Date(leave.end_date)
                         const formattedEndDate = `${endDate.getDate().toString().padStart(2, '0')}.${(endDate.getMonth() + 1).toString().padStart(2, '0')}`
                         
                         return (
-                          <div key={leave.id} className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                              {leave.user_avatar ? (
-                                <Avatar className="w-8 h-8">
-                                  <AvatarImage src={leave.user_avatar} />
-                                  <AvatarFallback className="text-xs">
-                                    {leave.user_name.split(' ').map(n => n[0]).join('')}
-                                  </AvatarFallback>
-                                </Avatar>
-                              ) : (
-                                <User className="h-4 w-4 text-gray-600" />
-                              )}
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-gray-900">
+                          <div key={leave.id} className="flex flex-row gap-4 items-center justify-start min-w-[85px] w-full">
+                            <Avatar className="w-10 h-10 rounded-full bg-neutral-100">
+                              <AvatarImage src={leave.user_avatar || undefined} />
+                              <AvatarFallback className="bg-neutral-100 text-neutral-950">
+                                {leave.user_name.split(' ').map(n => n[0]).join('') || leave.user_email[0].toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="basis-0 flex flex-col grow items-start justify-start min-h-px min-w-px">
+                              <div className="font-medium text-sm text-neutral-950 leading-5 w-full overflow-ellipsis overflow-hidden">
                                 {leave.user_name}
-                              </p>
-                              <p className="text-xs text-gray-600">
-                                {leave.user_email}
-                              </p>
-                            </div>
-                            <div className="text-right">
-                              <div className="flex items-center gap-1">
-                                <span className="text-xs text-gray-600">{leave.leave_type_name}</span>
-                                <div 
-                                  className="w-3 h-3 rounded-full"
-                                  style={{ backgroundColor: leave.leave_type_color }}
-                                />
                               </div>
-                              <p className="text-xs text-gray-600">do {formattedEndDate}</p>
+                              <div className="font-normal text-sm text-neutral-500 leading-5 w-full overflow-ellipsis overflow-hidden">
+                                {leave.user_email}
+                              </div>
+                            </div>
+                            <div className="flex flex-col items-end justify-center text-sm text-right">
+                              <div className="font-medium text-neutral-950 leading-5">
+                                {leave.leave_type_name}
+                              </div>
+                              <div className="font-normal text-neutral-500 leading-5">
+                                do {formattedEndDate}
+                              </div>
+                            </div>
+                            <div className="bg-cyan-200 rounded-lg shrink-0 w-10 h-10 flex items-center justify-center">
+                              <TreePalm className="w-6 h-6 text-neutral-950" />
                             </div>
                           </div>
                         )

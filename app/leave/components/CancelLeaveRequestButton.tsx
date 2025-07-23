@@ -118,7 +118,6 @@ export function CancelLeaveRequestButton({
             className={`text-destructive hover:bg-destructive/5 ${className}`}
             disabled={loading}
           >
-            <Trash2 className="h-4 w-4 mr-2" />
             Anuluj wniosek
           </Button>
         </DialogTrigger>

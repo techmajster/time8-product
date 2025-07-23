@@ -205,13 +205,17 @@ export async function sendInvitationEmail(data: InvitationEmailData) {
       </div>
     `
 
+    const fromEmail = getFromEmail('brand')
+    console.log('📧 Sending invitation from:', fromEmail, 'to:', data.to)
+    
     const result = await resend.emails.send({
-      from: getFromEmail('critical'),
+      from: getFromEmail('brand'), // Use same email type as working sendTestEmail
       to: data.to,
       subject: `Zaproszenie do ${data.organizationName}`,
       html: getEmailTemplate(content),
     })
 
+    console.log('🔍 Resend API response:', JSON.stringify(result, null, 2))
     return { success: true, messageId: result.data?.id }
   } catch (error) {
     console.error('Failed to send invitation email:', error)

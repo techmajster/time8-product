@@ -50,6 +50,8 @@ export function TeamCard({ allTeamMembers, absentMembers, teams, defaultTeamId, 
   // Filter members based on selected team
   const filteredMembers = selectedTeamId === 'all' 
     ? allTeamMembers 
+    : selectedTeamId === 'no-team'
+    ? allTeamMembers.filter(member => !member.team_id)
     : allTeamMembers.filter(member => member.team_id === selectedTeamId)
 
   // Filter absent members based on team selection
@@ -75,14 +77,13 @@ export function TeamCard({ allTeamMembers, absentMembers, teams, defaultTeamId, 
           
           {teams.length > 0 && (userRole === 'admin' || teams.length > 1) && (
             <Select value={selectedTeamId} onValueChange={setSelectedTeamId}>
-              <SelectTrigger className="w-48">
+              <SelectTrigger className="w-fit">
                 <SelectValue placeholder="Wybierz zespół" />
               </SelectTrigger>
               <SelectContent>
                 {userRole === 'admin' && (
                   <SelectItem value="all">
                     <div className="flex items-center gap-2">
-                      <Users className="w-4 h-4" />
                       Wszyscy ({allTeamMembers.length})
                     </div>
                   </SelectItem>
@@ -92,10 +93,6 @@ export function TeamCard({ allTeamMembers, absentMembers, teams, defaultTeamId, 
                   return (
                     <SelectItem key={team.id} value={team.id}>
                       <div className="flex items-center gap-2">
-                        <div 
-                          className="w-3 h-3 rounded-full" 
-                          style={{ backgroundColor: team.color }}
-                        />
                         {team.name} ({teamMemberCount})
                       </div>
                     </SelectItem>
@@ -104,7 +101,6 @@ export function TeamCard({ allTeamMembers, absentMembers, teams, defaultTeamId, 
                 {userRole === 'admin' && allTeamMembers.filter(m => !m.team_id).length > 0 && (
                   <SelectItem value="no-team">
                     <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-muted" />
                       Bez zespołu ({allTeamMembers.filter(m => !m.team_id).length})
                     </div>
                   </SelectItem>

@@ -210,7 +210,7 @@ export function NavUser({
               </DropdownMenuItem>
             )}
             {canAccessProfileSettings && (
-              <DropdownMenuItem onClick={() => router.push('/settings')}>
+              <DropdownMenuItem onClick={() => router.push('/admin/settings')}>
                 <Settings className="h-4 w-4 mr-2" />
                 {t('userMenu.settings')}
               </DropdownMenuItem>

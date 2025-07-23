@@ -232,7 +232,7 @@ export default async function AdminPage() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {/* Organization Settings */}
-                    <Link href="/settings">
+                    <Link href="/admin/settings">
                       <Button variant="outline" className="w-full justify-start">
                         <Settings className="h-4 w-4 mr-2" />
                         {t('organizationSettings')}

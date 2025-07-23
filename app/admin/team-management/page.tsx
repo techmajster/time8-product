@@ -110,6 +110,74 @@ export default async function AdminTeamManagementPage() {
     .eq('organization_id', profile.organization_id)
     .order('name')
 
+  // Get pending invitations with proper serialization
+  console.log('🔍 Querying invitations for organization:', profile.organization_id)
+  const { data: rawInvitations, error: invitationsError } = await supabase
+    .from('invitations')
+    .select(`
+      id,
+      email,
+      full_name,
+      birth_date,
+      role,
+      status,
+      created_at,
+      expires_at,
+      invitation_code,
+      invited_by,
+      team_id
+    `)
+    .eq('organization_id', profile.organization_id)
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false })
+    
+  console.log('📋 Found raw invitations:', rawInvitations?.length || 0)
+  console.log('❌ Invitations error:', invitationsError)
+
+  // Get inviter profiles separately and create simple serializable objects
+  const invitations = rawInvitations ? await Promise.all(
+    rawInvitations.map(async (invitation) => {
+      // Get inviter profile
+      const { data: inviterProfile } = await supabase
+        .from('profiles')
+        .select('full_name, email')
+        .eq('id', invitation.invited_by)
+        .single()
+
+      // Get team name if team_id exists
+      let teamName = 'Bez zespołu'
+      if (invitation.team_id) {
+        const { data: team } = await supabase
+          .from('teams')
+          .select('name')
+          .eq('id', invitation.team_id)
+          .single()
+        teamName = team?.name || 'Bez zespołu'
+      }
+
+      // Create a simple, serializable object
+      return {
+        id: invitation.id,
+        email: invitation.email,
+        full_name: invitation.full_name,
+        birth_date: invitation.birth_date,
+        role: invitation.role,
+        status: invitation.status,
+        created_at: invitation.created_at,
+        expires_at: invitation.expires_at,
+        invitation_code: invitation.invitation_code,
+        invited_by: invitation.invited_by,
+        team_id: invitation.team_id,
+        inviter_name: inviterProfile?.full_name || 'Administrator',
+        inviter_email: inviterProfile?.email || '',
+        team_name: teamName
+      }
+    })
+  ) : []
+
+  console.log('📋 Processed invitations for client:', invitations?.length || 0)
+  console.log('📋 Sample invitation:', invitations?.[0])
+
   // Helper functions
   const getLeaveBalance = (userId: string, leaveTypeName: string): number => {
     const balance = leaveBalances?.find(
@@ -129,11 +197,7 @@ export default async function AdminTeamManagementPage() {
     return member.teams?.name || 'Bez zespołu'
   }
 
-  const getManagerName = (member: any): string => {
-    // For now, return static manager name as shown in Figma
-    // This should be dynamically determined based on team structure
-    return 'Paweł Chróściak'
-  }
+
 
   return (
     <AppLayout>
@@ -141,6 +205,7 @@ export default async function AdminTeamManagementPage() {
         teamMembers={teamMembers}
         teams={teams || []}
         leaveBalances={leaveBalances || []}
+        invitations={invitations || []}
       />
     </AppLayout>
   )

@@ -23,7 +23,6 @@ export async function GET(
         id,
         name,
         description,
-        color,
         created_at,
         updated_at,
         manager:profiles!teams_manager_id_fkey (
@@ -99,7 +98,7 @@ export async function PUT(
     }
 
     const body = await request.json()
-    const { name, description, manager_id, color } = body
+    const { name, description, manager_id } = body
 
     // Validate manager_id if provided
     if (manager_id) {
@@ -130,7 +129,7 @@ export async function PUT(
     if (name?.trim()) updateData.name = name.trim()
     if (description !== undefined) updateData.description = description?.trim() || null
     if (manager_id !== undefined) updateData.manager_id = manager_id
-    if (color) updateData.color = color
+
 
     const { data: team, error } = await supabase
       .from('teams')
@@ -140,7 +139,6 @@ export async function PUT(
         id,
         name,
         description,
-        color,
         created_at,
         updated_at,
         manager:profiles!teams_manager_id_fkey (

@@ -41,6 +41,7 @@ export async function middleware(request: NextRequest) {
     '/signup',
     '/forgot-password',
     '/reset-password',
+    '/onboarding/join', // Allow invitation acceptance page
     '/api/logout',
     '/api/locale', // Add locale API route
     '/favicon.ico',
@@ -52,6 +53,7 @@ export async function middleware(request: NextRequest) {
   const publicApiRoutes = [
     '/api/logout',
     '/api/locale', // Language switching API
+    '/api/invitations/lookup', // Invitation lookup for public join page
   ]
 
   const { pathname } = request.nextUrl

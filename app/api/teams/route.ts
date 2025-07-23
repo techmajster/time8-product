@@ -19,7 +19,6 @@ export async function GET() {
         id,
         name,
         description,
-        color,
         created_at,
         updated_at,
         manager:profiles!teams_manager_id_fkey (
@@ -70,7 +69,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { name, description, manager_id, color } = body
+    const { name, description, manager_id } = body
 
     if (!name?.trim()) {
       return NextResponse.json(
@@ -112,14 +111,12 @@ export async function POST(request: NextRequest) {
         organization_id: organizationId,
         name: name.trim(),
         description: description?.trim() || null,
-        manager_id: manager_id || null,
-        color: color || '#6366f1'
+        manager_id: manager_id || null
       })
       .select(`
         id,
         name,
         description,
-        color,
         created_at,
         updated_at,
         manager:profiles!teams_manager_id_fkey (

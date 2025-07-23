@@ -1,247 +1,321 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { ArrowLeft, Users, CheckCircle } from 'lucide-react'
-import Link from 'next/link'
+import { GoogleAuthButton } from '@/components/google-auth-button'
+import { LanguageSwitcher } from '@/components/LanguageSwitcher'
+import { createClient } from '@/lib/supabase/client'
 
-export default function JoinOrganizationPage() {
-  const [loading, setLoading] = useState(false)
-  const [checking, setChecking] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [inviteCode, setInviteCode] = useState('')
-  const [autoJoinOrg, setAutoJoinOrg] = useState<any>(null)
-  
+interface Invitation {
+  id: string
+  email: string
+  full_name: string | null
+  birth_date: string | null
+  role: string
+  team_id: string | null
+  organization_id: string
+  status: string
+  expires_at: string
+  organization_name: string
+  team_name: string | null
+}
+
+export default function JoinPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const searchParams = useSearchParams()
+  const t = useTranslations('auth')
+  const tCommon = useTranslations('common')
+  
+  const [invitation, setInvitation] = useState<Invitation | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [password, setPassword] = useState('')
+  const [isCreatingAccount, setIsCreatingAccount] = useState(false)
+
+  const token = searchParams.get('token')
+  const code = searchParams.get('code')
 
   useEffect(() => {
-    checkAutoJoin()
-  }, [])
-
-  const checkAutoJoin = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user?.email) {
-      setChecking(false)
-      return
+    if (token) {
+      loadInvitationByToken()
+    } else if (code) {
+      loadInvitationByCode()
+    } else {
+      setError(t('invitation.noTokenProvided'))
     }
+  }, [token, code, t])
 
-    const emailDomain = user.email.split('@')[1]
-    const isGoogleUser = user.app_metadata.provider === 'google'
-
-    if (isGoogleUser && emailDomain) {
-      const { data } = await supabase
-        .from('organizations')
-        .select('*')
-        .eq('google_domain', emailDomain)
-        .single()
-
-      if (data) {
-        setAutoJoinOrg(data)
-      }
-    }
-    setChecking(false)
-  }
-
-  const handleAutoJoin = async () => {
-    if (!autoJoinOrg) return
-    
-    setLoading(true)
-    setError(null)
+  const loadInvitationByToken = async () => {
+    if (!token) return
 
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Not authenticated')
+      setLoading(true)
+      const response = await fetch(`/api/invitations/lookup?token=${encodeURIComponent(token)}`)
+      const result = await response.json()
 
-      // Update user profile with organization
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({
-          organization_id: autoJoinOrg.id,
-          role: 'employee', // Default role for new joiners
-        })
-        .eq('id', user.id)
-
-      if (profileError) throw profileError
-
-      router.push('/onboarding/complete')
+      if (response.ok && result) {
+        setInvitation(result)
+      } else {
+        setError(result.error || t('invitation.invalidInvitationDescription'))
+      }
     } catch (err) {
-      console.error('Error joining organization:', err)
-      setError(err instanceof Error ? err.message : 'Failed to join organization')
+      console.error('Error checking token invitation:', err)
+      setError(t('invitation.invitationError'))
+    } finally {
       setLoading(false)
     }
   }
 
-  const handleManualJoin = async (e: React.FormEvent) => {
+  const loadInvitationByCode = async () => {
+    // TODO: Implement code-based lookup if needed
+    setError(t('invitation.codeNotImplemented'))
+  }
+
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
+    if (!invitation || !password) return
+
+    setIsCreatingAccount(true)
     setError(null)
 
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Not authenticated')
+      const supabase = createClient()
+      
+      // Create the user account
+      const { data, error: authError } = await supabase.auth.signUp({
+        email: invitation.email,
+        password,
+        options: {
+          data: {
+            full_name: invitation.full_name || invitation.email.split('@')[0],
+          },
+        },
+      })
 
-      // Look up invitation by invitation code
-      const { data: invitation, error: invitationError } = await supabase
-        .from('invitations')
-        .select('id, organization_id, email, role, team_id, status, expires_at')
-        .eq('invitation_code', inviteCode.trim().toUpperCase())
-        .eq('status', 'pending')
-        .single()
+      if (authError) {
+        throw authError
+      }
 
-      if (invitationError || !invitation) {
-        if (invitationError?.code === 'PGRST116') {
-          throw new Error('No invitation found with this code. Please check the code and try again.')
+      if (data.user) {
+        // Update the user's profile with invitation data immediately
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({
+            organization_id: invitation.organization_id,
+            role: invitation.role,
+            team_id: invitation.team_id,
+            full_name: invitation.full_name || data.user.email?.split('@')[0] || 'Unknown',
+            birth_date: invitation.birth_date,
+          })
+          .eq('id', data.user.id)
+
+        if (profileError) {
+          console.error('Profile update error:', profileError)
+          // Don't throw here, user is created, just log the error
         }
-        throw new Error('Invalid or expired invitation code. Please check the code and try again.')
+
+        // Mark invitation as accepted
+        const { error: acceptError } = await supabase
+          .from('invitations')
+          .update({
+            status: 'accepted',
+            accepted_at: new Date().toISOString()
+          })
+          .eq('id', invitation.id)
+
+        if (acceptError) {
+          console.error('Invitation acceptance error:', acceptError)
+          // Don't throw here either, user is created
+        }
+
+        // Redirect to dashboard or completion page
+        router.push('/dashboard')
       }
-
-      // Get organization details separately
-      const { data: organization } = await supabase
-        .from('organizations')
-        .select('id, name')
-        .eq('id', invitation.organization_id)
-        .single()
-
-      // Check if invitation has expired
-      if (new Date(invitation.expires_at) < new Date()) {
-        throw new Error('This invitation has expired. Please contact your admin for a new invitation.')
-      }
-
-      // Check if the user's email matches the invitation
-      if (invitation.email.toLowerCase() !== user.email?.toLowerCase()) {
-        throw new Error(`This invitation is for ${invitation.email}. Please sign in with the correct email address or contact your admin.`)
-      }
-
-      // Update user profile with organization, role, and team from invitation
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({
-          organization_id: invitation.organization_id,
-          role: invitation.role,
-          team_id: invitation.team_id // Add team assignment
-        })
-        .eq('id', user.id)
-
-      if (profileError) throw profileError
-
-      // Mark invitation as accepted
-      const { error: acceptError } = await supabase
-        .from('invitations')
-        .update({
-          status: 'accepted',
-          accepted_at: new Date().toISOString()
-        })
-        .eq('id', invitation.id)
-
-      if (acceptError) throw acceptError
-
-      // Success! Redirect to completion page
-      router.push('/onboarding/complete')
-    } catch (err) {
-      console.error('Error joining organization:', err)
-      setError(err instanceof Error ? err.message : 'Failed to join organization')
-      setLoading(false)
+    } catch (error: any) {
+      console.error('Signup error:', error)
+      setError(error?.message || 'An error occurred during account creation')
+    } finally {
+      setIsCreatingAccount(false)
     }
   }
 
-  if (checking) {
-    return <div>Checking your eligibility...</div>
+  const handleGoogleSignup = async () => {
+    if (!invitation) return
+
+    setIsCreatingAccount(true)
+    setError(null)
+
+    try {
+      const supabase = createClient()
+      
+      // Pass invitation ID through the redirect URL so the callback can handle it
+      const callbackUrl = `${window.location.origin}/login/callback?invitation_id=${invitation.id}`
+      
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: callbackUrl,
+        },
+      })
+
+      if (error) {
+        throw error
+      }
+    } catch (error: any) {
+      console.error('Google signup error:', error)
+      setError(error?.message || 'An error occurred with Google signup')
+      setIsCreatingAccount(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="bg-background w-screen h-screen fixed inset-0 z-50">
+        {/* Language Switcher */}
+        <div className="absolute top-4 right-4 z-10">
+          <LanguageSwitcher />
+        </div>
+        
+        {/* Centered Content */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p>{t('invitation.validatingInvitation')}</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!invitation) {
+    return (
+      <div className="bg-background w-screen h-screen fixed inset-0 z-50">
+        {/* Language Switcher */}
+        <div className="absolute top-4 right-4 z-10">
+          <LanguageSwitcher />
+        </div>
+        
+        {/* Centered Content */}
+        <div className="absolute inset-0 flex items-center justify-center p-4">
+          <div className="bg-card rounded-[14px] shadow-md border border-border p-6 w-full max-w-md text-center">
+            <h1 className="text-xl font-bold text-destructive mb-2">{t('invitation.invalidInvitation')}</h1>
+            <p className="text-muted-foreground text-sm mb-4">
+              {error || t('invitation.invalidInvitationDescription')}
+            </p>
+            <a href="/login" className="text-primary hover:underline">
+              {t('invitation.goToLogin')}
+            </a>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="space-y-6">
-      <Link 
-        href="/onboarding" 
-        className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="mr-1 h-4 w-4" />
-        Back
-      </Link>
-
-      {autoJoinOrg ? (
-        <Card>
-          <CardHeader>
-            <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-success/10">
-              <CheckCircle className="h-6 w-6 text-success" />
-            </div>
-            <CardTitle>You're eligible to join {autoJoinOrg.name}!</CardTitle>
-            <CardDescription>
-              Your email domain matches this organization. You can join automatically.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="rounded-lg bg-muted p-4">
-              <p className="text-sm font-medium">Organization Details</p>
-              <p className="text-sm text-muted-foreground mt-1">{autoJoinOrg.name}</p>
-              <p className="text-xs text-muted-foreground mt-1">Domain: @{autoJoinOrg.google_domain}</p>
+    <div className="bg-background w-screen h-screen fixed inset-0 z-50">
+      {/* Language Switcher */}
+      <div className="absolute top-4 right-4 z-10">
+        <LanguageSwitcher />
+      </div>
+      
+      {/* Centered Content */}
+      <div className="absolute inset-0 flex items-center justify-center p-4">
+        <div className="bg-card max-w-[480px] w-full rounded-[14px] border border-border shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)]">
+          <div className="p-6">
+            {/* Header */}
+            <div className="flex flex-col gap-1.5 pb-0 pt-1.5 mb-6">
+              <h1 className="font-bold text-[30px] text-foreground leading-[36px]">
+                {t('invitation.title')}
+              </h1>
+              <div className="font-normal text-muted-foreground">
+                <p className="leading-[20px] text-[14px]">
+                  {t('invitation.description', { 
+                    organizationName: invitation.organization_name || '',
+                    teamName: invitation.team_name || ''
+                  })}
+                </p>
+              </div>
             </div>
 
+            {/* Error Alert */}
             {error && (
-              <Alert variant="destructive">
+              <Alert variant="destructive" className="w-full mb-6">
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
 
-            <Button 
-              onClick={handleAutoJoin} 
-              className="w-full" 
-              disabled={loading}
-            >
-              {loading ? 'Joining...' : `Join ${autoJoinOrg.name}`}
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card>
-          <CardHeader>
-            <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-              <Users className="h-6 w-6 text-primary" />
-            </div>
-            <CardTitle>Join an Organization</CardTitle>
-            <CardDescription>
-              Enter the invite code provided by your organization admin
-            </CardDescription>
-          </CardHeader>
-          <form onSubmit={handleManualJoin}>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="inviteCode">Invite Code</Label>
-                <Input
-                  id="inviteCode"
-                  placeholder="e.g., AB3CD4FG"
-                  value={inviteCode}
-                  onChange={(e) => setInviteCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
-                  maxLength={8}
-                  className="font-mono text-center tracking-wider text-lg"
-                  required
-                />
-                <p className="text-xs text-muted-foreground">
-                  Ask your HR manager or admin for this 8-character code
-                </p>
+            {/* Form */}
+            <form onSubmit={handleSignup} className="flex flex-col gap-6">
+              <div className="flex flex-col gap-4">
+                
+                {/* Email Input */}
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="email" className="font-medium text-[14px] text-foreground">
+                    {t('email')}
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={invitation.email}
+                    disabled
+                    className="h-9 opacity-50 bg-card border-border shadow-xs text-muted-foreground text-[14px]"
+                  />
+                </div>
+
+                {/* Password Input */}
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="password" className="font-medium text-[14px] text-foreground">
+                    {t('invitation.createPassword')}
+                  </Label>
+                  <div className="w-full">
+                    <Input
+                      id="password"
+                      type="password"
+                      required
+                      minLength={6}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      disabled={isCreatingAccount}
+                      placeholder={t('invitation.passwordPlaceholder')}
+                      className="h-9 bg-card border-border shadow-xs text-foreground text-[14px] placeholder:text-muted-foreground"
+                    />
+                    <p className="font-normal text-[14px] text-muted-foreground mt-2">
+                      {t('minimumCharacters')}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Submit Button */}
+                <Button
+                  type="submit"
+                  disabled={isCreatingAccount || !password}
+                  className="bg-primary hover:bg-primary/90 h-9 rounded-lg shadow-xs w-full disabled:opacity-50 text-primary-foreground font-medium text-[14px]"
+                >
+                  {isCreatingAccount ? t('invitation.creatingAccount') : t('invitation.createAccountButton')}
+                </Button>
               </div>
 
-              {error && (
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-            </CardContent>
-            
-            <CardContent>
-              <Button type="submit" className="w-full " disabled={loading}>
-                {loading ? 'Joining...' : 'Join Organization'}
-              </Button>
-            </CardContent>
-          </form>
-        </Card>
-      )}
+              {/* Separator */}
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-border" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-2 text-muted-foreground">{t('orContinueWith').split(' ')[0]}</span>
+                </div>
+              </div>
+
+              {/* Google Button */}
+              <GoogleAuthButton mode="signup" />
+            </form>
+          </div>
+        </div>
+      </div>
     </div>
   )
 } 

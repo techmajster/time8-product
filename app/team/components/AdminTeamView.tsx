@@ -18,6 +18,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Button } from '@/components/ui/button'
+import { Plus } from 'lucide-react'
+
+import { InviteTeamDialog } from './InviteTeamDialog'
+import Link from 'next/link'
 
 interface TeamMember {
   id: string
@@ -65,6 +70,8 @@ export function AdminTeamView({ teamMembers, leaveBalances, teams }: AdminTeamVi
   // Filter team members based on selected team
   const filteredMembers = selectedTeamId === 'all' 
     ? teamMembers 
+    : selectedTeamId === 'no-team'
+    ? teamMembers.filter(member => !member.team_id)
     : teamMembers.filter(member => member.team_id === selectedTeamId)
 
   // Get leave balance for a specific user and leave type
@@ -88,25 +95,43 @@ export function AdminTeamView({ teamMembers, leaveBalances, teams }: AdminTeamVi
       {/* Header with Team Selector */}
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-semibold text-foreground">Mój zespół</h1>
-        <Select value={selectedTeamId} onValueChange={setSelectedTeamId}>
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="Wybierz zespół" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Wszystkie zespoły</SelectItem>
-            {teams.map((team) => (
-              <SelectItem key={team.id} value={team.id}>
+        <div className="flex items-center gap-3">
+          <Select value={selectedTeamId} onValueChange={setSelectedTeamId}>
+            <SelectTrigger className="w-fit">
+              <SelectValue placeholder="Wybierz zespół" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">
                 <div className="flex items-center gap-2">
-                  <div 
-                    className="w-3 h-3 rounded-full" 
-                    style={{ backgroundColor: team.color }}
-                  />
-                  {team.name}
+                  Wszyscy ({teamMembers.length})
                 </div>
               </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+              {teams.map((team) => {
+                const teamMemberCount = teamMembers.filter(m => m.team_id === team.id).length
+                return (
+                  <SelectItem key={team.id} value={team.id}>
+                    <div className="flex items-center gap-2">
+                      {team.name} ({teamMemberCount})
+                    </div>
+                  </SelectItem>
+                )
+              })}
+              {teamMembers.filter(m => !m.team_id).length > 0 && (
+                <SelectItem value="no-team">
+                  <div className="flex items-center gap-2">
+                    Bez zespołu ({teamMembers.filter(m => !m.team_id).length})
+                  </div>
+                </SelectItem>
+              )}
+            </SelectContent>
+          </Select>
+          <Link href="/admin/team-management/add-employee">
+            <Button size="sm" className="bg-foreground text-background hover:bg-foreground/90">
+              <Plus className="h-4 w-4 mr-2" />
+              Dodaj pracownika
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Table */}
@@ -149,12 +174,6 @@ export function AdminTeamView({ teamMembers, leaveBalances, teams }: AdminTeamVi
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        {member.teams?.color && (
-                          <div 
-                            className="w-3 h-3 rounded-full" 
-                            style={{ backgroundColor: member.teams.color }}
-                          />
-                        )}
                         <div className="font-medium text-foreground">
                           {member.teams?.name || 'Bez zespołu'}
                         </div>
@@ -192,6 +211,9 @@ export function AdminTeamView({ teamMembers, leaveBalances, teams }: AdminTeamVi
           }
         </div>
       )}
+      {/* Dialogs */}
+
+      <InviteTeamDialog />
     </div>
   )
 }

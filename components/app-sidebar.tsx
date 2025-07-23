@@ -108,6 +108,16 @@ export function AppSidebar({ organizationName, organizationLogo, userProfile, us
       icon: Users,
     },
     {
+      title: t('adminPages.settings'),
+      url: "/admin/settings",
+      icon: Settings,
+    },
+    {
+      title: t('adminPages.components'),
+      url: "/admin/components",
+      icon: Settings,
+    },
+    {
       title: t('adminPages.holidays'),
       url: "/admin/holidays",
       icon: Calendar,

@@ -101,7 +101,7 @@ const getNavigationItems = (t: any, userRole: string) => {
 const getSettingsNavigation = (t: any) => [
   {
     name: t('settings.organization'),
-    href: '/settings'
+    href: '/admin/settings'
   },
   {
     name: t('navigation.profile'),
@@ -242,7 +242,7 @@ export function Navigation({
               )}
               {(userRole === 'admin' || userRole === 'manager') && (
                 <DropdownMenuItem asChild>
-                  <Link href="/settings">
+                  <Link href="/admin/settings">
                     {t('settings.organization')}
                   </Link>
                 </DropdownMenuItem>

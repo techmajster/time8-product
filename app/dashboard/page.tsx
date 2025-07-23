@@ -232,9 +232,7 @@ export default async function DashboardPage() {
           userProfile={profile} 
         />
         
-        <div className="bg-background min-h-screen">
-          {/* Main Content */}
-          <div className="p-8">
+        <div className="p-8">
           <div className="flex flex-col gap-6">
                         {/* Greeting Section */}
             <div className="flex items-center justify-between py-2">
@@ -388,7 +386,6 @@ export default async function DashboardPage() {
             </div>
           </div>
         </div>
-      </div>
     </AppLayout>
   )
 }

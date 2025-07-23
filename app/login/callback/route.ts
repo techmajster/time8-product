@@ -4,9 +4,10 @@ import { NextResponse } from 'next/server'
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
+  const invitationId = requestUrl.searchParams.get('invitation_id')
   const origin = requestUrl.origin
 
-  console.log('🔐 Auth callback received:', { code: !!code, origin })
+  console.log('🔐 Auth callback received:', { code: !!code, invitationId, origin })
 
   if (code) {
     const supabase = await createClient()
@@ -67,6 +68,57 @@ export async function GET(request: Request) {
           console.error('🔐 Profile creation error:', insertError)
         }
       }
+
+      // Handle invitation acceptance if invitation_id is provided
+      if (invitationId) {
+        console.log('🔐 Processing invitation:', invitationId)
+        
+        // Get invitation details
+        const { data: invitation, error: invitationError } = await supabase
+          .from('invitations')
+          .select('*')
+          .eq('id', invitationId)
+          .eq('status', 'pending')
+          .single()
+
+        if (invitation && !invitationError && user.email) {
+          // Verify the email matches
+          if (invitation.email.toLowerCase() === user.email.toLowerCase()) {
+            // Update user profile with invitation data
+            const { error: profileUpdateError } = await supabase
+              .from('profiles')
+              .update({
+                organization_id: invitation.organization_id,
+                role: invitation.role,
+                team_id: invitation.team_id,
+                full_name: invitation.full_name || user.user_metadata.full_name || user.email.split('@')[0],
+                birth_date: invitation.birth_date,
+              })
+              .eq('id', user.id)
+
+            if (!profileUpdateError) {
+              // Mark invitation as accepted
+              await supabase
+                .from('invitations')
+                .update({
+                  status: 'accepted',
+                  accepted_at: new Date().toISOString()
+                })
+                .eq('id', invitation.id)
+
+              console.log('🔐 Invitation processed successfully')
+              return NextResponse.redirect(`${origin}/dashboard`)
+            } else {
+              console.error('🔐 Profile update error:', profileUpdateError)
+            }
+          } else {
+            console.log('🔐 Email mismatch for invitation')
+          }
+        } else {
+          console.log('🔐 Invitation not found or invalid')
+        }
+      }
+
       // If profile exists but has no organization, check for auto-join
       else if (profile && !profile.organization_id && user.email) {
         const authProvider = user.app_metadata.provider || 'email'

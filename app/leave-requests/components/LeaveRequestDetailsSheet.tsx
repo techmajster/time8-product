@@ -10,7 +10,8 @@ import {
 } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Calendar, ChevronDown, TreePalm } from 'lucide-react'
+import { Separator } from '@/components/ui/separator'
+import { Calendar, ChevronDown, Info, TreePalm } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { RejectLeaveRequestDialog } from './RejectLeaveRequestDialog'
 import { useSonnerToast } from '@/hooks/use-sonner-toast'
@@ -188,7 +189,17 @@ export function LeaveRequestDetailsSheet({ requestId, isOpen, onClose }: LeaveRe
     const start = new Date(startDate)
     const end = new Date(endDate)
     
-    return `${start.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long' })} - ${end.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' })}`
+    return `${start.toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' })} - ${end.toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' })}`
+  }
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'pending': return 'Oczekujący'
+      case 'approved': return 'Zaakceptowany'
+      case 'rejected': return 'Odrzucony'
+      case 'cancelled': return 'Anulowany'
+      default: return status
+    }
   }
 
   const handleApprove = async () => {
@@ -269,212 +280,204 @@ export function LeaveRequestDetailsSheet({ requestId, isOpen, onClose }: LeaveRe
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent size="content" className="p-6 overflow-y-auto">
-        {/* Accessibility title - visually hidden */}
-        <SheetTitle className="sr-only">
-          Szczegóły wniosku o urlop
-        </SheetTitle>
-        <SheetDescription className="sr-only">
-          Szczegółowy widok wniosku urlopowego dla administratorów i menedżerów
-        </SheetDescription>
+      <SheetContent size="content" className="overflow-y-auto">
+        <div className="flex flex-col h-full">
+          <div className="flex flex-col gap-6 items-end p-6 h-full">
+            {/* Accessibility title - visually hidden */}
+            <SheetTitle className="sr-only">
+              Szczegóły wniosku o urlop
+            </SheetTitle>
+            <SheetDescription className="sr-only">
+              Szczegółowy widok wniosku urlopowego dla administratorów i menedżerów
+            </SheetDescription>
 
-        {loading ? (
-          <div className="flex items-center justify-center h-32">
-            <div className="text-sm text-muted-foreground">Ładowanie...</div>
-          </div>
-        ) : leaveRequest ? (
-          <div className="flex flex-col gap-6 h-full">
-            {/* Header */}
-            <div className="p-0">
-              <h2 className="text-xl font-semibold text-neutral-950 leading-7">
-                Szczegóły wniosku o urlop
-              </h2>
-            </div>
+            {loading ? (
+              <div className="flex items-center justify-center h-32 w-full">
+                <div className="text-sm text-muted-foreground">Ładowanie...</div>
+              </div>
+            ) : leaveRequest ? (
+              <>
+                {/* Header */}
+                <div className="flex flex-col gap-1.5 items-start w-full">
+                  <h2 className="text-xl font-semibold leading-7 text-foreground">
+                    Szczegóły wniosku o urlop
+                  </h2>
+                </div>
 
-            {/* Content */}
-            <div className="flex flex-col gap-4 flex-1">
-              {/* Wnioskujący */}
-              <div className="bg-white border border-neutral-200 rounded-[10px] p-4">
-                <div className="flex flex-col gap-3">
-                  <div className="font-medium text-sm text-neutral-950">
-                    Wnioskujący
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <Avatar className="w-10 h-10">
-                      <AvatarImage src={leaveRequest.profiles?.avatar_url || undefined} />
-                      <AvatarFallback className="bg-neutral-100 text-neutral-950">
-                        {leaveRequest.profiles?.full_name?.charAt(0) || leaveRequest.profiles?.email.charAt(0)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex flex-col">
-                      <div className="font-medium text-sm text-neutral-950">
-                        {leaveRequest.profiles?.full_name || leaveRequest.profiles?.email.split('@')[0]}
-                      </div>
-                      <div className="font-normal text-sm text-neutral-500">
-                        {leaveRequest.profiles?.email}
+                {/* Separator */}
+                <div className="w-full">
+                  <Separator className="w-full" />
+                </div>
+
+                {/* Content */}
+                <div className="flex flex-col gap-8 items-start w-full flex-1">
+                  {/* Wnioskujący */}
+                  <div className="flex flex-col gap-2 items-start w-full">
+                    <div className="text-sm font-medium leading-none text-foreground">
+                      Wnioskujący
+                    </div>
+                    <div className="flex flex-col gap-8 items-start w-full">
+                      <div className="flex flex-row gap-4 items-center w-full min-w-[85px]">
+                        <Avatar className="w-10 h-10">
+                          <AvatarImage src={leaveRequest.profiles?.avatar_url || undefined} />
+                          <AvatarFallback className="bg-muted text-foreground">
+                            {leaveRequest.profiles?.full_name?.split(' ').map(n => n[0]).join('') || leaveRequest.profiles?.email.charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col flex-1 items-start text-sm leading-none">
+                          <div className="flex flex-col justify-center font-medium text-foreground w-full overflow-hidden overflow-ellipsis">
+                            <p className="block leading-5 overflow-inherit">
+                              {leaveRequest.profiles?.full_name || leaveRequest.profiles?.email.split('@')[0]}
+                            </p>
+                          </div>
+                          <div className="flex flex-col justify-center font-normal text-muted-foreground w-full overflow-hidden overflow-ellipsis">
+                            <p className="block leading-5 overflow-inherit text-sm">
+                              {leaveRequest.profiles?.email}
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </div>
 
-              {/* Rodzaj urlopu */}
-              <div className="bg-white border border-neutral-200 rounded-[10px] p-4">
-                <div className="flex flex-col gap-3">
-                  <div className="font-medium text-sm text-neutral-950">
-                    Rodzaj urlopu
-                  </div>
-                  <div className="bg-white border border-neutral-200 rounded-lg px-3 py-2 h-9 flex items-center justify-between opacity-50 cursor-not-allowed">
-                    <div className="font-normal text-sm text-neutral-500">
-                      {leaveRequest.leave_types?.name || 'Wypoczynkowy'}
+                  {/* Status */}
+                  <div className="flex flex-col gap-2 items-start w-full text-left text-foreground leading-none">
+                    <div className="text-sm font-medium">
+                      <p className="block leading-none">Status</p>
                     </div>
-                    <ChevronDown className="w-4 h-4 text-neutral-500 opacity-50" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Data złożenia wniosku */}
-              <div className="bg-white border border-neutral-200 rounded-[10px] p-4">
-                <div className="flex flex-col gap-3">
-                  <div className="font-medium text-sm text-neutral-950">
-                    Data złożenia wniosku
-                  </div>
-                  <div className="bg-white border border-neutral-200 rounded-lg px-4 py-2 h-9 flex items-center gap-2 opacity-50 cursor-not-allowed">
-                    <Calendar className="w-4 h-4 text-neutral-500" />
-                    <div className="font-normal text-sm text-neutral-500">
-                      {formatDate(leaveRequest.created_at)} 12:00
+                    <div className="text-xl font-semibold">
+                      <p className="block leading-7">{getStatusText(leaveRequest.status)}</p>
                     </div>
                   </div>
-                </div>
-              </div>
 
-              {/* Termin urlopu */}
-              <div className="bg-white border border-neutral-200 rounded-[10px] p-4">
-                <div className="flex flex-col gap-3">
-                  <div className="flex gap-4">
-                    {/* Date range */}
-                    <div className="flex flex-col gap-2 flex-1">
-                      <div className="font-medium text-sm text-neutral-950">
-                        Termin urlopu
+                  {/* Rodzaj urlopu */}
+                  <div className="flex flex-col gap-2 items-start w-full text-left text-foreground leading-none">
+                    <div className="text-sm font-medium">
+                      <p className="block leading-none">Rodzaj urlopu</p>
+                    </div>
+                    <div className="text-xl font-semibold">
+                      <p className="block leading-7">{leaveRequest.leave_types?.name || 'Wypoczynkowy'}</p>
+                    </div>
+                  </div>
+
+                  {/* Data złożenia wniosku */}
+                  <div className="flex flex-col gap-2 items-start w-full">
+                    <div className="text-sm font-medium leading-none text-foreground">
+                      <p className="block leading-none">Data złożenia wniosku</p>
+                    </div>
+                    <div className="flex flex-row gap-2.5 items-center w-full">
+                      <div className="text-xl font-semibold leading-none text-foreground flex-1">
+                        <p className="block leading-7">{formatDate(leaveRequest.created_at)} 12:00</p>
                       </div>
-                      <div className="bg-white border border-neutral-200 rounded-lg px-4 py-2 h-9 flex items-center gap-2 opacity-50 cursor-not-allowed">
-                        <Calendar className="w-4 h-4 text-neutral-500" />
-                        <div className="font-normal text-sm text-neutral-500">
+                    </div>
+                  </div>
+
+                  {/* Termin urlopu i Długość urlopu */}
+                  <div className="flex flex-row gap-6 items-start w-full">
+                    <div className="flex flex-col gap-2 items-start text-left text-foreground leading-none w-[314px]">
+                      <div className="text-sm font-medium">
+                        <p className="block leading-none">Termin urlopu</p>
+                      </div>
+                      <div className="text-xl font-semibold flex-1 w-full">
+                        <p className="block leading-7">
                           {formatDateRange(leaveRequest.start_date, leaveRequest.end_date)}
-                        </div>
+                        </p>
                       </div>
                     </div>
-
-                    {/* Urlop */}
-                    <div className="flex flex-col gap-2 w-[73px]">
-                      <div className="font-medium text-sm text-neutral-950">
-                        Urlop
+                    <div className="flex flex-col gap-2 flex-1 items-start text-left text-foreground leading-none">
+                      <div className="text-sm font-medium">
+                        <p className="block leading-none">Długość urlopu</p>
                       </div>
-                      <div className="bg-white border border-neutral-200 rounded-lg px-3 py-1 h-9 flex items-center opacity-50 cursor-not-allowed">
-                        <div className="font-normal text-sm text-neutral-500">
-                          {leaveRequest.days_requested} dni
-                        </div>
+                      <div className="text-xl font-semibold flex-1 w-full">
+                        <p className="block leading-7">{leaveRequest.days_requested} {leaveRequest.days_requested === 1 ? 'dzień' : 'dni'}</p>
                       </div>
                     </div>
+                  </div>
 
-                    {/* Zostanie - only show for leave types with balance tracking */}
-                    {remainingDays < 999 && (
-                      <div className="flex flex-col gap-2 w-[71px]">
-                        <div className="font-medium text-sm text-neutral-950">
-                          Zostanie
+                  {/* W tym terminie urlop planują - unified with Figma design */}
+                  {conflictingLeaves.length > 0 && (
+                    <div className="bg-white border border-neutral-200 rounded-[10px] p-4 w-full">
+                      <div className="flex flex-row gap-3 items-start w-full mb-3">
+                        <Info className="w-4 h-4 text-neutral-950 mt-0.5 shrink-0" />
+                        <div className="text-sm font-medium leading-5 text-neutral-950">
+                          W tym terminie urlop planują
                         </div>
-                        <div className="bg-white border border-neutral-200 rounded-lg px-3 py-1 h-9 flex items-center opacity-50 cursor-not-allowed">
-                          <div className="font-normal text-sm text-neutral-500">
-                            {remainingDays} dni
+                      </div>
+                      <div className="flex flex-col gap-8 w-full">
+                        {conflictingLeaves.map((conflict) => (
+                          <div key={conflict.id} className="flex flex-row gap-4 items-center justify-start min-w-[85px] w-full">
+                            <Avatar className="w-10 h-10 rounded-full bg-neutral-100">
+                              <AvatarImage src={conflict.avatar_url || undefined} />
+                              <AvatarFallback className="bg-neutral-100 text-neutral-950">
+                                {conflict.full_name?.split(' ').map(n => n[0]).join('') || conflict.email[0].toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="basis-0 flex flex-col grow items-start justify-start min-h-px min-w-px">
+                              <div className="font-medium text-sm text-neutral-950 leading-5 w-full overflow-ellipsis overflow-hidden">
+                                {conflict.full_name || conflict.email.split('@')[0]}
+                              </div>
+                              <div className="font-normal text-sm text-neutral-500 leading-5 w-full overflow-ellipsis overflow-hidden">
+                                {conflict.email}
+                              </div>
+                            </div>
+                            <div className="flex flex-col items-end justify-center text-sm text-right">
+                              <div className="font-medium text-neutral-950 leading-5">
+                                {conflict.leave_type}
+                              </div>
+                              <div className="font-normal text-neutral-500 leading-5">
+                                do {conflict.end_date}
+                              </div>
+                            </div>
+                            <div className="bg-cyan-200 rounded-lg shrink-0 w-10 h-10 flex items-center justify-center">
+                              <TreePalm className="w-6 h-6 text-neutral-950" />
+                            </div>
                           </div>
-                        </div>
+                        ))}
                       </div>
-                    )}
+                    </div>
+                  )}
+
+                  {/* Opis */}
+                  <div className="flex flex-col gap-2 items-start w-full">
+                    <div className="text-sm font-medium leading-none text-foreground">
+                      <p className="block leading-none">Opis</p>
+                    </div>
+                    <div className="flex flex-row gap-2.5 items-center w-full">
+                      <div className="text-base font-normal leading-none text-foreground flex-1">
+                        <p className="block leading-6">{leaveRequest.reason || 'Brak opisu'}</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
+
+                {/* Footer - only show if status is pending */}
+                {leaveRequest.status === 'pending' && (
+                  <div className="flex justify-end gap-2 pt-4 w-full">
+                    <Button 
+                      variant="outline" 
+                      className="h-9 px-4 py-2"
+                      onClick={() => setIsRejectDialogOpen(true)}
+                      disabled={isProcessing}
+                    >
+                      {isProcessing ? 'Przetwarzanie...' : 'Odrzuć wniosek'}
+                    </Button>
+                    <Button 
+                      className="h-9 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90"
+                      onClick={handleApprove}
+                      disabled={isProcessing}
+                    >
+                      {isProcessing ? 'Przetwarzanie...' : 'Zaakceptuj wniosek'}
+                    </Button>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="flex items-center justify-center h-32 w-full">
+                <div className="text-sm text-muted-foreground">Nie znaleziono wniosku urlopowego</div>
               </div>
-
-              {/* W tym terminie urlop planują - only show if there are conflicts */}
-              {conflictingLeaves.length > 0 && (
-                <div className="bg-white border border-neutral-200 rounded-[10px] p-4">
-                  <div className="flex flex-col gap-3">
-                    <div className="font-medium text-sm text-neutral-950">
-                      W tym terminie urlop planują
-                    </div>
-                    <div className="space-y-4">
-                      {conflictingLeaves.map((conflict) => (
-                        <div key={conflict.id} className="flex items-center gap-4">
-                          <Avatar className="w-10 h-10">
-                            <AvatarImage src={conflict.avatar_url || undefined} />
-                            <AvatarFallback className="bg-neutral-100 text-neutral-950">
-                              {conflict.full_name?.charAt(0) || conflict.email.charAt(0)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex flex-col flex-1">
-                            <div className="font-medium text-sm text-neutral-950">
-                              {conflict.full_name || conflict.email.split('@')[0]}
-                            </div>
-                            <div className="font-normal text-sm text-neutral-500">
-                              {conflict.email}
-                            </div>
-                          </div>
-                          <div className="flex flex-col text-right">
-                            <div className="font-medium text-sm text-neutral-950">
-                              {conflict.leave_type}
-                            </div>
-                            <div className="font-normal text-sm text-neutral-500">
-                              do {conflict.end_date}
-                            </div>
-                          </div>
-                          <div className="w-10 h-10 bg-cyan-200 rounded-lg flex items-center justify-center">
-                            <TreePalm className="w-6 h-6 text-neutral-950" />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Opis */}
-              <div className="bg-white border border-neutral-200 rounded-[10px] p-4">
-                <div className="flex flex-col gap-3">
-                  <div className="font-medium text-sm text-neutral-950">
-                    Opis
-                  </div>
-                  <div className="bg-white border border-neutral-200 rounded-lg px-3 py-2 min-h-[60px] opacity-50 cursor-not-allowed">
-                    <div className="font-normal text-sm text-neutral-500">
-                      {leaveRequest.reason || 'Brak opisu'}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="flex justify-end gap-2 pt-4">
-              <Button 
-                variant="outline" 
-                className="h-9 px-4 py-2"
-                onClick={() => setIsRejectDialogOpen(true)}
-                disabled={isProcessing || leaveRequest.status !== 'pending'}
-              >
-                {isProcessing ? 'Przetwarzanie...' : 'Odrzuć wniosek'}
-              </Button>
-              <Button 
-                className="h-9 px-4 py-2 bg-neutral-900 text-white hover:bg-neutral-800"
-                onClick={handleApprove}
-                disabled={isProcessing || leaveRequest.status !== 'pending'}
-              >
-                {isProcessing ? 'Przetwarzanie...' : 'Zaakceptuj wniosek'}
-              </Button>
-            </div>
+            )}
           </div>
-        ) : (
-          <div className="flex items-center justify-center h-32">
-            <div className="text-sm text-muted-foreground">Nie znaleziono wniosku urlopowego</div>
-          </div>
-        )}
+        </div>
       </SheetContent>
 
       {/* Reject Leave Request Dialog */}

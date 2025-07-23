@@ -18,7 +18,6 @@ export interface LeaveType {
   carry_over_allowed?: boolean
   leave_category: LeaveCategory
   special_rules?: LeaveSpecialRules
-  description?: string
   created_at: string
   updated_at: string
 }
@@ -256,12 +255,12 @@ export interface Holiday {
   organization_id?: string | null
   name: string
   date: string
-  holiday_type: 'national' | 'organization' | 'regional'
   is_recurring: boolean
-  is_work_day: boolean
   description?: string | null
   created_at: string
-  updated_at: string
+  type: 'national' | 'company' | 'custom' | 'religious' | 'regional'
+  country_code?: string | null
+  is_work_day: boolean
 }
 
 export interface UpcomingHoliday extends Holiday {

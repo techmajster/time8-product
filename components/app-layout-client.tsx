@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/sidebar'
 import { usePathname } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import React from 'react'
+import React, { useState, useEffect, createContext, useContext } from 'react'
 import { LeaveType, LeaveBalance, UserProfile } from '@/types/leave'
 import AddAbsenceSheet from './AddAbsenceSheet'
 
@@ -26,6 +26,7 @@ interface Organization {
   name: string
   brand_color?: string | null
   logo_url?: string | null
+  locale?: string | null
 }
 
 interface AppLayoutClientProps {
@@ -38,6 +39,22 @@ interface AppLayoutClientProps {
   leaveTypes: LeaveType[]
   leaveBalances: LeaveBalance[]
   preloadedEmployees?: any[]
+}
+
+// Context for organization updates
+interface OrganizationContextType {
+  organization: Organization | null
+  updateOrganization: (updates: Partial<Organization>) => void
+}
+
+const OrganizationContext = createContext<OrganizationContextType | undefined>(undefined)
+
+export const useOrganization = () => {
+  const context = useContext(OrganizationContext)
+  if (!context) {
+    throw new Error('useOrganization must be used within OrganizationProvider')
+  }
+  return context
 }
 
 // Function to generate breadcrumb items based on pathname
@@ -75,7 +92,10 @@ function getBreadcrumbItems(pathname: string, organizationName?: string | null, 
         'test-email': 'Test Email',
         'new': t?.('leave.newRequest') || 'New Request',
         'edit': t?.('common.edit') || 'Edit Request',
-        'invite': t?.('team.invite') || 'Invite Members'
+        'invite': t?.('team.invite') || 'Invite Members',
+        'add': 'Nowy pracownik',
+        'add-employee': 'Nowy pracownik',
+        'team-management': 'Zarządzanie zespołem'
       }
       label = translations[segment] || segment.charAt(0).toUpperCase() + segment.slice(1)
     }
@@ -110,7 +130,7 @@ export function AppLayoutClient({
   children, 
   userRole, 
   userId, 
-  organization, 
+  organization: initialOrganization, 
   userProfile, 
   teamInviteCount,
   leaveTypes,
@@ -119,54 +139,70 @@ export function AppLayoutClient({
 }: AppLayoutClientProps) {
   const pathname = usePathname()
   const t = useTranslations()
+  
+  // State for organization that can be updated
+  const [organization, setOrganization] = useState<Organization | null>(initialOrganization || null)
+  
+  // Update organization state when initial prop changes
+  useEffect(() => {
+    setOrganization(initialOrganization || null)
+  }, [initialOrganization])
+  
+  // Function to update organization
+  const updateOrganization = (updates: Partial<Organization>) => {
+    setOrganization(prev => prev ? { ...prev, ...updates } : null)
+  }
+  
   const breadcrumbItems = getBreadcrumbItems(pathname, organization?.name, t)
 
   return (
-    <SidebarProvider>
-      <AppSidebar 
-        organizationName={organization?.name}
-        organizationLogo={organization?.logo_url}
-        userProfile={userProfile}
-        userRole={userRole}
-      />
-      <SidebarInset>
-        <header className="sticky top-0 z-50 flex h-16 shrink-0 items-center gap-2 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 rounded-t-xl">
-          <div className="flex items-center gap-2 px-4">
-            <SidebarTrigger className="-ml-1" />
-            <Separator
-              orientation="vertical"
-              className="mr-2 data-[orientation=vertical]:h-4"
-            />
-            <Breadcrumb>
-              <BreadcrumbList>
-                {breadcrumbItems.map((item, index) => (
-                  <React.Fragment key={index}>
-                    {index > 0 && <BreadcrumbSeparator />}
-                    <BreadcrumbItem className={index === 0 ? "hidden md:block" : ""}>
-                      {item.isLast || !item.href ? (
-                        <BreadcrumbPage>{item.label}</BreadcrumbPage>
-                      ) : (
-                        <BreadcrumbLink href={item.href}>
-                          {item.label}
-                        </BreadcrumbLink>
-                      )}
-                    </BreadcrumbItem>
-                  </React.Fragment>
-                ))}
-              </BreadcrumbList>
-            </Breadcrumb>
-          </div>
+    <OrganizationContext.Provider value={{ organization, updateOrganization }}>
+      <SidebarProvider>
+        <AppSidebar 
+          organizationName={organization?.name}
+          organizationLogo={organization?.logo_url}
+          userProfile={userProfile}
+          userRole={userRole}
+        />
+        <SidebarInset>
+          <header className="sticky top-0 z-50 flex h-16 shrink-0 items-center gap-2 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 rounded-t-xl">
+            <div className="flex items-center gap-2 px-4">
+              <SidebarTrigger className="-ml-1" />
+              <Separator
+                orientation="vertical"
+                className="mr-2 data-[orientation=vertical]:h-4"
+              />
+              <Breadcrumb>
+                <BreadcrumbList>
+                  {breadcrumbItems.map((item, index) => (
+                    <React.Fragment key={index}>
+                      {index > 0 && <BreadcrumbSeparator />}
+                      <BreadcrumbItem className={index === 0 ? "hidden md:block" : ""}>
+                        {item.isLast || !item.href ? (
+                          <BreadcrumbPage>{item.label}</BreadcrumbPage>
+                        ) : (
+                          <BreadcrumbLink href={item.href}>
+                            {item.label}
+                          </BreadcrumbLink>
+                        )}
+                      </BreadcrumbItem>
+                    </React.Fragment>
+                  ))}
+                </BreadcrumbList>
+              </Breadcrumb>
+            </div>
 
-        </header>
-        <main className="flex flex-1 flex-col gap-4 p-4 pt-0">
-          {children}
-        </main>
-      </SidebarInset>
-      
-      {/* Add Absence Sheet */}
-      {(userRole === 'admin' || userRole === 'manager') && (
-        <AddAbsenceSheet preloadedEmployees={preloadedEmployees} userRole={userRole} />
-      )}
-    </SidebarProvider>
+          </header>
+          <main className="flex flex-1 flex-col gap-4 p-4 pt-0">
+            {children}
+          </main>
+        </SidebarInset>
+        
+        {/* Add Absence Sheet */}
+        {(userRole === 'admin' || userRole === 'manager') && (
+          <AddAbsenceSheet preloadedEmployees={preloadedEmployees} userRole={userRole} />
+        )}
+      </SidebarProvider>
+    </OrganizationContext.Provider>
   )
-} 
+}

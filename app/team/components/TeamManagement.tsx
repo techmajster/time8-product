@@ -388,10 +388,6 @@ export function TeamManagement({ initialTeams, allMembers: initialAllMembers, ma
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <div 
-                      className="w-4 h-4 rounded-full flex-shrink-0" 
-                      style={{ backgroundColor: team.color }}
-                    />
                     <div>
                       <CardTitle className="text-lg">{team.name}</CardTitle>
                       {team.description && (

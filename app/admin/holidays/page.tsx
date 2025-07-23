@@ -78,7 +78,7 @@ function AddCompanyHolidayDialog({ organizationId, onHolidayAdded }: { organizat
           organization_id: organizationId,
           name: formData.name,
           date: formData.date,
-          type: 'organization',
+          type: 'company',
           description: formData.description || null
         })
 
@@ -434,8 +434,8 @@ function DeleteHolidayButton({ holiday, onHolidayDeleted }: { holiday: Holiday, 
           <div className="p-4 rounded-lg bg-destructive/5 border border-destructive/20">
             <div className="flex items-center gap-3">
                              <span className="text-xl">
-                 {holiday.holiday_type === 'national' ? '🇵🇱' : 
-                  holiday.holiday_type === 'organization' ? '🏢' : '📅'}
+                 {holiday.type === 'national' ? '🇵🇱' : 
+                  holiday.type === 'company' ? '🏢' : '📅'}
                </span>
               <div>
                 <h4 className="font-medium text-destructive-foreground">{holiday.name}</h4>
@@ -511,8 +511,13 @@ export default function HolidaysPage() {
       const supabase = createClient()
 
       // Fetch user profile
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Not authenticated')
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      if (authError) {
+        throw new Error(`Authentication error: ${authError.message}`)
+      }
+      if (!user) {
+        throw new Error('Not authenticated')
+      }
 
       // Fetch profile data
       const { data: profileData, error: profileError } = await supabase
@@ -544,7 +549,6 @@ export default function HolidaysPage() {
           carry_over_allowed,
           leave_category,
           special_rules,
-          description,
           created_at,
           updated_at
         `)
@@ -605,9 +609,9 @@ export default function HolidaysPage() {
 
       // Fetch holidays
       const { data: holidaysData, error: holidaysError } = await supabase
-        .from('holidays')
+        .from('company_holidays')
         .select('*')
-        .or(`organization_id.eq.${profileData.organization_id},holiday_type.eq.national`)
+        .or(`organization_id.eq.${profileData.organization_id},type.eq.national`)
         .gte('date', new Date().toISOString().split('T')[0])
         .order('date', { ascending: true })
 
@@ -625,7 +629,7 @@ export default function HolidaysPage() {
 
     } catch (err: any) {
       console.error('Error fetching data:', err)
-      setError(err.message)
+      setError(err?.message || 'Unknown error occurred')
     } finally {
       setLoading(false)
     }
@@ -635,8 +639,8 @@ export default function HolidaysPage() {
     fetchData()
   }, [])
 
-  const nationalHolidays = holidays.filter(h => h.holiday_type === 'national')
-  const organizationHolidays = holidays.filter(h => h.holiday_type === 'organization')
+  const nationalHolidays = holidays.filter(h => h.type === 'national')
+  const organizationHolidays = holidays.filter(h => h.type === 'company')
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('pl-PL', {
@@ -654,7 +658,7 @@ export default function HolidaysPage() {
   const getHolidayTypeName = (type: string) => {
     switch (type) {
       case 'national': return 'Święto państwowe'
-      case 'organization': return 'Święto firmowe'
+      case 'company': return 'Święto firmowe'
       default: return 'Inne'
     }
   }
@@ -798,10 +802,10 @@ export default function HolidaysPage() {
                          `Za ${holiday.days_until} dni`}
                       </Badge>
                       <p className="text-xs text-muted-foreground mt-1">
-                        {getHolidayTypeName(holiday.holiday_type || '')}
+                        {getHolidayTypeName(holiday.type || '')}
                       </p>
                     </div>
-                    {holiday.holiday_type === 'organization' && (
+                    {holiday.type === 'company' && (
                       <div className="flex items-center gap-1">
                         <EditHolidayDialog 
                           holiday={holiday}
@@ -857,11 +861,11 @@ export default function HolidaysPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge 
-                        variant={holiday.holiday_type === 'national' ? 'default' : 'secondary'}
+                        variant={holiday.type === 'national' ? 'default' : 'secondary'}
                       >
-                        {getHolidayTypeName(holiday.holiday_type || '')}
+                        {getHolidayTypeName(holiday.type || '')}
                       </Badge>
-                      {holiday.holiday_type === 'organization' && (
+                      {holiday.type === 'company' && (
                         <>
                           <EditHolidayDialog 
                             holiday={holiday}
@@ -873,7 +877,7 @@ export default function HolidaysPage() {
                           />
                         </>
                       )}
-                      {holiday.holiday_type === 'national' && (
+                      {holiday.type === 'national' && (
                         <div className="px-2 py-1 text-xs text-muted-foreground">
                           Tylko do odczytu
                         </div>
