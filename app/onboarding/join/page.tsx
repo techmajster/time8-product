@@ -40,6 +40,17 @@ function JoinPageContent() {
   const token = searchParams.get('token')
   const code = searchParams.get('code')
 
+  // Handle logout
+  const handleLogout = async () => {
+    try {
+      const supabase = createClient()
+      await supabase.auth.signOut()
+      router.push('/login')
+    } catch (error) {
+      console.error('Error signing out:', error)
+    }
+  }
+
   useEffect(() => {
     if (token) {
       loadInvitationByToken()
@@ -176,8 +187,16 @@ function JoinPageContent() {
   if (loading) {
     return (
       <div className="bg-background w-screen h-screen fixed inset-0 z-50">
-        {/* Language Switcher */}
-        <div className="absolute top-4 right-4 z-10">
+        {/* Top Controls */}
+        <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleLogout}
+            className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
+          >
+            {tCommon('logout')}
+          </Button>
           <LanguageSwitcher />
         </div>
         
@@ -195,8 +214,16 @@ function JoinPageContent() {
   if (!invitation) {
     return (
       <div className="bg-background w-screen h-screen fixed inset-0 z-50">
-        {/* Language Switcher */}
-        <div className="absolute top-4 right-4 z-10">
+        {/* Top Controls */}
+        <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleLogout}
+            className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
+          >
+            {tCommon('logout')}
+          </Button>
           <LanguageSwitcher />
         </div>
         
@@ -218,8 +245,16 @@ function JoinPageContent() {
 
   return (
     <div className="bg-background w-screen h-screen fixed inset-0 z-50">
-      {/* Language Switcher */}
-      <div className="absolute top-4 right-4 z-10">
+      {/* Top Controls */}
+      <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={handleLogout}
+          className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
+        >
+          {tCommon('logout')}
+        </Button>
         <LanguageSwitcher />
       </div>
       
