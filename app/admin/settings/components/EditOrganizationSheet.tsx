@@ -12,7 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { ChevronDown, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 import { getCountryFlag, getLanguageFlag, COUNTRY_FLAGS, LANGUAGE_FLAGS } from '@/lib/flag-utils'
-import { useOrganization } from '@/components/app-layout-client'
+// import { useOrganization } from '@/components/app-layout-client'
 
 interface Organization {
   id: string
@@ -50,7 +50,7 @@ export function EditOrganizationSheet({
   users,
   onSave
 }: EditOrganizationSheetProps) {
-  const { updateOrganization } = useOrganization()
+  // const { updateOrganization } = useOrganization()
   
   const [formData, setFormData] = useState({
     name: organization?.name || '',
@@ -138,14 +138,15 @@ export function EditOrganizationSheet({
       }
       
       // Update the organization context with the new data
-      if (result.organization) {
-        updateOrganization({
-          name: result.organization.name,
-          brand_color: result.organization.brand_color,
-          logo_url: result.organization.logo_url,
-          locale: result.organization.locale
-        })
-      }
+      // TODO: Re-enable when useOrganization import is fixed
+      // if (result.organization) {
+      //   updateOrganization({
+      //     name: result.organization.name,
+      //     brand_color: result.organization.brand_color,
+      //     logo_url: result.organization.logo_url,
+      //     locale: result.organization.locale
+      //   })
+      // }
       
       onSave(result.organization)
       toast.success('Zmiany zostały zapisane')
