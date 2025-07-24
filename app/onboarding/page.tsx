@@ -1,44 +1,108 @@
-import { createClient } from '@/lib/supabase/server'
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Building2, Users } from 'lucide-react'
+import { Building2, Users, CheckCircle } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
-export default async function OnboardingPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+export default function OnboardingPage() {
+  const searchParams = useSearchParams()
+  const [user, setUser] = useState<any>(null)
+  const [profile, setProfile] = useState<any>(null)
+  const [existingOrg, setExistingOrg] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [showVerificationSuccess, setShowVerificationSuccess] = useState(false)
 
-  if (!user) {
-    redirect('/login')
+  useEffect(() => {
+    async function loadData() {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+
+      if (!user) {
+        redirect('/login')
+        return
+      }
+
+      setUser(user)
+
+      // Check for email verification success from URL params or cookie
+      const verified = searchParams.get('verified')
+      const emailVerifiedCookie = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('email_verified='))
+        ?.split('=')[1]
+      
+      if (verified === 'true' || emailVerifiedCookie === 'true') {
+        setShowVerificationSuccess(true)
+        // Clear the cookie after reading it
+        if (emailVerifiedCookie === 'true') {
+          document.cookie = 'email_verified=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT'
+        }
+        // Auto-hide the message after 8 seconds
+        setTimeout(() => setShowVerificationSuccess(false), 8000)
+      }
+
+      // Check if user already has an organization
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('organization_id')
+        .eq('id', user.id)
+        .single()
+
+      if (profileData?.organization_id) {
+        redirect('/dashboard')
+        return
+      }
+
+      setProfile(profileData)
+
+      // Check if user has any pending invitations
+      const emailDomain = user.email?.split('@')[1]
+      const isGoogleWorkspaceUser = user.app_metadata.provider === 'google' && 
+        emailDomain && 
+        !['gmail.com', 'googlemail.com'].includes(emailDomain.toLowerCase())
+      
+             // Check for pending invitations for this user
+       const { data: pendingInvitations } = await supabase
+         .from('invitations')
+         .select(`
+           id, 
+           organization_id,
+           organizations(name)
+         `)
+         .eq('email', user.email?.toLowerCase())
+         .eq('status', 'pending')
+       
+       console.log('🔍 Checking invitations for:', user.email, 'Found:', pendingInvitations?.length || 0)
+       
+       if (pendingInvitations && pendingInvitations.length > 0) {
+         const invitation = pendingInvitations[0] as any
+         setExistingOrg({
+           id: invitation.organization_id,
+           name: invitation.organizations?.name || 'Unknown Organization',
+           hasInvitation: true
+         })
+       }
+
+      setLoading(false)
+    }
+
+    loadData()
+  }, [searchParams])
+
+  if (loading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>
   }
 
-  // Check if user already has an organization
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('organization_id')
-    .eq('id', user.id)
-    .single()
-
-  if (profile?.organization_id) {
-    redirect('/dashboard')
-  }
-
-  // Check if user's domain already has an organization (for Google users)
-  const emailDomain = user.email?.split('@')[1]
-  const isGoogleUser = user.app_metadata.provider === 'google'
-  
-  let existingOrg = null
-  if (isGoogleUser && emailDomain) {
-    const { data } = await supabase
-      .from('organizations')
-      .select('id, name, google_domain')
-      .eq('google_domain', emailDomain)
-      .single()
-    
-    existingOrg = data
-  }
+  const emailDomain = user?.email?.split('@')[1]
+  const isGoogleWorkspaceUser = user?.app_metadata.provider === 'google' && 
+    emailDomain && 
+    !['gmail.com', 'googlemail.com'].includes(emailDomain.toLowerCase())
 
   return (
     <div className="space-y-6">
@@ -47,17 +111,51 @@ export default async function OnboardingPage() {
         <p className="mt-2 text-muted-foreground">Let's get you set up with an organization</p>
       </div>
 
-      {existingOrg && (
-        <Alert className="bg-success/5 border-success/20">
+      {showVerificationSuccess && (
+        <Alert className="bg-green-50 border-green-200 text-green-800">
+          <CheckCircle className="h-4 w-4" />
           <AlertDescription>
-            Good news! Your company <strong>{existingOrg.name}</strong> is already using our system. 
-            You can join automatically with your @{emailDomain} email.
+            <strong>Email verified successfully!</strong> Your account has been confirmed and you're now logged in. Choose how you'd like to continue below.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {existingOrg?.hasInvitation ? (
+        <Alert className="bg-green-50 border-green-200">
+          <AlertDescription>
+            <strong>Invitation Found!</strong> You've been invited to join <strong>{existingOrg.name}</strong>. 
+            You can accept the invitation and start using the system right away.
+          </AlertDescription>
+        </Alert>
+      ) : isGoogleWorkspaceUser ? (
+        <Alert className="bg-blue-50 border-blue-200">
+          <AlertDescription>
+            <strong>Google Workspace Account Detected!</strong> You're using a company email from @{emailDomain}. 
+            You can create a new organization for your company or wait for an invitation from your admin.
+          </AlertDescription>
+        </Alert>
+      ) : (
+        <Alert className="bg-gray-50 border-gray-200">
+          <AlertDescription>
+            <strong>Welcome!</strong> Choose how you'd like to get started with our leave management system.
           </AlertDescription>
         </Alert>
       )}
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Card className="relative overflow-hidden hover:shadow-lg transition-shadow">
+        {/* Create New Organization Card */}
+        <Card className={`relative overflow-hidden hover:shadow-lg transition-shadow ${
+          !existingOrg?.hasInvitation && isGoogleWorkspaceUser 
+            ? 'ring-2 ring-primary/20 bg-primary/5' 
+            : ''
+        }`}>
+          {!existingOrg?.hasInvitation && isGoogleWorkspaceUser && (
+            <div className="absolute top-2 right-2">
+              <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
+                Recommended
+              </span>
+            </div>
+          )}
           <CardHeader>
             <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
               <Building2 className="h-6 w-6 text-primary" />
@@ -68,41 +166,48 @@ export default async function OnboardingPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-                            <Button asChild className="w-full">
-                  <Link href="/onboarding/create">
-                    Stwórz nową organizację
-                  </Link>
-                </Button>
+            <Button asChild className="w-full" variant={
+              !existingOrg?.hasInvitation && isGoogleWorkspaceUser 
+                ? "default" 
+                : "outline"
+            }>
+              <Link href="/onboarding/create">
+                Stwórz nową organizację
+              </Link>
+            </Button>
             <p className="mt-2 text-xs text-center text-muted-foreground">
               Best for company admins or HR managers
             </p>
           </CardContent>
         </Card>
 
-        <Card className="relative overflow-hidden hover:shadow-lg transition-shadow">
-          {existingOrg && (
+        {/* Join Existing Organization Card */}
+        <Card className={`relative overflow-hidden hover:shadow-lg transition-shadow ${
+          existingOrg?.hasInvitation ? 'ring-2 ring-green-200 bg-green-50' : ''
+        }`}>
+          {existingOrg?.hasInvitation && (
             <div className="absolute top-2 right-2">
-              <span className="inline-flex items-center rounded-full bg-success/10 px-2.5 py-0.5 text-xs font-medium text-success-foreground">
-                Recommended
+              <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
+                You're Invited!
               </span>
             </div>
           )}
           <CardHeader>
-            <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-success/10">
-              <Users className="h-6 w-6 text-success" />
+            <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-blue-100">
+              <Users className="h-6 w-6 text-blue-600" />
             </div>
             <CardTitle>Join Existing Organization</CardTitle>
             <CardDescription>
-              {existingOrg 
-                ? `Join ${existingOrg.name} with your company email`
-                : 'Enter an invite code or search for your company'
+              {existingOrg?.hasInvitation 
+                ? `Accept your invitation to join ${existingOrg.name}`
+                : 'Enter an invitation code or request access to your company'
               }
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button asChild className="w-full" variant={existingOrg ? "default" : "outline"}>
+            <Button asChild className="w-full" variant={existingOrg?.hasInvitation ? "default" : "outline"}>
               <Link href="/onboarding/join">
-                {existingOrg ? 'Dołącz do organizacji' : 'Mam kod zaproszenia'}
+                {existingOrg?.hasInvitation ? 'Accept Invitation' : 'Join Organization'}
               </Link>
             </Button>
             <p className="mt-2 text-xs text-center text-muted-foreground">

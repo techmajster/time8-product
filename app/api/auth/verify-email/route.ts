@@ -47,6 +47,16 @@ export async function GET(request: NextRequest) {
 
     const supabase = createAdminClient()
 
+    // First, let's check if the user exists and get their current state
+    const { data: userData, error: getUserError } = await supabase.auth.admin.getUserById(decoded.userId)
+    
+    if (getUserError || !userData.user) {
+      console.error('User not found during verification:', getUserError)
+      return NextResponse.redirect(new URL('/login?error=user_not_found', request.url))
+    }
+
+    console.log('📋 User found:', userData.user.email, 'confirmed:', userData.user.email_confirmed_at)
+
     // Update the user's email_confirmed_at timestamp
     const { data: updateData, error: updateError } = await supabase.auth.admin.updateUserById(
       decoded.userId,
@@ -83,10 +93,12 @@ export async function GET(request: NextRequest) {
     }
 
     // Sign in the user automatically using admin client
-    const isLocalhost = request.url.includes('localhost') || request.url.includes('127.0.0.1')
-    const baseUrl = isLocalhost ? 'http://localhost:3000' : 'https://app.time8.io'
-    const redirectUrl = `${baseUrl}/onboarding`
+    const requestUrl = new URL(request.url)
+    const isLocalhost = requestUrl.hostname === 'localhost' || requestUrl.hostname === '127.0.0.1'
+    const baseUrl = isLocalhost ? `http://localhost:${requestUrl.port || 3000}` : 'https://app.time8.io'
+    const redirectUrl = `${baseUrl}/onboarding?verified=true`
     console.log('🔗 Generating magic link with redirect to:', redirectUrl)
+    console.log('🔍 Request URL analysis:', { hostname: requestUrl.hostname, isLocalhost, baseUrl })
     
     const { data: sessionData, error: sessionError } = await supabase.auth.admin.generateLink({
       type: 'magiclink',
@@ -103,10 +115,19 @@ export async function GET(request: NextRequest) {
     }
 
     console.log('✅ Magic link generated successfully')
-    console.log('🔗 Redirecting to magic link:', sessionData.properties.action_link)
+    console.log('🔗 Magic link URL:', sessionData.properties.action_link)
     
-    // Redirect to the magic link URL which will auto-login and redirect to onboarding
-    return NextResponse.redirect(sessionData.properties.action_link)
+    // Set a cookie to indicate email was just verified
+    const response = NextResponse.redirect(sessionData.properties.action_link)
+    response.cookies.set('email_verified', 'true', {
+      httpOnly: false, // Allow client-side access
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 300 // 5 minutes
+    })
+    
+    console.log('🔗 Redirecting to magic link with verification cookie set')
+    return response
 
   } catch (error) {
     console.error('Verification error:', error)

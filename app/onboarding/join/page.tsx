@@ -7,349 +7,390 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { GoogleAuthButton } from '@/components/google-auth-button'
-import { LanguageSwitcher } from '@/components/LanguageSwitcher'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { createClient } from '@/lib/supabase/client'
+import { CheckCircle, Mail, Search, ArrowLeft } from 'lucide-react'
+import Link from 'next/link'
 
-interface Invitation {
+interface PendingInvitation {
   id: string
-  email: string
-  full_name: string | null
-  birth_date: string | null
+  organization_id: string
+  organizations: {
+    name: string
+  }[]
   role: string
   team_id: string | null
-  organization_id: string
-  status: string
-  expires_at: string
-  organization_name: string
-  team_name: string | null
+  teams?: {
+    name: string
+  }[] | null
+}
+
+interface Organization {
+  id: string
+  name: string
+  description?: string
 }
 
 function JoinPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const t = useTranslations('auth')
-  const tCommon = useTranslations('common')
-  
-  const [invitation, setInvitation] = useState<Invitation | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [user, setUser] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [pendingInvitations, setPendingInvitations] = useState<PendingInvitation[]>([])
   const [error, setError] = useState<string | null>(null)
-  const [password, setPassword] = useState('')
-  const [isCreatingAccount, setIsCreatingAccount] = useState(false)
-
-  const token = searchParams.get('token')
-  const code = searchParams.get('code')
-
-  // Handle logout
-  const handleLogout = async () => {
-    try {
-      const supabase = createClient()
-      await supabase.auth.signOut()
-      router.push('/login')
-    } catch (error) {
-      console.error('Error signing out:', error)
-    }
-  }
+  const [success, setSuccess] = useState<string | null>(null)
+  
+  // Tab states
+  const [invitationCode, setInvitationCode] = useState('')
+  const [searchTerm, setSearchTerm] = useState('')
+  const [organizations, setOrganizations] = useState<Organization[]>([])
+  const [processing, setProcessing] = useState(false)
 
   useEffect(() => {
-    if (token) {
-      loadInvitationByToken()
-    } else if (code) {
-      loadInvitationByCode()
-    } else {
-      setError(t('invitation.noTokenProvided'))
-    }
-  }, [token, code, t])
+    loadUserAndInvitations()
+  }, [])
 
-  const loadInvitationByToken = async () => {
-    if (!token) return
-
+  const loadUserAndInvitations = async () => {
     try {
-      setLoading(true)
-      const response = await fetch(`/api/invitations/lookup?token=${encodeURIComponent(token)}`)
-      const result = await response.json()
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
 
-      if (response.ok && result) {
-        setInvitation(result)
-      } else {
-        setError(result.error || t('invitation.invalidInvitationDescription'))
+      if (!user) {
+        router.push('/login')
+        return
       }
-    } catch (err) {
-      console.error('Error checking token invitation:', err)
-      setError(t('invitation.invitationError'))
-    } finally {
+
+      setUser(user)
+
+      // Check for pending invitations
+      const { data: invitations } = await supabase
+        .from('invitations')
+        .select(`
+          id,
+          organization_id,
+          role,
+          team_id,
+          organizations(name),
+          teams(name)
+        `)
+        .eq('email', user.email?.toLowerCase())
+        .eq('status', 'pending')
+
+      setPendingInvitations(invitations || [])
+      setLoading(false)
+    } catch (error) {
+      console.error('Error loading data:', error)
+      setError('Failed to load invitation data')
       setLoading(false)
     }
   }
 
-  const loadInvitationByCode = async () => {
-    // TODO: Implement code-based lookup if needed
-    setError(t('invitation.codeNotImplemented'))
-  }
-
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!invitation || !password) return
-
-    setIsCreatingAccount(true)
+  const acceptInvitation = async (invitation: PendingInvitation) => {
+    setProcessing(true)
     setError(null)
 
     try {
       const supabase = createClient()
+
+      // Update user's profile with organization info
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          organization_id: invitation.organization_id,
+          role: invitation.role,
+          team_id: invitation.team_id,
+        })
+        .eq('id', user.id)
+
+      if (profileError) throw profileError
+
+      // Mark invitation as accepted
+      const { error: invitationError } = await supabase
+        .from('invitations')
+        .update({
+          status: 'accepted',
+          accepted_at: new Date().toISOString()
+        })
+        .eq('id', invitation.id)
+
+      if (invitationError) throw invitationError
+
+             setSuccess(`Successfully joined ${invitation.organizations[0]?.name || 'the organization'}!`)
       
-      // Create the user account
-      const { data, error: authError } = await supabase.auth.signUp({
-        email: invitation.email,
-        password,
-        options: {
-          data: {
-            full_name: invitation.full_name || invitation.email.split('@')[0],
-          },
-        },
-      })
-
-      if (authError) {
-        throw authError
-      }
-
-      if (data.user) {
-        // Update the user's profile with invitation data immediately
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({
-            organization_id: invitation.organization_id,
-            role: invitation.role,
-            team_id: invitation.team_id,
-            full_name: invitation.full_name || data.user.email?.split('@')[0] || 'Unknown',
-            birth_date: invitation.birth_date,
-          })
-          .eq('id', data.user.id)
-
-        if (profileError) {
-          console.error('Profile update error:', profileError)
-          // Don't throw here, user is created, just log the error
-        }
-
-        // Mark invitation as accepted
-        const { error: acceptError } = await supabase
-          .from('invitations')
-          .update({
-            status: 'accepted',
-            accepted_at: new Date().toISOString()
-          })
-          .eq('id', invitation.id)
-
-        if (acceptError) {
-          console.error('Invitation acceptance error:', acceptError)
-          // Don't throw here either, user is created
-        }
-
-        // Redirect to dashboard or completion page
+      // Redirect to dashboard after 2 seconds
+      setTimeout(() => {
         router.push('/dashboard')
-      }
+      }, 2000)
+
     } catch (error: any) {
-      console.error('Signup error:', error)
-      setError(error?.message || 'An error occurred during account creation')
+      console.error('Error accepting invitation:', error)
+      setError(error.message || 'Failed to accept invitation')
     } finally {
-      setIsCreatingAccount(false)
+      setProcessing(false)
     }
   }
 
-  const handleGoogleSignup = async () => {
-    if (!invitation) return
+  const joinByCode = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!invitationCode.trim()) return
 
-    setIsCreatingAccount(true)
+    setProcessing(true)
     setError(null)
 
     try {
-      const supabase = createClient()
-      
-      // Pass invitation ID through the redirect URL so the callback can handle it
-      const callbackUrl = `${window.location.origin}/login/callback?invitation_id=${invitation.id}`
-      
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: callbackUrl,
-        },
+      const response = await fetch('/api/invitations/lookup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: invitationCode.trim() })
       })
 
-      if (error) {
-        throw error
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Invalid invitation code')
       }
+
+      // If valid, accept the invitation
+      await acceptInvitation(result)
+
     } catch (error: any) {
-      console.error('Google signup error:', error)
-      setError(error?.message || 'An error occurred with Google signup')
-      setIsCreatingAccount(false)
+      setError(error.message || 'Failed to join with code')
+    } finally {
+      setProcessing(false)
+    }
+  }
+
+  const searchOrganizations = async () => {
+    if (!searchTerm.trim()) return
+
+    try {
+      const supabase = createClient()
+      const { data } = await supabase
+        .from('organizations')
+        .select('id, name, description')
+        .ilike('name', `%${searchTerm.trim()}%`)
+        .limit(10)
+
+      setOrganizations(data || [])
+    } catch (error) {
+      console.error('Error searching organizations:', error)
+    }
+  }
+
+  const requestAccess = async (organizationId: string, organizationName: string) => {
+    setProcessing(true)
+    setError(null)
+
+    try {
+      const response = await fetch('/api/organization/request-access', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          organization_id: organizationId,
+          message: `User ${user.email} would like to join ${organizationName}`
+        })
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to send request')
+      }
+
+      setSuccess(`Access request sent to ${organizationName}! They will review your request.`)
+      setSearchTerm('')
+      setOrganizations([])
+
+    } catch (error: any) {
+      setError(error.message || 'Failed to request access')
+    } finally {
+      setProcessing(false)
     }
   }
 
   if (loading) {
     return (
-      <div className="bg-background w-screen h-screen fixed inset-0 z-50">
-        {/* Top Controls */}
-        <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleLogout}
-            className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
-          >
-            {tCommon('logout')}
-          </Button>
-          <LanguageSwitcher />
-        </div>
-        
-        {/* Centered Content */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p>{t('invitation.validatingInvitation')}</p>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  if (!invitation) {
-    return (
-      <div className="bg-background w-screen h-screen fixed inset-0 z-50">
-        {/* Top Controls */}
-        <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleLogout}
-            className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
-          >
-            {tCommon('logout')}
-          </Button>
-          <LanguageSwitcher />
-        </div>
-        
-        {/* Centered Content */}
-        <div className="absolute inset-0 flex items-center justify-center p-4">
-          <div className="bg-card rounded-[14px] shadow-md border border-border p-6 w-full max-w-md text-center">
-            <h1 className="text-xl font-bold text-destructive mb-2">{t('invitation.invalidInvitation')}</h1>
-            <p className="text-muted-foreground text-sm mb-4">
-              {error || t('invitation.invalidInvitationDescription')}
-            </p>
-            <a href="/login" className="text-primary hover:underline">
-              {t('invitation.goToLogin')}
-            </a>
-          </div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p>Loading your invitations...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="bg-background w-screen h-screen fixed inset-0 z-50">
-      {/* Top Controls */}
-      <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={handleLogout}
-          className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
-        >
-          {tCommon('logout')}
-        </Button>
-        <LanguageSwitcher />
-      </div>
-      
-      {/* Centered Content */}
-      <div className="absolute inset-0 flex items-center justify-center p-4">
-        <div className="bg-card max-w-[480px] w-full rounded-[14px] border border-border shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)]">
-          <div className="p-6">
-            {/* Header */}
-            <div className="flex flex-col gap-1.5 pb-0 pt-1.5 mb-6">
-              <h1 className="font-bold text-[30px] text-foreground leading-[36px]">
-                {t('invitation.title')}
-              </h1>
-              <div className="font-normal text-muted-foreground">
-                <p className="leading-[20px] text-[14px]">
-                  {t('invitation.description', { 
-                    organizationName: invitation.organization_name || '',
-                    teamName: invitation.team_name || ''
-                  })}
-                </p>
-              </div>
-            </div>
-
-            {/* Error Alert */}
-            {error && (
-              <Alert variant="destructive" className="w-full mb-6">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-
-            {/* Form */}
-            <form onSubmit={handleSignup} className="flex flex-col gap-6">
-              <div className="flex flex-col gap-4">
-                
-                {/* Email Input */}
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="email" className="font-medium text-[14px] text-foreground">
-                    {t('email')}
-                  </Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={invitation.email}
-                    disabled
-                    className="h-9 opacity-50 bg-card border-border shadow-xs text-muted-foreground text-[14px]"
-                  />
-                </div>
-
-                {/* Password Input */}
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="password" className="font-medium text-[14px] text-foreground">
-                    {t('invitation.createPassword')}
-                  </Label>
-                  <div className="w-full">
-                    <Input
-                      id="password"
-                      type="password"
-                      required
-                      minLength={6}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      disabled={isCreatingAccount}
-                      placeholder={t('invitation.passwordPlaceholder')}
-                      className="h-9 bg-card border-border shadow-xs text-foreground text-[14px] placeholder:text-muted-foreground"
-                    />
-                    <p className="font-normal text-[14px] text-muted-foreground mt-2">
-                      {t('minimumCharacters')}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Submit Button */}
-                <Button
-                  type="submit"
-                  disabled={isCreatingAccount || !password}
-                  className="bg-primary hover:bg-primary/90 h-9 rounded-lg shadow-xs w-full disabled:opacity-50 text-primary-foreground font-medium text-[14px]"
-                >
-                  {isCreatingAccount ? t('invitation.creatingAccount') : t('invitation.createAccountButton')}
-                </Button>
-              </div>
-
-              {/* Separator */}
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-border" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-card px-2 text-muted-foreground">{t('orContinueWith').split(' ')[0]}</span>
-                </div>
-              </div>
-
-              {/* Google Button */}
-              <GoogleAuthButton mode="signup" />
-            </form>
-          </div>
+    <div className="min-h-screen bg-background p-6">
+      <div className="max-w-2xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="text-center space-y-2">
+          <Button variant="ghost" size="sm" asChild className="mb-4">
+            <Link href="/onboarding">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Onboarding
+            </Link>
+          </Button>
+          <h1 className="text-3xl font-bold">Join an Organization</h1>
+          <p className="text-muted-foreground">
+            Accept an invitation, enter a code, or request access to your company
+          </p>
         </div>
+
+        {/* Alerts */}
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        {success && (
+          <Alert className="bg-green-50 border-green-200">
+            <CheckCircle className="h-4 w-4" />
+            <AlertDescription className="text-green-800">{success}</AlertDescription>
+          </Alert>
+        )}
+
+        {/* Pending Invitations */}
+        {pendingInvitations.length > 0 && (
+          <Card className="border-green-200 bg-green-50">
+            <CardHeader>
+              <CardTitle className="text-green-800 flex items-center">
+                <Mail className="h-5 w-5 mr-2" />
+                You Have Pending Invitations!
+              </CardTitle>
+              <CardDescription>
+                You've been invited to join the following organizations:
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {pendingInvitations.map((invitation) => (
+                                 <div key={invitation.id} className="flex items-center justify-between p-4 bg-white rounded-lg border">
+                   <div>
+                     <h3 className="font-semibold">{invitation.organizations[0]?.name || 'Unknown Organization'}</h3>
+                     <p className="text-sm text-muted-foreground">
+                       Role: {invitation.role}
+                       {invitation.teams?.[0]?.name && ` • Team: ${invitation.teams[0].name}`}
+                     </p>
+                  </div>
+                  <Button 
+                    onClick={() => acceptInvitation(invitation)}
+                    disabled={processing}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    {processing ? 'Joining...' : 'Accept Invitation'}
+                  </Button>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Join Options */}
+        <Tabs defaultValue="code" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="code">Invitation Code</TabsTrigger>
+            <TabsTrigger value="search">Find Your Company</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="code" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Enter Invitation Code</CardTitle>
+                <CardDescription>
+                  If you have an invitation code from your company, enter it below
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={joinByCode} className="space-y-4">
+                  <div>
+                    <Label htmlFor="code">Invitation Code</Label>
+                    <Input
+                      id="code"
+                      type="text"
+                      placeholder="Enter your invitation code"
+                      value={invitationCode}
+                      onChange={(e) => setInvitationCode(e.target.value)}
+                      disabled={processing}
+                    />
+                  </div>
+                  <Button type="submit" disabled={!invitationCode.trim() || processing}>
+                    {processing ? 'Joining...' : 'Join Organization'}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="search" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Find Your Company</CardTitle>
+                <CardDescription>
+                  Search for your organization and request access
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Search for your company name..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && searchOrganizations()}
+                  />
+                  <Button onClick={searchOrganizations} variant="outline">
+                    <Search className="h-4 w-4" />
+                  </Button>
+                </div>
+                
+                {organizations.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">Found organizations:</p>
+                    {organizations.map((org) => (
+                      <div key={org.id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div>
+                          <h4 className="font-medium">{org.name}</h4>
+                          {org.description && (
+                            <p className="text-sm text-muted-foreground">{org.description}</p>
+                          )}
+                        </div>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => requestAccess(org.id, org.name)}
+                          disabled={processing}
+                        >
+                          {processing ? 'Requesting...' : 'Request Access'}
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                {searchTerm && organizations.length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    No organizations found. Try a different search term or contact your admin.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+
+        {/* Help Section */}
+        <Card className="bg-gray-50">
+          <CardContent className="pt-6">
+            <h3 className="font-semibold mb-2">Need Help?</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              If you can't find your organization or don't have an invitation code:
+            </p>
+            <ul className="text-sm text-muted-foreground space-y-1">
+              <li>• Contact your HR department or system administrator</li>
+              <li>• Ask them to send you an invitation link</li>
+              <li>• Make sure you're using the correct email address</li>
+            </ul>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )
@@ -358,10 +399,10 @@ function JoinPageContent() {
 export default function JoinPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-neutral-900 mx-auto"></div>
-          <p className="mt-2 text-sm text-neutral-600">Ładowanie...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-2 text-sm text-muted-foreground">Loading...</p>
         </div>
       </div>
     }>

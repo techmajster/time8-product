@@ -62,20 +62,19 @@ export async function POST(request: NextRequest) {
 
     console.log('🎯 Existing user found:', existingUser ? 'YES' : 'NO')
 
-    // TEMPORARY: Comment out user validation to test signup flow
-    // if (existingUser) {
-    //   if (existingUser.email_confirmed_at) {
-    //     return NextResponse.json(
-    //       { error: 'Account with this email already exists' },
-    //       { status: 400 }
-    //     )
-    //   } else {
-    //     return NextResponse.json(
-    //       { error: 'Account exists but email not confirmed. Please check your email for verification link.' },
-    //       { status: 400 }
-    //     )
-    //   }
-    // }
+    if (existingUser) {
+      if (existingUser.email_confirmed_at) {
+        return NextResponse.json(
+          { error: 'Account with this email already exists' },
+          { status: 400 }
+        )
+      } else {
+        return NextResponse.json(
+          { error: 'Account exists but email not confirmed. Please check your email for verification link.' },
+          { status: 400 }
+        )
+      }
+    }
 
     console.log('🔐 Creating new user:', { email, full_name })
 
