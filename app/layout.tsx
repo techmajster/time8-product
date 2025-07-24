@@ -7,6 +7,9 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { LeaveRequestProvider } from "@/components/providers/LeaveRequestProvider";
 import { GlobalLeaveRequestSheet } from "@/components/GlobalLeaveRequestSheet";
 
+// Force dynamic rendering due to cookie usage for internationalization
+export const dynamic = 'force-dynamic';
+
 // Import translation messages statically
 import plMessages from '@/messages/pl.json';
 import enMessages from '@/messages/en.json';

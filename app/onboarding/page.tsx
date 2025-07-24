@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { redirect } from 'next/navigation'
@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Building2, Users, CheckCircle } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
-export default function OnboardingPage() {
+function OnboardingContent() {
   const searchParams = useSearchParams()
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
@@ -218,4 +218,12 @@ export default function OnboardingPage() {
       </div>
     </div>
   )
-} 
+}
+
+export default function OnboardingPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+      <OnboardingContent />
+    </Suspense>
+  )
+}
