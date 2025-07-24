@@ -32,29 +32,28 @@ export function SignupForm({ onModeChange, className }: SignupFormProps) {
     setSuccess(null)
 
     try {
-      const supabase = createClient()
-      
-      // Use environment variables in order of preference, fallback to current origin
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
-                     process.env.NEXT_PUBLIC_SITE_URL || 
-                     (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000')
-      
-      const { error: authError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-          },
-          emailRedirectTo: `${baseUrl}/login?mode=login`,
+      // Call our custom signup API instead of Supabase directly
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          email,
+          password,
+          full_name: fullName,
+        }),
       })
 
-      if (authError) {
-        throw authError
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'An error occurred during signup')
       }
 
+      console.log('✅ Signup successful:', result)
       setSuccess(t('checkEmail'))
+      
     } catch (error: any) {
       console.error('Signup error:', error)
       setError(error?.message || 'An error occurred during signup')

@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -19,10 +19,36 @@ interface LoginFormProps {
 export function LoginForm({ onModeChange, className }: LoginFormProps) {
   const t = useTranslations('auth')
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
+
+  // Check for verification status in URL params
+  useEffect(() => {
+    const verified = searchParams.get('verified')
+    const error = searchParams.get('error')
+    
+    if (verified === 'true') {
+      setSuccess('Email verified successfully! You can now log in.')
+    } else if (error) {
+      switch (error) {
+        case 'invalid_token':
+          setError('Invalid or expired verification link.')
+          break
+        case 'missing_token':
+          setError('Verification link is missing required information.')
+          break
+        case 'confirmation_failed':
+          setError('Failed to confirm email. Please try again.')
+          break
+        default:
+          setError('Verification failed. Please try again.')
+      }
+    }
+  }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -57,6 +83,12 @@ export function LoginForm({ onModeChange, className }: LoginFormProps) {
       {error && (
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      
+      {success && (
+        <Alert variant="default" className="border-green-200 bg-green-50 text-green-800">
+          <AlertDescription>{success}</AlertDescription>
         </Alert>
       )}
 

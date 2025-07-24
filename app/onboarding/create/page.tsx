@@ -92,97 +92,30 @@ export default function CreateOrganizationPage() {
         }
       }
 
-      // Create organization
+      // Create organization via API
       console.log('Creating organization...')
-      const { data: org, error: orgError } = await supabase
-        .from('organizations')
-        .insert({
+      const response = await fetch('/api/organizations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           name: formData.name,
           slug: formData.slug,
           google_domain: formData.googleDomain || null,
           require_google_domain: formData.requireGoogleDomain,
           country_code: formData.countryCode,
-        })
-        .select()
-        .single()
+        }),
+      })
 
-      if (orgError) {
-        console.error('Organization creation error:', orgError)
-        throw new Error('Failed to create organization: ' + orgError.message)
+      const result = await response.json()
+
+      if (!response.ok) {
+        console.error('Organization creation error:', result)
+        throw new Error('Failed to create organization: ' + (result.error || 'Unknown error'))
       }
 
-      console.log('Organization created:', org)
-
-      // Update user profile with organization and admin role
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({
-          organization_id: org.id,
-          role: 'admin',
-        })
-        .eq('id', user.id)
-
-      if (profileError) {
-        console.error('Profile update error:', profileError)
-        throw new Error('Failed to update profile: ' + profileError.message)
-      }
-
-      // Create default leave types
-      console.log('Creating default leave types...')
-      const { DEFAULT_LEAVE_TYPES } = await import('@/types/leave')
-      
-      const { data: createdLeaveTypes, error: leaveTypesError } = await supabase
-        .from('leave_types')
-        .insert(
-          DEFAULT_LEAVE_TYPES.map(type => ({
-            organization_id: org.id,
-            name: type.name,
-            days_per_year: type.days_per_year,
-            color: type.color,
-            requires_approval: type.requires_approval,
-            requires_balance: type.requires_balance,
-            leave_category: type.leave_category
-          }))
-        )
-        .select()
-
-      if (leaveTypesError) {
-        console.error('Leave types error:', leaveTypesError)
-        // Don't throw here, organization is created successfully
-      } else {
-        console.log('Default leave types created successfully')
-        
-        // Create leave balances for the admin user for leave types that require balance
-        // Exclude child-specific leave types that should be manually assigned
-        const balanceRequiredTypes = createdLeaveTypes?.filter(lt => 
-          lt.requires_balance && 
-          lt.days_per_year > 0 && 
-          !['maternity', 'paternity', 'childcare'].includes(lt.leave_category)
-        ) || []
-        
-        if (balanceRequiredTypes.length > 0) {
-          console.log('Creating leave balances for admin user...')
-          const leaveBalances = balanceRequiredTypes.map(leaveType => ({
-            user_id: user.id,
-            leave_type_id: leaveType.id,
-            organization_id: org.id,
-            year: new Date().getFullYear(),
-            entitled_days: leaveType.days_per_year,
-            used_days: 0
-          }))
-
-          const { error: balancesError } = await supabase
-            .from('leave_balances')
-            .insert(leaveBalances)
-
-          if (balancesError) {
-            console.error('Leave balances error:', balancesError)
-            // Don't throw here, organization is created successfully
-          } else {
-            console.log('Leave balances created successfully for admin user')
-          }
-        }
-      }
+      console.log('Organization created successfully:', result.organization)
 
       // Success! Redirect to completion page
       console.log('All done, redirecting...')

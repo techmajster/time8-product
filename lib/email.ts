@@ -86,6 +86,12 @@ interface EmployeeVerificationData {
   personal_message?: string
 }
 
+interface EmailVerificationData {
+  to: string
+  full_name: string
+  verification_token: string
+}
+
 // Email templates
 const getEmailTemplate = (content: string) => `
 <!DOCTYPE html>
@@ -509,6 +515,77 @@ export async function sendEmployeeVerificationEmail(data: EmployeeVerificationDa
     return { success: true, messageId: result.data?.id }
   } catch (error) {
     console.error('Failed to send employee verification email:', error)
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+  }
+}
+
+export async function sendEmailVerification(data: EmailVerificationData) {
+  try {
+    if (!resend) {
+      console.warn('Email service not configured - RESEND_API_KEY missing')
+      return { success: false, error: 'Email service not configured' }
+    }
+
+    // Construct the verification URL
+    const verificationUrl = `${getAppUrl()}/api/auth/verify-email?token=${data.verification_token}`
+
+    const content = `
+      <div class="header">
+        <h1>✉️ Potwierdź swój adres email</h1>
+        <div class="brand">Time8 - Nowoczesne zarządzanie czasem pracy</div>
+      </div>
+      <div class="content">
+        <h2>Cześć ${data.full_name}!</h2>
+        <p>Dziękujemy za rejestrację w systemie Time8! Aby dokończyć tworzenie konta, musisz potwierdzić swój adres email.</p>
+        
+        <div style="background: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
+          <p style="margin: 0 0 15px 0; font-size: 16px; color: #1e40af;">Kliknij poniższy przycisk, aby potwierdzić email:</p>
+          <a href="${verificationUrl}" class="button" style="display: inline-block; background: hsl(267 85% 60%); color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
+            Potwierdź adres email
+          </a>
+        </div>
+        
+        <p>Jeśli przycisk nie działa, skopiuj i wklej ten link do przeglądarki:</p>
+        <p style="word-break: break-all; color: hsl(267 85% 60%); font-size: 14px; background: #f8f9fa; padding: 10px; border-radius: 4px;">${verificationUrl}</p>
+        
+        <div style="background: #fff3cd; padding: 15px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #ffc107;">
+          <p style="color: #856404; margin: 0;"><strong>⏰ Ważne:</strong> Ten link wygasa za 24 godziny ze względów bezpieczeństwa.</p>
+        </div>
+        
+        <div style="margin-top: 30px;">
+          <h4>Co dalej?</h4>
+          <ol style="color: #4b5563;">
+            <li>Potwierdź swój adres email klikając przycisk powyżej</li>
+            <li>Zostaniesz automatycznie zalogowany</li>
+            <li>Skonfiguruj swoją organizację</li>
+            <li>Zacznij zarządzać urlopami swojego zespołu</li>
+          </ol>
+        </div>
+        
+        <p style="margin-top: 30px; color: #6b7280; font-size: 14px;">
+          Jeśli nie zakładałeś konta w Time8, zignoruj ten email.
+        </p>
+      </div>
+    `
+
+    console.log('🔍 Attempting to send email via Resend...', {
+      from: getFromEmail('critical'),
+      to: data.to,
+      subject: 'Potwierdź swój adres email - Time8'
+    })
+
+    const result = await resend.emails.send({
+      from: getFromEmail('critical'), // Critical delivery for email verification
+      to: data.to,
+      subject: 'Potwierdź swój adres email - Time8',
+      html: getEmailTemplate(content),
+    })
+
+    console.log('🔍 Resend API full response:', JSON.stringify(result, null, 2))
+    console.log('📧 Email verification sent:', { to: data.to, messageId: result.data?.id })
+    return { success: true, messageId: result.data?.id }
+  } catch (error) {
+    console.error('Failed to send email verification:', error)
     return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
   }
 }
