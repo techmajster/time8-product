@@ -74,15 +74,19 @@ function JoinPageContent() {
   // Process invitation token from URL
   useEffect(() => {
     const token = searchParams.get('token')
+    console.log('🔍 URL search params:', Object.fromEntries(searchParams.entries()))
+    console.log('🎫 Token from URL:', token)
+    
     if (token) {
       console.log('🎫 Processing invitation token:', token)
       processInvitationToken(token)
       return
     }
     
+    console.log('⚠️ No token found, showing manual join interface')
     // If no token, load user and their pending invitations
     loadUserAndInvitations()
-  }, [])
+  }, [searchParams])
 
   // Countdown timer for redirect
   useEffect(() => {
