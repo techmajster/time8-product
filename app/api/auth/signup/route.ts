@@ -11,8 +11,10 @@ interface SignupRequest {
 }
 
 export async function POST(request: NextRequest) {
+  console.log('🚀 Signup API called')
   try {
     const { email, password, full_name }: SignupRequest = await request.json()
+    console.log('📝 Signup request for:', email)
 
     // Validate input
     if (!email || !password || !full_name) {
@@ -149,9 +151,13 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Signup error:', error)
+    console.error('❌ Signup error:', error)
+    console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack available')
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { 
+        error: 'Internal server error',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     )
   }
