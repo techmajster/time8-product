@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
         console.log('📩 Checking for existing invitations')
         const { data: existingInvitation, error: invitationCheckError } = await supabase
           .from('invitations')
-          .select('id')
+          .select('id, expires_at')
           .eq('email', email.toLowerCase())
           .eq('organization_id', organizationId)
           .eq('status', 'pending')
@@ -126,79 +126,26 @@ export async function POST(request: NextRequest) {
 
         console.log('📩 Existing invitation check:', { existingInvitation, invitationCheckError })
         if (existingInvitation) {
-          console.log('🔄 Found existing invitation, updating it with new data...')
+          console.log('❌ Found existing pending invitation for this email')
           
-          // Generate new token and code for the updated invitation
-          const newToken = btoa(Math.random().toString(36).substring(2) + Date.now().toString(36))
-          const newExpiresAt = new Date()
-          newExpiresAt.setDate(newExpiresAt.getDate() + 7)
-          const newInvitationCode = Math.random().toString(36).substring(2, 8).toUpperCase()
+          // Calculate days until expiration
+          const expiresAt = new Date(existingInvitation.expires_at)
+          const now = new Date()
+          const daysUntilExpiry = Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
           
-          // Update existing invitation with new data
-          const { data: updatedInvitation, error: updateError } = await supabase
-            .from('invitations')
-            .update({
-              full_name: full_name?.trim() || null,
-              birth_date: birth_date || null,
-              role: employeeRole,
-              team_id: team_id || null,
-              token: newToken,
-              invitation_code: newInvitationCode,
-              expires_at: newExpiresAt.toISOString(),
-              personal_message: personal_message?.trim() || null,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', existingInvitation.id)
-            .select()
-            .single()
-            
-          console.log('🔄 Invitation update result:', { updatedInvitation, updateError })
+          let errorMessage = `An invitation for ${email} already exists and is pending.`
           
-          if (updateError) {
-            console.error('❌ Failed to update existing invitation:', updateError)
-            errors.push({ email, error: 'Failed to update existing invitation' })
-            continue
+          if (daysUntilExpiry <= 0) {
+            errorMessage += ' The invitation has expired. Please delete the expired invitation and try again.'
+          } else {
+            errorMessage += ` It expires in ${daysUntilExpiry} day(s). You can resend the existing invitation or delete it and create a new one.`
           }
           
-          console.log('✅ Existing invitation updated successfully')
-          
-          // Send email with new token
-          if (send_invitation) {
-            try {
-              const { sendInvitationEmail } = await import('@/lib/email')
-              
-              const { data: inviterProfile } = await supabase
-                .from('profiles')
-                .select('full_name, email')
-                .eq('id', user.id)
-                .single()
-
-              const emailData = {
-                to: email.toLowerCase(),
-                organizationName: organization?.name || 'Your Organization',
-                inviterName: inviterProfile?.full_name || 'Administrator',
-                inviterEmail: inviterProfile?.email || 'admin@company.com',
-                role: employeeRole,
-                invitationToken: newToken,
-                personalMessage: personal_message || ''
-              }
-
-              const emailResult = await sendInvitationEmail(emailData)
-              console.log('📬 Updated invitation email result:', emailResult)
-            } catch (emailError) {
-              console.error('💥 Email sending error:', emailError)
-            }
-          }
-          
-          results.push({
-            email,
-            full_name: full_name?.trim() || 'Unknown',
-            role: employeeRole,
-            team_id,
-            invitation_id: existingInvitation.id,
-            invitation_code: newInvitationCode,
-            status: 'updated',
-            invitation_sent: send_invitation
+          errors.push({ 
+            email, 
+            error: errorMessage,
+            existing_invitation_id: existingInvitation.id,
+            expires_in_days: daysUntilExpiry
           })
           continue
         }

@@ -26,13 +26,18 @@ export function LoginForm({ onModeChange, className }: LoginFormProps) {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
-  // Check for verification status in URL params
+  // Check for verification status in URL params and cookies (client-side only)
   useEffect(() => {
     const verified = searchParams.get('verified')
+    const emailParam = searchParams.get('email')
     const error = searchParams.get('error')
     
     if (verified === 'true') {
       setSuccess('Email verified successfully! You can now log in.')
+      // Auto-fill email if available
+      if (emailParam) {
+        setEmail(decodeURIComponent(emailParam))
+      }
     } else if (error) {
       switch (error) {
         case 'invalid_token':
@@ -49,6 +54,26 @@ export function LoginForm({ onModeChange, className }: LoginFormProps) {
       }
     }
   }, [searchParams])
+
+  // Check cookies separately to avoid hydration mismatch
+  useEffect(() => {
+    // Only run on client side after hydration
+    if (typeof window !== 'undefined') {
+      const emailVerified = document.cookie.includes('email_verified=true')
+      const verifiedEmail = document.cookie.split('; ').find(row => row.startsWith('verified_email='))?.split('=')[1]
+      
+      if (emailVerified) {
+        setSuccess('Email verified successfully! You can now log in.')
+        if (verifiedEmail && !email) {
+          setEmail(decodeURIComponent(verifiedEmail))
+        }
+        
+        // Clear the verification cookies
+        document.cookie = 'email_verified=; Max-Age=0; path=/'
+        document.cookie = 'verified_email=; Max-Age=0; path=/'
+      }
+    }
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -72,7 +97,13 @@ export function LoginForm({ onModeChange, className }: LoginFormProps) {
       router.refresh()
     } catch (error: any) {
       console.error('Login error:', error)
-      setError(error?.message || 'An error occurred during login')
+      
+      // Handle specific error cases
+      if (error?.message?.includes('Email not confirmed')) {
+        setError('Please check your email and click the verification link before logging in. Check your spam folder if you don\'t see the email.')
+      } else {
+        setError(error?.message || 'An error occurred during login')
+      }
     } finally {
       setLoading(false)
     }

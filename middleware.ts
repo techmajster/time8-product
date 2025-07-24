@@ -55,7 +55,9 @@ export async function middleware(request: NextRequest) {
     '/api/locale', // Language switching API
     '/api/invitations/lookup', // Invitation lookup for public join page
     '/api/auth/signup', // Custom signup endpoint
+    '/api/auth/signup-with-invitation', // Invitation-based signup endpoint
     '/api/auth/verify-email', // Email verification endpoint
+    '/api/organizations', // Organization creation for authenticated users
   ]
 
   const { pathname } = request.nextUrl

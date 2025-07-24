@@ -18,6 +18,7 @@ function LoginPageContent() {
   const locale = useLocale()
   const initialMode = (searchParams.get('mode') as AuthMode) || 'login'
   const [mode, setMode] = useState<AuthMode>(initialMode)
+  const [isSignupSuccess, setIsSignupSuccess] = useState(false)
 
   const getTitle = () => {
     switch (mode) {
@@ -40,7 +41,7 @@ function LoginPageContent() {
   const renderForm = () => {
     switch (mode) {
       case 'signup':
-        return <SignupForm onModeChange={setMode} />
+        return <SignupForm onModeChange={setMode} onAccountCreated={setIsSignupSuccess} />
       case 'forgot-password':
         return <ForgotPasswordForm onModeChange={setMode} />
       case 'reset-password':
@@ -66,12 +67,15 @@ function LoginPageContent() {
         </div>
         <div className="flex flex-1 items-center justify-center">
           <div className="w-full max-w-md">
-            <div className="flex flex-col items-left gap-2 text-left mb-6">
-              <h1 className="text-2xl font-bold">{getTitle()}</h1>
-              <p className="text-muted-foreground text-sm text-balance">
-                {getDescription()}
-              </p>
-            </div>
+            {/* Only show title and description if not in signup success state */}
+            {!isSignupSuccess && (
+              <div className="flex flex-col items-left gap-2 text-left mb-6">
+                <h1 className="text-2xl font-bold">{getTitle()}</h1>
+                <p className="text-muted-foreground text-sm text-balance">
+                  {getDescription()}
+                </p>
+              </div>
+            )}
             {renderForm()}
           </div>
         </div>

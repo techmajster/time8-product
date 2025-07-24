@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
 import jwt from 'jsonwebtoken'
 import { redirect } from 'next/navigation'
+import { getAppUrl } from '@/lib/utils'
 
 interface VerificationTokenPayload {
   userId: string
@@ -71,14 +72,26 @@ export async function GET(request: NextRequest) {
     }
 
     console.log('✅ Email confirmed for user:', decoded.userId)
+    console.log('📋 Update result:', updateData)
 
-    // Create or update user profile
+    // Double-check the user's confirmation status
+    const { data: verifiedUserData, error: verifyError } = await supabase.auth.admin.getUserById(decoded.userId)
+    if (verifiedUserData?.user) {
+      console.log('🔍 User confirmation status after update:', {
+        email: verifiedUserData.user.email,
+        email_confirmed_at: verifiedUserData.user.email_confirmed_at,
+        confirmed: !!verifiedUserData.user.email_confirmed_at
+      })
+    }
+
+    // Create or update user profile using admin client
     const { error: profileError } = await supabase
       .from('profiles')
       .upsert({
         id: decoded.userId,
         email: decoded.email.toLowerCase(),
         full_name: decoded.full_name,
+        role: 'employee', // Default role
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }, {
@@ -92,41 +105,28 @@ export async function GET(request: NextRequest) {
       console.log('✅ Profile created/updated for user:', decoded.userId)
     }
 
-    // Sign in the user automatically using admin client
-    const requestUrl = new URL(request.url)
-    const isLocalhost = requestUrl.hostname === 'localhost' || requestUrl.hostname === '127.0.0.1'
-    const baseUrl = isLocalhost ? `http://localhost:${requestUrl.port || 3000}` : 'https://app.time8.io'
-    const redirectUrl = `${baseUrl}/onboarding?verified=true`
-    console.log('🔗 Generating magic link with redirect to:', redirectUrl)
-    console.log('🔍 Request URL analysis:', { hostname: requestUrl.hostname, isLocalhost, baseUrl })
+    // Redirect to login with verification success
+    const baseUrl = getAppUrl(request)
+    const redirectUrl = `${baseUrl}/login?verified=true&email=${encodeURIComponent(decoded.email)}`
     
-    const { data: sessionData, error: sessionError } = await supabase.auth.admin.generateLink({
-      type: 'magiclink',
-      email: decoded.email,
-      options: {
-        redirectTo: redirectUrl
-      }
-    })
-
-    if (sessionError) {
-      console.error('❌ Failed to create session:', sessionError)
-      // Redirect to login with success message, preserving signup mode if this was from signup
-      return NextResponse.redirect(new URL('/login?verified=true&mode=signup', request.url))
-    }
-
-    console.log('✅ Magic link generated successfully')
-    console.log('🔗 Magic link URL:', sessionData.properties.action_link)
+    console.log('🔗 Redirecting to login with verification success:', redirectUrl)
     
     // Set a cookie to indicate email was just verified
-    const response = NextResponse.redirect(sessionData.properties.action_link)
+    const response = NextResponse.redirect(redirectUrl)
     response.cookies.set('email_verified', 'true', {
       httpOnly: false, // Allow client-side access
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: 300 // 5 minutes
     })
+    response.cookies.set('verified_email', decoded.email, {
+      httpOnly: false,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 300 // 5 minutes
+    })
     
-    console.log('🔗 Redirecting to magic link with verification cookie set')
+    console.log('🔗 Redirecting to login with verification cookies set')
     return response
 
   } catch (error) {

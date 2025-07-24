@@ -57,6 +57,7 @@ export default function CreateOrganizationPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    console.log('🎯 Form submit prevented, starting custom handler')
     setLoading(true)
     setError(null)
 
@@ -94,11 +95,17 @@ export default function CreateOrganizationPage() {
 
       // Create organization via API
       console.log('Creating organization...')
-      const response = await fetch('/api/organizations', {
+      
+      // Debug: Check if we have a session first
+      const { data: sessionCheck } = await supabase.auth.getSession()
+      console.log('Session check:', sessionCheck.session ? 'Session exists' : 'No session')
+      
+      const response = await fetch('http://localhost:3000/api/organizations', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // Ensure cookies are sent
         body: JSON.stringify({
           name: formData.name,
           slug: formData.slug,
@@ -107,6 +114,9 @@ export default function CreateOrganizationPage() {
           country_code: formData.countryCode,
         }),
       })
+      
+      console.log('API Response status:', response.status)
+      console.log('API Response headers:', Object.fromEntries(response.headers.entries()))
 
       const result = await response.json()
 
@@ -174,7 +184,7 @@ export default function CreateOrganizationPage() {
                   placeholder="acme-corp"
                   value={formData.slug}
                   onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                  pattern="[a-z0-9-]+"
+                  pattern="[a-z0-9\-]+"
                   required
                 />
               </div>

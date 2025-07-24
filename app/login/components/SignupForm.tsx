@@ -1,21 +1,24 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { GoogleAuthButton } from "@/components/google-auth-button"
 import { createClient } from '@/lib/supabase/client'
+import { CheckCircle, Mail, PartyPopper } from 'lucide-react'
 
 interface SignupFormProps {
   onModeChange: (mode: 'login' | 'signup' | 'forgot-password' | 'reset-password') => void
+  onAccountCreated?: (created: boolean) => void
   className?: string
 }
 
-export function SignupForm({ onModeChange, className }: SignupFormProps) {
+export function SignupForm({ onModeChange, onAccountCreated, className }: SignupFormProps) {
   const t = useTranslations('auth')
   const tCommon = useTranslations('common')
   const [email, setEmail] = useState('')
@@ -24,6 +27,14 @@ export function SignupForm({ onModeChange, className }: SignupFormProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [accountCreated, setAccountCreated] = useState(false)
+
+  // Notify parent when account creation state changes
+  useEffect(() => {
+    if (onAccountCreated) {
+      onAccountCreated(accountCreated)
+    }
+  }, [accountCreated, onAccountCreated])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -52,7 +63,8 @@ export function SignupForm({ onModeChange, className }: SignupFormProps) {
       }
 
       console.log('✅ Signup successful:', result)
-      setSuccess(t('checkEmail'))
+      // Show success screen instead of just message
+      setAccountCreated(true)
       
     } catch (error: any) {
       console.error('Signup error:', error)
@@ -60,6 +72,81 @@ export function SignupForm({ onModeChange, className }: SignupFormProps) {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleTryAgain = () => {
+    setAccountCreated(false)
+    setEmail('')
+    setPassword('')
+    setFullName('')
+  }
+
+  // Show success screen after account creation
+  if (accountCreated) {
+    return (
+      <div className={cn("flex flex-col gap-6", className)}>
+        <div className="text-center space-y-4">
+          <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+            <PartyPopper className="h-8 w-8 text-green-600" />
+          </div>
+          <h2 className="text-2xl font-bold text-green-800">{t('accountCreated') || 'Account Created!'}</h2>
+          <p className="text-muted-foreground">
+            {t('accountCreatedDescription') || 'Your account has been created successfully.'}
+          </p>
+        </div>
+
+        <Card className="border-green-200 bg-green-50">
+          <CardContent className="pt-6">
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                  <CheckCircle className="h-5 w-5 text-white" />
+                </div>
+                <span className="text-green-800 font-medium">
+                  {t('accountCreatedAndVerificationSent') || 'Account created successfully'}
+                </span>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                  <CheckCircle className="h-5 w-5 text-white" />
+                </div>
+                <span className="text-green-800 font-medium">
+                  {t('verificationEmailSent') || 'Verification email sent'}
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Alert className="bg-blue-50 border-blue-200">
+          <Mail className="h-4 w-4" />
+          <AlertDescription className="text-blue-800">
+            <strong>{t('important') || 'Important'}:</strong> {t('checkEmailForVerification', { email }) || `Please check your email (${email}) for the verification link to activate your account.`}
+          </AlertDescription>
+        </Alert>
+
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground text-center">
+            {t('didntReceiveEmail') || "Didn't receive the email? Check your spam folder or"}{' '}
+            <button
+              onClick={handleTryAgain}
+              className="underline text-primary"
+            >
+              {t('tryAgain') || 'try again'}
+            </button>
+          </p>
+
+          <Button 
+            variant="outline"
+            onClick={() => onModeChange('login')} 
+            className="w-full"
+          >
+            {t('backToLogin') || 'Back to Login'}
+          </Button>
+        </div>
+      </div>
+    )
   }
 
   return (

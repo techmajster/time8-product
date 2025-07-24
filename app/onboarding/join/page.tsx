@@ -10,8 +10,23 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { createClient } from '@/lib/supabase/client'
-import { CheckCircle, Mail, Search, ArrowLeft } from 'lucide-react'
+import { CheckCircle, Mail, Search, ArrowLeft, Eye, EyeOff, PartyPopper, Clock } from 'lucide-react'
 import Link from 'next/link'
+
+interface InvitationDetails {
+  id: string
+  email: string
+  full_name: string
+  role: string
+  organization_id: string
+  organizations: {
+    name: string
+  }[]
+  team_id?: string | null
+  teams?: {
+    name: string
+  }[] | null
+}
 
 interface PendingInvitation {
   id: string
@@ -41,15 +56,154 @@ function JoinPageContent() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   
-  // Tab states
+  // Invitation token flow state
+  const [invitationDetails, setInvitationDetails] = useState<InvitationDetails | null>(null)
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [creatingAccount, setCreatingAccount] = useState(false)
+  const [accountCreated, setAccountCreated] = useState(false)
+  const [redirectCountdown, setRedirectCountdown] = useState(5)
+  
+  // Tab states for manual join
   const [invitationCode, setInvitationCode] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
   const [organizations, setOrganizations] = useState<Organization[]>([])
   const [processing, setProcessing] = useState(false)
 
+  // Process invitation token from URL
   useEffect(() => {
+    const token = searchParams.get('token')
+    if (token) {
+      console.log('🎫 Processing invitation token:', token)
+      processInvitationToken(token)
+      return
+    }
+    
+    // If no token, load user and their pending invitations
     loadUserAndInvitations()
   }, [])
+
+  // Countdown timer for redirect
+  useEffect(() => {
+    if (accountCreated && redirectCountdown > 0) {
+      const timer = setTimeout(() => {
+        setRedirectCountdown(redirectCountdown - 1)
+      }, 1000)
+      return () => clearTimeout(timer)
+    } else if (accountCreated && redirectCountdown === 0) {
+      router.push('/dashboard')
+    }
+  }, [accountCreated, redirectCountdown, router])
+
+  const processInvitationToken = async (token: string) => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      const supabase = createClient()
+      
+      // Look up invitation by token
+      const { data: invitation, error: invitationError } = await supabase
+        .from('invitations')
+        .select(`
+          *,
+          organizations (name),
+          teams (name)
+        `)
+        .eq('token', token)
+        .eq('status', 'pending')
+        .single()
+
+      if (invitationError || !invitation) {
+        console.error('❌ Invitation lookup error:', invitationError)
+        setError('Invalid or expired invitation link.')
+        setLoading(false)
+        return
+      }
+
+      console.log('📧 Invitation found:', invitation)
+      
+      // Check if invitation has expired
+      if (new Date(invitation.expires_at) < new Date()) {
+        setError('This invitation has expired. Please contact your administrator for a new invitation.')
+        setLoading(false)
+        return
+      }
+
+      // Store invitation details for password creation
+      setInvitationDetails(invitation)
+      setLoading(false)
+      
+    } catch (error) {
+      console.error('❌ Token processing error:', error)
+      setError('Failed to process invitation. Please try again.')
+      setLoading(false)
+    }
+  }
+
+  const handleCreateAccountWithInvitation = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!invitationDetails) return
+    
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters long.')
+      return
+    }
+    
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.')
+      return
+    }
+    
+    try {
+      setCreatingAccount(true)
+      setError(null)
+      
+      // Create account via custom API that handles both signup and invitation acceptance
+      const response = await fetch('/api/auth/signup-with-invitation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: invitationDetails.email,
+          password: password,
+          full_name: invitationDetails.full_name,
+          invitation_id: invitationDetails.id,
+          organization_id: invitationDetails.organization_id,
+          role: invitationDetails.role,
+          team_id: invitationDetails.team_id
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to create account')
+      }
+
+      console.log('✅ Account created and invitation accepted:', result)
+      
+      // Auto-login the new user if magic link is provided
+      if (result.magicLink) {
+        console.log('🔐 Auto-logging in with magic link')
+        // Redirect to the magic link which will log the user in
+        window.location.href = result.magicLink
+        return
+      }
+      
+      // Show success screen
+      setAccountCreated(true)
+      
+    } catch (error: any) {
+      console.error('❌ Account creation error:', error)
+      setError(error.message || 'Failed to create account. Please try again.')
+    } finally {
+      setCreatingAccount(false)
+    }
+  }
 
   const loadUserAndInvitations = async () => {
     try {
@@ -86,7 +240,7 @@ function JoinPageContent() {
     }
   }
 
-  const acceptInvitation = async (invitation: PendingInvitation) => {
+  const acceptInvitation = async (invitationId: string) => {
     setProcessing(true)
     setError(null)
 
@@ -97,9 +251,9 @@ function JoinPageContent() {
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
-          organization_id: invitation.organization_id,
-          role: invitation.role,
-          team_id: invitation.team_id,
+          organization_id: invitationDetails?.organization_id, // Use invitationDetails here
+          role: invitationDetails?.role, // Use invitationDetails here
+          team_id: invitationDetails?.team_id, // Use invitationDetails here
         })
         .eq('id', user.id)
 
@@ -112,11 +266,11 @@ function JoinPageContent() {
           status: 'accepted',
           accepted_at: new Date().toISOString()
         })
-        .eq('id', invitation.id)
+        .eq('id', invitationId)
 
       if (invitationError) throw invitationError
 
-             setSuccess(`Successfully joined ${invitation.organizations[0]?.name || 'the organization'}!`)
+             setSuccess(`Successfully joined ${invitationDetails?.organizations[0]?.name || 'the organization'}!`)
       
       // Redirect to dashboard after 2 seconds
       setTimeout(() => {
@@ -152,7 +306,7 @@ function JoinPageContent() {
       }
 
       // If valid, accept the invitation
-      await acceptInvitation(result)
+      await acceptInvitation(result.id) // Assuming result.id is the invitation ID
 
     } catch (error: any) {
       setError(error.message || 'Failed to join with code')
@@ -178,7 +332,7 @@ function JoinPageContent() {
     }
   }
 
-  const requestAccess = async (organizationId: string, organizationName: string) => {
+  const requestAccess = async (organizationId: string) => {
     setProcessing(true)
     setError(null)
 
@@ -188,7 +342,7 @@ function JoinPageContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           organization_id: organizationId,
-          message: `User ${user.email} would like to join ${organizationName}`
+          message: `User ${user.email} would like to join ${organizations.find(org => org.id === organizationId)?.name || 'this organization'}`
         })
       })
 
@@ -198,7 +352,7 @@ function JoinPageContent() {
         throw new Error(result.error || 'Failed to send request')
       }
 
-      setSuccess(`Access request sent to ${organizationName}! They will review your request.`)
+      setSuccess(`Access request sent to ${organizations.find(org => org.id === organizationId)?.name || 'this organization'}! They will review your request.`)
       setSearchTerm('')
       setOrganizations([])
 
@@ -211,18 +365,184 @@ function JoinPageContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p>Loading your invitations...</p>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="text-muted-foreground">
+            {searchParams.get('token') ? 'Processing your invitation...' : 'Loading...'}
+          </p>
         </div>
       </div>
     )
   }
 
+  // Show success screen after account creation
+  if (accountCreated && invitationDetails) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="w-full max-w-md space-y-6">
+          <div className="text-center space-y-4">
+            <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+              <PartyPopper className="h-8 w-8 text-green-600" />
+            </div>
+            <h1 className="text-2xl font-bold text-green-800">Account Created Successfully!</h1>
+            <p className="text-muted-foreground">
+              Welcome to {invitationDetails.organizations[0]?.name}! Your account has been set up.
+            </p>
+          </div>
+
+          <Card className="border-green-200 bg-green-50">
+            <CardContent className="pt-6">
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                    <CheckCircle className="h-5 w-5 text-white" />
+                  </div>
+                  <span className="text-green-800 font-medium">Account created and verified</span>
+                </div>
+                
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                    <CheckCircle className="h-5 w-5 text-white" />
+                  </div>
+                  <span className="text-green-800 font-medium">Added to {invitationDetails.organizations[0]?.name} as {invitationDetails.role}</span>
+                </div>
+                
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                    <CheckCircle className="h-5 w-5 text-white" />
+                  </div>
+                  <span className="text-green-800 font-medium">Invitation accepted</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Alert className="bg-blue-50 border-blue-200">
+            <Mail className="h-4 w-4" />
+            <AlertDescription className="text-blue-800">
+              <strong>Important:</strong> Please check your email ({invitationDetails.email}) for important account information and welcome details.
+            </AlertDescription>
+          </Alert>
+
+          <div className="text-center space-y-4">
+            <div className="flex items-center justify-center gap-2 text-muted-foreground">
+              <Clock className="h-4 w-4" />
+              <span>Redirecting to dashboard in {redirectCountdown} seconds...</span>
+            </div>
+            
+            <Button 
+              onClick={() => router.push('/dashboard')} 
+              className="w-full bg-green-600 hover:bg-green-700"
+            >
+              Go to Dashboard Now
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Show invitation password creation form if we have invitation details
+  if (invitationDetails) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="w-full max-w-md space-y-6">
+          <div className="text-center space-y-2">
+            <h1 className="text-2xl font-bold">Welcome to {invitationDetails.organizations[0]?.name}!</h1>
+            <p className="text-muted-foreground">
+              You've been invited as {invitationDetails.role}. Create your password to get started.
+            </p>
+          </div>
+
+          {error && (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Set Your Password</CardTitle>
+              <CardDescription>
+                Creating account for {invitationDetails.email}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleCreateAccountWithInvitation} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="Create a strong password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      disabled={creatingAccount}
+                      required
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      onClick={() => setShowPassword(!showPassword)}
+                      disabled={creatingAccount}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Must be at least 6 characters long
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirm Password</Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    placeholder="Confirm your password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    disabled={creatingAccount}
+                    required
+                  />
+                </div>
+
+                <Button 
+                  type="submit" 
+                  className="w-full" 
+                  disabled={!password || !confirmPassword || creatingAccount}
+                >
+                  {creatingAccount ? 'Creating Account...' : 'Create Account & Join Organization'}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground">
+              Already have an account?{' '}
+              <Link href="/login" className="underline">
+                Sign in instead
+              </Link>
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Original manual join interface for users without token
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-2xl mx-auto space-y-6">
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="w-full max-w-2xl space-y-6">
         {/* Header */}
         <div className="text-center space-y-2">
           <Button variant="ghost" size="sm" asChild className="mb-4">
@@ -253,30 +573,34 @@ function JoinPageContent() {
 
         {/* Pending Invitations */}
         {pendingInvitations.length > 0 && (
-          <Card className="border-green-200 bg-green-50">
+          <Card>
             <CardHeader>
-              <CardTitle className="text-green-800 flex items-center">
-                <Mail className="h-5 w-5 mr-2" />
-                You Have Pending Invitations!
+              <CardTitle className="flex items-center gap-2">
+                <Mail className="h-5 w-5" />
+                Pending Invitations
               </CardTitle>
               <CardDescription>
-                You've been invited to join the following organizations:
+                You have invitations waiting for you
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {pendingInvitations.map((invitation) => (
-                                 <div key={invitation.id} className="flex items-center justify-between p-4 bg-white rounded-lg border">
-                   <div>
-                     <h3 className="font-semibold">{invitation.organizations[0]?.name || 'Unknown Organization'}</h3>
-                     <p className="text-sm text-muted-foreground">
-                       Role: {invitation.role}
-                       {invitation.teams?.[0]?.name && ` • Team: ${invitation.teams[0].name}`}
-                     </p>
+                <div
+                  key={invitation.id}
+                  className="flex items-center justify-between p-4 border rounded-lg"
+                >
+                  <div>
+                    <h3 className="font-medium">
+                      {invitation.organizations[0]?.name}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      Role: {invitation.role}
+                      {invitation.teams?.[0]?.name && ` • Team: ${invitation.teams[0].name}`}
+                    </p>
                   </div>
-                  <Button 
-                    onClick={() => acceptInvitation(invitation)}
+                  <Button
+                    onClick={() => acceptInvitation(invitation.id)}
                     disabled={processing}
-                    className="bg-green-600 hover:bg-green-700"
                   >
                     {processing ? 'Joining...' : 'Accept Invitation'}
                   </Button>
@@ -321,56 +645,55 @@ function JoinPageContent() {
               </CardContent>
             </Card>
           </TabsContent>
-          
+
           <TabsContent value="search" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Find Your Company</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Search className="h-5 w-5" />
+                  Find Your Company
+                </CardTitle>
                 <CardDescription>
                   Search for your organization and request access
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex gap-2">
+                <div>
+                  <Label htmlFor="search">Company Name</Label>
                   <Input
-                    placeholder="Search for your company name..."
+                    id="search"
+                    type="text"
+                    placeholder="Search for your company..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && searchOrganizations()}
+                    disabled={processing}
                   />
-                  <Button onClick={searchOrganizations} variant="outline">
-                    <Search className="h-4 w-4" />
-                  </Button>
                 </div>
-                
+
                 {organizations.length > 0 && (
                   <div className="space-y-2">
-                    <p className="text-sm text-muted-foreground">Found organizations:</p>
+                    <h4 className="font-medium">Search Results</h4>
                     {organizations.map((org) => (
-                      <div key={org.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div
+                        key={org.id}
+                        className="flex items-center justify-between p-3 border rounded-lg"
+                      >
                         <div>
-                          <h4 className="font-medium">{org.name}</h4>
+                          <h5 className="font-medium">{org.name}</h5>
                           {org.description && (
                             <p className="text-sm text-muted-foreground">{org.description}</p>
                           )}
                         </div>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => requestAccess(org.id, org.name)}
+                        <Button
+                          variant="outline"
+                          onClick={() => requestAccess(org.id)}
                           disabled={processing}
                         >
-                          {processing ? 'Requesting...' : 'Request Access'}
+                          Request Access
                         </Button>
                       </div>
                     ))}
                   </div>
-                )}
-                
-                {searchTerm && organizations.length === 0 && (
-                  <p className="text-sm text-muted-foreground text-center py-4">
-                    No organizations found. Try a different search term or contact your admin.
-                  </p>
                 )}
               </CardContent>
             </Card>
@@ -378,9 +701,11 @@ function JoinPageContent() {
         </Tabs>
 
         {/* Help Section */}
-        <Card className="bg-gray-50">
-          <CardContent className="pt-6">
-            <h3 className="font-semibold mb-2">Need Help?</h3>
+        <Card>
+          <CardHeader>
+            <CardTitle>Need Help?</CardTitle>
+          </CardHeader>
+          <CardContent>
             <p className="text-sm text-muted-foreground mb-4">
               If you can't find your organization or don't have an invitation code:
             </p>
@@ -398,14 +723,7 @@ function JoinPageContent() {
 
 export default function JoinPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-2 text-sm text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    }>
+    <Suspense fallback={<div>Loading...</div>}>
       <JoinPageContent />
     </Suspense>
   )

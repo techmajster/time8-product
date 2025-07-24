@@ -1,5 +1,5 @@
 import { AppLayout } from '@/components/app-layout'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -112,7 +112,8 @@ export default async function AdminTeamManagementPage() {
 
   // Get pending invitations with proper serialization
   console.log('🔍 Querying invitations for organization:', profile.organization_id)
-  const { data: rawInvitations, error: invitationsError } = await supabase
+  const supabaseAdmin = createAdminClient()
+  const { data: rawInvitations, error: invitationsError } = await supabaseAdmin
     .from('invitations')
     .select(`
       id,
@@ -138,7 +139,7 @@ export default async function AdminTeamManagementPage() {
   const invitations = rawInvitations ? await Promise.all(
     rawInvitations.map(async (invitation) => {
       // Get inviter profile
-      const { data: inviterProfile } = await supabase
+      const { data: inviterProfile } = await supabaseAdmin
         .from('profiles')
         .select('full_name, email')
         .eq('id', invitation.invited_by)
@@ -147,7 +148,7 @@ export default async function AdminTeamManagementPage() {
       // Get team name if team_id exists
       let teamName = 'Bez zespołu'
       if (invitation.team_id) {
-        const { data: team } = await supabase
+        const { data: team } = await supabaseAdmin
           .from('teams')
           .select('name')
           .eq('id', invitation.team_id)
