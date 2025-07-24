@@ -9,6 +9,11 @@
   "env": {
     "NEXT_PUBLIC_APP_URL": "https://app.time8.io"
   },
+  "build": {
+    "env": {
+      "NEXT_PUBLIC_APP_URL": "https://app.time8.io"
+    }
+  },
   "crons": [
     {
       "path": "/api/cron/send-reminders",
