@@ -106,28 +106,28 @@ function JoinPageContent() {
       setLoading(true)
       setError(null)
       
-      const supabase = createClient()
+      // Use API endpoint to lookup invitation (bypasses RLS)
+      const response = await fetch(`/api/invitations/lookup?token=${encodeURIComponent(token)}`)
       
-      // Look up invitation by token
-      const { data: invitation, error: invitationError } = await supabase
-        .from('invitations')
-        .select(`
-          *,
-          organizations (name),
-          teams (name)
-        `)
-        .eq('token', token)
-        .eq('status', 'pending')
-        .single()
-
-      if (invitationError || !invitation) {
-        console.error('❌ Invitation lookup error:', invitationError)
-        setError('Invalid or expired invitation link.')
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error('❌ Invitation lookup error:', errorData)
+        setError(errorData.error || 'Invalid or expired invitation link.')
         setLoading(false)
         return
       }
-
+      
+      const invitation = await response.json()
       console.log('📧 Invitation found:', invitation)
+      
+      // Transform the API response to match expected format
+      const invitationDetails = {
+        ...invitation,
+        organizations: [{ name: invitation.organization_name }],
+        teams: invitation.team_name ? [{ name: invitation.team_name }] : null
+      }
+
+      console.log('📧 Processed invitation details:', invitationDetails)
       
       // Check if invitation has expired
       if (new Date(invitation.expires_at) < new Date()) {
@@ -137,7 +137,7 @@ function JoinPageContent() {
       }
 
       // Store invitation details for password creation
-      setInvitationDetails(invitation)
+      setInvitationDetails(invitationDetails)
       setLoading(false)
       
     } catch (error) {
