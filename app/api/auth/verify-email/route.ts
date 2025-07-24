@@ -18,14 +18,14 @@ export async function GET(request: NextRequest) {
     console.log('🎫 Token received:', token ? 'YES' : 'NO')
 
     if (!token) {
-      return NextResponse.redirect(new URL('/login?error=missing_token', request.url))
+      return NextResponse.redirect(new URL('/login?error=missing_token&mode=signup', request.url))
     }
 
     // Validate JWT secret exists
     const jwtSecret = process.env.JWT_SECRET
     if (!jwtSecret) {
       console.error('JWT_SECRET environment variable is not set')
-      return NextResponse.redirect(new URL('/login?error=server_error', request.url))
+      return NextResponse.redirect(new URL('/login?error=server_error&mode=signup', request.url))
     }
 
     // Verify and decode the token
@@ -98,8 +98,8 @@ export async function GET(request: NextRequest) {
 
     if (sessionError) {
       console.error('❌ Failed to create session:', sessionError)
-      // Redirect to login with success message
-      return NextResponse.redirect(new URL('/login?verified=true', request.url))
+      // Redirect to login with success message, preserving signup mode if this was from signup
+      return NextResponse.redirect(new URL('/login?verified=true&mode=signup', request.url))
     }
 
     console.log('✅ Magic link generated successfully')
@@ -110,6 +110,6 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('Verification error:', error)
-    return NextResponse.redirect(new URL('/login?error=verification_failed', request.url))
+    return NextResponse.redirect(new URL('/login?error=verification_failed&mode=signup', request.url))
   }
 } 
