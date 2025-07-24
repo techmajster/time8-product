@@ -77,6 +77,7 @@ function JoinPageContent() {
     console.log('🔍 URL search params:', Object.fromEntries(searchParams.entries()))
     console.log('🎫 Token from URL:', token)
     
+    // FORCE DEPLOYMENT - Production not updating properly
     if (token) {
       console.log('🎫 Processing invitation token:', token)
       processInvitationToken(token)
