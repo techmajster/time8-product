@@ -83,20 +83,27 @@ export async function GET(request: NextRequest) {
     }
 
     // Sign in the user automatically using admin client
+    const isLocalhost = request.url.includes('localhost') || request.url.includes('127.0.0.1')
+    const baseUrl = isLocalhost ? 'http://localhost:3000' : 'https://app.time8.io'
+    console.log('🔗 Generating magic link with redirect to:', `${baseUrl}/onboarding`)
+    
     const { data: sessionData, error: sessionError } = await supabase.auth.admin.generateLink({
       type: 'magiclink',
       email: decoded.email,
       options: {
-        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/onboarding`
+        redirectTo: `${baseUrl}/onboarding`
       }
     })
 
     if (sessionError) {
-      console.error('Failed to create session:', sessionError)
+      console.error('❌ Failed to create session:', sessionError)
       // Redirect to login with success message
       return NextResponse.redirect(new URL('/login?verified=true', request.url))
     }
 
+    console.log('✅ Magic link generated successfully')
+    console.log('🔗 Redirecting to magic link:', sessionData.properties.action_link)
+    
     // Redirect to the magic link URL which will auto-login and redirect to onboarding
     return NextResponse.redirect(sessionData.properties.action_link)
 
