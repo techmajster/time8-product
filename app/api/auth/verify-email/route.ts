@@ -85,13 +85,14 @@ export async function GET(request: NextRequest) {
     // Sign in the user automatically using admin client
     const isLocalhost = request.url.includes('localhost') || request.url.includes('127.0.0.1')
     const baseUrl = isLocalhost ? 'http://localhost:3000' : 'https://app.time8.io'
-    console.log('🔗 Generating magic link with redirect to:', `${baseUrl}/onboarding`)
+    const redirectUrl = `${baseUrl}/onboarding`
+    console.log('🔗 Generating magic link with redirect to:', redirectUrl)
     
     const { data: sessionData, error: sessionError } = await supabase.auth.admin.generateLink({
       type: 'magiclink',
       email: decoded.email,
       options: {
-        redirectTo: `${baseUrl}/onboarding`
+        redirectTo: redirectUrl
       }
     })
 
