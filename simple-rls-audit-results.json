@@ -1,0 +1,38 @@
+{
+  "withRLS": [],
+  "withoutRLS": [
+    "profiles",
+    "organizations",
+    "user_organizations",
+    "teams",
+    "invitations",
+    "leave_requests",
+    "leave_balances",
+    "leave_types",
+    "company_holidays"
+  ],
+  "withOrgCheck": [],
+  "withoutOrgCheck": [],
+  "errors": [
+    {
+      "table": "working_hours",
+      "error": "relation \"public.working_hours\" does not exist"
+    },
+    {
+      "table": "working_days",
+      "error": "relation \"public.working_days\" does not exist"
+    },
+    {
+      "table": "working_schedules",
+      "error": "relation \"public.working_schedules\" does not exist"
+    },
+    {
+      "table": "email_domains",
+      "error": "relation \"public.email_domains\" does not exist"
+    },
+    {
+      "table": "user_preferences",
+      "error": "relation \"public.user_preferences\" does not exist"
+    }
+  ]
+}

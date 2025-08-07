@@ -144,10 +144,18 @@ export function NewLeaveRequestSheet({ leaveTypes, leaveBalances, userProfile, i
     setIsSubmitting(true)
 
     try {
+      // Format dates in local timezone to avoid off-by-one errors
+      const formatDateLocal = (date: Date) => {
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
+        return `${year}-${month}-${day}`
+      }
+
       const requestPayload = {
         leave_type_id: formData.leave_type_id,
-        start_date: dateRange.from.toISOString().split('T')[0],
-        end_date: dateRange.to.toISOString().split('T')[0],
+        start_date: formatDateLocal(dateRange.from),
+        end_date: formatDateLocal(dateRange.to),
         days_requested: calculatedDays,
         reason: formData.reason || null,
       }

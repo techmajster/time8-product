@@ -21,9 +21,20 @@ export default async function AdminTeamManagementPage() {
     redirect('/login')
   }
 
-  // Get user profile
+  // MULTI-ORG UPDATE: Get user profile and organization via user_organizations
   const { data: profile } = await supabase
     .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .single()
+
+  if (!profile) {
+    redirect('/login')
+  }
+
+  // Get user's active organization from user_organizations
+  const { data: userOrg } = await supabase
+    .from('user_organizations')
     .select(`
       *,
       organizations (
@@ -31,49 +42,156 @@ export default async function AdminTeamManagementPage() {
         name
       )
     `)
-    .eq('id', user.id)
+    .eq('user_id', user.id)
+    .eq('is_active', true)
+    .eq('is_default', true)
     .single()
 
-  if (!profile?.organization_id) {
+  if (!userOrg) {
     redirect('/onboarding')
   }
 
+  // Add organization context to profile for backward compatibility
+  profile.organization_id = userOrg.organization_id
+  profile.role = userOrg.role
+  profile.organizations = userOrg.organizations
+
   // Only admins can access this page
-  if (profile.role !== 'admin') {
+  if (userOrg.role !== 'admin') {
     redirect('/dashboard')
   }
 
-  // Get all team members with team info and leave balances
-  const { data: rawTeamMembers } = await supabase
-    .from('profiles')
+  // Get admin client for bypassing RLS issues
+  const supabaseAdmin = createAdminClient()
+  
+  // MULTI-ORG UPDATE: Get all team members via user_organizations instead of profiles
+  const { data: rawTeamMembers, error: teamMembersError } = await supabaseAdmin
+    .from('user_organizations')
     .select(`
-      id, 
-      email, 
-      full_name, 
-      role, 
-      avatar_url,
+      user_id,
+      organization_id,
+      role,
       team_id,
-      teams!profiles_team_id_fkey (
+      is_active,
+      profiles!user_organizations_user_id_fkey (
+        id,
+        email,
+        full_name,
+        avatar_url
+      ),
+      teams!user_organizations_team_id_fkey (
         id,
         name,
         color
       )
     `)
     .eq('organization_id', profile.organization_id)
-    .order('full_name', { ascending: true })
+    .eq('is_active', true)
+    .order('profiles(full_name)', { ascending: true })
 
-  // Transform the data to match interface
-  const teamMembers = rawTeamMembers?.map(member => ({
-    ...member,
-    teams: Array.isArray(member.teams) ? member.teams[0] : member.teams
-  })) || []
+  console.log('👥 Team members query result:', { 
+    count: rawTeamMembers?.length || 0, 
+    error: teamMembersError,
+    organizationId: profile.organization_id 
+  })
+  console.log('📋 Raw team members data:', rawTeamMembers)
+  
+  // Debug: Show what users are found
+  if (rawTeamMembers) {
+    rawTeamMembers.forEach((member: any, index: number) => {
+      console.log(`👤 User ${index + 1}:`, {
+        user_id: member.user_id,
+        email: member.profiles?.email,
+        full_name: member.profiles?.full_name,
+        role: member.role,
+        has_profile: !!member.profiles
+      })
+    })
+  }
 
-  // Get leave balances for all members
+  // Get teams data using admin client
+  const { data: teams, error: teamsError } = await supabaseAdmin
+    .from('teams')
+    .select(`
+      id,
+      name,
+      description,
+      color,
+      created_at,
+      manager_id
+    `)
+    .eq('organization_id', profile.organization_id)
+    .order('name')
+
+  console.log('🏢 Teams query result:', { teams, teamsError })
+
+  // Get manager details for teams and member counts
+  const teamsWithDetails = teams ? await Promise.all(
+    teams.map(async (team) => {
+      // Get manager details if manager_id exists
+      let manager = null
+      if (team.manager_id) {
+        const { data: managerProfile } = await supabaseAdmin
+          .from('profiles')
+          .select('id, full_name, email')
+          .eq('id', team.manager_id)
+          .single()
+        manager = managerProfile
+      }
+
+      // Get member count for this team
+      const { count: memberCount } = await supabaseAdmin
+        .from('user_organizations')
+        .select('*', { count: 'exact', head: true })
+        .eq('team_id', team.id)
+        .eq('organization_id', profile.organization_id)
+        .eq('is_active', true)
+
+      return {
+        ...team,
+        manager,
+        members: [], // We'll populate this if needed
+        member_count: memberCount || 0
+      }
+    })
+  ) : []
+
+  console.log('🏢 Teams with details:', teamsWithDetails)
+
+  // Transform the employee data to match the expected interface and populate team details
+  const teamMembers = rawTeamMembers?.map(userOrg => {
+    const profile = Array.isArray(userOrg.profiles) ? userOrg.profiles[0] : userOrg.profiles
+    
+    // Find the team details from our teamsWithDetails array
+    const teamDetails = userOrg.team_id ? teamsWithDetails.find(t => t.id === userOrg.team_id) : null
+    
+    return {
+      id: userOrg.user_id, // Use user_id to match what edit page expects
+      email: profile?.email || '',
+      full_name: profile?.full_name,
+      role: userOrg.role,
+      avatar_url: profile?.avatar_url,
+      team_id: userOrg.team_id,
+      teams: teamDetails ? {
+        id: teamDetails.id,
+        name: teamDetails.name,
+        color: teamDetails.color
+      } : null
+    }
+  }) || []
+
+  // Get leave balances for all members using admin client
   const memberIds = teamMembers.map(member => member.id)
-  const { data: leaveBalances } = await supabase
+  const { data: leaveBalances, error: leaveBalancesError } = await supabaseAdmin
     .from('leave_balances')
     .select(`
-      *,
+      id,
+      user_id,
+      leave_type_id,
+      year,
+      entitled_days,
+      used_days,
+      remaining_days,
       leave_types!inner (
         id,
         name,
@@ -85,34 +203,17 @@ export default async function AdminTeamManagementPage() {
     .eq('year', new Date().getFullYear())
     .eq('leave_types.requires_balance', true)
 
-  // Get teams data
-  const { data: teams } = await supabase
-    .from('teams')
-    .select(`
-      id,
-      name,
-      description,
-      color,
-      created_at,
-      manager:profiles!teams_manager_id_fkey (
-        id,
-        full_name,
-        email
-      ),
-      members:profiles!profiles_team_id_fkey (
-        id,
-        full_name,
-        email,
-        role,
-        avatar_url
-      )
-    `)
-    .eq('organization_id', profile.organization_id)
-    .order('name')
+  console.log('💰 Team management - leave balances loaded:', { 
+    count: leaveBalances?.length || 0, 
+    error: leaveBalancesError,
+    memberIds: memberIds,
+    year: new Date().getFullYear(),
+    sampleBalance: leaveBalances?.[0],
+    leaveTypeNames: leaveBalances?.map(b => (b.leave_types as any)?.name).filter(Boolean)
+  })
 
   // Get pending invitations with proper serialization
   console.log('🔍 Querying invitations for organization:', profile.organization_id)
-  const supabaseAdmin = createAdminClient()
   const { data: rawInvitations, error: invitationsError } = await supabaseAdmin
     .from('invitations')
     .select(`
@@ -146,14 +247,14 @@ export default async function AdminTeamManagementPage() {
         .single()
 
       // Get team name if team_id exists
-      let teamName = 'Bez zespołu'
+      let teamName = 'Bez grupy'
       if (invitation.team_id) {
         const { data: team } = await supabaseAdmin
           .from('teams')
           .select('name')
           .eq('id', invitation.team_id)
           .single()
-        teamName = team?.name || 'Bez zespołu'
+        teamName = team?.name || 'Bez grupy'
       }
 
       // Create a simple, serializable object
@@ -182,7 +283,7 @@ export default async function AdminTeamManagementPage() {
   // Helper functions
   const getLeaveBalance = (userId: string, leaveTypeName: string): number => {
     const balance = leaveBalances?.find(
-      b => b.user_id === userId && b.leave_types.name === leaveTypeName
+      b => b.user_id === userId && (b.leave_types as any).name === leaveTypeName
     )
     return balance?.remaining_days || 0
   }
@@ -195,7 +296,7 @@ export default async function AdminTeamManagementPage() {
   }
 
   const getTeamDisplayName = (member: any): string => {
-    return member.teams?.name || 'Bez zespołu'
+    return member.teams?.name || 'Bez grupy'
   }
 
 
@@ -204,8 +305,8 @@ export default async function AdminTeamManagementPage() {
     <AppLayout>
       <TeamManagementClient 
         teamMembers={teamMembers}
-        teams={teams || []}
-        leaveBalances={leaveBalances || []}
+        teams={teamsWithDetails || []}
+        leaveBalances={leaveBalances as any || []}
         invitations={invitations || []}
       />
     </AppLayout>

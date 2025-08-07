@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getBasicAuth } from '@/lib/auth-utils'
+import { authenticateAndGetOrgContext } from '@/lib/auth-utils-v2'
 
 /**
  * ✅ OPTIMIZATION: Combined dashboard data API endpoint
@@ -7,12 +7,13 @@ import { getBasicAuth } from '@/lib/auth-utils'
  * Provides all dashboard data needed in one response
  */
 export async function GET() {
-  const authResult = await getBasicAuth()
+  const authResult = await authenticateAndGetOrgContext()
   if (!authResult.success) {
     return authResult.error
   }
 
-  const { organizationId } = authResult
+  const { context } = authResult
+  const organizationId = context.organization.id
 
   try {
     const { createClient } = await import('@/lib/supabase/server')
@@ -26,32 +27,48 @@ export async function GET() {
       leaveTypesResult,
       upcomingHolidaysResult
     ] = await Promise.all([
-      // Team members with essential info only
+      // Team members with essential info only (via user_organizations)
       supabase
-        .from('profiles')
-        .select('id, email, full_name, role, avatar_url')
+        .from('user_organizations')
+        .select(`
+          role,
+          profiles!inner(id, email, full_name, avatar_url)
+        `)
         .eq('organization_id', organizationId)
-        .eq('status', 'active')
-        .order('full_name'),
+        .eq('is_active', true)
+        .order('profiles(full_name)'),
 
-      // Pending leave requests count
+      // Pending leave requests count (via user_organizations)
       supabase
         .from('leave_requests')
-        .select('id, created_at, profiles!inner(full_name, email)')
-        .eq('profiles.organization_id', organizationId)
+        .select(`
+          id, created_at,
+          profiles!inner(
+            full_name, 
+            email,
+            user_organizations!inner(organization_id)
+          )
+        `)
+        .eq('profiles.user_organizations.organization_id', organizationId)
+        .eq('profiles.user_organizations.is_active', true)
         .eq('status', 'pending')
         .order('created_at', { ascending: false })
         .limit(10),
 
-      // Recent approved leaves for timeline
+      // Recent approved leaves for timeline (via user_organizations)
       supabase
         .from('leave_requests')
         .select(`
           id, start_date, end_date, status,
           leave_types(name, color),
-          profiles!inner(full_name, email)
+          profiles!inner(
+            full_name, 
+            email,
+            user_organizations!inner(organization_id)
+          )
         `)
-        .eq('profiles.organization_id', organizationId)
+        .eq('profiles.user_organizations.organization_id', organizationId)
+        .eq('profiles.user_organizations.is_active', true)
         .in('status', ['approved', 'pending'])
         .gte('start_date', new Date().toISOString().split('T')[0])
         .order('start_date')
@@ -97,10 +114,16 @@ export async function GET() {
       }).length || 0
     }
 
+    // Transform data to match expected frontend format
+    const teamMembers = teamMembersResult.data?.map(item => ({
+      ...item.profiles,
+      role: item.role
+    })) || []
+
     return NextResponse.json({
       success: true,
       data: {
-        teamMembers: teamMembersResult.data || [],
+        teamMembers,
         pendingRequests: pendingRequestsResult.data || [],
         recentLeaves: recentLeavesResult.data || [],
         leaveTypes: leaveTypesResult.data || [],

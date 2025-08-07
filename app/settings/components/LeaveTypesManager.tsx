@@ -274,10 +274,26 @@ export function LeaveTypesManager({ leaveTypes, organizationId }: LeaveTypesMana
         <p className="text-sm text-muted-foreground">
           Zarządzaj rodzajami urlopów dostępnymi w organizacji
         </p>
-        <Button onClick={handleAdd} className="">
-          <Plus className="h-4 w-4 mr-2" />
-          Dodaj rodzaj urlopu
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button 
+            onClick={handleCreateDefaults}
+            variant="outline"
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Tworzenie...
+              </>
+            ) : (
+              'Utwórz domyślne rodzaje urlopów'
+            )}
+          </Button>
+          <Button onClick={handleAdd} className="">
+            <Plus className="h-4 w-4 mr-2" />
+            Dodaj rodzaj urlopu
+          </Button>
+        </div>
       </div>
 
       {/* Global alerts */}
@@ -343,22 +359,7 @@ export function LeaveTypesManager({ leaveTypes, organizationId }: LeaveTypesMana
         {leaveTypes.length === 0 && (
           <div className="text-center py-8 text-muted-foreground space-y-4">
             <p>Brak rodzajów urlopów</p>
-            <p className="text-sm">Dodaj pierwszy rodzaj urlopu dla organizacji lub użyj domyślnych typów urlopów</p>
-            <Button 
-              onClick={handleCreateDefaults}
-              variant="outline"
-              disabled={loading}
-              className="mx-auto"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Tworzenie...
-                </>
-              ) : (
-                'Utwórz domyślne rodzaje urlopów'
-              )}
-            </Button>
+            <p className="text-sm">Dodaj pierwszy rodzaj urlopu dla organizacji lub użyj przycisku "Utwórz domyślne rodzaje urlopów" powyżej</p>
           </div>
         )}
       </div>

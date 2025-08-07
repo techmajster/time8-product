@@ -1,0 +1,3 @@
+# Spec Summary (Lite)
+
+Remove outdated theme editor infrastructure and visual component editor system that are no longer needed, cleaning up deprecated design system components and documentation while preserving essential theme functionality. This cleanup will remove the extensive but unimplemented visual component editor plans, backup components from July 2024, and deprecated documentation while keeping the working ThemeProvider and ModeToggle components that are actively used in production.

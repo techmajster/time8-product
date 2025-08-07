@@ -1,13 +1,15 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
-import { getBasicAuth, isManagerOrAdmin } from '@/lib/auth-utils'
+import { authenticateAndGetOrgContext, isManagerOrAdmin } from '@/lib/auth-utils-v2'
 
 export async function POST(request: NextRequest) {
   try {
     // Use optimized auth utility
-    const auth = await getBasicAuth()
+    const auth = await authenticateAndGetOrgContext()
     if (!auth.success) return auth.error
-    const { organizationId, role } = auth
+    const { context } = auth
+    const { organization, role } = context
+    const organizationId = organization.id
 
     // Only allow admin/manager to assign templates
     if (!isManagerOrAdmin(role)) {

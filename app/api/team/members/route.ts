@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
-import { getBasicAuth, isManagerOrAdmin } from '@/lib/auth-utils'
+import { authenticateAndGetOrgContext, isManagerOrAdmin } from '@/lib/auth-utils-v2'
 import { invalidateOrganizationCache } from '@/lib/cache-utils'
 
 export async function PUT(request: NextRequest) {
@@ -22,9 +22,11 @@ export async function PUT(request: NextRequest) {
     }
 
     // Use optimized auth utility
-    const auth = await getBasicAuth()
+    const auth = await authenticateAndGetOrgContext()
     if (!auth.success) return auth.error
-    const { user, organizationId, role } = auth
+    const { context } = auth
+    const { user, organization, role } = context
+    const organizationId = organization.id
 
     // Check if user has permission to change roles
     if (!isManagerOrAdmin(role)) {
@@ -148,9 +150,11 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Use optimized auth utility
-    const auth = await getBasicAuth()
+    const auth = await authenticateAndGetOrgContext()
     if (!auth.success) return auth.error
-    const { user, organizationId, role } = auth
+    const { context } = auth
+    const { user, organization, role } = context
+    const organizationId = organization.id
 
     // Check if user has permission to remove members
     if (!isManagerOrAdmin(role)) {
@@ -162,30 +166,29 @@ export async function DELETE(request: NextRequest) {
 
     const supabase = await createClient()
 
-    // Get the member to verify they're in the same organization
-    const { data: member, error: memberError } = await supabase
-      .from('profiles')
-      .select('id, email, full_name, role, organization_id')
-      .eq('id', memberId)
+    // Get the member's organization relationship (multi-org approach)
+    const { data: userOrg, error: memberError } = await supabase
+      .from('user_organizations')
+      .select(`
+        user_id,
+        organization_id,
+        role,
+        profiles!inner(id, email, full_name)
+      `)
+      .eq('user_id', memberId)
+      .eq('organization_id', organizationId)
+      .eq('is_active', true)
       .single()
 
-    if (memberError || !member) {
+    if (memberError || !userOrg) {
       return NextResponse.json(
-        { error: 'Member not found' },
+        { error: 'Member not found in organization' },
         { status: 404 }
       )
     }
 
-    // Verify the member belongs to the user's organization
-    if (member.organization_id !== organizationId) {
-      return NextResponse.json(
-        { error: 'You can only remove members from your organization' },
-        { status: 403 }
-      )
-    }
-
     // Prevent users from removing themselves
-    if (member.id === user.id) {
+    if (userOrg.user_id === user.id) {
       return NextResponse.json(
         { error: 'You cannot remove yourself from the team' },
         { status: 400 }
@@ -193,22 +196,19 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Only admins can remove other admins
-    if (member.role === 'admin' && role !== 'admin') {
+    if (userOrg.role === 'admin' && role !== 'admin') {
       return NextResponse.json(
         { error: 'Only administrators can remove other administrators' },
         { status: 403 }
       )
     }
 
-    // Remove the member from the organization by setting organization_id to null
-    // This preserves their profile but removes them from the organization
+    // Remove the member from the organization by deactivating their relationship
     const { error: updateError } = await supabase
-      .from('profiles')
-      .update({ 
-        organization_id: null,
-        role: 'employee' // Reset role when removing from organization
-      })
-      .eq('id', memberId)
+      .from('user_organizations')
+      .update({ is_active: false })
+      .eq('user_id', memberId)
+      .eq('organization_id', organizationId)
 
     if (updateError) {
       console.error('Error removing member:', updateError)
@@ -222,7 +222,7 @@ export async function DELETE(request: NextRequest) {
     await supabase
       .from('invitations')
       .delete()
-      .eq('email', member.email)
+      .eq('email', (userOrg.profiles as any).email)
       .eq('organization_id', organizationId)
 
     // Invalidate organization cache
@@ -230,11 +230,11 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `${member.full_name || member.email} has been removed from the organization`,
+      message: `${(userOrg.profiles as any).full_name || (userOrg.profiles as any).email} has been removed from the organization`,
       removedMember: {
-        id: member.id,
-        email: member.email,
-        full_name: member.full_name
+        id: (userOrg.profiles as any).id,
+        email: (userOrg.profiles as any).email,
+        full_name: (userOrg.profiles as any).full_name
       }
     })
 

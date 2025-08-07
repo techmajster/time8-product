@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { getBasicAuth } from '@/lib/auth-utils'
+import { authenticateAndGetOrgContext } from '@/lib/auth-utils-v2'
 
 export async function POST(request: NextRequest) {
   try {

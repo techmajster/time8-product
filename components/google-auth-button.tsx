@@ -18,13 +18,21 @@ export function GoogleAuthButton({ mode }: GoogleAuthButtonProps) {
   const handleGoogleAuth = async () => {
     setLoading(true)
     
-    // Get base URL and ensure it has https protocol
-    let baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 
-                  process.env.NEXT_PUBLIC_APP_URL || 
-                  (typeof window !== 'undefined' ? window.location.origin : 'https://saas-leave-system.vercel.app')
+    // Get base URL - prefer current window origin for development, env vars for production
+    let baseUrl: string
     
-    // Ensure the URL has https protocol
-    if (baseUrl && !baseUrl.startsWith('http')) {
+    if (typeof window !== 'undefined') {
+      // In browser, use current origin (handles port 3001 vs 3000 automatically)
+      baseUrl = window.location.origin
+    } else {
+      // Fallback for SSR
+      baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
+                process.env.NEXT_PUBLIC_SITE_URL || 
+                'https://saas-leave-system.vercel.app'
+    }
+    
+    // Ensure the URL has a protocol for non-localhost URLs
+    if (baseUrl && !baseUrl.startsWith('http') && !baseUrl.includes('localhost')) {
       baseUrl = `https://${baseUrl}`
     }
     

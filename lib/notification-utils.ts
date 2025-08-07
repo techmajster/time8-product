@@ -120,12 +120,15 @@ async function notifyTeamAboutLeave(leaveRequest: any) {
   const supabase = await createClient()
 
   try {
-    // Get all team members in the same organization
+    // Get all team members in the same organization (via user_organizations)
     const { data: teamMembers, error } = await supabase
-      .from('profiles')
-      .select('id, email, full_name')
-      .eq('organization_id', leaveRequest.profiles.organization_id)
-      .neq('id', leaveRequest.user_id) // Exclude the person taking leave
+      .from('user_organizations')
+      .select(`
+        profiles!inner(id, email, full_name)
+      `)
+      .eq('organization_id', leaveRequest.organization_id)
+      .eq('is_active', true)
+      .neq('profiles.id', leaveRequest.user_id) // Exclude the person taking leave
 
     if (error || !teamMembers) {
       console.error('Could not fetch team members:', error)
@@ -135,11 +138,11 @@ async function notifyTeamAboutLeave(leaveRequest: any) {
     // Send notification to each team member who has team notifications enabled
     const notifications = teamMembers.map((member: any) =>
       sendNotificationIfEnabled(
-        member.id,
+        member.profiles.id,
         'team_leave_notifications',
         {
           type: 'team_leave',
-          to: member.email,
+          to: member.profiles.email,
           employeeName: leaveRequest.profiles.full_name,
           leaveType: leaveRequest.leave_type,
           startDate: new Date(leaveRequest.start_date).toLocaleDateString('pl-PL'),
@@ -232,16 +235,27 @@ export async function sendWeeklySummaries() {
   const supabase = await createClient()
 
   try {
-    // Get all users who want weekly summaries
+    // Get all users who want weekly summaries (via user_organizations)
     const { data: users, error } = await supabase
       .from('user_settings')
       .select(`
         user_id,
-        profiles!inner(email, full_name, organization_id, role),
-        organizations!inner(name)
+        profiles!inner(
+          email, 
+          full_name,
+          user_organizations!inner(
+            organization_id,
+            role,
+            is_active,
+            is_default,
+            organizations!inner(name)
+          )
+        )
       `)
       .eq('weekly_summary', true)
       .eq('email_notifications', true)
+      .eq('profiles.user_organizations.is_active', true)
+      .eq('profiles.user_organizations.is_default', true)
 
     if (error || !users) {
       console.error('Could not fetch users for weekly summary:', error)
@@ -253,7 +267,7 @@ export async function sendWeeklySummaries() {
     const weekEnd = new Date(today.setDate(today.getDate() - today.getDay() + 6))
 
     // ✅ OPTIMIZED: Get all leave data for all organizations in a single query (was N+1 pattern)
-    const organizationIds = [...new Set(users.map((user: any) => user.profiles.organization_id))]
+    const organizationIds = [...new Set(users.map((user: any) => user.profiles.user_organizations.organization_id))]
     
     const { data: allLeaveData, error: leaveError } = await supabase
       .from('leave_requests')
@@ -282,7 +296,7 @@ export async function sendWeeklySummaries() {
 
     // Send weekly summaries to users (single loop through users, no additional queries)
     for (const user of users) {
-      const orgLeaveData = leavesByOrg[(user as any).profiles.organization_id] || []
+      const orgLeaveData = leavesByOrg[(user as any).profiles.user_organizations.organization_id] || []
 
       const totalLeaves = orgLeaveData.filter((l: any) => l.status === 'approved').length
       const pendingRequests = orgLeaveData.filter((l: any) => l.status === 'pending').length
@@ -301,7 +315,7 @@ export async function sendWeeklySummaries() {
         {
           type: 'weekly_summary',
           to: (user as any).profiles.email,
-          organizationName: (user as any).organizations.name,
+          organizationName: (user as any).profiles.user_organizations.organizations.name,
           weekStart: weekStart.toLocaleDateString('pl-PL'),
           weekEnd: weekEnd.toLocaleDateString('pl-PL'),
           totalLeaves,

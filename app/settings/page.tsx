@@ -10,15 +10,17 @@ export default async function SettingsPage() {
     redirect('/login')
   }
 
-  // Get user profile to check role
-  const { data: profile } = await supabase
-    .from('profiles')
+  // MULTI-ORG UPDATE: Get user role from user_organizations
+  const { data: userOrg } = await supabase
+    .from('user_organizations')
     .select('role')
-    .eq('id', user.id)
+    .eq('user_id', user.id)
+    .eq('is_active', true)
+    .eq('is_default', true)
     .single()
 
   // Only admins can access settings, redirect others to dashboard
-  if (profile?.role !== 'admin') {
+  if (userOrg?.role !== 'admin') {
     redirect('/dashboard')
   }
 

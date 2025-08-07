@@ -13,6 +13,7 @@ import { format } from "date-fns"
 
 import { cn } from "@/lib/utils"
 import { Button, buttonVariants } from "@/components/ui/button"
+import { DatePickerDropdown } from "@/components/ui/date-picker-dropdown"
 import { plWithCapitals } from "@/lib/utils"
 
 // Helper function to capitalize first letter
@@ -70,6 +71,12 @@ function Calendar({
       return format(date, 'LLL', { locale: currentLocale })
     },
     ...formatters,
+  }
+
+  // Merge custom components with dropdown support
+  const mergedComponents = {
+    Dropdown: DatePickerDropdown,
+    ...components,
   }
 
   return (
@@ -207,7 +214,7 @@ function Calendar({
             </td>
           )
         },
-        ...components,
+        ...mergedComponents,
       }}
       {...props}
     />
@@ -227,12 +234,15 @@ function CalendarDayButton({
     if (modifiers.focused) ref.current?.focus()
   }, [modifiers.focused])
 
+  // Use consistent date format for hydration compatibility
+  const dataDay = `${day.date.getFullYear()}-${String(day.date.getMonth() + 1).padStart(2, '0')}-${String(day.date.getDate()).padStart(2, '0')}`
+
   return (
     <Button
       ref={ref}
       variant="ghost"
       size="icon"
-      data-day={day.date.toLocaleDateString()}
+      data-day={dataDay}
       data-selected-single={
         modifiers.selected &&
         !modifiers.range_start &&

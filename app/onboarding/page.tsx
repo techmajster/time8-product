@@ -47,19 +47,21 @@ function OnboardingContent() {
         setTimeout(() => setShowVerificationSuccess(false), 8000)
       }
 
-      // Check if user already has an organization
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('id', user.id)
-        .single()
-
-      if (profileData?.organization_id) {
-        redirect('/dashboard')
-        return
+      // MULTI-ORG UPDATE: Check if user already has an organization via API
+      try {
+        const orgResponse = await fetch(`/api/employees/${user.id}/organization`)
+        if (orgResponse.ok) {
+          const orgData = await orgResponse.json()
+          console.log('✅ User has organization, redirecting to dashboard')
+          redirect('/dashboard')
+          return
+        } else {
+          console.log('❌ User has no organization, showing onboarding')
+        }
+      } catch (error) {
+        console.log('❌ Error checking organization:', error)
+        // Continue with onboarding flow
       }
-
-      setProfile(profileData)
 
       // Check if user has any pending invitations
       const emailDomain = user.email?.split('@')[1]
@@ -67,27 +69,32 @@ function OnboardingContent() {
         emailDomain && 
         !['gmail.com', 'googlemail.com'].includes(emailDomain.toLowerCase())
       
-             // Check for pending invitations for this user
-       const { data: pendingInvitations } = await supabase
-         .from('invitations')
-         .select(`
-           id, 
-           organization_id,
-           organizations(name)
-         `)
-         .eq('email', user.email?.toLowerCase())
-         .eq('status', 'pending')
-       
-       console.log('🔍 Checking invitations for:', user.email, 'Found:', pendingInvitations?.length || 0)
-       
-       if (pendingInvitations && pendingInvitations.length > 0) {
-         const invitation = pendingInvitations[0] as any
-         setExistingOrg({
-           id: invitation.organization_id,
-           name: invitation.organizations?.name || 'Unknown Organization',
-           hasInvitation: true
-         })
-       }
+      // Check for pending invitations for this user via API
+      let pendingInvitations: any[] = []
+      try {
+        const invitationResponse = await fetch(`/api/invitations/lookup?email=${encodeURIComponent(user.email!)}`)
+        if (invitationResponse.ok) {
+          const invitationData = await invitationResponse.json()
+          pendingInvitations = invitationData.invitations || []
+        }
+      } catch (error) {
+        console.log('❌ Error checking pending invitations:', error)
+      }
+
+      console.log('📧 Pending invitations check:', { 
+        count: pendingInvitations.length,
+        invitations: pendingInvitations
+      })
+
+      // Handle pending invitations
+      if (pendingInvitations && pendingInvitations.length > 0) {
+        const invitation = pendingInvitations[0] as any
+        setExistingOrg({
+          id: invitation.organization_id,
+          name: invitation.organizations?.name || 'Unknown Organization',
+          hasInvitation: true
+        })
+      }
 
       setLoading(false)
     }

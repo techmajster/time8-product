@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { getBasicAuth } from '@/lib/auth-utils'
+import { authenticateAndGetOrgContext } from '@/lib/auth-utils-v2'
 
 export async function PUT(request: NextRequest) {
   try {
     console.log('=== API START ===')
     // Use optimized auth utility
-    const auth = await getBasicAuth()
-    console.log('Auth result:', { success: auth.success, role: auth.success ? auth.role : 'N/A' })
+    const auth = await authenticateAndGetOrgContext()
+    console.log('Auth result:', { success: auth.success, role: auth.success ? auth.context.role : 'N/A' })
     
     if (!auth.success) {
       console.error('Auth failed:', auth.error)
@@ -16,7 +16,9 @@ export async function PUT(request: NextRequest) {
     
     console.log('=== AUTH SUCCESS ===')
     
-    const { user, organizationId, role } = auth
+    const { context } = auth
+    const { user, organization, role } = context
+    const organizationId = organization.id
     console.log('Authenticated user:', { userId: user.id, organizationId, role })
 
     // Check if user is admin

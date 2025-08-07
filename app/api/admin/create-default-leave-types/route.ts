@@ -1,16 +1,18 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { DEFAULT_LEAVE_TYPES } from '@/types/leave'
-import { getBasicAuth } from '@/lib/auth-utils'
+import { authenticateAndGetOrgContext } from '@/lib/auth-utils-v2'
 
 export async function POST() {
   try {
     const supabase = await createClient()
     
     // Use optimized auth utility
-    const auth = await getBasicAuth()
+    const auth = await authenticateAndGetOrgContext()
     if (!auth.success) return auth.error
-    const { organizationId, role } = auth
+    const { context } = auth
+    const { organization, role } = context
+    const organizationId = organization.id
 
     // Check if user is admin
     if (role !== 'admin') {
@@ -51,8 +53,7 @@ export async function POST() {
           color: type.color,
           requires_approval: type.requires_approval,
           requires_balance: type.requires_balance,
-          leave_category: type.leave_category,
-          description: type.description
+          leave_category: type.leave_category
         }))
       )
       .select()
@@ -70,19 +71,20 @@ export async function POST() {
     ) || []
     
     if (balanceRequiredTypes.length > 0) {
-      // Get all users in the organization
-      const { data: users, error: usersError } = await supabase
-        .from('profiles')
-        .select('id')
+      // Get all users in the organization via user_organizations (multi-org approach)
+      const { data: userOrgs, error: usersError } = await supabase
+        .from('user_organizations')
+        .select('user_id')
         .eq('organization_id', organizationId)
+        .eq('is_active', true)
 
       if (usersError) {
         console.warn('Could not fetch users for balance creation:', usersError)
-      } else if (users && users.length > 0) {
+      } else if (userOrgs && userOrgs.length > 0) {
         // Create leave balances for all users
-        const leaveBalances = users.flatMap(user => 
+        const leaveBalances = userOrgs.flatMap(userOrg => 
           balanceRequiredTypes.map(leaveType => ({
-            user_id: user.id,
+            user_id: userOrg.user_id,
             leave_type_id: leaveType.id,
             organization_id: organizationId,
             year: new Date().getFullYear(),
@@ -91,6 +93,12 @@ export async function POST() {
           }))
         )
 
+        console.log('💰 Creating leave balances for existing users:', {
+          userCount: userOrgs.length,
+          leaveTypeCount: balanceRequiredTypes.length,
+          totalBalances: leaveBalances.length
+        })
+
         const { error: balancesError } = await supabase
           .from('leave_balances')
           .insert(leaveBalances)
@@ -98,6 +106,8 @@ export async function POST() {
         if (balancesError) {
           console.warn('Could not create leave balances:', balancesError)
           // Don't fail the request, just log the warning
+        } else {
+          console.log('✅ Leave balances created for existing users')
         }
       }
     }

@@ -95,6 +95,7 @@ function getBreadcrumbItems(pathname: string, organizationName?: string | null, 
         'invite': t?.('team.invite') || 'Invite Members',
         'add': 'Nowy pracownik',
         'add-employee': 'Nowy pracownik',
+        'edit-employee': t?.('navigation.edit-employee') || 'Edit Employee',
         'team-management': 'Zarządzanie zespołem'
       }
       label = translations[segment] || segment.charAt(0).toUpperCase() + segment.slice(1)
@@ -108,8 +109,8 @@ function getBreadcrumbItems(pathname: string, organizationName?: string | null, 
     const segment = segments[i]
     currentPath += `/${segment}`
     
-    // Skip numeric IDs in breadcrumbs
-    if (/^\d+$/.test(segment)) {
+    // Skip numeric IDs and UUIDs in breadcrumbs
+    if (/^\d+$/.test(segment) || /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(segment)) {
       continue
     }
     

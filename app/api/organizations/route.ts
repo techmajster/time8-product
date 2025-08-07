@@ -63,18 +63,43 @@ export async function POST(request: NextRequest) {
 
     console.log('API: Organization created:', org)
 
-    // Update user profile with organization and admin role using admin client
-    const { error: profileError } = await supabaseAdmin
-      .from('profiles')
-      .update({
+    // MULTI-ORG UPDATE: Create user_organizations entry instead of updating profile
+    const { error: userOrgError } = await supabaseAdmin
+      .from('user_organizations')
+      .insert({
+        user_id: user.id,
         organization_id: org.id,
         role: 'admin',
+        is_active: true,
+        is_default: true,
+        joined_via: 'created',
+        employment_type: 'full_time'
       })
-      .eq('id', user.id)
 
-    if (profileError) {
-      console.error('API: Profile update error:', profileError)
-      return NextResponse.json({ error: profileError.message }, { status: 400 })
+    if (userOrgError) {
+      console.error('API: User organization creation error:', userOrgError)
+      return NextResponse.json({ error: userOrgError.message }, { status: 400 })
+    }
+
+    // MULTI-ORG UPDATE: Create organization_domains entry if Google domain is provided
+    if (google_domain) {
+      const { error: domainError } = await supabaseAdmin
+        .from('organization_domains')
+        .insert({
+          organization_id: org.id,
+          domain: google_domain,
+          domain_type: 'google',
+          is_verified: true,
+          auto_join_enabled: true,
+          default_role: 'employee'
+        })
+
+      if (domainError) {
+        console.error('API: Organization domain creation error:', domainError)
+        // Don't fail - organization is already created
+      } else {
+        console.log('API: Organization domain created for:', google_domain)
+      }
     }
 
     // Create default leave types

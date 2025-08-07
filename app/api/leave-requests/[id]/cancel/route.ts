@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { handleLeaveRequestCancellation } from '@/lib/leave-balance-utils'
-import { getBasicAuth } from '@/lib/auth-utils'
+import { authenticateAndGetOrgContext } from '@/lib/auth-utils-v2'
 
 export async function POST(
   request: NextRequest,
@@ -12,9 +12,11 @@ export async function POST(
     const { id: requestId } = await params
 
     // Use optimized auth utility
-    const auth = await getBasicAuth()
+    const auth = await authenticateAndGetOrgContext()
     if (!auth.success) return auth.error
-    const { user, organizationId } = auth
+    const { context } = auth
+    const { user, organization } = context
+    const organizationId = organization.id
 
     const supabase = await createClient()
 

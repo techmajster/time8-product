@@ -519,14 +519,39 @@ export default function HolidaysPage() {
         throw new Error('Not authenticated')
       }
 
-      // Fetch profile data
+      // MULTI-ORG UPDATE: Fetch profile and organization data
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('*, organizations(name)')
+        .select('*')
         .eq('id', user.id)
         .single()
 
       if (profileError) throw profileError
+
+      // Get user's active organization from user_organizations
+      const { data: userOrg, error: userOrgError } = await supabase
+        .from('user_organizations')
+        .select(`
+          *,
+          organizations (
+            id,
+            name
+          )
+        `)
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .eq('is_default', true)
+        .single()
+
+      if (userOrgError || !userOrg) {
+        throw new Error('User not assigned to organization')
+      }
+
+      // Add organization context to profile for backward compatibility
+      profileData.organization_id = userOrg.organization_id
+      profileData.role = userOrg.role
+      profileData.organizations = userOrg.organizations
+
       setProfile(profileData)
 
       // Fetch leave types

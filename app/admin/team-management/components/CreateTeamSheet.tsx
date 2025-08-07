@@ -8,6 +8,15 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Loader2, ChevronDownIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
+/**
+ * CREATE GROUP COMPONENT
+ * 
+ * Note: This component is named "CreateTeamSheet" for historical reasons,
+ * but it creates "groups" in the UI terminology. The underlying API uses /api/teams
+ * but the UI consistently refers to these as "groups" to differentiate from 
+ * organizational teams.
+ */
+
 interface TeamMember {
   id: string
   email: string
@@ -55,10 +64,10 @@ export function CreateTeamSheet({ open, onOpenChange, teamMembers, onTeamCreated
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to create team')
+        throw new Error(data.error || 'Failed to create group')
       }
 
-      toast.success(data.message || 'Zespół został utworzony pomyślnie')
+      toast.success(data.message || 'Grupa została utworzona pomyślnie')
       onOpenChange(false)
       resetForm()
       
@@ -71,8 +80,8 @@ export function CreateTeamSheet({ open, onOpenChange, teamMembers, onTeamCreated
       }
 
     } catch (error) {
-      console.error('Error creating team:', error)
-      toast.error(error instanceof Error ? error.message : 'Błąd podczas tworzenia zespołu')
+      console.error('Error creating group:', error)
+      toast.error(error instanceof Error ? error.message : 'Błąd podczas tworzenia grupy')
     } finally {
       setLoading(false)
     }
@@ -94,9 +103,9 @@ export function CreateTeamSheet({ open, onOpenChange, teamMembers, onTeamCreated
           <div className="flex flex-col h-full">
             <div className="flex flex-col gap-6 p-6 flex-1 overflow-y-auto">
               <div className="flex flex-col gap-1.5 w-full">
-                <SheetTitle className="text-xl font-semibold text-neutral-950">Dodaj nowy zespół</SheetTitle>
+                <SheetTitle className="text-xl font-semibold text-neutral-950">Dodaj nową grupę</SheetTitle>
                 <SheetDescription className="text-sm text-neutral-500">
-                  Utwórz nowy zespół w swojej organizacji
+                  Utwórz nową grupę w swojej organizacji
                 </SheetDescription>
               </div>
 
@@ -106,28 +115,28 @@ export function CreateTeamSheet({ open, onOpenChange, teamMembers, onTeamCreated
               {/* Form */}
               <form onSubmit={(e) => { e.preventDefault(); handleCreateTeam() }} className="space-y-6 flex-1">
                 <div className="space-y-2">
-                  <Label htmlFor="create-name" className="text-sm font-medium">Nazwa zespołu</Label>
+                  <Label htmlFor="create-name" className="text-sm font-medium">Nazwa grupy</Label>
                   <Input
                     id="create-name"
                     value={formData.name}
                     onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="Wprowadź nazwę zespołu"
+                    placeholder="Wprowadź nazwę grupy"
                   />
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="create-description" className="text-sm font-medium">Opis zespołu</Label>
+                  <Label htmlFor="create-description" className="text-sm font-medium">Opis grupy</Label>
                   <Textarea
                     id="create-description"
                     value={formData.description}
                     onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="Opcjonalny opis zespołu"
+                    placeholder="Opcjonalny opis grupy"
                     className="min-h-[60px] resize-none"
                   />
                 </div>
                 
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">Wybierz managera zespołu</Label>
+                  <Label className="text-sm font-medium">Wybierz managera grupy</Label>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
@@ -150,7 +159,7 @@ export function CreateTeamSheet({ open, onOpenChange, teamMembers, onTeamCreated
                             ) : null
                           })()
                         ) : (
-                          <span className="text-muted-foreground">Wybierz managera zespołu</span>
+                          <span className="text-muted-foreground">Wybierz managera grupy</span>
                         )}
                         <ChevronDownIcon className="size-4 opacity-50" />
                       </Button>
@@ -205,7 +214,7 @@ export function CreateTeamSheet({ open, onOpenChange, teamMembers, onTeamCreated
                 className="h-9"
               >
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Utwórz zespół
+                Utwórz grupę
               </Button>
             </div>
           </div>

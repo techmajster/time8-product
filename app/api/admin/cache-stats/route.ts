@@ -1,19 +1,19 @@
 import { NextResponse } from 'next/server'
-import { getBasicAuth, requireRole } from '@/lib/auth-utils'
+import { authenticateAndGetOrgContext, requireRole } from '@/lib/auth-utils-v2'
 import { cache } from '@/lib/cache-utils'
 
 export async function GET() {
   try {
     // Authenticate and check admin permissions
-    const auth = await getBasicAuth()
+    const auth = await authenticateAndGetOrgContext()
     if (!auth.success) {
       return auth.error
     }
 
-    const { role } = auth
+    const { context } = auth
     
     // Only allow admins to view cache stats
-    const roleCheck = requireRole({ role } as any, ['admin'])
+    const roleCheck = requireRole(context, ['admin'])
     if (roleCheck) {
       return roleCheck
     }

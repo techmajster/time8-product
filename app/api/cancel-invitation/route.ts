@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { getBasicAuth, requireRole } from '@/lib/auth-utils'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { authenticateAndGetOrgContext, requireRole } from '@/lib/auth-utils-v2'
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('🚀 Cancel invitation API called')
     const { invitationId } = await request.json()
+    console.log('📋 Request payload:', { invitationId })
 
     if (!invitationId) {
+      console.error('❌ Missing invitation ID')
       return NextResponse.json(
         { error: 'Invitation ID is required' },
         { status: 400 }
@@ -14,23 +17,30 @@ export async function POST(request: NextRequest) {
     }
 
     // Authenticate and check permissions
-    const auth = await getBasicAuth()
+    console.log('🔐 Authenticating user...')
+    const auth = await authenticateAndGetOrgContext()
     if (!auth.success) {
+      console.error('❌ Authentication failed:', auth.error)
       return auth.error
     }
 
-    const { user, organizationId, role } = auth
+    const { context } = auth
+    const { user, organization, role } = context
+    const organizationId = organization.id
+    
+    console.log('✅ Authenticated:', { userId: user.id, organizationId, role })
     
     // Check if user has permission to cancel invitations
     const roleCheck = requireRole({ role } as any, ['admin', 'manager'])
     if (roleCheck) {
+      console.error('❌ Insufficient permissions:', { role })
       return roleCheck
     }
 
-    const supabase = await createClient()
+    const supabaseAdmin = createAdminClient()
 
     // Get the invitation to verify it belongs to the user's organization
-    const { data: invitation } = await supabase
+    const { data: invitation } = await supabaseAdmin
       .from('invitations')
       .select('id, organization_id, status, email')
       .eq('id', invitationId)
@@ -60,19 +70,23 @@ export async function POST(request: NextRequest) {
     }
 
     // Delete the invitation from the database
-    const { error: deleteError } = await supabase
+    console.log(`🗑️ Cancelling invitation ${invitationId} for ${invitation.email}`)
+    
+    const { error: deleteError } = await supabaseAdmin
       .from('invitations')
       .delete()
       .eq('id', invitationId)
 
     if (deleteError) {
-      console.error('Error deleting invitation:', deleteError)
+      console.error('❌ Error deleting invitation:', deleteError)
       return NextResponse.json(
         { error: 'Failed to cancel invitation' },
         { status: 500 }
       )
     }
 
+    console.log(`✅ Invitation to ${invitation.email} cancelled successfully`)
+    
     return NextResponse.json({
       success: true,
       message: `Invitation to ${invitation.email} has been cancelled and removed`

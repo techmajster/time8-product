@@ -83,53 +83,63 @@ export function ManagerTeamView({ teamMembers, leaveBalances }: ManagerTeamViewP
               </TableRow>
             </TableHeader>
             <TableBody>
-              {teamMembers.map((member) => {
-                const vacationDays = getLeaveBalance(member.id, 'Urlop wypoczynkowy')
-                const parentalDays = getLeaveBalance(member.id, 'Urlop NŻ') || getLeaveBalance(member.id, 'Urlop na żądanie')
-                
-                return (
-                  <TableRow key={member.id} className="h-[72px]">
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Avatar className="size-10">
-                          <AvatarImage src={member.avatar_url || undefined} />
-                          <AvatarFallback className="bg-muted text-sm font-medium">
-                            {getUserInitials(member)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <div className="font-medium text-foreground">
-                            {member.full_name || 'Bez nazwiska'}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            {member.email}
+              {teamMembers.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="h-16 text-center">
+                    <div className="text-muted-foreground">
+                      Brak członków w zespole
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                teamMembers.map((member) => {
+                  const vacationDays = getLeaveBalance(member.id, 'Urlop wypoczynkowy')
+                  const parentalDays = getLeaveBalance(member.id, 'Urlop NŻ') || getLeaveBalance(member.id, 'Urlop na żądanie')
+                  
+                  return (
+                    <TableRow key={member.id} className="h-[72px]">
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="size-10">
+                            <AvatarImage src={member.avatar_url || undefined} />
+                            <AvatarFallback className="bg-muted text-sm font-medium">
+                              {getUserInitials(member)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="font-medium text-foreground">
+                              {member.full_name || 'Bez nazwiska'}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {member.email}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-medium text-foreground">
-                        {member.teams?.name || 'UX'}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-medium text-foreground">
-                        Paweł Chróściak
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="text-foreground">
-                        {vacationDays} dni
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="text-foreground">
-                        {parentalDays} dni
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-medium text-foreground">
+                          {member.teams?.name || 'UX'}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-medium text-foreground">
+                          Paweł Chróściak
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="text-foreground">
+                          {vacationDays} dni
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="text-foreground">
+                          {parentalDays} dni
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })
+              )}
             </TableBody>
           </Table>
         </CardContent>

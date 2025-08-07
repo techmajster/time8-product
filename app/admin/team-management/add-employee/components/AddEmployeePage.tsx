@@ -13,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 
-import { DatePicker } from '@/components/ui/date-picker'
+import { DatePickerWithDropdowns } from '@/components/ui/date-picker'
 import { RadioGroup, RadioGroupItem, RadioGroupItemLabel, RadioGroupItemDescription } from '@/components/ui/radio-group'
 
 import { FigmaTabs, FigmaTabsContent, FigmaTabsList, FigmaTabsTrigger } from '../../components/FigmaTabs'
@@ -192,6 +192,7 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
 
   const handleTeamCreated = () => {
     // Refresh the page to get updated teams data
+    // Cache revalidation is handled by the API
     router.refresh()
   }
 
@@ -343,7 +344,7 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
   }
 
   const downloadCsvTemplate = () => {
-    const csvContent = 'email,imię_nazwisko,rola,zespół\njan.kowalski@example.com,Jan Kowalski,employee,Development\nanna.nowak@example.com,Anna Nowak,manager,Marketing'
+    const csvContent = 'email,imię_nazwisko,rola,grupa\njan.kowalski@example.com,Jan Kowalski,employee,Development\nanna.nowak@example.com,Anna Nowak,manager,Marketing'
     const blob = new Blob([csvContent], { type: 'text/csv' })
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -388,12 +389,12 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
         </div>
 
         {/* Content */}
-        <div className="mt-6">
-          <div className="max-w-4xl">
+        <div className="mt-6 overflow-visible">
+          <div className="max-w-4xl overflow-visible">
             <FigmaTabsContent value="pojedynczy" className="mt-0">
-              <div className="flex flex-col gap-6 max-w-[960px]">
+              <div className="flex flex-col gap-6 max-w-[960px] overflow-visible">
                 {/* Personal Data Card */}
-                <Card className="border border-neutral-200 rounded-[10px] shadow-sm py-0 gap-0">
+                <Card className="border border-neutral-200 rounded-[10px] shadow-sm py-0 gap-0 overflow-visible">
                   <CardHeader className="pb-4 pt-6 px-6">
                     <div className="flex justify-between items-center">
                       <div className="flex flex-col gap-1.5">
@@ -404,7 +405,7 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent className="pt-0 pb-6 px-6">
+                  <CardContent className="pt-0 pb-6 px-6 overflow-visible">
                     <div className="flex flex-col gap-6">
                       <div className="w-[400px] space-y-2">
                         <Label htmlFor="full_name" className="text-sm font-medium text-neutral-950">
@@ -437,9 +438,20 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                         <Label className="text-sm font-medium text-neutral-950">
                           Data urodzenia
                         </Label>
-                        <DatePicker
-                          value={formData.birth_date ? new Date(formData.birth_date) : undefined}
-                          onDateChange={(date) => handleInputChange('birth_date', date?.toISOString().split('T')[0] || '')}
+                        <DatePickerWithDropdowns
+                          value={formData.birth_date ? new Date(formData.birth_date + 'T00:00:00') : undefined}
+                          onDateChange={(date) => {
+                            if (!date) {
+                              handleInputChange('birth_date', '')
+                              return
+                            }
+                            // Format date in local timezone to avoid off-by-one errors
+                            const year = date.getFullYear()
+                            const month = String(date.getMonth() + 1).padStart(2, '0')
+                            const day = String(date.getDate()).padStart(2, '0')
+                            const localDateString = `${year}-${month}-${day}`
+                            handleInputChange('birth_date', localDateString)
+                          }}
                           placeholder="Wybierz datę"
                           className="h-9 border-neutral-200 shadow-sm"
                         />
@@ -449,7 +461,7 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                 </Card>
 
                 {/* Leave Balances Card */}
-                <Card className="border border-neutral-200 rounded-[10px] shadow-sm py-0 gap-0">
+                <Card className="border border-neutral-200 rounded-[10px] shadow-sm py-0 gap-0 overflow-visible">
                   <CardHeader className="pb-4 pt-6 px-6">
                     <div className="flex justify-between items-center">
                       <div className="flex flex-col gap-1.5">
@@ -460,7 +472,7 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent className="pt-0 pb-6 px-6">
+                  <CardContent className="pt-0 pb-6 px-6 overflow-visible">
                     <div className="w-full">
                       <div className="grid grid-cols-3 gap-0">
                         {/* Table Headers */}
@@ -507,15 +519,15 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                 </Card>
 
                 {/* Role and Team Card */}
-                <Card className="border border-neutral-200 rounded-[10px] shadow-sm py-0 gap-0">
+                <Card className="border border-neutral-200 rounded-[10px] shadow-sm py-0 gap-0 overflow-visible">
                   <CardHeader className="pb-4 pt-6 px-6">
                     <div className="flex justify-between items-center">
                       <div className="flex flex-col gap-1.5">
                         <div className="flex items-center gap-2">
-                          <h2 className="text-xl font-semibold text-neutral-950">Rola i zespół</h2>
+                          <h2 className="text-xl font-semibold text-neutral-950">Rola i grupa</h2>
                         </div>
                         <p className="text-sm text-neutral-500">
-                          Wybierz zespół do którego zostanie przypisany nowy pracownik
+                          Wybierz grupę do której zostanie przypisany nowy pracownik
                         </p>
                       </div>
                       <div className="flex items-center gap-3">
@@ -526,12 +538,12 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                           onClick={() => setIsCreateTeamOpen(true)}
                         >
                           <Plus className="h-4 w-4 mr-2" />
-                          <span className="text-sm font-medium text-neutral-900">Dodaj nowy zespół</span>
+                          <span className="text-sm font-medium text-neutral-900">Dodaj nową grupę</span>
                         </Button>
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent className="pt-0 pb-6 px-6">
+                  <CardContent className="pt-0 pb-6 px-6 overflow-visible">
                     <div className="flex flex-col gap-6">
                       <div className="w-[400px] space-y-2">
                         <Label className="text-sm font-medium text-neutral-950">Rola</Label>
@@ -539,7 +551,7 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                           <SelectTrigger className="h-9 border-neutral-200 shadow-sm">
                             <SelectValue placeholder="Pracownik" />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent className="z-[9999]">
                             <SelectItem value="employee">Pracownik</SelectItem>
                             <SelectItem value="manager">Menedżer</SelectItem>
                             <SelectItem value="admin">Administrator</SelectItem>
@@ -553,6 +565,10 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                         <Label className="text-sm font-medium text-neutral-950">Zespół</Label>
                         <RadioGroup value={formData.team_id} onValueChange={(value) => handleInputChange('team_id', value)} style="box">
                           <div className="flex flex-col gap-3">
+                            <RadioGroupItem value="">
+                              <RadioGroupItemLabel>Bez przypisania do grupy</RadioGroupItemLabel>
+                              <RadioGroupItemDescription>Pracownik nie będzie przypisany do żadnej grupy</RadioGroupItemDescription>
+                            </RadioGroupItem>
                             {teams.map((team) => (
                               <RadioGroupItem key={team.id} value={team.id}>
                                 <RadioGroupItemLabel>{team.name}</RadioGroupItemLabel>
@@ -567,7 +583,7 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                 </Card>
 
                 {/* Work Schedule Card */}
-                <Card className="border border-neutral-200 rounded-[10px] shadow-sm py-0 gap-0">
+                <Card className="border border-neutral-200 rounded-[10px] shadow-sm py-0 gap-0 overflow-visible">
                   <CardHeader className="pb-4 pt-6 px-6">
                     <div className="flex justify-between items-center">
                       <div className="flex flex-col gap-1.5">
@@ -578,7 +594,7 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent className="pt-0 pb-6 px-6">
+                  <CardContent className="pt-0 pb-6 px-6 overflow-visible">
                     <RadioGroup value={formData.work_schedule} onValueChange={(value) => handleInputChange('work_schedule', value)} style="box">
                       <div className="flex flex-col gap-3">
                         <RadioGroupItem value="traditional">
@@ -628,16 +644,16 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
             </FigmaTabsContent>
             
             <FigmaTabsContent value="masowy" className="mt-0">
-              <div className="flex flex-col gap-6 max-w-[960px]">
+              <div className="flex flex-col gap-6 max-w-[960px] overflow-visible">
                 {/* Default Settings Card */}
-                <Card className="border border-neutral-200 rounded-[10px] shadow-sm py-0 gap-0">
+                <Card className="border border-neutral-200 rounded-[10px] shadow-sm py-0 gap-0 overflow-visible">
                   <CardHeader className="pb-4 pt-6 px-6">
                     <CardTitle className="text-xl font-semibold text-neutral-950">Domyślne ustawienia</CardTitle>
                     <CardDescription className="text-sm text-neutral-500">
                       Te ustawienia będą stosowane do wszystkich nowych pracowników
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="pt-0 pb-6 px-6">
+                  <CardContent className="pt-0 pb-6 px-6 overflow-visible">
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Domyślna rola</Label>
@@ -649,7 +665,7 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                           <SelectTrigger className="h-9 border-neutral-200 shadow-sm">
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent className="z-[9999]">
                             <SelectItem value="employee">Pracownik</SelectItem>
                             <SelectItem value="manager">Menedżer</SelectItem>
                             <SelectItem value="admin">Administrator</SelectItem>
@@ -658,17 +674,17 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                       </div>
 
                       <div className="space-y-2">
-                        <Label>Domyślny zespół</Label>
+                        <Label>Domyślna grupa</Label>
                         <Select
                           value={bulkDefaults.team_id}
                           onValueChange={(value) => setBulkDefaults(prev => ({ ...prev, team_id: value }))}
                           disabled={loading}
                         >
                           <SelectTrigger className="h-9 border-neutral-200 shadow-sm">
-                            <SelectValue placeholder="Wybierz zespół" />
+                            <SelectValue placeholder="Wybierz grupę" />
                           </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="no-team">Bez zespołu</SelectItem>
+                          <SelectContent className="z-[9999]">
+                            <SelectItem value="no-team">Bez grupy</SelectItem>
                             {teams.map((team) => (
                               <SelectItem key={team.id} value={team.id}>
                                 {team.name}
@@ -706,7 +722,7 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                 </Card>
 
                 {/* Employee List Card */}
-                <Card className="border border-neutral-200 rounded-[10px] shadow-sm py-0 gap-0">
+                <Card className="border border-neutral-200 rounded-[10px] shadow-sm py-0 gap-0 overflow-visible">
                   <CardHeader className="pb-4 pt-6 px-6">
                     <div className="flex justify-between items-center">
                       <div>
@@ -725,7 +741,7 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                       </Button>
                     </div>
                   </CardHeader>
-                  <CardContent className="pt-0 pb-6 px-6">
+                  <CardContent className="pt-0 pb-6 px-6 overflow-visible">
                     <div className="space-y-3">
                       {bulkEmployees.map((employee, index) => (
                         <Card key={index} className="p-4 border border-neutral-200">
@@ -782,7 +798,7 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                                   <SelectValue placeholder="Wybierz" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="no-team">Bez zespołu</SelectItem>
+                                  <SelectItem value="no-team">Bez grupy</SelectItem>
                                   {teams.map((team) => (
                                     <SelectItem key={team.id} value={team.id}>
                                       {team.name}
@@ -841,15 +857,15 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
             </FigmaTabsContent>
             
             <FigmaTabsContent value="import-csv" className="mt-0">
-              <div className="flex flex-col gap-6 max-w-[960px]">
+              <div className="flex flex-col gap-6 max-w-[960px] overflow-visible">
                 {/* CSV Import Card */}
-                <Card className="border border-neutral-200 rounded-[10px] shadow-sm py-0 gap-0">
+                <Card className="border border-neutral-200 rounded-[10px] shadow-sm py-0 gap-0 overflow-visible">
                   <CardHeader className="pb-4 pt-6 px-6">
                     <div className="flex justify-between items-center">
                       <div>
                         <CardTitle className="text-xl font-semibold text-neutral-950">Import CSV</CardTitle>
                         <CardDescription className="text-sm text-neutral-500">
-                          Wklej dane CSV lub skopiuj z arkusza kalkulacyjnego. Format: email,imię_nazwisko,rola,zespół
+                          Wklej dane CSV lub skopiuj z arkusza kalkulacyjnego. Format: email,imię_nazwisko,rola,grupa
                         </CardDescription>
                       </div>
                       <Button
@@ -864,7 +880,7 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                       </Button>
                     </div>
                   </CardHeader>
-                  <CardContent className="pt-0 pb-6 px-6 space-y-4">
+                  <CardContent className="pt-0 pb-6 px-6 space-y-4 overflow-visible">
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Domyślna rola dla importu</Label>
@@ -876,7 +892,7 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                           <SelectTrigger className="h-9 border-neutral-200 shadow-sm">
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent className="z-[9999]">
                             <SelectItem value="employee">Pracownik</SelectItem>
                             <SelectItem value="manager">Menedżer</SelectItem>
                             <SelectItem value="admin">Administrator</SelectItem>
@@ -885,17 +901,17 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                       </div>
 
                       <div className="space-y-2">
-                        <Label>Domyślny zespół</Label>
+                        <Label>Domyślna grupa</Label>
                         <Select
                           value={bulkDefaults.team_id}
                           onValueChange={(value) => setBulkDefaults(prev => ({ ...prev, team_id: value }))}
                           disabled={loading}
                         >
                           <SelectTrigger className="h-9 border-neutral-200 shadow-sm">
-                            <SelectValue placeholder="Wybierz zespół" />
+                            <SelectValue placeholder="Wybierz grupę" />
                           </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="no-team">Bez zespołu</SelectItem>
+                          <SelectContent className="z-[9999]">
+                            <SelectItem value="no-team">Bez grupy</SelectItem>
                             {teams.map((team) => (
                               <SelectItem key={team.id} value={team.id}>
                                 {team.name}
@@ -909,7 +925,7 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                     <div className="space-y-2">
                       <Label>Dane CSV</Label>
                       <Textarea
-                        placeholder="email,imię_nazwisko,rola,zespół&#10;jan.kowalski@example.com,Jan Kowalski,employee,Development&#10;anna.nowak@example.com,Anna Nowak,manager,Marketing"
+                        placeholder="email,imię_nazwisko,rola,grupa&#10;jan.kowalski@example.com,Jan Kowalski,employee,Development&#10;anna.nowak@example.com,Anna Nowak,manager,Marketing"
                         value={csvContent}
                         onChange={(e) => setCsvContent(e.target.value)}
                         disabled={loading}
@@ -947,13 +963,13 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
 
                 {/* Preview Card */}
                 {csvEmployees.length > 0 && (
-                  <Card className="border border-neutral-200 rounded-[10px] shadow-sm py-0 gap-0">
+                  <Card className="border border-neutral-200 rounded-[10px] shadow-sm py-0 gap-0 overflow-visible">
                     <CardHeader className="pb-4 pt-6 px-6">
                       <CardTitle className="text-xl font-semibold text-neutral-950">
                         Podgląd importu ({csvEmployees.length} pracowników)
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="pt-0 pb-6 px-6">
+                    <CardContent className="pt-0 pb-6 px-6 overflow-visible">
                       <div className="space-y-2">
                         {csvEmployees.slice(0, 10).map((employee, index) => (
                           <div key={index} className="flex items-center justify-between p-2 bg-muted rounded text-xs">
@@ -981,11 +997,11 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
 
                 {/* Results */}
                 {(success || error || results.length > 0 || errors.length > 0) && (
-                  <Card className="border border-neutral-200 rounded-[10px] shadow-sm py-0 gap-0">
+                  <Card className="border border-neutral-200 rounded-[10px] shadow-sm py-0 gap-0 overflow-visible">
                     <CardHeader className="pb-4 pt-6 px-6">
                       <CardTitle className="text-xl font-semibold text-neutral-950">Wyniki przetwarzania</CardTitle>
                     </CardHeader>
-                    <CardContent className="pt-0 pb-6 px-6 space-y-4">
+                    <CardContent className="pt-0 pb-6 px-6 space-y-4 overflow-visible">
                       {success && (
                         <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
                           <p className="text-sm text-green-800">{success}</p>

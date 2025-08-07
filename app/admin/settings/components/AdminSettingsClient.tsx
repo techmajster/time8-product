@@ -208,6 +208,34 @@ export default function AdminSettingsClient({
     }
   }
 
+  const handleCreateDefaults = async () => {
+    setLoading(true)
+
+    try {
+      const response = await fetch('/api/admin/create-default-leave-types', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Nie udało się utworzyć domyślnych rodzajów urlopów')
+      }
+
+      toast.success('Domyślne rodzaje urlopów zostały utworzone!')
+      router.refresh()
+
+    } catch (error) {
+      console.error('Error creating default leave types:', error)
+      toast.error(error instanceof Error ? error.message : 'Wystąpił błąd podczas tworzenia domyślnych rodzajów urlopów')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const getUserInitials = (name: string, email: string) => {
     if (name && name !== email?.split('@')[0]) {
       return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
@@ -468,6 +496,14 @@ export default function AdminSettingsClient({
                       </CardDescription>
                     </div>
                     <div className="flex items-center gap-3">
+                      <Button 
+                        variant="outline" 
+                        onClick={handleCreateDefaults}
+                        disabled={loading}
+                        className="h-9 px-4 rounded-lg border-neutral-200 bg-white text-neutral-900"
+                      >
+                        {loading ? 'Tworzenie...' : 'Utwórz domyślne rodzaje urlopów'}
+                      </Button>
                       <Button className="bg-neutral-900 text-neutral-50 h-9 px-4 rounded-lg shadow-sm">
                         <Plus className="h-4 w-4 mr-2" />
                         Dodaj rodzaj urlopu
