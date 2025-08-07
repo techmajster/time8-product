@@ -1,6 +1,6 @@
 'use client'
 
-import { getCLS, getFID, getFCP, getLCP, getTTFB, onCLS, onFID, onFCP, onINP, onLCP, onTTFB } from 'web-vitals'
+import { onCLS, onFCP, onINP, onLCP, onTTFB } from 'web-vitals'
 
 export interface PerformanceMetric {
   name: string
@@ -13,9 +13,8 @@ export interface PerformanceMetric {
 
 export interface WebVitalsReport {
   cls: number
-  fid: number | null
-  fcp: number
   inp: number | null
+  fcp: number
   lcp: number
   ttfb: number
   timestamp: number
@@ -44,7 +43,6 @@ class WebVitalsMonitor {
   private initializeMonitoring() {
     // Monitor Core Web Vitals
     onCLS(this.handleMetric.bind(this))
-    onFID(this.handleMetric.bind(this))
     onFCP(this.handleMetric.bind(this))
     onINP(this.handleMetric.bind(this))
     onLCP(this.handleMetric.bind(this))
@@ -91,7 +89,6 @@ class WebVitalsMonitor {
   private queueReport(metric: PerformanceMetric) {
     const report: WebVitalsReport = {
       cls: metric.name === 'CLS' ? metric.value : this.metrics.get('CLS')?.value || 0,
-      fid: metric.name === 'FID' ? metric.value : this.metrics.get('FID')?.value || null,
       fcp: metric.name === 'FCP' ? metric.value : this.metrics.get('FCP')?.value || 0,
       inp: metric.name === 'INP' ? metric.value : this.metrics.get('INP')?.value || null,
       lcp: metric.name === 'LCP' ? metric.value : this.metrics.get('LCP')?.value || 0,
@@ -286,33 +283,18 @@ class WebVitalsMonitor {
   }
 
   public async getPerformanceReport(): Promise<WebVitalsReport | null> {
-    return new Promise((resolve) => {
-      // Collect all metrics
-      Promise.all([
-        new Promise<number>((resolve) => getCLS(resolve)),
-        new Promise<number | null>((resolve) => getFID((metric) => resolve(metric?.value || null))),
-        new Promise<number>((resolve) => getFCP(resolve)),
-        new Promise<number>((resolve) => getLCP(resolve)),
-        new Promise<number>((resolve) => getTTFB(resolve)),
-      ]).then(([cls, fid, fcp, lcp, ttfb]) => {
-        resolve({
-          cls,
-          fid,
-          fcp,
-          inp: null, // INP is collected asynchronously
-          lcp,
-          ttfb,
-          timestamp: Date.now(),
-          url: window.location.href,
-          userAgent: navigator.userAgent,
-          connectionType: this.getConnectionType(),
-          organizationId: this.getOrganizationId(),
-          userId: this.getUserId()
-        })
-      }).catch(() => {
-        resolve(null)
-      })
-    })
+    // Return current metrics from the stored values
+    return {
+      cls: this.metrics.get('CLS')?.value || 0,
+      fcp: this.metrics.get('FCP')?.value || 0,
+      inp: this.metrics.get('INP')?.value || null,
+      lcp: this.metrics.get('LCP')?.value || 0,
+      ttfb: this.metrics.get('TTFB')?.value || 0,
+      timestamp: Date.now(),
+      url: window.location.href,
+      userAgent: navigator.userAgent,
+      connectionType: this.getConnectionType(),
+    }
   }
 
   public markCustomMetric(name: string, startTime?: number) {
