@@ -4,6 +4,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { cookies } from 'next/headers';
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
+import { QueryProvider } from "@/components/providers/QueryProvider";
 import { LeaveRequestProvider } from "@/components/providers/LeaveRequestProvider";
 import { GlobalLeaveRequestSheet } from "@/components/GlobalLeaveRequestSheet";
 
@@ -59,18 +60,20 @@ export default async function RootLayout({
   return (
     <html lang={locale} suppressHydrationWarning>
       <body className={`${geist.variable} ${geistMono.variable}`}>
-        <ThemeProvider>
-          <LeaveRequestProvider>
-            <NextIntlClientProvider 
-              locale={locale} 
-              messages={messages}
-              >
-                {children}
-                <Toaster />
-                <GlobalLeaveRequestSheet />
-            </NextIntlClientProvider>
-          </LeaveRequestProvider>
-        </ThemeProvider>
+        <QueryProvider>
+          <ThemeProvider>
+            <LeaveRequestProvider>
+              <NextIntlClientProvider 
+                locale={locale} 
+                messages={messages}
+                >
+                  {children}
+                  <Toaster />
+                  <GlobalLeaveRequestSheet />
+              </NextIntlClientProvider>
+            </LeaveRequestProvider>
+          </ThemeProvider>
+        </QueryProvider>
       </body>
     </html>
   );

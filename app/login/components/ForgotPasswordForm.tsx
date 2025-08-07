@@ -32,10 +32,18 @@ export function ForgotPasswordForm({ onModeChange, className }: ForgotPasswordFo
     try {
       const supabase = createClient()
       
-      // Use environment variables in order of preference, fallback to current origin
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
-                     process.env.NEXT_PUBLIC_SITE_URL || 
-                     (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000')
+      // Use current window origin for development, env vars for production
+      let baseUrl: string
+      
+      if (typeof window !== 'undefined') {
+        // In browser, use current origin (handles port 3001 vs 3000 automatically)
+        baseUrl = window.location.origin
+      } else {
+        // Fallback for SSR
+        baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
+                  process.env.NEXT_PUBLIC_SITE_URL || 
+                  'http://localhost:3000'
+      }
       
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${baseUrl}/login?mode=reset-password`,

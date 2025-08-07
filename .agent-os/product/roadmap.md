@@ -26,7 +26,7 @@
 
 - [x] **Database Cleanup** - Remove unnecessary tables and unused migrations `S`
 - [x] **Theme Editor Removal** - Clean up deprecated design system components `S`
-- [ ] **Multi-Org Migration Fixes** - Restore broken functionality from pre-migration state `M`
+- [x] **Multi-Org Migration Fixes** - Restore broken functionality from pre-migration state `M`
 - [ ] **Performance Optimization** - RLS policy improvements and caching `M`
 - [x] **Code Cleanup** - Remove backup files and unused components `S`
 

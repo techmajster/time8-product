@@ -160,14 +160,17 @@ export async function AppLayout({ children }: AppLayoutProps) {
       })
       
       // Transform employees data to match expected format
-      employees = employeesData?.map(item => ({
-        id: item.profiles?.id || item.user_id,
-        email: item.profiles?.email || '',
-        full_name: item.profiles?.full_name,
-        avatar_url: item.profiles?.avatar_url,
-        role: item.role,
-        team_id: item.team_id
-      })) || []
+      employees = employeesData?.map((item: any) => {
+        const profile = Array.isArray(item.profiles) ? item.profiles[0] : item.profiles
+        return {
+          id: profile?.id || item.user_id,
+          email: profile?.email || '',
+          full_name: profile?.full_name,
+          avatar_url: profile?.avatar_url,
+          role: item.role,
+          team_id: item.team_id
+        }
+      }) || []
     }
   }
 

@@ -5,7 +5,11 @@ export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
   const invitationId = requestUrl.searchParams.get('invitation_id')
-  const origin = requestUrl.origin
+  
+  // Use NEXT_PUBLIC_APP_URL if available, otherwise fall back to request origin
+  // This ensures consistent redirects regardless of which port the request came from
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || requestUrl.origin
+  const origin = baseUrl
 
   console.log('🔐 Auth callback received:', { code: !!code, invitationId, origin })
 

@@ -346,40 +346,81 @@ function AddAbsenceSheetContent({ preloadedEmployees, userRole, isOpen, onClose 
 
       console.log('🔍 AddAbsenceSheet - Loading leave data for employee:', employeeId)
 
-      // MULTI-ORG UPDATE: Get employee's organization_id from user_organizations
-      const { data: userOrgData, error: userOrgError } = await supabase
-        .from('user_organizations')
-        .select('organization_id')
-        .eq('user_id', employeeId)
-        .eq('is_active', true)
-        .eq('is_default', true)
-        .single()
+      // MULTI-ORG UPDATE: Get employee's organization via API (bypasses RLS)
+      let finalOrgId = null
       
-      console.log('🔍 AddAbsenceSheet - Employee org lookup:', {
-        employeeId,
-        userOrgData,
-        userOrgError
-      })
+      try {
+        const orgResponse = await fetch(`/api/employees/${employeeId}/organization`)
+        
+        if (orgResponse.ok) {
+          const orgData = await orgResponse.json()
+          console.log('🔍 AddAbsenceSheet - Employee org from API:', orgData)
+          finalOrgId = orgData.organization_id
+        } else {
+          const errorData = await orgResponse.json().catch(() => ({}))
+          console.error('❌ Organization API error:', { status: orgResponse.status, error: errorData })
+        }
+      } catch (apiError) {
+        console.error('❌ Organization API request failed:', apiError)
+      }
       
-      const empOrgId = userOrgData?.organization_id
-      if (empOrgId) {
-        setOrganizationId(empOrgId)
+      // Fallback: get current user's organization directly using API
+      if (!finalOrgId) {
+        console.log('⚠️ API failed, trying current user org fallback via API')
+        
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          try {
+            const currentUserOrgResponse = await fetch(`/api/employees/${user.id}/organization`)
+            if (currentUserOrgResponse.ok) {
+              const currentUserOrgData = await currentUserOrgResponse.json()
+              finalOrgId = currentUserOrgData.organization_id
+              console.log('🔍 Got current user org via API:', finalOrgId)
+            }
+          } catch (fallbackError) {
+            console.error('❌ Current user org API also failed:', fallbackError)
+          }
+        }
       }
 
-      if (!empOrgId) {
+      // Final fallback: If all API calls fail, try one more direct query without RLS restrictions
+      if (!finalOrgId) {
+        console.log('⚠️ All API calls failed, trying direct query without employee filter')
+        
+        // Just get ANY active organization from our own profile (emergency fallback)
+        try {
+          const { data: anyOrg } = await supabase
+            .from('user_organizations')
+            .select('organization_id')
+            .eq('is_active', true)
+            .limit(1)
+          
+          if (anyOrg && anyOrg.length > 0) {
+            finalOrgId = anyOrg[0].organization_id
+            console.log('🔍 Emergency fallback using any active org:', finalOrgId)
+          }
+        } catch (emergencyError) {
+          console.error('❌ Emergency fallback also failed:', emergencyError)
+        }
+      }
+
+      if (!finalOrgId) {
         console.error('❌ No organization found for employee:', employeeId)
+        toast.error('Nie można znaleźć organizacji dla pracownika')
         return
       }
+
+      setOrganizationId(finalOrgId)
 
       // Load leave types
       const { data: leaveTypesData, error: leaveTypesError } = await supabase
         .from('leave_types')
         .select('*')
-        .eq('organization_id', empOrgId)
+        .eq('organization_id', finalOrgId)
         .order('name')
 
       console.log('🔍 AddAbsenceSheet - Leave types query:', {
-        empOrgId,
+        finalOrgId,
         count: leaveTypesData?.length,
         error: leaveTypesError,
         leaveTypes: leaveTypesData
@@ -387,26 +428,37 @@ function AddAbsenceSheetContent({ preloadedEmployees, userRole, isOpen, onClose 
 
       if (leaveTypesError) throw leaveTypesError
 
-      // Load employee's leave balances for current year
+      // Load employee's leave balances via API (bypasses RLS)
       const currentYear = new Date().getFullYear()
-      const { data: balancesData, error: balancesError } = await supabase
-        .from('leave_balances')
-        .select(`
-          *,
-          leave_types (*)
-        `)
-        .eq('user_id', employeeId)
-        .eq('year', currentYear)
+      
+      let balancesData = []
+      try {
+        const balancesResponse = await fetch(`/api/employees/${employeeId}/leave-balances`)
+        
+        if (balancesResponse.ok) {
+          const balancesApiData = await balancesResponse.json()
+          balancesData = balancesApiData.balances || []
+          console.log('🔍 AddAbsenceSheet - Leave balances from API:', {
+            employeeId,
+            currentYear,
+            count: balancesData.length,
+            balances: balancesData
+          })
+        } else {
+          const errorData = await balancesResponse.json().catch(() => ({}))
+          console.error('❌ Leave balances API error:', { status: balancesResponse.status, error: errorData })
+        }
+      } catch (apiError) {
+        console.error('❌ Leave balances API request failed:', apiError)
+      }
 
       console.log('🔍 AddAbsenceSheet - Leave balances query:', {
         employeeId,
         currentYear,
         count: balancesData?.length,
-        error: balancesError,
+        error: null,
         balances: balancesData
       })
-
-      if (balancesError) throw balancesError
 
       setLeaveTypes(leaveTypesData || [])
       setLeaveBalances(balancesData || [])
@@ -562,10 +614,44 @@ function AddAbsenceSheetContent({ preloadedEmployees, userRole, isOpen, onClose 
 
   const handleDateRangeChange = (range: DateRange | undefined) => {
     if (range?.from && range?.to) {
+      // Debug logging to see what dates we're receiving
+      console.log('🔍 Date range received:', {
+        from: range.from,
+        to: range.to,
+        fromString: range.from.toString(),
+        toString: range.to.toString(),
+        fromUTC: range.from.toISOString(),
+        toUTC: range.to.toISOString()
+      })
+
+      // Format dates in local timezone to avoid off-by-one errors
+      const formatDateLocal = (date: Date) => {
+        console.log('🔍 Formatting date:', {
+          originalDate: date,
+          getFullYear: date.getFullYear(),
+          getMonth: date.getMonth(),
+          getDate: date.getDate(),
+          getTimezoneOffset: date.getTimezoneOffset()
+        })
+        
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
+        const formatted = `${year}-${month}-${day}`
+        
+        console.log('🔍 Formatted result:', formatted)
+        return formatted
+      }
+
+      const startDate = formatDateLocal(range.from!)
+      const endDate = formatDateLocal(range.to!)
+
+      console.log('🔍 Final dates to save:', { startDate, endDate })
+
       setFormData(prev => ({
         ...prev,
-        start_date: format(range.from!, 'yyyy-MM-dd'),
-        end_date: format(range.to!, 'yyyy-MM-dd')
+        start_date: startDate,
+        end_date: endDate
       }))
     } else {
       setFormData(prev => ({

@@ -114,24 +114,38 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
       const year = currentDate.getFullYear()
       const month = currentDate.getMonth() + 1
 
-      console.log('🔍 Fetching holidays for:', { year, month, organizationId, countryCode })
+      console.log('🔍 Fetching holidays via API:', { year, month, countryCode })
 
-      const { data, error } = await supabase
-        .from('company_holidays')
-        .select('*')
-        .or(`organization_id.eq.${organizationId},and(type.eq.national,organization_id.is.null,country_code.eq.${countryCode})`)
-        .gte('date', `${year}-${month.toString().padStart(2, '0')}-01`)
-        .lte('date', `${year}-${month.toString().padStart(2, '0')}-31`)
+      const params = new URLSearchParams({
+        year: year.toString(),
+        month: month.toString(),
+        country_code: countryCode
+      })
 
-      if (error) {
-        console.error('❌ Error fetching holidays:', error)
-      } else {
-        console.log('📅 Fetched holidays:', data)
+      console.log('🔍 Making holidays API request to:', `/api/calendar/holidays?${params}`)
+      
+      const response = await fetch(`/api/calendar/holidays?${params}`)
+      
+      console.log('🔍 Holidays API response status:', response.status, response.statusText)
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('❌ Error fetching holidays from API:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorText,
+          url: `/api/calendar/holidays?${params}`
+        })
+        setHolidays([])
+        return
       }
 
-      setHolidays(data || [])
+      const holidays = await response.json()
+      console.log('📅 Fetched holidays from API:', holidays)
+      setHolidays(holidays)
     } catch (error) {
-      console.error('Error fetching holidays:', error)
+      console.error('❌ Error fetching holidays:', error)
+      setHolidays([])
     }
   }
 
@@ -140,118 +154,65 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
       const year = currentDate.getFullYear()
       const month = currentDate.getMonth() + 1
       const startOfMonth = `${year}-${month.toString().padStart(2, '0')}-01`
-      const endOfMonth = `${year}-${month.toString().padStart(2, '0')}-31`
+      // Get the last day of the month properly
+      const lastDayOfMonth = new Date(year, month, 0).getDate()
+      const endOfMonth = `${year}-${month.toString().padStart(2, '0')}-${lastDayOfMonth.toString().padStart(2, '0')}`
 
       console.log('🔍 Fetching leave requests:', { year, month, startOfMonth, endOfMonth, organizationId, userId, teamScope: teamScope.type })
 
-      // Fetch leave requests filtered by team members
-      const { data: leaveData, error } = await supabase
-        .from('leave_requests')
-        .select(`
-          id,
-          user_id,
-          start_date,
-          end_date,
-          status,
-          organization_id,
-          leave_type_id
-        `)
-        .eq('status', 'approved')
-        .in('user_id', teamMemberIds)
-        .or(`start_date.lte.${endOfMonth},end_date.gte.${startOfMonth}`)
-
-      if (error) {
-        console.error('❌ Error fetching leave requests:', {
-          error,
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code
+      // Use calendar-specific API endpoint with filtering parameters
+      const params = new URLSearchParams({
+        start_date: startOfMonth,
+        end_date: endOfMonth,
+        team_member_ids: teamMemberIds.join(',')
+      })
+      
+      console.log('🔍 Making leave requests API request to:', `/api/calendar/leave-requests?${params}`)
+      
+      const response = await fetch(`/api/calendar/leave-requests?${params}`)
+      
+      console.log('🔍 Leave requests API response status:', response.status, response.statusText)
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('❌ Error fetching calendar leave requests:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorText,
+          url: `/api/calendar/leave-requests?${params}`
         })
         setLeaveRequests([])
         return
       }
 
-      // If we have leave requests, fetch additional data
+      const leaveData = await response.json()
+
+      // Process leave requests data (already enriched from API)
       if (leaveData && leaveData.length > 0) {
-        console.log('📝 Basic leave requests:', leaveData)
+        console.log('📝 Calendar leave requests from API:', leaveData)
         
-        // Get unique user IDs and leave type IDs
-        const userIds = [...new Set(leaveData.map(leave => leave.user_id))]
-        const leaveTypeIds = [...new Set(leaveData.map(leave => leave.leave_type_id))]
-        
-        console.log('🔍 User IDs to fetch:', userIds)
-        console.log('🔍 Leave type IDs to fetch:', leaveTypeIds)
-
-        // Fetch profiles with correct column names (already filtered by team)
-        const { data: profilesData, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id, full_name, email, avatar_url, organization_id')
-          .in('id', userIds)
-
-        if (profilesError) {
-          console.error('❌ Error fetching profiles:', {
-            error: profilesError,
-            message: profilesError.message,
-            details: profilesError.details,
-            hint: profilesError.hint,
-            code: profilesError.code
-          })
-        } else {
-          console.log('📝 Fetched profiles:', profilesData)
-        }
-
-        // Fetch leave types from organization (note: no icon column exists)
-        const { data: leaveTypesData, error: leaveTypesError } = await supabase
-          .from('leave_types')
-          .select('id, name, color')
-          .eq('organization_id', organizationId)
-          .in('id', leaveTypeIds)
-
-        if (leaveTypesError) {
-          console.error('❌ Error fetching leave types:', {
-            error: leaveTypesError,
-            message: leaveTypesError.message,
-            details: leaveTypesError.details,
-            hint: leaveTypesError.hint,
-            code: leaveTypesError.code
-          })
-        } else {
-          console.log('📝 Fetched leave types:', leaveTypesData)
-        }
-
-        // Combine the data
-        const enrichedData = leaveData.map(leave => {
-          const profile = profilesData?.find(profile => profile.id === leave.user_id)
-          return {
-            ...leave,
-            profiles: profile ? {
-              id: profile.id,
-              first_name: profile.full_name?.split(' ')[0] || 'Unknown',
-              last_name: profile.full_name?.split(' ').slice(1).join(' ') || 'User',
-              full_name: profile.full_name || 'Unknown User',
-              email: profile.email || '',
-              avatar_url: profile.avatar_url
-            } : {
-              id: leave.user_id,
-              first_name: 'Unknown',
-              last_name: 'User',
-              full_name: 'Unknown User',
-              email: '',
-              avatar_url: null
-            },
-            leave_types: leaveTypesData?.find(type => type.id === leave.leave_type_id) || {
-              id: leave.leave_type_id,
-              name: 'Urlop',
-              color: '#3b82f6'
-            }
+        // Transform to match expected calendar format
+        const transformedData = leaveData.map((leave: any) => ({
+          ...leave,
+          profiles: {
+            id: leave.profiles?.id || leave.user_id,
+            first_name: leave.profiles?.full_name?.split(' ')[0] || 'Unknown',
+            last_name: leave.profiles?.full_name?.split(' ').slice(1).join(' ') || 'User',
+            full_name: leave.profiles?.full_name || 'Unknown User',
+            email: leave.profiles?.email || '',
+            avatar_url: leave.profiles?.avatar_url || null
+          },
+          leave_types: {
+            id: leave.leave_types?.id || leave.leave_type_id,
+            name: leave.leave_types?.name || 'Unknown Type',
+            color: leave.leave_types?.color || '#6b7280'
           }
-        })
+        }))
 
-        console.log('📝 Final enriched leave requests:', enrichedData)
-        setLeaveRequests(enrichedData as any)
+        console.log('✅ Transformed calendar leave requests:', transformedData)
+        setLeaveRequests(transformedData)
       } else {
-        console.log('📝 No leave requests found')
+        console.log('📝 No leave requests found for calendar')
         setLeaveRequests([])
       }
     } catch (error) {

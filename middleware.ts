@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { userHasOrganization } from './lib/middleware-utils'
 
 export async function middleware(request: NextRequest) {
   // Create a response object
@@ -86,22 +87,14 @@ export async function middleware(request: NextRequest) {
 
   // If user is authenticated, check if they have an organization
   if (user) {
-    // MULTI-ORG UPDATE: Check user_organizations instead of profile.organization_id
-    const { data: userOrgs, error: userOrgsError } = await supabase
-      .from('user_organizations')
-      .select('organization_id')
-      .eq('user_id', user.id)
-      .eq('is_active', true)
-      .limit(1)
+    // Use admin client to bypass RLS policies for organization check
+    const hasOrganization = await userHasOrganization(user.id, request)
 
     console.log('🔍 Middleware org check:', { 
       userId: user.id, 
-      userOrgs, 
-      userOrgsError,
+      hasOrganization,
       pathname 
     })
-
-    const hasOrganization = userOrgs && userOrgs.length > 0
 
     // If user doesn't have an organization, redirect to onboarding
     if (!hasOrganization && !pathname.startsWith('/onboarding')) {
