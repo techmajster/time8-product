@@ -150,11 +150,6 @@ export const queryKeys = {
       ['calendar', 'holidays', orgId, startDate, endDate] as const,
   },
   
-  // Performance and analytics
-  performance: {
-    dashboard: (orgId: string) => ['performance', 'dashboard', orgId] as const,
-    queryStats: () => ['performance', 'query-stats'] as const,
-  },
 } as const
 
 // Helper function to get the query client instance
