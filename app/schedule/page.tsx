@@ -18,10 +18,10 @@ export default async function SchedulePage() {
     redirect('/login')
   }
 
-  // Get user profile for role checking
+  // MULTI-ORG UPDATE: Get user profile and organization via user_organizations
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
-    .select('role, organization_id')
+    .select('*')
     .eq('id', user.id)
     .single()
 
@@ -29,12 +29,39 @@ export default async function SchedulePage() {
     redirect('/login')
   }
 
-  // Get team members with full details for the weekly view
+  // Get user's active organization from user_organizations
+  const { data: userOrg } = await supabase
+    .from('user_organizations')
+    .select('role, organization_id')
+    .eq('user_id', user.id)
+    .eq('is_active', true)
+    .eq('is_default', true)
+    .single()
+
+  if (!userOrg) {
+    redirect('/onboarding')
+  }
+
+  // Add organization context to profile for backward compatibility
+  profile.organization_id = userOrg.organization_id
+  profile.role = userOrg.role
+
+  // Get team members with full details for the weekly view (via user_organizations)
   const { data: teamMembers } = await supabase
-    .from('profiles')
-    .select('id, full_name, email, role, avatar_url')
+    .from('user_organizations')
+    .select(`
+      role,
+      profiles!inner(id, full_name, email, avatar_url)
+    `)
     .eq('organization_id', profile.organization_id)
-    .order('full_name')
+    .eq('is_active', true)
+    .order('profiles(full_name)')
+
+  // Transform team members data to match expected format
+  const transformedTeamMembers = teamMembers?.map(item => ({
+    ...item.profiles,
+    role: item.role
+  })) || []
 
   // Get basic stats for dashboard cards
   const { data: templates } = await supabase
@@ -145,14 +172,14 @@ export default async function SchedulePage() {
 
               <TabsContent value="calendar" className="space-y-4">
                 <WeeklyScheduleView 
-                  teamMembers={teamMembers || []} 
+                  teamMembers={transformedTeamMembers as any} 
                   userRole={profile.role} 
                 />
               </TabsContent>
 
               <TabsContent value="schedules" className="space-y-4">
                 <ScheduleManager 
-                  teamMembers={teamMembers || []} 
+                  teamMembers={transformedTeamMembers as any} 
                   userRole={profile.role} 
                 />
               </TabsContent>

@@ -1,15 +1,17 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import { getBasicAuth } from '@/lib/auth-utils'
+import { authenticateAndGetOrgContext } from '@/lib/auth-utils-v2'
 
 export async function POST(request: Request) {
   try {
     const supabase = await createClient()
     
     // Use optimized auth utility
-    const auth = await getBasicAuth()
+    const auth = await authenticateAndGetOrgContext()
     if (!auth.success) return auth.error
-    const { organizationId, role } = auth
+    const { context } = auth
+    const { organization, role } = context
+    const organizationId = organization.id
 
     // Check if user is admin
     if (role !== 'admin') {
@@ -247,9 +249,11 @@ export async function DELETE(request: Request) {
     const supabase = await createClient()
     
     // Use optimized auth utility
-    const auth = await getBasicAuth()
+    const auth = await authenticateAndGetOrgContext()
     if (!auth.success) return auth.error
-    const { organizationId, role } = auth
+    const { context } = auth
+    const { organization, role } = context
+    const organizationId = organization.id
 
     // Check if user is admin
     if (role !== 'admin') {

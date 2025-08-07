@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { sendInvitationEmail } from '@/lib/email'
+import { authenticateAndGetOrgContext, requireRole } from '@/lib/auth-utils-v2'
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,33 +14,26 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const supabase = await createClient()
+    // Authenticate and check permissions
+    const auth = await authenticateAndGetOrgContext()
+    if (!auth.success) {
+      return auth.error
+    }
+
+    const { context } = auth
+    const { user, profile, organization, role } = context
+    const organizationId = organization.id
     
-    // Get current user
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+    // Check if user has permission to resend invitations
+    const roleCheck = requireRole({ role } as any, ['admin', 'manager'])
+    if (roleCheck) {
+      return roleCheck
     }
 
-    // Get user profile and verify admin/manager role
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role, organization_id, full_name, email')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile || !['admin', 'manager'].includes(profile.role)) {
-      return NextResponse.json(
-        { error: 'Access denied' },
-        { status: 403 }
-      )
-    }
+    const supabaseAdmin = createAdminClient()
 
     // Get invitation details
-    const { data: invitation } = await supabase
+    const { data: invitation } = await supabaseAdmin
       .from('invitations')
       .select(`
         id,
@@ -49,10 +43,11 @@ export async function POST(request: NextRequest) {
         invitation_code,
         organization_id,
         status,
-        expires_at
+        expires_at,
+        personal_message
       `)
       .eq('id', invitationId)
-      .eq('organization_id', profile.organization_id)
+      .eq('organization_id', organizationId)
       .single()
 
     if (!invitation) {
@@ -76,29 +71,24 @@ export async function POST(request: NextRequest) {
       const newExpiresAt = new Date()
       newExpiresAt.setDate(newExpiresAt.getDate() + 7)
 
-      await supabase
+      await supabaseAdmin
         .from('invitations')
         .update({ expires_at: newExpiresAt.toISOString() })
         .eq('id', invitationId)
     }
 
-    // Get organization details
-    const { data: organization } = await supabase
-      .from('organizations')
-      .select('name')
-      .eq('id', profile.organization_id)
-      .single()
-
-    // Send invitation email
+    // Send invitation email using the correct invitation_code
     try {
+      console.log(`📧 Resending invitation email to ${invitation.email} with code ${invitation.invitation_code}`)
+      
       const emailResult = await sendInvitationEmail({
         to: invitation.email,
-        organizationName: organization?.name || 'Your Organization',
-        inviterName: profile.full_name || 'Administrator',
-        inviterEmail: profile.email || 'admin@company.com',
+        organizationName: organization.name,
+        inviterName: profile.full_name || user.email.split('@')[0],
+        inviterEmail: user.email,
         role: invitation.role,
-        invitationToken: invitation.token,
-        personalMessage: ''
+        invitationToken: invitation.invitation_code, // Use invitation_code, not token
+        personalMessage: invitation.personal_message || ''
       })
 
       if (!emailResult.success) {

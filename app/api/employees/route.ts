@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
-import { getBasicAuth, requireRole } from '@/lib/auth-utils'
+import { authenticateAndGetOrgContext, requireRole } from '@/lib/auth-utils-v2'
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('🚀 Employee invitation API called')
+    
     const body = await request.json()
-    const { employees, mode = 'direct' } = body
+    const { employees, mode = 'invitation' } = body
 
     // Validate request format
     if (!Array.isArray(employees) || employees.length === 0) {
@@ -16,238 +18,108 @@ export async function POST(request: NextRequest) {
     }
 
     // Authenticate and check permissions
-    const auth = await getBasicAuth()
+    const auth = await authenticateAndGetOrgContext()
+    
+    console.log('🔐 Auth result:', { 
+      success: auth.success, 
+      hasError: !auth.success && !!auth.error 
+    })
+    
     if (!auth.success) {
+      console.error('❌ Auth failed:', auth.error)
       return auth.error
     }
 
-    const { user, organizationId, role } = auth
+    const { context } = auth
+    const { user, organization, role } = context
+    const organizationId = organization.id
     
-    // Only admins can create employees directly
+    console.log('✅ Auth context:', { 
+      userId: user.id, 
+      userEmail: user.email,
+      organizationId, 
+      organizationName: organization.name,
+      role 
+    })
+    
+    // Only admins can create employees
     const roleCheck = requireRole({ role } as any, ['admin'])
     if (roleCheck) {
       return roleCheck
     }
 
-    const supabase = await createClient()
+    // Get admin client for database operations
     const supabaseAdmin = createAdminClient()
     
-    // Get organization details for invitations
-    const { data: organization } = await supabase
-      .from('organizations')
-      .select('name')
-      .eq('id', organizationId)
-      .single()
-
     const results = []
     const errors = []
 
-    console.log('📋 Processing employees:', { count: employees.length, mode })
+    console.log(`📝 Processing ${employees.length} employee(s) in ${mode} mode`)
 
-    for (const employeeData of employees) {
+    for (const employee of employees) {
       try {
-        console.log('👤 Processing employee data:', employeeData)
-        
-        const { 
-          email, 
-          full_name, 
-          birth_date,
-          role: employeeRole = 'employee', 
-          team_id, 
-          personal_message,
-          send_invitation = true
-        } = employeeData
-
-        console.log('📝 Extracted values:', { email, full_name, birth_date, employeeRole, team_id })
+        const { email, full_name, role: employeeRole, team_id, send_invitation, personal_message } = employee
 
         // Validate required fields
-        if (!email?.trim() || !full_name?.trim()) {
-          console.log('❌ Validation failed:', { email: email?.trim(), full_name: full_name?.trim() })
-          errors.push({ email, error: 'Email and full name are required' })
+        if (!email || !full_name || !employeeRole) {
+          errors.push({
+            email: email || 'unknown',
+            error: 'Missing required fields: email, full_name, or role'
+          })
           continue
         }
 
-        // Validate role
-        if (!['admin', 'manager', 'employee'].includes(employeeRole)) {
-          errors.push({ email, error: 'Invalid role. Must be admin, manager, or employee' })
-          continue
-        }
-
-        // Validate team assignment
-        console.log('🏢 Checking team assignment:', team_id)
-        if (team_id) {
-          const { data: team, error: teamError } = await supabase
-            .from('teams')
-            .select('id')
-            .eq('id', team_id)
-            .eq('organization_id', organizationId)
-            .single()
-
-          console.log('🏢 Team lookup result:', { team, teamError })
-          if (!team) {
-            console.log('❌ Team validation failed')
-            errors.push({ email, error: 'Invalid team selected' })
-            continue
-          }
-        }
-
-        // Check if email is already in use
-        console.log('📧 Checking if email already exists:', email.toLowerCase())
-        const { data: existingUser, error: userCheckError } = await supabaseAdmin
-          .from('profiles')
-          .select('id, email, organization_id')
-          .eq('email', email.toLowerCase())
+        // Check if user already exists in this organization
+        const { data: existingUser } = await supabaseAdmin
+          .from('user_organizations')
+          .select('user_id')
+          .eq('organization_id', organizationId)
+          .eq('user_id', (
+            await supabaseAdmin
+              .from('profiles')
+              .select('id')
+              .eq('email', email.toLowerCase())
+              .single()
+          ).data?.id || 'none')
           .single()
 
-        console.log('📧 Existing user check:', { existingUser, userCheckError })
         if (existingUser) {
-          if (existingUser.organization_id === organizationId) {
-            console.log('❌ Email already in organization')
-            errors.push({ email, error: 'Email is already a member of your organization' })
-            continue
-          } else if (existingUser.organization_id !== null) {
-            console.log('❌ Email registered with another organization')
-            errors.push({ email, error: 'Email is already registered with another organization' })
-            continue
-          } else {
-            console.log('✅ User exists but no organization - can invite')
-          }
+          errors.push({
+            email,
+            error: 'User already exists in this organization'
+          })
+          continue
         }
 
-        // Check for pending invitations
-        console.log('📩 Checking for existing invitations')
-        const { data: existingInvitation, error: invitationCheckError } = await supabase
+        // Check for existing pending invitation
+        const { data: existingInvitation } = await supabaseAdmin
           .from('invitations')
-          .select('id, expires_at')
+          .select('id')
           .eq('email', email.toLowerCase())
           .eq('organization_id', organizationId)
           .eq('status', 'pending')
           .single()
 
-        console.log('📩 Existing invitation check:', { existingInvitation, invitationCheckError })
         if (existingInvitation) {
-          console.log('❌ Found existing pending invitation for this email')
-          
-          // Calculate days until expiration
-          const expiresAt = new Date(existingInvitation.expires_at)
-          const now = new Date()
-          const daysUntilExpiry = Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-          
-          let errorMessage = `An invitation for ${email} already exists and is pending.`
-          
-          if (daysUntilExpiry <= 0) {
-            errorMessage += ' The invitation has expired. Please delete the expired invitation and try again.'
-          } else {
-            errorMessage += ` It expires in ${daysUntilExpiry} day(s). You can resend the existing invitation or delete it and create a new one.`
-          }
-          
-          errors.push({ 
-            email, 
-            error: errorMessage,
-            existing_invitation_id: existingInvitation.id,
-            expires_in_days: daysUntilExpiry
+          errors.push({
+            email,
+            error: 'Pending invitation already exists for this email'
           })
           continue
         }
 
-        if (mode === 'direct') {
-          // Direct creation: Create profile immediately and send verification
-          
-          // Generate temporary password for account creation
-          const tempPassword = Math.random().toString(36).slice(-12) + Math.random().toString(36).slice(-12)
-          
-          // Create auth user
-          const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
+        // Generate invitation details
+        const token = btoa(Math.random().toString(36).substring(2) + Date.now().toString(36))
+        const invitationCode = Math.random().toString(36).substring(2, 8).toUpperCase()
+        const expiresAt = new Date()
+        expiresAt.setDate(expiresAt.getDate() + 7)
+
+        // Create invitation record
+        const { data: invitation, error: invitationError } = await supabaseAdmin
+          .from('invitations')
+          .insert({
             email: email.toLowerCase(),
-            password: tempPassword,
-            email_confirm: false, // We'll send confirmation email manually
-            user_metadata: {
-              full_name: full_name.trim(),
-              invited_by: user.id,
-              organization_id: organizationId
-            }
-          })
-
-          if (authError) {
-            errors.push({ email, error: `Failed to create auth user: ${authError.message}` })
-            continue
-          }
-
-          // Create profile
-          const { data: profile, error: profileError } = await supabaseAdmin
-            .from('profiles')
-            .insert({
-              id: authUser.user!.id,
-              email: email.toLowerCase(),
-              full_name: full_name.trim(),
-              role: employeeRole,
-              organization_id: organizationId,
-              team_id: team_id || null,
-              auth_provider: 'email',
-              status: 'pending_verification'
-            })
-            .select()
-            .single()
-
-          if (profileError) {
-            // Clean up auth user if profile creation fails
-            await supabaseAdmin.auth.admin.deleteUser(authUser.user!.id)
-            errors.push({ email, error: `Failed to create profile: ${profileError.message}` })
-            continue
-          }
-
-          // Send email verification invitation
-          if (send_invitation) {
-            try {
-              // Import email function directly instead of making HTTP call
-              const { sendEmployeeVerificationEmail } = await import('@/lib/email')
-              
-              const emailResult = await sendEmployeeVerificationEmail({
-                to: email.toLowerCase(),
-                full_name: full_name.trim(),
-                organization_name: organization?.name || 'Your Organization',
-                temp_password: tempPassword,
-                personal_message: personal_message || ''
-              })
-
-              if (!emailResult.success) {
-                console.warn('Failed to send verification email:', emailResult.error)
-              } else {
-                console.log('✅ Verification email sent successfully:', emailResult.messageId)
-              }
-            } catch (emailError) {
-              console.warn('Failed to send verification email:', emailError)
-            }
-          }
-
-          results.push({
-            email,
             full_name: full_name.trim(),
-            role: employeeRole,
-            team_id,
-            profile_id: profile.id,
-            status: 'created',
-            verification_sent: send_invitation
-          })
-
-        } else {
-          // Invitation mode: Enhanced existing system
-          console.log('🎯 INVITATION MODE: Processing employee:', email.toLowerCase())
-          console.log('📧 send_invitation flag:', send_invitation)
-          
-          // Generate invitation token and code
-          const token = btoa(Math.random().toString(36).substring(2) + Date.now().toString(36))
-          const expiresAt = new Date()
-          expiresAt.setDate(expiresAt.getDate() + 7)
-          const invitationCode = Math.random().toString(36).substring(2, 8).toUpperCase()
-          console.log('🔑 Generated invitation code:', invitationCode)
-
-          // Create invitation
-          console.log('💾 Creating invitation record in database...')
-          const invitationData = {
-            email: email.toLowerCase(),
-            full_name: full_name?.trim() || null,
-            birth_date: birth_date || null,
             role: employeeRole,
             team_id: team_id || null,
             organization_id: organizationId,
@@ -255,109 +127,96 @@ export async function POST(request: NextRequest) {
             token,
             invitation_code: invitationCode,
             expires_at: expiresAt.toISOString(),
-            personal_message: personal_message?.trim() || null
-          }
-          console.log('📝 Invitation data:', invitationData)
-          console.log('🎯 Team ID being saved:', team_id)
-          console.log('📅 Birth date being saved:', birth_date)
-          console.log('👤 Full name being saved:', full_name)
-
-          const { data: invitation, error: invitationError } = await supabase
-            .from('invitations')
-            .insert(invitationData)
-            .select()
-            .single()
-
-          console.log('🗃️ Database result:', { invitation, error: invitationError })
-
-          if (invitationError) {
-            console.error('❌ Database insertion failed:', invitationError)
-            errors.push({ email, error: `Failed to create invitation: ${invitationError.message}` })
-            continue
-          }
-
-          console.log('✅ Invitation record created successfully:', invitation.id)
-
-          // Send invitation email
-          if (send_invitation) {
-            console.log('🔄 Starting email send process for:', email.toLowerCase())
-            try {
-              // Import email function directly instead of making HTTP call
-              const { sendInvitationEmail } = await import('@/lib/email')
-              console.log('📧 Email function imported successfully')
-              
-              // Get user profile for inviter info
-              const { data: inviterProfile } = await supabase
-                .from('profiles')
-                .select('full_name, email')
-                .eq('id', user.id)
-                .single()
-              console.log('👤 Inviter profile:', inviterProfile)
-
-              const emailData = {
-                to: email.toLowerCase(),
-                organizationName: organization?.name || 'Your Organization',
-                inviterName: inviterProfile?.full_name || 'Administrator',
-                inviterEmail: inviterProfile?.email || 'admin@company.com',
-                role: employeeRole,
-                invitationToken: token,
-                personalMessage: personal_message || ''
-              }
-              console.log('📤 Sending email with data:', emailData)
-
-              const emailResult = await sendInvitationEmail(emailData)
-              console.log('📬 Email result:', emailResult)
-
-              if (!emailResult.success) {
-                console.warn('❌ Failed to send invitation email:', emailResult.error)
-              } else {
-                console.log('✅ Invitation email sent successfully:', emailResult.messageId)
-              }
-            } catch (emailError) {
-              console.error('💥 Email sending error:', emailError)
-            }
-          } else {
-            console.log('📵 Email sending disabled (send_invitation = false)')
-          }
-
-          results.push({
-            email,
-            full_name: full_name.trim(),
-            role: employeeRole,
-            team_id,
-            invitation_id: invitation.id,
-            invitation_code: invitationCode,
-            status: 'invited',
-            invitation_sent: send_invitation
+            personal_message: personal_message?.trim() || null,
+            status: 'pending'
           })
+          .select()
+          .single()
+
+        if (invitationError) {
+          console.error('❌ Failed to create invitation:', invitationError)
+          errors.push({
+            email,
+            error: `Failed to create invitation: ${invitationError.message}`
+          })
+          continue
         }
 
-      } catch (error) {
-        console.error('Error processing employee:', error)
-        errors.push({ 
-          email: employeeData.email, 
-          error: error instanceof Error ? error.message : 'Unknown error' 
+        console.log(`✅ Invitation created for ${email} with code ${invitationCode}`)
+
+        // Send invitation email if requested
+        let emailSent = false
+        console.log(`🔍 DEBUG: send_invitation = ${send_invitation} for ${email}`)
+        if (send_invitation) {
+          try {
+            console.log(`📧 About to send invitation email directly to ${email}...`)
+            const { sendInvitationEmail } = await import('@/lib/email')
+            
+            const result = await sendInvitationEmail({
+              to: email,
+              organizationName: context.organization.name,
+              inviterName: context.profile.full_name || context.user.email.split('@')[0],
+              inviterEmail: context.user.email,
+              role: employeeRole,
+              invitationToken: token,
+              personalMessage: personal_message
+            })
+
+            if (result.success) {
+              emailSent = true
+              console.log(`✅ Invitation email sent successfully to ${email}, messageId: ${result.messageId}`)
+            } else {
+              console.error(`❌ Failed to send email to ${email}:`, result.error)
+            }
+          } catch (emailError) {
+            console.error(`⚠️ Email sending error for ${email}:`, emailError)
+          }
+        }
+
+        results.push({
+          email,
+          full_name,
+          role: employeeRole,
+          team_id,
+          status: 'invited',
+          invitation_id: invitation.id,
+          invitation_code: invitationCode,
+          invitation_sent: emailSent
+        })
+
+      } catch (employeeError) {
+        console.error(`❌ Error processing employee ${employee.email}:`, employeeError)
+        errors.push({
+          email: employee.email || 'unknown',
+          error: employeeError instanceof Error ? employeeError.message : 'Unknown error'
         })
       }
     }
 
+    const successful = results.length
+    const failed = errors.length
+    const total = successful + failed
+
+    console.log(`✅ Employee processing completed: ${successful}/${total} successful`)
+
     return NextResponse.json({
       success: true,
+      message: `Processed ${total} employee(s). ${successful} successful, ${failed} failed.`,
       results,
       errors,
       summary: {
-        total: employees.length,
-        successful: results.length,
-        failed: errors.length,
+        total,
+        successful,
+        failed,
         mode
       }
     })
 
   } catch (error) {
-    console.error('Employee creation API error:', error)
+    console.error('Employee API error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
     )
   }
-} 
+}

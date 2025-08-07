@@ -1,5 +1,5 @@
 import { AppLayout } from '@/components/app-layout'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { AddEmployeePage } from './components/AddEmployeePage'
@@ -7,6 +7,7 @@ import { AddEmployeePage } from './components/AddEmployeePage'
 export default async function TeamAddPage() {
   const t = await getTranslations('team')
   const supabase = await createClient()
+  const supabaseAdmin = await createAdminClient()
   
   const { data: { user } } = await supabase.auth.getUser()
   
@@ -14,9 +15,20 @@ export default async function TeamAddPage() {
     redirect('/login')
   }
 
-  // Get user profile with organization details
+  // MULTI-ORG UPDATE: Get user profile and organization via user_organizations
   const { data: profile } = await supabase
     .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .single()
+
+  if (!profile) {
+    redirect('/login')
+  }
+
+  // Get user's active organization from user_organizations
+  const { data: userOrg } = await supabase
+    .from('user_organizations')
     .select(`
       *,
       organizations (
@@ -24,39 +36,91 @@ export default async function TeamAddPage() {
         name
       )
     `)
-    .eq('id', user.id)
+    .eq('user_id', user.id)
+    .eq('is_active', true)
+    .eq('is_default', true)
     .single()
 
-  if (!profile?.organization_id) {
+  if (!userOrg) {
     redirect('/onboarding')
   }
 
+  // Add organization context to profile for backward compatibility
+  profile.organization_id = userOrg.organization_id
+  profile.role = userOrg.role
+  profile.organizations = userOrg.organizations
+
   // Only admins can access this page
-  if (profile.role !== 'admin') {
+  if (userOrg.role !== 'admin') {
     redirect('/dashboard')
   }
 
-  // Get teams for the organization with member counts
-  const { data: teams } = await supabase
+  // Get teams for the organization using admin client to bypass RLS
+  const { data: teams, error: teamsError } = await supabaseAdmin
     .from('teams')
     .select(`
       id,
       name,
-      color,
-      members:profiles!profiles_team_id_fkey (id)
+      color
     `)
     .eq('organization_id', profile.organization_id)
     .order('name')
 
-  // Get team members for CreateTeamSheet
-  const { data: teamMembers } = await supabase
-    .from('profiles')
-    .select('id, email, full_name, role')
-    .eq('organization_id', profile.organization_id)
-    .order('full_name')
+  if (teamsError) {
+    console.error('Teams query error:', teamsError)
+  }
 
-  // Get leave types for the organization
-  const { data: leaveTypes } = await supabase
+  // Get team member counts using admin client
+  const teamMemberCounts: Record<string, number> = {}
+  if (teams) {
+    for (const team of teams) {
+      const { count } = await supabaseAdmin
+        .from('user_organizations')
+        .select('*', { count: 'exact', head: true })
+        .eq('team_id', team.id)
+        .eq('organization_id', profile.organization_id)
+        .eq('is_active', true)
+      
+      teamMemberCounts[team.id] = count || 0
+    }
+  }
+
+  // Add members array to match interface
+  const teamsWithMembers = (teams || []).map(team => ({
+    ...team,
+    members: Array.from({ length: teamMemberCounts[team.id] || 0 }, (_, i) => ({ id: `member-${i}` }))
+  }))
+
+  // Get team members for CreateTeamSheet using admin client to bypass RLS
+  const { data: teamMembersRaw, error: teamMembersError } = await supabaseAdmin
+    .from('user_organizations')
+    .select(`
+      user_id,
+      role,
+      profiles:user_id (
+        id,
+        email,
+        full_name
+      )
+    `)
+    .eq('organization_id', profile.organization_id)
+    .eq('is_active', true)
+    .order('profiles(full_name)')
+
+  if (teamMembersError) {
+    console.error('Team members query error:', teamMembersError)
+  }
+
+  // Transform the data to match the expected interface
+  const teamMembers = teamMembersRaw?.map(item => ({
+    id: (item.profiles as any)?.id || item.user_id,
+    email: (item.profiles as any)?.email || '',
+    full_name: (item.profiles as any)?.full_name || null,
+    role: item.role
+  })) || []
+
+  // Get leave types for the organization using admin client
+  const { data: leaveTypes } = await supabaseAdmin
     .from('leave_types')
     .select('id, name, days_per_year, leave_category, requires_balance')
     .eq('organization_id', profile.organization_id)
@@ -65,7 +129,7 @@ export default async function TeamAddPage() {
   return (
     <AppLayout>
       <AddEmployeePage 
-        teams={teams || []}
+        teams={teamsWithMembers}
         leaveTypes={leaveTypes || []}
         organizationId={profile.organization_id}
         teamMembers={teamMembers || []}

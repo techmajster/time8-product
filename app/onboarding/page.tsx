@@ -47,19 +47,23 @@ function OnboardingContent() {
         setTimeout(() => setShowVerificationSuccess(false), 8000)
       }
 
-      // Check if user already has an organization
-      const { data: profileData } = await supabase
-        .from('profiles')
+      // MULTI-ORG UPDATE: Check if user already has an organization
+      const { data: userOrgs, error: userOrgsError } = await supabase
+        .from('user_organizations')
         .select('organization_id')
-        .eq('id', user.id)
-        .single()
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .limit(1)
 
-      if (profileData?.organization_id) {
+      console.log('🏢 Onboarding org check:', { userOrgs, userOrgsError, userId: user.id })
+
+      if (userOrgs && userOrgs.length > 0) {
+        console.log('✅ User has organization, redirecting to dashboard')
         redirect('/dashboard')
         return
+      } else {
+        console.log('❌ User has no organization or RLS blocked the query')
       }
-
-      setProfile(profileData)
 
       // Check if user has any pending invitations
       const emailDomain = user.email?.split('@')[1]

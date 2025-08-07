@@ -213,10 +213,19 @@ function AddAbsenceSheetContent({ preloadedEmployees, userRole, isOpen, onClose 
     ? Math.max(0, selectedBalance.remaining_days - selectedDays)
     : 0
 
-  // Load employees only if not preloaded and sheet is opened
+  // Load employees when sheet is opened (either preloaded or fresh load)
   useEffect(() => {
-    if (isOpen && !employeesLoaded) {
-      loadEmployees()
+    if (isOpen) {
+      if (!employeesLoaded) {
+        console.log('🔍 AddAbsenceSheet - Loading employees from API')
+        loadEmployees()
+      } else {
+        console.log('🔍 AddAbsenceSheet - Using preloaded employees:', {
+          count: preloadedEmployees?.length,
+          userRole,
+          employees: preloadedEmployees
+        })
+      }
     }
   }, [isOpen, employeesLoaded])
 
@@ -244,29 +253,84 @@ function AddAbsenceSheetContent({ preloadedEmployees, userRole, isOpen, onClose 
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      let query = supabase
-        .from('profiles')
-        .select('id, email, full_name, avatar_url, role, team_id')
-        .eq('organization_id', (await supabase.from('profiles').select('organization_id').eq('id', user.id).single()).data?.organization_id)
+      // MULTI-ORG UPDATE: Get user's organization from user_organizations
+      const { data: userOrg } = await supabase
+        .from('user_organizations')
+        .select('organization_id')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .eq('is_default', true)
+        .single()
 
-      // If manager, only show team members
+      if (!userOrg?.organization_id) return
+
+      let query = supabase
+        .from('user_organizations')
+        .select(`
+          user_id,
+          role,
+          team_id,
+          profiles!user_organizations_user_id_fkey (
+            id,
+            email,
+            full_name,
+            avatar_url
+          )
+        `)
+        .eq('organization_id', userOrg.organization_id)
+        .eq('is_active', true)
+
+      // If manager, show team members (including themselves for self-absence requests)
       if (userRole === 'manager') {
-        const { data: userProfile } = await supabase
-          .from('profiles')
+        console.log('🔍 AddAbsenceSheet - Manager loading team members for user:', user.id)
+        
+        const { data: managerOrg, error: managerOrgError } = await supabase
+          .from('user_organizations')
           .select('team_id')
-          .eq('id', user.id)
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+          .eq('is_default', true)
           .single()
         
-        if (userProfile?.team_id) {
-          query = query.eq('team_id', userProfile.team_id)
+        console.log('🔍 AddAbsenceSheet - Manager org lookup:', { managerOrg, managerOrgError })
+        
+        if (managerOrg?.team_id) {
+          console.log('🔍 AddAbsenceSheet - Filtering by team_id:', managerOrg.team_id)
+          query = query.eq('team_id', managerOrg.team_id)
+        } else {
+          // Manager has no team assigned - show only themselves
+          query = query.eq('user_id', user.id)
         }
+        
+        // Note: We include the manager themselves so they can create their own absence requests
       }
 
       const { data: employeesData, error } = await query
 
+      console.log('🔍 AddAbsenceSheet - Query result:', { 
+        count: employeesData?.length, 
+        error,
+        data: employeesData 
+      })
+
       if (error) throw error
 
-      setEmployees(employeesData || [])
+      // Transform the data to match the Employee interface
+      const transformedEmployees = employeesData?.map(userOrg => {
+        const profile = Array.isArray(userOrg.profiles) ? userOrg.profiles[0] : userOrg.profiles
+        return {
+          id: profile?.id || userOrg.user_id,
+          email: profile?.email || '',
+          full_name: profile?.full_name,
+          avatar_url: profile?.avatar_url,
+          role: userOrg.role,
+          team_id: userOrg.team_id
+        }
+      }) || []
+
+      console.log('🔍 AddAbsenceSheet - Transformed employees:', transformedEmployees)
+
+      setEmployees(transformedEmployees)
       setEmployeesLoaded(true)
     } catch (error) {
       console.error('Error loading employees:', error)
@@ -280,16 +344,31 @@ function AddAbsenceSheetContent({ preloadedEmployees, userRole, isOpen, onClose 
     try {
       setLoading(true)
 
-      // Get employee's organization_id
-      const { data: profileData } = await supabase
-        .from('profiles')
+      console.log('🔍 AddAbsenceSheet - Loading leave data for employee:', employeeId)
+
+      // MULTI-ORG UPDATE: Get employee's organization_id from user_organizations
+      const { data: userOrgData, error: userOrgError } = await supabase
+        .from('user_organizations')
         .select('organization_id')
-        .eq('id', employeeId)
+        .eq('user_id', employeeId)
+        .eq('is_active', true)
+        .eq('is_default', true)
         .single()
       
-      const empOrgId = profileData?.organization_id
+      console.log('🔍 AddAbsenceSheet - Employee org lookup:', {
+        employeeId,
+        userOrgData,
+        userOrgError
+      })
+      
+      const empOrgId = userOrgData?.organization_id
       if (empOrgId) {
         setOrganizationId(empOrgId)
+      }
+
+      if (!empOrgId) {
+        console.error('❌ No organization found for employee:', employeeId)
+        return
       }
 
       // Load leave types
@@ -299,9 +378,17 @@ function AddAbsenceSheetContent({ preloadedEmployees, userRole, isOpen, onClose 
         .eq('organization_id', empOrgId)
         .order('name')
 
+      console.log('🔍 AddAbsenceSheet - Leave types query:', {
+        empOrgId,
+        count: leaveTypesData?.length,
+        error: leaveTypesError,
+        leaveTypes: leaveTypesData
+      })
+
       if (leaveTypesError) throw leaveTypesError
 
-      // Load employee's leave balances
+      // Load employee's leave balances for current year
+      const currentYear = new Date().getFullYear()
       const { data: balancesData, error: balancesError } = await supabase
         .from('leave_balances')
         .select(`
@@ -309,11 +396,26 @@ function AddAbsenceSheetContent({ preloadedEmployees, userRole, isOpen, onClose 
           leave_types (*)
         `)
         .eq('user_id', employeeId)
+        .eq('year', currentYear)
+
+      console.log('🔍 AddAbsenceSheet - Leave balances query:', {
+        employeeId,
+        currentYear,
+        count: balancesData?.length,
+        error: balancesError,
+        balances: balancesData
+      })
 
       if (balancesError) throw balancesError
 
       setLeaveTypes(leaveTypesData || [])
       setLeaveBalances(balancesData || [])
+      
+      console.log('🔍 AddAbsenceSheet - Data loaded successfully:', {
+        leaveTypesCount: leaveTypesData?.length || 0,
+        leaveBalancesCount: balancesData?.length || 0
+      })
+      
     } catch (error) {
       console.error('Error loading leave data:', error)
       toast.error('Błąd ładowania danych urlopowych')

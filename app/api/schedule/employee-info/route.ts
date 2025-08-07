@@ -1,16 +1,18 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
-import { getBasicAuth } from '@/lib/auth-utils'
+import { authenticateAndGetOrgContext } from '@/lib/auth-utils-v2'
 
 export async function GET(request: NextRequest) {
   try {
     // Authenticate user
-    const auth = await getBasicAuth()
+    const auth = await authenticateAndGetOrgContext()
     if (!auth.success) {
       return auth.error
     }
 
-    const { organizationId } = auth
+    const { context } = auth
+    const { organization } = context
+    const organizationId = organization.id
     const supabase = await createClient()
 
     // Get all team members from the organization

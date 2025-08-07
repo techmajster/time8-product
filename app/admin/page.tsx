@@ -35,9 +35,20 @@ export default async function AdminPage() {
     redirect('/login')
   }
 
-  // Get user profile with organization details
+  // MULTI-ORG UPDATE: Get user profile and organization via user_organizations
   const { data: profile } = await supabase
     .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .single()
+
+  if (!profile) {
+    redirect('/login')
+  }
+
+  // Get user's active organization from user_organizations
+  const { data: userOrg } = await supabase
+    .from('user_organizations')
     .select(`
       *,
       organizations (
@@ -45,12 +56,19 @@ export default async function AdminPage() {
         name
       )
     `)
-    .eq('id', user.id)
+    .eq('user_id', user.id)
+    .eq('is_active', true)
+    .eq('is_default', true)
     .single()
 
-  if (!profile?.organization_id) {
+  if (!userOrg) {
     redirect('/onboarding')
   }
+
+  // Add organization context to profile for backward compatibility
+  profile.organization_id = userOrg.organization_id
+  profile.role = userOrg.role
+  profile.organizations = userOrg.organizations
 
   // Check if user is admin
   if (profile.role !== 'admin') {

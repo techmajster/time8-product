@@ -1,23 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { getBasicAuth, isManagerOrAdmin } from '@/lib/auth-utils'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { authenticateAndGetOrgContext, isManagerOrAdmin } from '@/lib/auth-utils-v2'
 
-// GET /api/teams/[id] - Get specific team details
+/**
+ * TEAM/GROUP DETAIL API ENDPOINTS
+ * 
+ * Note: While the database table and API endpoints use "teams", 
+ * the UI terminology uses "groups" to differentiate from organizational teams.
+ * These endpoints manage individual sub-groups within an organization.
+ */
+
+// GET /api/teams/[id] - Get specific group details
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params
-    const auth = await getBasicAuth()
+    const auth = await authenticateAndGetOrgContext()
     if (!auth.success) {
       return auth.error
     }
 
-    const { organizationId } = auth
+    const { context } = auth
+    const { organization } = context
+    const organizationId = organization.id
     const supabase = await createClient()
+    const supabaseAdmin = await createAdminClient()
 
-    const { data: team, error } = await supabase
+    const { data: team, error } = await supabaseAdmin
       .from('teams')
       .select(`
         id,
@@ -30,13 +41,6 @@ export async function GET(
           full_name,
           email,
           avatar_url
-        ),
-        members:profiles!profiles_team_id_fkey (
-          id,
-          full_name,
-          email,
-          role,
-          avatar_url
         )
       `)
       .eq('id', id)
@@ -45,13 +49,45 @@ export async function GET(
 
     if (error) {
       if (error.code === 'PGRST116') {
-        return NextResponse.json({ error: 'Team not found' }, { status: 404 })
+        return NextResponse.json({ error: 'Group not found' }, { status: 404 })
       }
       console.error('Error fetching team:', error)
-      return NextResponse.json({ error: 'Failed to fetch team' }, { status: 500 })
+      return NextResponse.json({ error: 'Failed to fetch group' }, { status: 500 })
     }
 
-    return NextResponse.json({ team })
+    // Get team members from user_organizations table
+    const { data: members } = await supabaseAdmin
+      .from('user_organizations')
+      .select(`
+        user_id,
+        role,
+        profiles!user_organizations_user_id_fkey (
+          id,
+          full_name,
+          email,
+          avatar_url
+        )
+      `)
+      .eq('team_id', id)
+      .eq('organization_id', organizationId)
+      .eq('is_active', true)
+
+    // Add members to team object
+    const teamWithMembers = {
+      ...team,
+      members: members?.map(m => {
+        const profile = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles
+        return {
+          id: profile?.id,
+          full_name: profile?.full_name,
+          email: profile?.email,
+          role: m.role,
+          avatar_url: profile?.avatar_url
+        }
+      }) || []
+    }
+
+    return NextResponse.json({ team: teamWithMembers })
 
   } catch (error) {
     console.error('Team GET API error:', error)
@@ -59,23 +95,26 @@ export async function GET(
   }
 }
 
-// PUT /api/teams/[id] - Update team
+// PUT /api/teams/[id] - Update group
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params
-    const auth = await getBasicAuth()
+    const auth = await authenticateAndGetOrgContext()
     if (!auth.success) {
       return auth.error
     }
 
-    const { user, organizationId, role } = auth
+    const { context } = auth
+    const { user, organization, role } = context
+    const organizationId = organization.id
     const supabase = await createClient()
+    const supabaseAdmin = await createAdminClient()
 
-    // Get team to check permissions
-    const { data: existingTeam } = await supabase
+    // Get team to check permissions using admin client
+    const { data: existingTeam } = await supabaseAdmin
       .from('teams')
       .select('id, manager_id, organization_id')
       .eq('id', id)
@@ -83,7 +122,7 @@ export async function PUT(
       .single()
 
     if (!existingTeam) {
-      return NextResponse.json({ error: 'Team not found' }, { status: 404 })
+      return NextResponse.json({ error: 'Group not found' }, { status: 404 })
     }
 
     // Check if user can update this team
@@ -92,7 +131,7 @@ export async function PUT(
 
     if (!canUpdate) {
       return NextResponse.json(
-        { error: 'You can only update teams you manage' },
+        { error: 'You can only update groups you manage' },
         { status: 403 }
       )
     }
@@ -102,21 +141,23 @@ export async function PUT(
 
     // Validate manager_id if provided
     if (manager_id) {
-      const { data: manager } = await supabase
-        .from('profiles')
-        .select('id, role, organization_id')
-        .eq('id', manager_id)
+      // Check user_organizations table for manager role in this organization
+      const { data: managerOrg } = await supabaseAdmin
+        .from('user_organizations')
+        .select('user_id, organization_id, role, is_active')
+        .eq('user_id', manager_id)
         .eq('organization_id', organizationId)
+        .eq('is_active', true)
         .single()
 
-      if (!manager) {
+      if (!managerOrg) {
         return NextResponse.json(
           { error: 'Invalid manager selected' },
           { status: 400 }
         )
       }
 
-      if (manager.role !== 'manager' && manager.role !== 'admin') {
+      if (managerOrg.role !== 'manager' && managerOrg.role !== 'admin') {
         return NextResponse.json(
           { error: 'Selected user is not a manager or admin' },
           { status: 400 }
@@ -131,7 +172,7 @@ export async function PUT(
     if (manager_id !== undefined) updateData.manager_id = manager_id
 
 
-    const { data: team, error } = await supabase
+    const { data: team, error } = await supabaseAdmin
       .from('teams')
       .update(updateData)
       .eq('id', id)
@@ -152,15 +193,15 @@ export async function PUT(
     if (error) {
       if (error.code === '23505') {
         return NextResponse.json(
-          { error: 'A team with this name already exists' },
+          { error: 'A group with this name already exists' },
           { status: 409 }
         )
       }
       console.error('Error updating team:', error)
-      return NextResponse.json({ error: 'Failed to update team' }, { status: 500 })
+      return NextResponse.json({ error: 'Failed to update group' }, { status: 500 })
     }
 
-    return NextResponse.json({ team, message: 'Team updated successfully' })
+    return NextResponse.json({ team, message: 'Group updated successfully' })
 
   } catch (error) {
     console.error('Team PUT API error:', error)
@@ -168,37 +209,41 @@ export async function PUT(
   }
 }
 
-// DELETE /api/teams/[id] - Delete team
+// DELETE /api/teams/[id] - Delete group
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params
-    const auth = await getBasicAuth()
+    const auth = await authenticateAndGetOrgContext()
     if (!auth.success) {
       return auth.error
     }
 
-    const { user, organizationId, role } = auth
+    const { context } = auth
+    const { user, organization, role } = context
+    const organizationId = organization.id
     const supabase = await createClient()
+    const supabaseAdmin = await createAdminClient()
 
-    // Get team to check permissions and member count
-    const { data: existingTeam } = await supabase
+
+    // Get team to check permissions and member count using admin client
+    // Note: After multi-org migration, team membership is stored in user_organizations table
+    const { data: existingTeam, error: queryError } = await supabaseAdmin
       .from('teams')
       .select(`
         id, 
         name,
         manager_id, 
-        organization_id,
-        members:profiles!profiles_team_id_fkey (id)
+        organization_id
       `)
       .eq('id', id)
       .eq('organization_id', organizationId)
       .single()
 
     if (!existingTeam) {
-      return NextResponse.json({ error: 'Team not found' }, { status: 404 })
+      return NextResponse.json({ error: 'Group not found' }, { status: 404 })
     }
 
     // Check if user can delete this team
@@ -207,33 +252,40 @@ export async function DELETE(
 
     if (!canDelete) {
       return NextResponse.json(
-        { error: 'You can only delete teams you manage' },
+        { error: 'You can only delete groups you manage' },
         { status: 403 }
       )
     }
 
-    // Check if team has members
-    const memberCount = Array.isArray(existingTeam.members) ? existingTeam.members.length : 0
-    if (memberCount > 0) {
+    // Check if team has members (query user_organizations table)
+    const { count: memberCount, error: memberCountError } = await supabaseAdmin
+      .from('user_organizations')
+      .select('*', { count: 'exact', head: true })
+      .eq('team_id', id)
+      .eq('organization_id', organizationId)
+      .eq('is_active', true)
+
+
+    if (memberCount && memberCount > 0) {
       return NextResponse.json(
-        { error: 'Cannot delete team with members. Remove all members first.' },
+        { error: 'Cannot delete group with members. Remove all members first.' },
         { status: 400 }
       )
     }
 
     // Delete the team
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('teams')
       .delete()
       .eq('id', id)
 
     if (error) {
       console.error('Error deleting team:', error)
-      return NextResponse.json({ error: 'Failed to delete team' }, { status: 500 })
+      return NextResponse.json({ error: 'Failed to delete group' }, { status: 500 })
     }
 
     return NextResponse.json({ 
-      message: `Team "${existingTeam.name}" deleted successfully` 
+      message: `Group "${existingTeam.name}" deleted successfully` 
     })
 
   } catch (error) {

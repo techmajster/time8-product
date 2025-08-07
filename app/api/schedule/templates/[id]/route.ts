@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { getBasicAuth, isManagerOrAdmin } from '@/lib/auth-utils'
+import { authenticateAndGetOrgContext, isManagerOrAdmin } from '@/lib/auth-utils-v2'
 
 export async function PUT(
   request: NextRequest,
@@ -10,9 +10,11 @@ export async function PUT(
     const { id } = await params
     
     // Use optimized auth utility
-    const auth = await getBasicAuth()
+    const auth = await authenticateAndGetOrgContext()
     if (!auth.success) return auth.error
-    const { user, organizationId, role } = auth
+    const { context } = auth
+    const { user, organization, role } = context
+    const organizationId = organization.id
 
     // Check if user has permission to edit templates
     if (!isManagerOrAdmin(role)) {
@@ -106,9 +108,11 @@ export async function DELETE(
     const { id } = await params
     
     // Use optimized auth utility
-    const auth = await getBasicAuth()
+    const auth = await authenticateAndGetOrgContext()
     if (!auth.success) return auth.error
-    const { user, organizationId, role } = auth
+    const { context } = auth
+    const { user, organization, role } = context
+    const organizationId = organization.id
 
     // Check if user has permission to delete templates
     if (!isManagerOrAdmin(role)) {

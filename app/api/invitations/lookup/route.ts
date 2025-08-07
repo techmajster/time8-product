@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
 
 async function lookupInvitation(identifier: string, identifierType: 'token' | 'code') {
-  const supabase = createAdminClient()
+  const supabase = await createAdminClient()
 
   // Look up invitation by token or code using server-side client (bypasses RLS)
   const { data: invitation, error } = await supabase

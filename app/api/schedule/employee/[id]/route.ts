@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
-import { getBasicAuth, isManagerOrAdmin } from '@/lib/auth-utils'
+import { authenticateAndGetOrgContext, isManagerOrAdmin } from '@/lib/auth-utils-v2'
 
 export async function GET(
   request: NextRequest,
@@ -8,9 +8,11 @@ export async function GET(
 ) {
   try {
     // Use optimized auth utility
-    const auth = await getBasicAuth()
+    const auth = await authenticateAndGetOrgContext()
     if (!auth.success) return auth.error
-    const { organizationId } = auth
+    const { context } = auth
+    const { organization } = context
+    const organizationId = organization.id
 
     const supabase = await createClient()
 
@@ -66,9 +68,11 @@ export async function DELETE(
 ) {
   try {
     // Use optimized auth utility
-    const auth = await getBasicAuth()
+    const auth = await authenticateAndGetOrgContext()
     if (!auth.success) return auth.error
-    const { organizationId, role } = auth
+    const { context } = auth
+    const { organization, role } = context
+    const organizationId = organization.id
 
     // Only allow admin/manager to delete schedules
     if (!isManagerOrAdmin(role)) {

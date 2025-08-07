@@ -15,37 +15,40 @@ export interface TeamScope {
 export async function getUserTeamScope(userId: string): Promise<TeamScope> {
   const supabase = await createClient()
   
-  const { data: profile, error } = await supabase
-    .from('profiles')
+  // MULTI-ORG UPDATE: Get user's active organization from user_organizations
+  const { data: userOrg, error } = await supabase
+    .from('user_organizations')
     .select('organization_id, team_id, role')
-    .eq('id', userId)
+    .eq('user_id', userId)
+    .eq('is_active', true)
+    .eq('is_default', true)
     .single()
 
-  if (error || !profile?.organization_id) {
+  if (error || !userOrg?.organization_id) {
     throw new Error('User profile not found')
   }
 
   // Admins always see all organization data
-  if (profile.role === 'admin') {
+  if (userOrg.role === 'admin') {
     return {
       type: 'organization',
-      organizationId: profile.organization_id
+      organizationId: userOrg.organization_id
     }
   }
 
   // If user has team_id, filter by team
-  if (profile.team_id) {
+  if (userOrg.team_id) {
     return {
       type: 'team',
-      teamId: profile.team_id,
-      organizationId: profile.organization_id
+      teamId: userOrg.team_id,
+      organizationId: userOrg.organization_id
     }
   }
 
   // Fallback: show all organization data (no teams exist or user not assigned)
   return {
     type: 'organization',
-    organizationId: profile.organization_id
+    organizationId: userOrg.organization_id
   }
 }
 
@@ -57,23 +60,25 @@ export async function getTeamMemberIds(scope: TeamScope): Promise<string[]> {
   const supabase = await createClient()
 
   if (scope.type === 'organization') {
-    // Show all organization members
+    // MULTI-ORG UPDATE: Show all organization members via user_organizations
     const { data: members } = await supabase
-      .from('profiles')
-      .select('id')
+      .from('user_organizations')
+      .select('user_id')
       .eq('organization_id', scope.organizationId)
+      .eq('is_active', true)
 
-    return members?.map(m => m.id) || []
+    return members?.map(m => m.user_id) || []
   }
 
   if (scope.type === 'team' && scope.teamId) {
-    // Show only team members
+    // MULTI-ORG UPDATE: Show only team members via user_organizations
     const { data: members } = await supabase
-      .from('profiles')
-      .select('id')
+      .from('user_organizations')
+      .select('user_id')
       .eq('team_id', scope.teamId)
+      .eq('is_active', true)
 
-    return members?.map(m => m.id) || []
+    return members?.map(m => m.user_id) || []
   }
 
   return []
@@ -94,10 +99,10 @@ export function applyTeamFilter(
   }
 
   if (scope.type === 'team' && scope.teamId) {
-    // Filter by team members
+    // MULTI-ORG UPDATE: Filter by team members via user_organizations
     return query.in(userIdColumn, `(
-      SELECT id FROM profiles 
-      WHERE team_id = '${scope.teamId}'
+      SELECT user_id FROM user_organizations 
+      WHERE team_id = '${scope.teamId}' AND is_active = true
     )`)
   }
 
@@ -110,16 +115,19 @@ export function applyTeamFilter(
 export async function canManageTeam(userId: string, teamId: string): Promise<boolean> {
   const supabase = await createClient()
   
-  const { data: profile } = await supabase
-    .from('profiles')
+  // MULTI-ORG UPDATE: Get user role from user_organizations
+  const { data: userOrg } = await supabase
+    .from('user_organizations')
     .select('role, team_id')
-    .eq('id', userId)
+    .eq('user_id', userId)
+    .eq('is_active', true)
+    .eq('is_default', true)
     .single()
 
-  if (!profile) return false
+  if (!userOrg) return false
 
   // Admins can manage any team
-  if (profile.role === 'admin') return true
+  if (userOrg.role === 'admin') return true
 
   // Team managers can manage their own team
   const { data: team } = await supabase

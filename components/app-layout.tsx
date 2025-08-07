@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { AppLayoutClient } from './app-layout-client'
 import { LeaveType, LeaveBalance, UserProfile } from '@/types/leave'
@@ -16,9 +16,20 @@ export async function AppLayout({ children }: AppLayoutProps) {
     redirect('/login')
   }
 
-  // Get user profile with organization details including branding
+  // MULTI-ORG UPDATE: Get user profile and organization details via user_organizations
   const { data: profile } = await supabase
     .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .single()
+
+  if (!profile) {
+    redirect('/login')
+  }
+
+  // Get user's active organization from user_organizations
+  const { data: userOrg } = await supabase
+    .from('user_organizations')
     .select(`
       *,
       organizations (
@@ -28,12 +39,19 @@ export async function AppLayout({ children }: AppLayoutProps) {
         logo_url
       )
     `)
-    .eq('id', user.id)
+    .eq('user_id', user.id)
+    .eq('is_active', true)
+    .eq('is_default', true)
     .single()
 
-  if (!profile?.organization_id) {
+  if (!userOrg) {
     redirect('/onboarding')
   }
+
+  // Add organization context to profile for backward compatibility
+  profile.organization_id = userOrg.organization_id
+  profile.role = userOrg.role
+  profile.organizations = userOrg.organizations
 
   // Get pending team invitations count
   const { count: teamInviteCount } = await supabase
@@ -90,23 +108,66 @@ export async function AppLayout({ children }: AppLayoutProps) {
 
     leaveBalances = leaveBalancesData || []
 
-    // Preload employees for AddAbsenceSheet if user has manager/admin access
+    // Preload employees for AddAbsenceSheet if user has manager/admin access (via user_organizations)
     if (hasManagerAccess) {
-      let employeesQuery = supabase
-        .from('profiles')
-        .select('id, email, full_name, avatar_url, role, team_id')
+      // Use admin client to bypass RLS issues like dashboard does
+      const supabaseAdmin = createAdminClient()
+      let employeesQuery = supabaseAdmin
+        .from('user_organizations')
+        .select(`
+          user_id,
+          role,
+          team_id,
+          profiles!inner(id, email, full_name, avatar_url)
+        `)
         .eq('organization_id', profile.organization_id)
-        .order('full_name', { ascending: true })
+        .eq('is_active', true)
+        .order('profiles(full_name)', { ascending: true })
 
       // Filter based on role
-      if (profile.role === 'manager' && profile.team_id) {
-        // Managers can only see their team members
-        employeesQuery = employeesQuery.eq('team_id', profile.team_id)
+      if (profile.role === 'manager') {
+        // Get manager's team_id from user_organizations using admin client
+        const { data: managerData } = await supabaseAdmin
+          .from('user_organizations')
+          .select('team_id')
+          .eq('user_id', user.id)
+          .eq('organization_id', profile.organization_id)
+          .eq('is_active', true)
+          .eq('is_default', true)
+          .single()
+        
+        if (managerData?.team_id) {
+          // Managers can see their team members (including themselves for AddAbsenceSheet)
+          employeesQuery = employeesQuery
+            .eq('team_id', managerData.team_id)
+        } else {
+          // Manager has no team assigned - show only themselves for AddAbsenceSheet
+          employeesQuery = employeesQuery.eq('user_id', user.id)
+        }
+      } else if (profile.role === 'admin') {
+        // Admins see everyone except themselves
+        employeesQuery = employeesQuery.neq('user_id', user.id)
       }
-      // Admins see everyone (no additional filter needed)
 
       const { data: employeesData } = await employeesQuery
-      employees = employeesData || []
+      
+      console.log('🔍 app-layout.tsx - Preloading employees:', {
+        hasManagerAccess,
+        userRole: profile.role,
+        userId: user.id,
+        employeesCount: employeesData?.length,
+        employeesData
+      })
+      
+      // Transform employees data to match expected format
+      employees = employeesData?.map(item => ({
+        id: item.profiles?.id || item.user_id,
+        email: item.profiles?.email || '',
+        full_name: item.profiles?.full_name,
+        avatar_url: item.profiles?.avatar_url,
+        role: item.role,
+        team_id: item.team_id
+      })) || []
     }
   }
 

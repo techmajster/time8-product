@@ -5,7 +5,7 @@ import { getAppUrl } from '@/lib/utils'
 interface SignupWithInvitationRequest {
   email: string
   password: string
-  full_name: string
+  full_name?: string | null
   invitation_id: string
   organization_id: string
   role: string
@@ -21,12 +21,15 @@ export async function POST(request: NextRequest) {
     console.log('📝 Invitation signup request:', { email, invitation_id, organization_id, role })
 
     // Validate input
-    if (!email || !password || !full_name || !invitation_id || !organization_id || !role) {
+    if (!email || !password || !invitation_id || !organization_id || !role) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
       )
     }
+
+    // Use email prefix as fallback if full_name is not provided
+    const displayName = full_name || email.split('@')[0]
 
     if (password.length < 6) {
       return NextResponse.json(
@@ -35,7 +38,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const supabaseAdmin = createAdminClient()
+    const supabaseAdmin = await createAdminClient()
 
     // 1. Verify the invitation exists and is valid
     console.log('🔍 Verifying invitation...')
@@ -94,7 +97,7 @@ export async function POST(request: NextRequest) {
       email: email.toLowerCase(),
       password,
       user_metadata: {
-        full_name
+        full_name: displayName
       },
       email_confirm: true // Auto-confirm since they clicked invitation link
     })
@@ -109,17 +112,15 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ User account created:', authData.user.id)
 
-    // 4. Create or update user profile with organization details
-    console.log('👤 Creating/updating user profile...')
+    // MULTI-ORG UPDATE: Create user profile without organization details
+    console.log('👤 Creating user profile...')
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
       .upsert({
         id: authData.user.id,
         email: email.toLowerCase(),
-        full_name,
-        organization_id,
-        role,
-        team_id,
+        full_name: displayName,
+        // REMOVED: organization_id, role, team_id assignment (now handled by user_organizations)
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }, {
@@ -136,7 +137,34 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log('✅ User profile created/updated')
+    console.log('✅ User profile created')
+
+    // MULTI-ORG UPDATE: Create user_organizations entry instead of updating profile
+    console.log('🏢 Creating user organization membership...')
+    const { error: userOrgError } = await supabaseAdmin
+      .from('user_organizations')
+      .insert({
+        user_id: authData.user.id,
+        organization_id: invitation.organization_id,
+        role: invitation.role,
+        team_id: invitation.team_id,
+        is_active: true,
+        is_default: true, // Invited organization becomes default
+        joined_via: 'invitation',
+        employment_type: 'full_time' // Default for new invitations
+      })
+
+    if (userOrgError) {
+      console.error('❌ User organization creation error:', userOrgError)
+      // Clean up user and profile if organization membership failed
+      await supabaseAdmin.auth.admin.deleteUser(authData.user.id)
+      return NextResponse.json(
+        { error: 'Failed to create organization membership' },
+        { status: 500 }
+      )
+    }
+
+    console.log('✅ User organization membership created')
 
     // 5. Accept the invitation
     console.log('📧 Accepting invitation...')
@@ -158,40 +186,103 @@ export async function POST(request: NextRequest) {
 
     // 6. Create default leave types for the user (if they don't exist for the organization)
     console.log('🏖️ Setting up leave types...')
+    let organizationLeaveTypes = []
     try {
       const { DEFAULT_LEAVE_TYPES } = await import('@/types/leave')
       
       // Check if leave types already exist for this organization
       const { data: existingLeaveTypes, error: leaveTypesCheckError } = await supabaseAdmin
         .from('leave_types')
-        .select('id')
+        .select('*')
         .eq('organization_id', organization_id)
-        .limit(1)
 
-      if (!leaveTypesCheckError && (!existingLeaveTypes || existingLeaveTypes.length === 0)) {
+      if (leaveTypesCheckError) {
+        console.error('⚠️ Leave types check error:', leaveTypesCheckError)
+        throw leaveTypesCheckError
+      }
+
+      if (!existingLeaveTypes || existingLeaveTypes.length === 0) {
         // Create default leave types for the organization
-        const { error: leaveTypesError } = await supabaseAdmin
+        const { data: createdLeaveTypes, error: leaveTypesError } = await supabaseAdmin
           .from('leave_types')
           .insert(
             DEFAULT_LEAVE_TYPES.map(type => ({
               organization_id,
-              ...type
+              name: type.name,
+              days_per_year: type.days_per_year,
+              color: type.color,
+              requires_approval: type.requires_approval,
+              requires_balance: type.requires_balance,
+              leave_category: type.leave_category
             }))
           )
+          .select()
 
         if (leaveTypesError) {
           console.error('⚠️ Leave types creation error:', leaveTypesError)
-          // Don't fail the process, leave types can be created later
+          throw leaveTypesError
         } else {
           console.log('✅ Default leave types created')
+          organizationLeaveTypes = createdLeaveTypes || []
         }
+      } else {
+        console.log('✅ Leave types already exist for organization')
+        organizationLeaveTypes = existingLeaveTypes
       }
     } catch (error) {
       console.error('⚠️ Leave types setup error:', error)
+      // Don't fail the process, but we won't have leave types to create balances from
+    }
+
+    // 7. Create default leave balances for the new user
+    console.log('💰 Creating leave balances for new user...')
+    try {
+      if (organizationLeaveTypes.length > 0) {
+        // Filter leave types that require balance tracking and aren't child-specific
+        const balanceRequiredTypes = organizationLeaveTypes.filter(lt => 
+          lt.requires_balance && 
+          lt.days_per_year > 0 && 
+          !['maternity', 'paternity', 'childcare'].includes(lt.leave_category)
+        )
+
+        if (balanceRequiredTypes.length > 0) {
+          const leaveBalances = balanceRequiredTypes.map(leaveType => ({
+            user_id: authData.user.id,
+            leave_type_id: leaveType.id,
+            organization_id: organization_id,
+            year: new Date().getFullYear(),
+            entitled_days: leaveType.days_per_year,
+            used_days: 0
+          }))
+
+          console.log('💰 Creating leave balances:', { 
+            userId: authData.user.id, 
+            balancesCount: leaveBalances.length,
+            balances: leaveBalances 
+          })
+
+          const { error: balancesError } = await supabaseAdmin
+            .from('leave_balances')
+            .insert(leaveBalances)
+
+          if (balancesError) {
+            console.error('⚠️ Leave balances creation error:', balancesError)
+            // Don't fail the process, balances can be created later
+          } else {
+            console.log('✅ Leave balances created for new user')
+          }
+        } else {
+          console.log('⚠️ No leave types require balance tracking')
+        }
+      } else {
+        console.log('⚠️ No leave types available to create balances from')
+      }
+    } catch (error) {
+      console.error('⚠️ Leave balances setup error:', error)
       // Don't fail the process
     }
 
-    // 7. Create a session for the new user (auto-login)
+    // 8. Create a session for the new user (auto-login)
     console.log('🔐 Creating session for new user...')
     
     // Get the correct base URL dynamically
@@ -212,17 +303,30 @@ export async function POST(request: NextRequest) {
 
     console.log('🎉 Account creation and invitation acceptance completed!')
 
+    // Debug: Check if user_organizations was created correctly
+    const { data: userOrgCheck } = await supabaseAdmin
+      .from('user_organizations')
+      .select('*')
+      .eq('user_id', authData.user.id)
+      .single()
+    
+    console.log('🔍 User organization check:', userOrgCheck)
+
     const response = NextResponse.json({
       success: true,
       message: 'Account created and invitation accepted successfully',
       user: {
         id: authData.user.id,
         email: authData.user.email,
-        organization_id,
-        role
+        organization_id: invitation.organization_id, // Return for compatibility
+        role: invitation.role
       },
       // Return magic link URL for frontend to use
-      magicLink: sessionData?.properties?.action_link || null
+      magicLink: sessionData?.properties?.action_link || null,
+      debug: {
+        userOrgCreated: !!userOrgCheck,
+        magicLinkGenerated: !!sessionData?.properties?.action_link
+      }
     })
 
     return response

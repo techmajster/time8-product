@@ -24,7 +24,8 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Calendar } from '@/components/ui/calendar'
-import { DatePicker } from '@/components/ui/date-picker'
+import { CalendarWithDropdowns } from '@/components/ui/calendar-with-dropdowns'
+import { DatePicker, DatePickerWithDropdowns } from '@/components/ui/date-picker'
 import { DateRangePicker } from '@/components/ui/date-range-picker'
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb'
 import { Separator } from '@/components/ui/separator'
@@ -50,6 +51,7 @@ import {
 export function ComponentsShowcase() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedDate, setSelectedDate] = useState<Date>()
+  const [selectedDropdownDate, setSelectedDropdownDate] = useState<Date>()
   const [progressValue, setProgressValue] = useState(60)
   const [switchValue, setSwitchValue] = useState(false)
   const [checkboxValue, setCheckboxValue] = useState(false)
@@ -658,10 +660,24 @@ export function ComponentsShowcase() {
       components: [
         {
           name: 'Calendar',
-          description: 'Date selection component',
+          description: 'Basic date selection component',
           component: (
             <div className="max-w-fit">
               <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={setSelectedDate}
+                className="rounded-md border"
+              />
+            </div>
+          )
+        },
+        {
+          name: 'CalendarWithDropdowns',
+          description: 'Date selection component with integrated month/year dropdowns',
+          component: (
+            <div className="max-w-fit">
+              <CalendarWithDropdowns
                 mode="single"
                 selected={selectedDate}
                 onSelect={setSelectedDate}
@@ -693,6 +709,20 @@ export function ComponentsShowcase() {
               <DateRangePicker
                 placeholder="Select date range"
                 className="mt-1"
+              />
+            </div>
+          )
+        },
+        {
+          name: 'DatePickerWithDropdowns',
+          description: 'Date picker with year/month dropdown navigation',
+          component: (
+            <div className="max-w-sm">
+              <Label>Date with Dropdowns</Label>
+              <DatePickerWithDropdowns
+                value={selectedDropdownDate}
+                onDateChange={setSelectedDropdownDate}
+                placeholder="Pick a date"
               />
             </div>
           )

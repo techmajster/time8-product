@@ -14,7 +14,6 @@ import {
   Info,
   TreePalm
 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
 import { EditLeaveRequestSheet } from './EditLeaveRequestSheet'
 import { LeaveType, LeaveBalance, UserProfile } from '@/types/leave'
 
@@ -79,150 +78,48 @@ export function LeaveRequestDetailsSheet({ requestId, isOpen, onClose }: LeaveRe
     if (!requestId) return
 
     setLoading(true)
-    const supabase = createClient()
 
     try {
-      // Get current user and role
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single()
-
-      setUserRole(profile?.role || '')
-      setCurrentUserId(user.id)
-
-      // Get leave request details
-      const { data, error } = await supabase
-        .from('leave_requests')
-        .select(`
-          *,
-          leave_types (
-            id,
-            name,
-            color,
-            days_per_year
-          ),
-          profiles!leave_requests_user_id_fkey (
-            id,
-            full_name,
-            email
-          ),
-          reviewed_by_profile:profiles!leave_requests_reviewed_by_fkey (
-            full_name,
-            email
-          )
-        `)
-        .eq('id', requestId)
-        .single()
-
-      if (error) {
-        console.error('Error fetching leave request:', error)
+      console.log('🔍 Fetching leave request details via API:', { requestId })
+      
+      const response = await fetch(`/api/leave-requests/${requestId}/details`)
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error('❌ API Error:', errorData)
         return
       }
 
-      setLeaveRequest(data)
+      const data = await response.json()
+      console.log('✅ Leave request API response:', { 
+        id: data.leaveRequest.id, 
+        status: data.leaveRequest.status, 
+        userId: data.leaveRequest.user_id,
+        organizationId: data.leaveRequest.organization_id 
+      })
 
-      // Fetch overlapping leave requests from team members
-      const { data: overlappingLeaves, error: overlappingError } = await supabase
-        .from('leave_requests')
-        .select(`
-          id,
-          start_date,
-          end_date,
-          leave_types (
-            name
-          ),
-          profiles!leave_requests_user_id_fkey (
-            full_name,
-            email,
-            avatar_url
-          )
-        `)
-        .eq('organization_id', data.organization_id)
-        .neq('user_id', data.user_id)
-        .neq('id', data.id)
-        .in('status', ['approved', 'pending'])
-        .lte('start_date', data.end_date)
-        .gte('end_date', data.start_date)
+      // Set all the state from API response
+      setLeaveRequest(data.leaveRequest)
+      setConflictingLeaves(data.conflictingLeaves)
+      setUserRole(data.userRole)
+      setCurrentUserId(data.currentUserId)
+      setLeaveTypes(data.leaveTypes)
+      setLeaveBalances(data.leaveBalances)
+      setUserProfile(data.userProfile)
 
-      if (overlappingError) {
-        console.error('Error fetching overlapping leaves:', overlappingError)
-        setConflictingLeaves([])
-      } else {
-        const transformedLeaves = overlappingLeaves?.map(leave => ({
-          id: leave.id,
-          full_name: (leave.profiles as any)?.full_name || null,
-          email: (leave.profiles as any)?.email || '',
-          avatar_url: (leave.profiles as any)?.avatar_url || null,
-          leave_type: (leave.leave_types as any)?.name || 'Urlop',
-          end_date: new Date(leave.end_date).toLocaleDateString('pl-PL', { 
-            day: '2-digit', 
-            month: '2-digit' 
-          })
-        })) || []
-        
-        setConflictingLeaves(transformedLeaves)
-      }
-
-      // Fetch additional data needed for editing
-      if (data.user_id === user.id && data.status !== 'cancelled') {
-        // Fetch leave types
-        const { data: leaveTypesData } = await supabase
-          .from('leave_types')
-          .select('*')
-          .eq('organization_id', data.organization_id)
-          .order('name')
-
-        if (leaveTypesData) {
-          setLeaveTypes(leaveTypesData)
-        }
-
-        // Fetch leave balances
-        const { data: leaveBalancesData } = await supabase
-          .from('leave_balances')
-          .select(`
-            *,
-            leave_types (
-              id,
-              name,
-              color,
-              leave_category
-            )
-          `)
-          .eq('user_id', user.id)
-          .eq('year', new Date().getFullYear())
-
-        if (leaveBalancesData) {
-          setLeaveBalances(leaveBalancesData)
-        }
-
-        // Fetch user profile with organization info
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select(`
-            *,
-            organizations (
-              id,
-              name
-            )
-          `)
-          .eq('id', user.id)
-          .single()
-
-        if (profileData) {
-          setUserProfile(profileData)
-        }
-      }
+      console.log('🔍 Debug edit conditions:', {
+        hasLeaveRequest: !!data.leaveRequest,
+        hasUserProfile: !!data.userProfile,
+        leaveRequestStatus: data.leaveRequest?.status,
+        isOwner: data.leaveRequest?.user_id === data.currentUserId,
+        canEdit: data.leaveRequest?.user_id === data.currentUserId && data.leaveRequest?.status !== 'cancelled'
+      })
 
       // Cache this request ID
       setLastFetchedId(requestId)
 
     } catch (error) {
-      console.error('Error:', error)
+      console.error('❌ Fetch error:', error)
     } finally {
       setLoading(false)
     }
@@ -493,8 +390,16 @@ export function LeaveRequestDetailsSheet({ requestId, isOpen, onClose }: LeaveRe
                   variant="outline" 
                   size="sm"
                   onClick={() => {
+                    console.log('🔘 Edit button clicked:', {
+                      canEdit,
+                      hasLeaveRequest: !!leaveRequest,
+                      hasUserProfile: !!userProfile,
+                      leaveRequestStatus: leaveRequest?.status,
+                      currentIsEditOpen: isEditOpen
+                    })
                     onClose() // Close the current details sheet
                     setIsEditOpen(true) // Open the edit sheet
+                    console.log('🔘 Set isEditOpen to true')
                   }}
                 >
                   Edytuj wniosek
@@ -510,6 +415,12 @@ export function LeaveRequestDetailsSheet({ requestId, isOpen, onClose }: LeaveRe
     </Sheet>
     
     {/* Edit Leave Request Sheet */}
+    {console.log('🔍 EditLeaveRequestSheet render check:', {
+      hasLeaveRequest: !!leaveRequest,
+      hasUserProfile: !!userProfile,
+      isEditOpen,
+      shouldRender: !!(leaveRequest && userProfile)
+    })}
     {leaveRequest && userProfile && (
       <EditLeaveRequestSheet
         leaveRequest={leaveRequest}
@@ -518,6 +429,7 @@ export function LeaveRequestDetailsSheet({ requestId, isOpen, onClose }: LeaveRe
         userProfile={userProfile}
         isOpen={isEditOpen}
         onClose={() => {
+          console.log('🔘 EditLeaveRequestSheet onClose called')
           setIsEditOpen(false)
           // Refresh the main sheet data after editing
           fetchLeaveRequestDetails()

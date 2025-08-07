@@ -41,7 +41,7 @@ export async function authenticateAndGetProfile(): Promise<AuthResult> {
     }
   }
 
-  // Get user profile
+  // MULTI-ORG UPDATE: Get user profile and organization context
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('*')
@@ -55,12 +55,26 @@ export async function authenticateAndGetProfile(): Promise<AuthResult> {
     }
   }
 
-  if (!profile.organization_id) {
+  // Get user's organization from user_organizations
+  const { data: userOrg, error: userOrgError } = await supabase
+    .from('user_organizations')
+    .select('organization_id, role, team_id')
+    .eq('user_id', user.id)
+    .eq('is_active', true)
+    .eq('is_default', true)
+    .single()
+
+  if (userOrgError || !userOrg) {
     return {
       success: false,
       error: NextResponse.json({ error: 'User not assigned to organization' }, { status: 400 })
     }
   }
+
+  // Add organization context to profile for backward compatibility
+  profile.organization_id = userOrg.organization_id
+  profile.role = userOrg.role
+  profile.team_id = userOrg.team_id
 
   return {
     success: true,
@@ -135,18 +149,20 @@ export async function getBasicAuth(): Promise<BasicAuthResult> {
     const cachedProfile = await getOrSetCache(
       cacheKey,
       async () => {
-        // If not cached, fetch from database
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
+        // MULTI-ORG UPDATE: Fetch from user_organizations instead of profiles
+        const { data: userOrg, error: profileError } = await supabase
+          .from('user_organizations')
           .select('organization_id, role')
-          .eq('id', user.id)
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+          .eq('is_default', true)
           .single()
 
-        if (profileError || !profile) {
-          throw new Error('Profile not found')
+        if (profileError || !userOrg) {
+          throw new Error('User organization not found')
         }
 
-        return profile
+        return userOrg
       },
       cacheTTL.userProfileWithOrg
     )

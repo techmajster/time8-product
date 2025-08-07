@@ -161,7 +161,7 @@ export function ManageTeamMembersSheet({
 
     } catch (error) {
       console.error('Error updating team:', error)
-      toast.error(error instanceof Error ? error.message : 'Błąd podczas aktualizacji zespołu')
+      toast.error(error instanceof Error ? error.message : 'Błąd podczas aktualizacji grupy')
     } finally {
       setLoading(false)
     }
@@ -197,7 +197,7 @@ export function ManageTeamMembersSheet({
                   Zarządzaj zespołem
                 </SheetTitle>
                 <SheetDescription className="text-sm text-muted-foreground">
-                  Dodaj lub usuń członków z zespołu {selectedTeam?.name}
+                  Dodaj lub usuń członków z grupy {selectedTeam?.name}
                 </SheetDescription>
               </div>
 
@@ -207,7 +207,7 @@ export function ManageTeamMembersSheet({
                   {/* Current Team Members */}
                   <div className="flex flex-col gap-3">
                     <div className="text-sm font-medium text-foreground">
-                      Członkowie zespołu
+                      Członkowie grupy
                     </div>
                     <div className="flex flex-col gap-4">
                       {displayCurrentMembers.length > 0 ? (
@@ -239,7 +239,7 @@ export function ManageTeamMembersSheet({
                         ))
                       ) : (
                         <div className="text-sm text-muted-foreground py-4">
-                          Ten zespół nie ma jeszcze członków
+                          Ta grupa nie ma jeszcze członków
                         </div>
                       )}
 
@@ -348,7 +348,7 @@ export function ManageTeamMembersSheet({
               </div>
 
               {/* Footer */}
-              <div className="flex flex-row gap-2 items-center justify-end p-6 pt-0 bg-background border-t">
+              <div className="flex flex-row gap-2 items-center justify-between w-full p-6 pt-0 bg-background">
                 <Button 
                   variant="outline"
                   onClick={handleCloseSheet}
@@ -362,7 +362,7 @@ export function ManageTeamMembersSheet({
                   className="h-9"
                 >
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Zaktualizuj zespół
+                  Zaktualizuj grupę
                 </Button>
               </div>
             </div>

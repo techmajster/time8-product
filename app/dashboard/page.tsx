@@ -1,5 +1,5 @@
 import { AppLayout } from '@/components/app-layout'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -9,7 +9,6 @@ import { CalendarDays, Clock, Gift, Users, Plus, HelpCircle, Briefcase, TreePalm
 import { LeaveRequestButton } from './components/LeaveRequestButton'
 import { NewLeaveRequestSheet } from '@/app/leave/components/NewLeaveRequestSheet'
 import { TeamCard } from './components/TeamCard'
-import { getUserTeamScope, getTeamMemberIds } from '@/lib/team-utils'
 import CalendarClient from '@/app/calendar/components/CalendarClient'
 
 interface NearestBirthday {
@@ -27,9 +26,20 @@ export default async function DashboardPage() {
     redirect('/login')
   }
 
-  // Get user profile with organization details including country_code
+  // MULTI-ORG UPDATE: Get user profile and organization details via user_organizations
   const { data: profile } = await supabase
     .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .single()
+
+  if (!profile) {
+    redirect('/login')
+  }
+
+  // Get user's active organization from user_organizations
+  const { data: userOrg } = await supabase
+    .from('user_organizations')
     .select(`
       *,
       organizations (
@@ -38,12 +48,22 @@ export default async function DashboardPage() {
         country_code
       )
     `)
-    .eq('id', user.id)
+    .eq('user_id', user.id)
+    .eq('is_active', true)
+    .eq('is_default', true)
     .single()
 
-  if (!profile?.organization_id) {
+  if (!userOrg) {
     redirect('/onboarding')
   }
+
+  // Add organization context to profile for backward compatibility
+  profile.organization_id = userOrg.organization_id
+  profile.role = userOrg.role
+  profile.organizations = userOrg.organizations
+
+  // Use admin client for better RLS handling
+  const supabaseAdmin = createAdminClient()
 
   // Get current date for display
   const today = new Date()
@@ -56,7 +76,7 @@ export default async function DashboardPage() {
   const isWeekend = currentDayOfWeek === 0 || currentDayOfWeek === 6 // Sunday or Saturday
 
   // Get leave balances for current user (only for leave types that require balances)
-  const { data: leaveBalances } = await supabase
+  const { data: leaveBalances } = await supabaseAdmin
     .from('leave_balances')
     .select(`
       *,
@@ -77,38 +97,107 @@ export default async function DashboardPage() {
   const remainingVacationDays = vacationBalance?.remaining_days || 0
 
   // Get all leave types for the organization
-  const { data: leaveTypes } = await supabase
+  const { data: leaveTypes } = await supabaseAdmin
     .from('leave_types')
     .select('*')
     .eq('organization_id', profile.organization_id)
     .order('name')
 
-  // Get team scope for filtering data
-  const teamScope = await getUserTeamScope(user.id)
-  const teamMemberIds = await getTeamMemberIds(teamScope)
+  // Get team scope for filtering data - bypass team-utils to use admin client
+  let teamScope: any
+  let teamMemberIds: string[] = []
+  
+  // Determine team scope using admin client to bypass RLS
+  if (profile.role === 'admin') {
+    // Admin sees all organization members
+    teamScope = { type: 'organization', organizationId: profile.organization_id }
+    
+    const { data: allOrgMembers } = await supabaseAdmin
+      .from('user_organizations')
+      .select('user_id')
+      .eq('organization_id', profile.organization_id)
+      .eq('is_active', true)
+    
+    teamMemberIds = allOrgMembers?.map(m => m.user_id) || []
+  } else if (userOrg.team_id) {
+    // Team members see only their team
+    teamScope = { type: 'team', teamId: userOrg.team_id, organizationId: profile.organization_id }
+    
+    const { data: teamMembers } = await supabaseAdmin
+      .from('user_organizations')
+      .select('user_id')
+      .eq('team_id', userOrg.team_id)
+      .eq('is_active', true)
+    
+    teamMemberIds = teamMembers?.map(m => m.user_id) || []
+  } else {
+    // Fallback: show all organization members
+    teamScope = { type: 'organization', organizationId: profile.organization_id }
+    
+    const { data: allOrgMembers } = await supabaseAdmin
+      .from('user_organizations')
+      .select('user_id')
+      .eq('organization_id', profile.organization_id)
+      .eq('is_active', true)
+    
+    teamMemberIds = allOrgMembers?.map(m => m.user_id) || []
+  }
 
-  // Get team members based on user's team scope (team filtering logic)
-  const { data: allTeamMembers } = await supabase
-    .from('profiles')
+  console.log('🏠 Dashboard - team scope and member IDs:', { 
+    count: teamMemberIds.length, 
+    teamScope,
+    organizationId: profile.organization_id,
+    userRole: profile.role,
+    userTeamId: userOrg.team_id,
+    memberIds: teamMemberIds
+  })
+
+  // Get team members based on user's team scope via user_organizations (multi-org approach)
+  const { data: rawTeamMembers } = await supabaseAdmin
+    .from('user_organizations')
     .select(`
-      id,
-      full_name,
-      email,
-      avatar_url,
+      user_id,
+      role,
       team_id,
-      teams!profiles_team_id_fkey (
+      profiles!user_organizations_user_id_fkey (
+        id,
+        email,
+        full_name,
+        avatar_url
+      ),
+      teams!user_organizations_team_id_fkey (
         id,
         name,
         color
       )
     `)
-    .in('id', teamMemberIds)
-    .order('full_name')
+    .eq('organization_id', profile.organization_id)
+    .eq('is_active', true)
+    .in('user_id', teamMemberIds)
+    .order('profiles(full_name)', { ascending: true })
+
+  // Transform the data to match expected interface
+  const allTeamMembers = rawTeamMembers?.map(userOrg => {
+    const profile = Array.isArray(userOrg.profiles) ? userOrg.profiles[0] : userOrg.profiles
+    return {
+      id: profile?.id || userOrg.user_id,
+      email: profile?.email || '',
+      full_name: profile?.full_name,
+      avatar_url: profile?.avatar_url,
+      team_id: userOrg.team_id,
+      teams: Array.isArray(userOrg.teams) ? userOrg.teams[0] : userOrg.teams
+    }
+  }) || []
+
+  console.log('🏠 Dashboard - transformed team members:', { 
+    count: allTeamMembers.length,
+    members: allTeamMembers.map(m => ({ id: m.id, email: m.email, team_id: m.team_id }))
+  })
 
   // Get all teams for filtering option (only if admin or no team assigned)
   let teams: any[] = []
   if (profile.role === 'admin' || teamScope.type === 'organization') {
-    const { data: teamsData } = await supabase
+    const { data: teamsData } = await supabaseAdmin
       .from('teams')
       .select('id, name, color')
       .eq('organization_id', profile.organization_id)
@@ -117,7 +206,7 @@ export default async function DashboardPage() {
   }
 
   // Find the team where current user is a manager
-  const { data: managedTeam } = await supabase
+  const { data: managedTeam } = await supabaseAdmin
     .from('teams')
     .select('id, name, color')
     .eq('organization_id', profile.organization_id)
@@ -125,7 +214,7 @@ export default async function DashboardPage() {
     .single()
 
   // Get colleagues' birthday data for birthday calculation (same as calendar)
-  const { data: teamMembersWithBirthdays } = await supabase
+  const { data: teamMembersWithBirthdays } = await supabaseAdmin
     .from('profiles')
     .select('id, full_name, birth_date')
     .in('id', teamMemberIds)
@@ -176,8 +265,8 @@ export default async function DashboardPage() {
   let pendingCount = 0
   
   if (profile.role === 'admin' || profile.role === 'manager') {
-    // Use team-based filtering for pending requests
-    const { count } = await supabase
+    // Use team-based filtering for pending requests with admin client
+    const { count } = await supabaseAdmin
       .from('leave_requests')
       .select('id', { count: 'exact' })
       .eq('status', 'pending')
@@ -190,7 +279,7 @@ export default async function DashboardPage() {
 
   // Get current active leave requests to determine who's absent today (team-filtered)
   const todayDate = new Date().toISOString().split('T')[0]
-  const { data: currentLeaveRequests } = await supabase
+  const { data: currentLeaveRequests } = await supabaseAdmin
     .from('leave_requests')
     .select(`
       id,

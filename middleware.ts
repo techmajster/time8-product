@@ -58,6 +58,16 @@ export async function middleware(request: NextRequest) {
     '/api/auth/signup-with-invitation', // Invitation-based signup endpoint
     '/api/auth/verify-email', // Email verification endpoint
     '/api/organizations', // Organization creation for authenticated users
+    '/api/test-db', // Database connection test endpoint
+    '/api/test-auth', // Authentication diagnostic endpoint
+    '/api/debug-db', // Database diagnostic endpoint
+    '/api/test-rls', // RLS policy diagnostic endpoint
+    '/api/debug-user-state', // User state debugging endpoint
+    '/api/fix-user-organization', // User organization fix endpoint
+    '/api/fix-admin-user', // Fix admin@bb8.pl account
+    '/api/debug-database-state', // Comprehensive database state check
+    '/api/fix-broken-accounts', // Fix missing profiles and organization memberships
+    '/api/migrate-profiles-to-multi-org', // Complete profile to multi-org migration
   ]
 
   const { pathname } = request.nextUrl
@@ -76,20 +86,31 @@ export async function middleware(request: NextRequest) {
 
   // If user is authenticated, check if they have an organization
   if (user) {
-    const { data: profile } = await supabase
-      .from('profiles')
+    // MULTI-ORG UPDATE: Check user_organizations instead of profile.organization_id
+    const { data: userOrgs, error: userOrgsError } = await supabase
+      .from('user_organizations')
       .select('organization_id')
-      .eq('id', user.id)
-      .single()
+      .eq('user_id', user.id)
+      .eq('is_active', true)
+      .limit(1)
+
+    console.log('🔍 Middleware org check:', { 
+      userId: user.id, 
+      userOrgs, 
+      userOrgsError,
+      pathname 
+    })
+
+    const hasOrganization = userOrgs && userOrgs.length > 0
 
     // If user doesn't have an organization, redirect to onboarding
-    if (!profile?.organization_id && !pathname.startsWith('/onboarding')) {
+    if (!hasOrganization && !pathname.startsWith('/onboarding')) {
       const onboardingUrl = new URL('/onboarding', request.url)
       return NextResponse.redirect(onboardingUrl)
     }
 
     // If user has organization but is on onboarding, redirect to dashboard
-    if (profile?.organization_id && pathname.startsWith('/onboarding')) {
+    if (hasOrganization && pathname.startsWith('/onboarding')) {
       const dashboardUrl = new URL('/dashboard', request.url)
       return NextResponse.redirect(dashboardUrl)
     }

@@ -1,5 +1,5 @@
 import { AppLayout } from '@/components/app-layout'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -210,9 +210,20 @@ export default async function MyLeavePage() {
     redirect('/login')
   }
 
-  // Get user profile
+  // MULTI-ORG UPDATE: Get user profile and organization via user_organizations
   const { data: profile } = await supabase
     .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .single()
+
+  if (!profile) {
+    redirect('/login')
+  }
+
+  // Get user's active organization from user_organizations
+  const { data: userOrg } = await supabase
+    .from('user_organizations')
     .select(`
       *,
       organizations (
@@ -220,12 +231,22 @@ export default async function MyLeavePage() {
         name
       )
     `)
-    .eq('id', user.id)
+    .eq('user_id', user.id)
+    .eq('is_active', true)
+    .eq('is_default', true)
     .single()
 
-  if (!profile?.organization_id) {
+  if (!userOrg) {
     redirect('/onboarding')
   }
+
+  // Add organization context to profile for backward compatibility
+  profile.organization_id = userOrg.organization_id
+  profile.role = userOrg.role
+  profile.organizations = userOrg.organizations
+
+  // Use admin client for better data access
+  const supabaseAdmin = createAdminClient()
 
   // Get leave requests for this user
   const { data: leaveRequests } = await supabase
@@ -242,8 +263,8 @@ export default async function MyLeavePage() {
     .eq('organization_id', profile.organization_id)
     .order('created_at', { ascending: false })
 
-  // Get leave balances for current user
-  const { data: leaveBalances } = await supabase
+  // Get leave balances for current user using admin client
+  const { data: leaveBalances, error: leaveBalancesError } = await supabaseAdmin
     .from('leave_balances')
     .select(`
       *,
@@ -258,8 +279,16 @@ export default async function MyLeavePage() {
     .eq('user_id', user.id)
     .eq('year', new Date().getFullYear())
 
-  // Get leave types for the organization
-  const { data: leaveTypes } = await supabase
+  console.log('💰 Leave page - user leave balances:', { 
+    userId: user.id,
+    count: leaveBalances?.length || 0, 
+    error: leaveBalancesError,
+    year: new Date().getFullYear(),
+    balances: leaveBalances
+  })
+
+  // Get leave types for the organization using admin client
+  const { data: leaveTypes } = await supabaseAdmin
     .from('leave_types')
     .select('*')
     .eq('organization_id', profile.organization_id)

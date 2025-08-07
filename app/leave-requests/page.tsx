@@ -34,17 +34,39 @@ async function getLeaveRequests(status?: string) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // Get user's organization and team scope
+  // MULTI-ORG UPDATE: Get user's organization and role from user_organizations
   const { data: profile } = await supabase
     .from('profiles')
-    .select('organization_id, role')
+    .select('*')
     .eq('id', user.id)
     .single()
 
-  if (!profile?.organization_id) redirect('/onboarding')
+  if (!profile) redirect('/login')
+
+  // Get user's active organization from user_organizations
+  const { data: userOrg } = await supabase
+    .from('user_organizations')
+    .select(`
+      *,
+      organizations (
+        id,
+        name
+      )
+    `)
+    .eq('user_id', user.id)
+    .eq('is_active', true)
+    .eq('is_default', true)
+    .single()
+
+  if (!userOrg) redirect('/onboarding')
+
+  // Add organization context to profile for backward compatibility
+  profile.organization_id = userOrg.organization_id
+  profile.role = userOrg.role
+  profile.organizations = userOrg.organizations
 
   // Only managers and admins can see leave requests
-  if (profile.role !== 'manager' && profile.role !== 'admin') {
+  if (userOrg.role !== 'manager' && userOrg.role !== 'admin') {
     redirect('/leave')
   }
 

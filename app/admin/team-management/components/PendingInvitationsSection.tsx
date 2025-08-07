@@ -42,6 +42,8 @@ export function PendingInvitationsSection({ invitations }: PendingInvitationsSec
   const handleResendInvitation = async (invitation: Invitation) => {
     setLoading(invitation.id)
     try {
+      console.log('🔄 Resending invitation for:', invitation.email)
+      
       const response = await fetch('/api/resend-invitation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -51,12 +53,17 @@ export function PendingInvitationsSection({ invitations }: PendingInvitationsSec
         })
       })
 
+      const data = await response.json()
+      
       if (response.ok) {
+        console.log('✅ Invitation resent successfully')
         toast.success('Zaproszenie zostało wysłane ponownie')
       } else {
-        toast.error('Nie udało się wysłać zaproszenia ponownie')
+        console.error('❌ Failed to resend invitation:', data)
+        toast.error(data.error || 'Nie udało się wysłać zaproszenia ponownie')
       }
     } catch (error) {
+      console.error('❌ Error resending invitation:', error)
       toast.error('Wystąpił błąd podczas wysyłania zaproszenia')
     } finally {
       setLoading(null)
@@ -66,20 +73,27 @@ export function PendingInvitationsSection({ invitations }: PendingInvitationsSec
   const handleCancelInvitation = async (invitation: Invitation) => {
     setLoading(invitation.id)
     try {
+      console.log('🗑️ Cancelling invitation for:', invitation.email)
+      
       const response = await fetch('/api/cancel-invitation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ invitationId: invitation.id })
       })
 
+      const data = await response.json()
+      
       if (response.ok) {
+        console.log('✅ Invitation cancelled successfully')
         toast.success('Zaproszenie zostało anulowane')
         // Refresh the page to update the list
         window.location.reload()
       } else {
-        toast.error('Nie udało się anulować zaproszenia')
+        console.error('❌ Failed to cancel invitation:', data)
+        toast.error(data.error || 'Nie udało się anulować zaproszenia')
       }
     } catch (error) {
+      console.error('❌ Error cancelling invitation:', error)
       toast.error('Wystąpił błąd podczas anulowania zaproszenia')
     } finally {
       setLoading(null)
@@ -137,7 +151,7 @@ export function PendingInvitationsSection({ invitations }: PendingInvitationsSec
   if (invitations.length === 0) {
     return (
       <div className="space-y-4">
-        <h3 className="text-lg font-medium">Oczekujące zaproszenia</h3>
+        <h3 className="text-lg font-medium mb-8">Oczekujące zaproszenia</h3>
         <div className="text-center py-4 text-muted-foreground text-sm border rounded-lg">
           Brak oczekujących zaproszeń
         </div>

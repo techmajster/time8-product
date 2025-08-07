@@ -116,8 +116,10 @@
     "addAbsence": "Dodaj nieobecność",
     "add": "Nowy pracownik",
     "add-employee": "Nowy pracownik",
+    "edit-employee": "Edytuj pracownika",
     "holidays": "Święta",
     "help": "Pomoc",
+    "components": "Biblioteka komponentów",
     "groups": {
       "manager": "Menedżer",
       "admin": "Administrator"

@@ -1,5 +1,5 @@
 import { AppLayout } from '@/components/app-layout'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { ManagerTeamView } from './components/ManagerTeamView'
 import { AdminTeamView } from './components/AdminTeamView'
@@ -18,9 +18,20 @@ export default async function TeamPage() {
     redirect('/login')
   }
 
-  // Get user profile with organization details
+  // MULTI-ORG UPDATE: Get user profile and organization via user_organizations
   const { data: profile } = await supabase
     .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .single()
+
+  if (!profile) {
+    redirect('/login')
+  }
+
+  // Get user's active organization from user_organizations
+  const { data: userOrg } = await supabase
+    .from('user_organizations')
     .select(`
       *,
       organizations (
@@ -28,12 +39,19 @@ export default async function TeamPage() {
         name
       )
     `)
-    .eq('id', user.id)
+    .eq('user_id', user.id)
+    .eq('is_active', true)
+    .eq('is_default', true)
     .single()
 
-  if (!profile?.organization_id) {
+  if (!userOrg) {
     redirect('/onboarding')
   }
+
+  // Add organization context to profile for backward compatibility
+  profile.organization_id = userOrg.organization_id
+  profile.role = userOrg.role
+  profile.organizations = userOrg.organizations
 
   // Only managers and admins can access this page
   if (profile.role !== 'manager' && profile.role !== 'admin') {
@@ -42,8 +60,11 @@ export default async function TeamPage() {
 
   // Admin view - can see all teams with dropdown selector
   if (profile.role === 'admin') {
+    // Use admin client for bypassing RLS issues
+    const supabaseAdmin = createAdminClient()
+    
     // Get all teams
-    const { data: teams } = await supabase
+    const { data: teams } = await supabaseAdmin
       .from('teams')
       .select(`
         id,
@@ -53,34 +74,51 @@ export default async function TeamPage() {
       .eq('organization_id', profile.organization_id)
       .order('name')
 
-    // Get all team members
-    const { data: rawTeamMembers } = await supabase
-      .from('profiles')
+    // MULTI-ORG UPDATE: Get all team members via user_organizations using admin client
+    const { data: rawTeamMembers } = await supabaseAdmin
+      .from('user_organizations')
       .select(`
-        id, 
-        email, 
-        full_name, 
-        role, 
-        avatar_url,
+        user_id,
+        role,
         team_id,
-        teams!profiles_team_id_fkey (
+        profiles!user_organizations_user_id_fkey (
+          id,
+          email,
+          full_name,
+          avatar_url
+        ),
+        teams!user_organizations_team_id_fkey (
           id,
           name,
           color
         )
       `)
       .eq('organization_id', profile.organization_id)
-      .order('full_name', { ascending: true })
+      .eq('is_active', true)
+      .order('profiles(full_name)', { ascending: true })
 
-    // Transform the data
-    const teamMembers = rawTeamMembers?.map(member => ({
-      ...member,
-      teams: Array.isArray(member.teams) ? member.teams[0] : member.teams
-    })) || []
+    console.log('👥 Admin team view - raw team members:', { 
+      count: rawTeamMembers?.length || 0, 
+      organizationId: profile.organization_id 
+    })
 
-    // Get leave balances for all members
+    // Transform the data to match the expected interface
+    const teamMembers = rawTeamMembers?.map(userOrg => {
+      const profile = Array.isArray(userOrg.profiles) ? userOrg.profiles[0] : userOrg.profiles
+      return {
+        id: profile?.id || userOrg.user_id,
+        email: profile?.email || '',
+        full_name: profile?.full_name,
+        role: userOrg.role,
+        avatar_url: profile?.avatar_url,
+        team_id: userOrg.team_id,
+        teams: Array.isArray(userOrg.teams) ? userOrg.teams[0] : userOrg.teams
+      }
+    }) || []
+
+    // Get leave balances for all members using admin client
     const memberIds = teamMembers.map(member => member.id)
-    const { data: leaveBalances } = await supabase
+    const { data: leaveBalances } = await supabaseAdmin
       .from('leave_balances')
       .select(`
         *,
@@ -112,30 +150,42 @@ export default async function TeamPage() {
   const teamScope = await getUserTeamScope(user.id)
   const teamMemberIds = await getTeamMemberIds(teamScope)
 
-  // Get team members (team-scoped)
+  // MULTI-ORG UPDATE: Get team members via user_organizations (team-scoped)
   const { data: rawTeamMembers } = await supabase
-    .from('profiles')
+    .from('user_organizations')
     .select(`
-      id, 
-      email, 
-      full_name, 
-      role, 
-      avatar_url,
+      user_id,
+      role,
       team_id,
-      teams!profiles_team_id_fkey (
+      profiles!user_organizations_user_id_fkey (
+        id,
+        email,
+        full_name,
+        avatar_url
+      ),
+      teams!user_organizations_team_id_fkey (
         id,
         name,
         color
       )
     `)
-    .in('id', teamMemberIds)
-    .order('full_name', { ascending: true })
+    .in('user_id', teamMemberIds)
+    .eq('is_active', true)
+    .order('profiles(full_name)', { ascending: true })
 
-  // Transform the data to match interface (teams is array, need single object)
-  const teamMembers = rawTeamMembers?.map(member => ({
-    ...member,
-    teams: Array.isArray(member.teams) ? member.teams[0] : member.teams
-  })) || []
+  // Transform the data to match interface
+  const teamMembers = rawTeamMembers?.map(userOrg => {
+    const profile = Array.isArray(userOrg.profiles) ? userOrg.profiles[0] : userOrg.profiles
+    return {
+      id: profile?.id || userOrg.user_id,
+      email: profile?.email || '',
+      full_name: profile?.full_name,
+      role: userOrg.role,
+      avatar_url: profile?.avatar_url,
+      team_id: userOrg.team_id,
+      teams: Array.isArray(userOrg.teams) ? userOrg.teams[0] : userOrg.teams
+    }
+  }) || []
 
   // Get leave balances for team members
   const { data: leaveBalances } = await supabase

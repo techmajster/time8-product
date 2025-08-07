@@ -1,0 +1,3 @@
+# Spec Summary (Lite)
+
+Systematically identify and resolve all remaining functional regressions introduced by the multi-organization architecture migration to restore full application functionality. This includes fixing RLS policy violations, restoring admin panel operations, replacing hardcoded data with dynamic database queries, and ensuring all user roles can access their intended features without errors.

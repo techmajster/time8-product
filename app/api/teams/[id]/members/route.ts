@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
-import { getBasicAuth, isManagerOrAdmin } from '@/lib/auth-utils'
+import { authenticateAndGetOrgContext, isManagerOrAdmin } from '@/lib/auth-utils-v2'
 
 // POST /api/teams/[id]/members - Add member to team
 export async function POST(
@@ -9,12 +9,14 @@ export async function POST(
 ) {
   try {
     const { id: teamId } = await params
-    const auth = await getBasicAuth()
+    const auth = await authenticateAndGetOrgContext()
     if (!auth.success) {
       return auth.error
     }
 
-    const { user, organizationId, role } = auth
+    const { context } = auth
+    const { user, organization, role } = context
+    const organizationId = organization.id
     const supabase = await createClient()
 
     // Basic permission check
@@ -47,19 +49,35 @@ export async function POST(
     }
 
     const { data: updatedMembers, error } = await supabaseAdmin
-      .from('profiles')
+      .from('user_organizations')
       .update({ team_id: teamId })
-      .in('id', member_ids)
-      .select('id, full_name, email, role, avatar_url')
+      .in('user_id', member_ids)
+      .eq('organization_id', organizationId)
+      .eq('is_active', true)
+      .select(`
+        user_id,
+        profiles!user_organizations_user_id_fkey (
+          id, full_name, email, role, avatar_url
+        )
+      `)
 
     if (error) {
       console.error('Error adding members to team:', error)
       return NextResponse.json({ error: 'Failed to add members to team', details: error.message }, { status: 500 })
     }
 
+    // Transform the response to match expected format
+    const transformedMembers = updatedMembers?.map((userOrg: any) => ({
+      id: userOrg.profiles?.id,
+      full_name: userOrg.profiles?.full_name,
+      email: userOrg.profiles?.email,
+      role: userOrg.profiles?.role,
+      avatar_url: userOrg.profiles?.avatar_url
+    })) || []
+
     return NextResponse.json({
-      message: `Successfully added ${updatedMembers?.length || 0} member(s) to team`,
-      members: updatedMembers || []
+      message: `Successfully added ${transformedMembers.length} member(s) to team`,
+      members: transformedMembers
     })
 
   } catch (error) {
@@ -75,12 +93,14 @@ export async function DELETE(
 ) {
   try {
     const { id: teamId } = await params
-    const auth = await getBasicAuth()
+    const auth = await authenticateAndGetOrgContext()
     if (!auth.success) {
       return auth.error
     }
 
-    const { user, organizationId, role } = auth
+    const { context } = auth
+    const { user, organization, role } = context
+    const organizationId = organization.id
     const supabase = await createClient()
 
     // Basic permission check
@@ -113,19 +133,35 @@ export async function DELETE(
     }
 
     const { data: updatedMembers, error } = await supabaseAdmin
-      .from('profiles')
+      .from('user_organizations')
       .update({ team_id: null })
-      .in('id', member_ids)
-      .select('id, full_name, email, role, avatar_url')
+      .in('user_id', member_ids)
+      .eq('organization_id', organizationId)
+      .eq('is_active', true)
+      .select(`
+        user_id,
+        profiles!user_organizations_user_id_fkey (
+          id, full_name, email, role, avatar_url
+        )
+      `)
 
     if (error) {
       console.error('Error removing members from team:', error)
       return NextResponse.json({ error: 'Failed to remove members from team', details: error.message }, { status: 500 })
     }
 
+    // Transform the response to match expected format
+    const transformedMembers = updatedMembers?.map((userOrg: any) => ({
+      id: userOrg.profiles?.id,
+      full_name: userOrg.profiles?.full_name,
+      email: userOrg.profiles?.email,
+      role: userOrg.profiles?.role,
+      avatar_url: userOrg.profiles?.avatar_url
+    })) || []
+
     return NextResponse.json({
-      message: `Successfully removed ${updatedMembers?.length || 0} member(s) from team`,
-      members: updatedMembers || []
+      message: `Successfully removed ${transformedMembers.length} member(s) from team`,
+      members: transformedMembers
     })
 
   } catch (error) {

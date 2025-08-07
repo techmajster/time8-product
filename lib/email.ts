@@ -1,25 +1,8 @@
 import { Resend } from 'resend'
-import { getAppUrl, getInviteUrl, getLoginUrl, getOnboardingUrl } from './utils'
+import { getInviteUrl, getAppUrl, getLoginUrl } from './utils'
+import { getFromEmail, getEmailTemplate, type LeaveRequestNotificationData, type TeamLeaveNotificationData, type LeaveRequestReminderData, type WeeklySummaryData, type EmployeeVerificationData, type EmailVerificationData } from './email-utils'
 
-// Initialize Resend only if API key is available
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
-
-// Smart email address selection
-const getFromEmail = (emailType: 'critical' | 'brand' | 'notification') => {
-  switch (emailType) {
-    case 'critical':
-      // High-deliverability for invitations, password resets, important system emails
-      return process.env.FROM_EMAIL || 'onboarding@resend.dev'
-    case 'brand':
-      // Time8 brand emails for general notifications, building domain reputation
-      return process.env.BRAND_EMAIL || process.env.FROM_EMAIL || 'noreply@time8.io'
-    case 'notification':
-      // Regular notifications - balance between reliability and branding
-      return process.env.NOTIFICATION_EMAIL || process.env.BRAND_EMAIL || 'notifications@time8.io'
-    default:
-      return process.env.FROM_EMAIL || 'noreply@yourdomain.com'
-  }
-}
+const resend = new Resend(process.env.RESEND_API_KEY!)
 
 interface InvitationEmailData {
   to: string
@@ -31,201 +14,65 @@ interface InvitationEmailData {
   personalMessage?: string
 }
 
-interface LeaveRequestNotificationData {
-  to: string
-  employeeName: string
-  leaveType: string
-  startDate: string
-  endDate: string
-  status: 'pending' | 'approved' | 'rejected'
-  organizationName: string
-  requestId: string
-}
-
-interface TeamLeaveNotificationData {
-  to: string
-  employeeName: string
-  leaveType: string
-  startDate: string
-  endDate: string
-  organizationName: string
-}
-
-interface LeaveRequestReminderData {
-  to: string
-  pendingRequestsCount: number
-  organizationName: string
-  requests: Array<{
-    employeeName: string
-    leaveType: string
-    startDate: string
-    requestDate: string
-  }>
-}
-
-interface WeeklySummaryData {
-  to: string
-  organizationName: string
-  weekStart: string
-  weekEnd: string
-  totalLeaves: number
-  pendingRequests: number
-  upcomingLeaves: Array<{
-    employeeName: string
-    leaveType: string
-    startDate: string
-    endDate: string
-  }>
-}
-
-interface EmployeeVerificationData {
-  to: string
-  full_name: string
-  organization_name: string
-  temp_password: string
-  personal_message?: string
-}
-
-interface EmailVerificationData {
-  to: string
-  full_name: string
-  verification_token: string
-}
-
-// Email templates
-const getEmailTemplate = (content: string) => `
+export async function sendInvitationEmail(data: InvitationEmailData) {
+  const invitationUrl = getInviteUrl(data.invitationToken)
+  
+  const htmlContent = `
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-      body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
-      .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-      .header { background: hsl(267 85% 60%); color: white; padding: 20px; border-radius: 8px 8px 0 0; text-align: center; }
-      .content { background: white; padding: 30px; border: 1px solid #e1e5e9; }
-      .footer { background: hsl(240 5% 93%); padding: 20px; border-radius: 0 0 8px 8px; text-align: center; color: hsl(240 4% 54%); font-size: 14px; }
-      .button { 
-        display: inline-block; 
-        background: hsl(267 85% 60%); 
-        color: white; 
-        padding: 12px 24px; 
-        text-decoration: none; 
-        border-radius: 6px; 
-        margin: 20px 0;
-        font-weight: bold;
-      }
-      .status-badge {
-        display: inline-block;
-        padding: 4px 12px;
-        border-radius: 4px;
-        font-size: 12px;
-        font-weight: bold;
-        text-transform: uppercase;
-      }
-      .status-pending { background: hsl(48 96% 53%); color: hsl(26 83% 14%); }
-      .status-approved { background: hsl(142 76% 36%); color: white; }
-      .status-rejected { background: hsl(0 84% 60%); color: white; }
-      .leave-item { 
-        background: hsl(240 5% 96%); 
-        padding: 15px; 
-        border-radius: 6px; 
-        margin: 10px 0; 
-        border-left: 4px solid hsl(267 85% 60%);
-      }
-      .summary-stats {
-        display: flex;
-        justify-content: space-around;
-        background: hsl(240 5% 96%);
-        padding: 20px;
-        border-radius: 6px;
-        margin: 20px 0;
-      }
-      .stat-item {
-        text-align: center;
-      }
-      .stat-number {
-        font-size: 24px;
-        font-weight: bold;
-        color: hsl(267 85% 60%);
-      }
-      .stat-label {
-        font-size: 12px;
-        color: hsl(240 4% 54%);
-        text-transform: uppercase;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      ${content}
-      <div class="footer">
-        <p>Ten email został wysłany przez system zarządzania urlopami.</p>
-        <p>Jeśli nie chcesz otrzymywać takich powiadomień, możesz je wyłączyć w ustawieniach profilu.</p>
-      </div>
-    </div>
-  </body>
-</html>
-`
-
-export async function sendInvitationEmail(data: InvitationEmailData) {
-  try {
-    // Check if email service is configured
-    if (!resend) {
-      console.warn('Email service not configured - RESEND_API_KEY missing')
-      return { success: false, error: 'Email service not configured' }
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .button { 
+      display: inline-block; 
+      background: #3b82f6; 
+      color: white; 
+      padding: 12px 24px; 
+      text-decoration: none; 
+      border-radius: 6px; 
+      margin: 20px 0;
     }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Zaproszenie do ${data.organizationName}</h1>
+    <p>Cześć!</p>
+    <p><strong>${data.inviterName}</strong> zaprasza Cię do dołączenia do ${data.organizationName}.</p>
+    ${data.personalMessage ? `<p><em>"${data.personalMessage}"</em></p>` : ''}
+    <p>Rola: ${data.role}</p>
+    <a href="${invitationUrl}" class="button">Zaakceptuj zaproszenie</a>
+    <p>Link: ${invitationUrl}</p>
+    <p>Zaproszenie wygasa za 7 dni.</p>
+  </div>
+</body>
+</html>`
 
-    // Construct the invitation URL using dynamic domain detection
-    const invitationUrl = getInviteUrl(data.invitationToken)
-
-    const content = `
-      <div class="header">
-        <h1>🎉 Zaproszenie do ${data.organizationName}</h1>
-      </div>
-      <div class="content">
-        <p>Cześć!</p>
-        
-        <p><strong>${data.inviterName}</strong> (${data.inviterEmail}) zaprasza Cię do dołączenia do organizacji <strong>${data.organizationName}</strong> w systemie zarządzania urlopami.</p>
-        
-        ${data.personalMessage ? `
-          <div style="background: hsl(240 5% 96%); padding: 15px; border-left: 4px solid hsl(267 85% 60%); margin: 20px 0;">
-            <p><strong>Wiadomość od ${data.inviterName}:</strong></p>
-            <p style="font-style: italic;">"${data.personalMessage}"</p>
-          </div>
-        ` : ''}
-        
-        <p>Zostałeś przypisany do roli: <span class="status-badge" style="background: hsl(240 5% 93%); color: hsl(240 10% 25%);">${data.role}</span></p>
-        
-        <p>Aby zaakceptować zaproszenie i założyć konto, kliknij poniższy przycisk:</p>
-        
-        <a href="${invitationUrl}" class="button">Zaakceptuj zaproszenie</a>
-        
-        <p>Lub skopiuj i wklej ten link do przeglądarki:</p>
-        <p style="word-break: break-all; color: hsl(267 85% 60%); font-size: 14px;">${invitationUrl}</p>
-        
-        <div style="margin-top: 30px; padding: 15px; background: hsl(240 5% 96%); border-radius: 6px;">
-          <p><strong>⏰ To zaproszenie wygasa za 7 dni.</strong></p>
-          <p>Jeśli masz pytania, skontaktuj się bezpośrednio z ${data.inviterEmail}.</p>
-        </div>
-      </div>
-    `
-
-    const fromEmail = getFromEmail('brand')
-    console.log('📧 Sending invitation from:', fromEmail, 'to:', data.to)
+  try {
+    console.log('📧 Sending email to:', data.to)
     
     const result = await resend.emails.send({
-      from: getFromEmail('brand'), // Use same email type as working sendTestEmail
+      from: getFromEmail('critical'),
       to: data.to,
       subject: `Zaproszenie do ${data.organizationName}`,
-      html: getEmailTemplate(content),
+      html: htmlContent,
     })
 
-    console.log('🔍 Resend API response:', JSON.stringify(result, null, 2))
+    console.log('📧 Resend result:', result)
+    
+    if (result.error) {
+      console.error('❌ Resend error:', result.error)
+      return { success: false, error: result.error.message }
+    }
+
+    console.log('✅ Email sent successfully, ID:', result.data?.id)
     return { success: true, messageId: result.data?.id }
+    
   } catch (error) {
-    console.error('Failed to send invitation email:', error)
-    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    console.error('❌ Email send failed:', error)
+    return { success: false, error: String(error) }
   }
 }
 
