@@ -21,7 +21,7 @@ import {
   Zap
 } from 'lucide-react'
 import { useWebVitals } from '@/lib/performance/web-vitals-monitor'
-import { DatabaseQueryAnalyzer } from '@/lib/performance/query-analyzer'
+// Performance data fetched via API endpoints
 
 interface PerformanceMetrics {
   averages: Record<string, number>
@@ -70,10 +70,12 @@ export function PerformanceDashboard() {
       const webVitalsData = await webVitalsResponse.json()
       setMetrics(webVitalsData.analytics)
 
-      // Load database analysis
-      const analyzer = new DatabaseQueryAnalyzer()
-      const analysis = await analyzer.analyzePerformance()
-      setDbAnalysis(analysis)
+      // Load database analysis via API
+      const dbResponse = await fetch('/api/performance/database-analysis')
+      if (dbResponse.ok) {
+        const analysis = await dbResponse.json()
+        setDbAnalysis(analysis)
+      }
 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load performance data')
