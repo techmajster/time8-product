@@ -92,7 +92,8 @@ export function LoginForm({ onModeChange, className }: LoginFormProps) {
         throw authError
       }
 
-      // Redirect to dashboard
+      // Redirect to dashboard - middleware will handle proper routing based on user's organization status
+      // This will redirect to either /dashboard, /onboarding/welcome, or /onboarding/choose
       router.push('/dashboard')
       router.refresh()
     } catch (error: any) {

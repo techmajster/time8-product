@@ -12,6 +12,7 @@ import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 
 import { DatePickerWithDropdowns } from '@/components/ui/date-picker'
 import { RadioGroup, RadioGroupItem, RadioGroupItemLabel, RadioGroupItemDescription } from '@/components/ui/radio-group'
@@ -68,14 +69,22 @@ interface TeamMember {
   role: string
 }
 
+interface Organization {
+  id: string
+  name: string
+  google_domain?: string | null
+  require_google_domain?: boolean
+}
+
 interface AddEmployeePageProps {
   teams: Team[]
   leaveTypes: LeaveType[]
   organizationId: string
   teamMembers: TeamMember[]
+  organization: Organization
 }
 
-export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers }: AddEmployeePageProps) {
+export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers, organization }: AddEmployeePageProps) {
   const [loading, setLoading] = useState(false)
   const [activeTab, setActiveTab] = useState('pojedynczy')
   const [isCreateTeamOpen, setIsCreateTeamOpen] = useState(false)
@@ -137,16 +146,38 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
   }
 
   const isFormValid = () => {
-    return (
+    const basicValidation = (
       formData.full_name.trim() !== '' &&
       formData.email.trim() !== '' &&
       formData.email.includes('@') &&
       formData.work_schedule !== ''
     )
+    
+    // Check domain validation if required
+    if (organization.require_google_domain && organization.google_domain) {
+      const emailDomain = formData.email.toLowerCase().split('@')[1]
+      const requiredDomain = organization.google_domain.toLowerCase()
+      
+      if (emailDomain !== requiredDomain) {
+        return false
+      }
+    }
+    
+    return basicValidation
   }
 
   const handleSubmit = async () => {
     if (!isFormValid()) {
+      // Check for domain validation error specifically
+      if (organization.require_google_domain && organization.google_domain) {
+        const emailDomain = formData.email.toLowerCase().split('@')[1]
+        const requiredDomain = organization.google_domain.toLowerCase()
+        
+        if (emailDomain !== requiredDomain) {
+          toast.error(`Adres email musi mieć domenę @${organization.google_domain}`)
+          return
+        }
+      }
       toast.error('Proszę wypełnić wszystkie wymagane pola')
       return
     }
@@ -405,6 +436,18 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                       </div>
                     </div>
                   </CardHeader>
+                  
+                  {/* Domain Restriction Alert */}
+                  {organization.require_google_domain && organization.google_domain && (
+                    <div className="px-6 pb-4">
+                      <Alert className="border-amber-200 bg-amber-50">
+                        <AlertDescription className="text-amber-800">
+                          <strong>Ograniczenie domeny:</strong> Tylko adresy email z domeny @{organization.google_domain} mogą być dodawane do organizacji.
+                        </AlertDescription>
+                      </Alert>
+                    </div>
+                  )}
+                  
                   <CardContent className="pt-0 pb-6 px-6 overflow-visible">
                     <div className="flex flex-col gap-6">
                       <div className="w-[400px] space-y-2">
@@ -427,11 +470,19 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                         <Input
                           id="email"
                           type="email"
-                          placeholder="Wprowadź adres email"
+                          placeholder={organization.require_google_domain && organization.google_domain 
+                            ? `Wprowadź adres email (@${organization.google_domain})` 
+                            : "Wprowadź adres email"
+                          }
                           value={formData.email}
                           onChange={(e) => handleInputChange('email', e.target.value)}
                           className="h-9 border-neutral-200 shadow-sm"
                         />
+                        {organization.require_google_domain && organization.google_domain && (
+                          <p className="text-sm text-muted-foreground">
+                            Tylko adresy email z domeny @{organization.google_domain} są dozwolone
+                          </p>
+                        )}
                       </div>
                       
                       <div className="w-[400px] space-y-2">
@@ -741,6 +792,18 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                       </Button>
                     </div>
                   </CardHeader>
+                  
+                  {/* Domain Restriction Alert for Bulk */}
+                  {organization.require_google_domain && organization.google_domain && (
+                    <div className="px-6 pb-4">
+                      <Alert className="border-amber-200 bg-amber-50">
+                        <AlertDescription className="text-amber-800">
+                          <strong>Ograniczenie domeny:</strong> Tylko adresy email z domeny @{organization.google_domain} mogą być dodawane do organizacji.
+                        </AlertDescription>
+                      </Alert>
+                    </div>
+                  )}
+                  
                   <CardContent className="pt-0 pb-6 px-6 overflow-visible">
                     <div className="space-y-3">
                       {bulkEmployees.map((employee, index) => (
@@ -750,7 +813,10 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                               <Label className="text-xs">Email *</Label>
                               <Input
                                 type="email"
-                                placeholder="email@example.com"
+                                placeholder={organization.require_google_domain && organization.google_domain 
+                                  ? `email@${organization.google_domain}` 
+                                  : "email@example.com"
+                                }
                                 value={employee.email}
                                 onChange={(e) => updateBulkEmployee(index, 'email', e.target.value)}
                                 disabled={loading}

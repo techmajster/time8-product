@@ -114,7 +114,7 @@ export function TeamCard({ allTeamMembers, absentMembers, teams, defaultTeamId, 
           {/* Absent Section - Only show if there are absent members */}
           {filteredAbsentMembers.length > 0 && (
             <div>
-              <h4 className="text-base font-semibold text-foreground mb-6">
+              <h4 className="text-sm font-medium text-foreground pb-6">
                 Nieobecni ({filteredAbsentMembers.length})
               </h4>
               <div className="space-y-4">

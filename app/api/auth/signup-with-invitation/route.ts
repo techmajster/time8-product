@@ -286,7 +286,14 @@ export async function POST(request: NextRequest) {
     console.log('🔐 Creating session for new user...')
     
     // Get the correct base URL dynamically
-    const baseUrl = getAppUrl(request)
+    let baseUrl = getAppUrl(request)
+    
+    // Force localhost in development to avoid redirect issues
+    if (process.env.NODE_ENV === 'development' && baseUrl.includes('app.time8.io')) {
+      baseUrl = 'http://localhost:3000'
+      console.log('🚨 Forcing localhost URL in development')
+    }
+    
     console.log('🌐 Using base URL for redirect:', baseUrl)
     
     const { data: sessionData, error: sessionError } = await supabaseAdmin.auth.admin.generateLink({

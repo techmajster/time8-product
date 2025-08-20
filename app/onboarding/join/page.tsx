@@ -10,7 +10,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { createClient } from '@/lib/supabase/client'
-import { CheckCircle, Mail, Search, ArrowLeft, Eye, EyeOff, PartyPopper, Clock } from 'lucide-react'
+import { CheckCircle, Mail, Search, ArrowLeft, Eye, EyeOff, PartyPopper, Clock, Building2 } from 'lucide-react'
 import Link from 'next/link'
 
 interface InvitationDetails {
@@ -451,93 +451,233 @@ function JoinPageContent() {
   // Show invitation password creation form if we have invitation details
   if (invitationDetails) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="w-full max-w-md space-y-6">
-          <div className="text-center space-y-2">
-            <h1 className="text-2xl font-bold">Welcome to {invitationDetails.organizations[0]?.name}!</h1>
-            <p className="text-muted-foreground">
-              You've been invited as {invitationDetails.role}. Create your password to get started.
-            </p>
-          </div>
-
-          {error && (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Set Your Password</CardTitle>
-              <CardDescription>
-                Creating account for {invitationDetails.email}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleCreateAccountWithInvitation} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <div className="relative">
-                    <Input
-                      id="password"
-                      type={showPassword ? 'text' : 'password'}
-                      placeholder="Create a strong password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      disabled={creatingAccount}
-                      required
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                      onClick={() => setShowPassword(!showPassword)}
-                      disabled={creatingAccount}
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </Button>
+      <div className="bg-white min-h-screen relative w-full">
+        {/* Logo - positioned in top-left corner */}
+        <div className="absolute flex flex-row gap-[19.454px] items-center justify-start left-8 p-0 top-8">
+          <div className="h-[30px] relative w-[123.333px]">
+            <div className="absolute flex h-[17.083px] items-center justify-center left-[67.08px] top-[8.33px] w-[18.75px]">
+              <div className="flex-none scale-y-[-100%]">
+                <div className="h-[17.083px] relative w-[18.75px]">
+                  <div className="absolute inset-[-12.2%_-11.11%]">
+                    <svg className="block w-full h-full" fill="none" preserveAspectRatio="none" viewBox="0 0 24 23">
+                      <path
+                        d="M3 11.3333L3 15.9167C3 18.2179 4.86548 20.0833 7.16667 20.0833H17.5833C19.8845 20.0833 21.75 18.2179 21.75 15.9167V13.4167C21.75 12.2661 20.8173 11.3333 19.6667 11.3333H3ZM3 11.3333L3 7.16666C3 4.86548 4.86548 3 7.16667 3H19.25C19.4801 3 19.6667 3.18655 19.6667 3.41667V5.08333"
+                        stroke="var(--stroke-0, black)"
+                        strokeLinejoin="bevel"
+                        strokeWidth="4.16667"
+                      />
+                    </svg>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Must be at least 6 characters long
-                  </p>
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirm Password</Label>
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    placeholder="Confirm your password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    disabled={creatingAccount}
-                    required
+              </div>
+            </div>
+            <div className="absolute flex h-[23.333px] items-center justify-center left-[2.5px] top-[4.17px] w-[19.583px]">
+              <div className="flex-none rotate-[180deg] scale-y-[-100%]">
+                <div className="h-[23.333px] relative w-[19.583px]">
+                  <div className="absolute bottom-0 left-0 right-[-10.64%] top-[-8.93%]">
+                    <svg className="block w-full h-full" fill="none" preserveAspectRatio="none" viewBox="0 0 22 27">
+                      <path
+                        d="M0 3H10.4167M10.4167 3H19.1667C19.3968 3 19.5833 3.18655 19.5833 3.41667V5.08333M10.4167 3V26.3333"
+                        stroke="var(--stroke-0, black)"
+                        strokeLinejoin="bevel"
+                        strokeWidth="4.16667"
+                      />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="absolute flex h-[19.167px] items-center justify-center left-[36.25px] top-[8.33px] w-[22.5px]">
+              <div className="flex-none rotate-[180deg] scale-y-[-100%]">
+                <div className="h-[19.167px] relative w-[22.5px]">
+                  <div className="absolute bottom-0 left-[-9.26%] right-[-9.26%] top-[-10.87%]">
+                    <svg className="block w-full h-full" fill="none" preserveAspectRatio="none" viewBox="0 0 28 23">
+                      <path
+                        d="M14.25 3V22.1634M14.25 3L7.16546 3.00205C4.86475 3.00272 3 4.868 3 7.16872V22.1667M14.25 3L20.9167 3C21.1468 3 21.3333 3.18655 21.3333 3.41667V5.08623M25.5 22.1634V5.08623"
+                        stroke="var(--stroke-0, black)"
+                        strokeLinejoin="bevel"
+                        strokeWidth="4.16667"
+                      />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="absolute flex h-[21.25px] items-center justify-center left-[27.08px] top-[6.25px] w-0">
+              <div className="flex-none rotate-[180deg] scale-y-[-100%]">
+                <div className="h-[21.25px] relative" style={{ width: "3.84877e-14px" }}>
+                  <div className="absolute bottom-0 left-[-2.08px] right-[-2.08px] top-0">
+                    <svg className="block w-full h-full" fill="none" preserveAspectRatio="none" viewBox="0 0 6 22">
+                      <path
+                        d="M3 0L3 21.25"
+                        stroke="var(--stroke-0, black)"
+                        strokeLinejoin="bevel"
+                        strokeWidth="4.16667"
+                      />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="absolute inset-[12.5%_9.12%_54.17%_77.36%] rounded-[20px] border-[4.167px] border-solid border-violet-700" />
+            <div className="absolute bottom-[13.89%] left-3/4 right-[6.76%] top-[45.83%]">
+              <div className="absolute inset-[-17.24%_-9.26%]">
+                <svg className="block w-full h-full" fill="none" preserveAspectRatio="none" viewBox="0 0 28 18">
+                  <path
+                    d="M19.4583 3H9.04167C5.70495 3 3 5.70495 3 9.04167C3 12.3784 5.70495 15.0833 9.04167 15.0833H19.4583C22.7951 15.0833 25.5 12.3784 25.5 9.04167C25.5 5.70495 22.7951 3 19.4583 3Z"
+                    stroke="rgba(109, 40, 217, 1)"
+                    strokeLinejoin="bevel"
+                    strokeWidth="4.16667"
                   />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Centered content - Full width */}
+        <div className="flex-1 flex flex-col gap-6 items-center justify-center min-h-screen w-full">
+          <div className="flex flex-col gap-12 items-center justify-start p-0 relative w-full max-w-[820px] px-8">
+            {/* Header Section */}
+            <div className="flex flex-col gap-3 items-center justify-start p-0 relative text-center w-full">
+              <div className="flex flex-row font-semibold gap-3 items-center justify-center p-0 relative text-[48px] text-neutral-950" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 600, lineHeight: '48px' }}>
+                <div className="relative">
+                  <p className="block leading-[48px] whitespace-pre">Welcome</p>
                 </div>
+                <div className="relative">
+                  <p className="block leading-[48px] whitespace-pre">{invitationDetails.full_name.split(' ')[0]}!</p>
+                </div>
+              </div>
+              <div className="font-normal relative text-[18px] text-neutral-500 w-full" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400, lineHeight: '28px' }}>
+                <p className="block leading-[28px]">You've been invited as employee. Create your password to get started.</p>
+              </div>
+            </div>
 
-                <Button 
-                  type="submit" 
-                  className="w-full" 
-                  disabled={!password || !confirmPassword || creatingAccount}
-                >
-                  {creatingAccount ? 'Creating Account...' : 'Create Account & Join Organization'}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
+            {/* Cards Section - 820px max width */}
+            <div className="flex flex-row gap-3 items-stretch justify-center p-0 relative w-full">
+              {/* Left Card - Invitation Info */}
+              <div className="bg-violet-100 flex flex-col items-start justify-between p-[32px] relative rounded-[14px] flex-1 border border-neutral-200">
+                <div className="flex-1 flex flex-col gap-10 items-start justify-start p-0 relative w-full">
+                  <div className="flex-1 flex flex-col items-start justify-between p-0 relative w-full">
+                    <div className="flex flex-row gap-2 items-start justify-start p-0 relative w-full">
+                      <div className="flex-1 font-semibold h-14 leading-[28px] relative text-[18px] text-left text-neutral-900" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 600 }}>
+                        <p className="block mb-0">You have been invited</p>
+                        <p className="block">to workspace:</p>
+                      </div>
+                      <div className="overflow-hidden relative w-6 h-6 flex-shrink-0">
+                        <Building2 className="w-full h-full text-neutral-900" />
+                      </div>
+                    </div>
+                    <div className="flex flex-row gap-2.5 items-center justify-start p-0 relative w-full">
+                      <div className="flex-1 font-semibold relative text-[30px] text-left text-neutral-950" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 600, lineHeight: '36px' }}>
+                        <p className="block leading-[36px]">{invitationDetails.organizations[0]?.name}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
-          <div className="text-center">
-            <p className="text-sm text-muted-foreground">
-              Already have an account?{' '}
-              <Link href="/login" className="underline">
-                Sign in instead
-              </Link>
-            </p>
+              {/* Right Card - Password Form */}
+              <div className="flex-1 bg-white flex flex-col gap-8 items-start justify-start p-[32px] relative rounded-[14px] border border-neutral-200">
+                <div className="flex flex-col gap-10 items-start justify-start p-0 relative w-full">
+                  <div className="flex flex-col gap-6 items-start justify-start p-0 relative w-full">
+                    <div className="flex flex-col gap-1 items-start justify-start p-0 relative text-[18px] text-left text-neutral-900 w-full">
+                      <div className="font-normal relative w-full" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400, lineHeight: '28px' }}>
+                        <p className="block leading-[28px]">Set your password for account:</p>
+                      </div>
+                      <div className="font-semibold relative w-full" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 600, lineHeight: '28px' }}>
+                        <p className="block leading-[28px]">{invitationDetails.email}</p>
+                      </div>
+                    </div>
+
+                    {error && (
+                      <Alert variant="destructive">
+                        <AlertDescription>{error}</AlertDescription>
+                      </Alert>
+                    )}
+
+                    <form onSubmit={handleCreateAccountWithInvitation} className="flex flex-col gap-4 items-start justify-start p-0 relative w-full">
+                      {/* Password Input */}
+                      <div className="flex flex-col gap-2 items-start justify-start p-0 relative w-full">
+                        <div className="font-medium text-[14px] text-left text-neutral-950" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500 }}>
+                          <p className="block">Password</p>
+                        </div>
+                        <div className="flex flex-col gap-2 items-start justify-start p-0 relative w-full">
+                          <div className="bg-white h-9 relative rounded-lg w-full border border-neutral-200 shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]">
+                            <div className="flex flex-row gap-1 h-9 items-center justify-start overflow-hidden px-3 py-1 relative w-full">
+                              <input
+                                type={showPassword ? 'text' : 'password'}
+                                placeholder="Password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                disabled={creatingAccount}
+                                required
+                                className="flex-1 font-normal text-[14px] text-left text-neutral-500 bg-transparent border-none outline-none" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400, lineHeight: '20px' }}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                disabled={creatingAccount}
+                                className="ml-2 p-1 hover:bg-gray-100 rounded flex-shrink-0"
+                              >
+                                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                              </button>
+                            </div>
+                          </div>
+                          <div className="font-normal text-[14px] text-left text-neutral-500 w-full" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400, lineHeight: '20px' }}>
+                            <p className="block leading-[20px]">Must be at least 8 characters</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Confirm Password Input */}
+                      <div className="flex flex-col gap-2 items-start justify-start p-0 relative w-full">
+                        <div className="font-medium text-[14px] text-left text-neutral-950" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500 }}>
+                          <p className="block">Confirm password</p>
+                        </div>
+                        <div className="flex flex-col gap-2 items-start justify-start p-0 relative w-full">
+                          <div className="bg-white h-9 relative rounded-lg w-full border border-neutral-200 shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]">
+                            <div className="flex flex-row gap-1 h-9 items-center justify-start overflow-hidden px-3 py-1 relative w-full">
+                              <input
+                                type="password"
+                                placeholder="Password"
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                disabled={creatingAccount}
+                                required
+                                className="flex-1 font-normal text-[14px] text-left text-neutral-500 bg-transparent border-none outline-none" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400, lineHeight: '20px' }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </form>
+                  </div>
+
+                  {/* Submit Button */}
+                  <button
+                    onClick={handleCreateAccountWithInvitation}
+                    disabled={!password || !confirmPassword || creatingAccount}
+                    className="bg-neutral-900 flex flex-row gap-2 h-10 items-center justify-center px-8 py-2 relative rounded-lg shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] w-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-neutral-800 transition-colors"
+                  >
+                    <div className="overflow-hidden relative w-4 h-4 flex-shrink-0">
+                      <svg className="block w-full h-full" fill="none" preserveAspectRatio="none" viewBox="0 0 15 14">
+                        <path
+                          d="M10.3333 13V11.6667C10.3333 10.9594 10.0524 10.2811 9.55229 9.78105C9.05219 9.28095 8.37391 9 7.66667 9H3.66667C2.95942 9 2.28115 9.28095 1.78105 9.78105C1.28095 10.2811 1 10.9594 1 11.6667V13M14.3333 12.9999V11.6666C14.3329 11.0757 14.1362 10.5018 13.7742 10.0348C13.4123 9.56783 12.9054 9.2343 12.3333 9.08659M10.3333 1.08659C10.9069 1.23346 11.4154 1.56706 11.7784 2.0348C12.1415 2.50254 12.3386 3.07781 12.3386 3.66992C12.3386 4.26204 12.1415 4.83731 11.7784 5.30505C11.4154 5.77279 10.9069 6.10639 10.3333 6.25326M8.33333 3.66667C8.33333 5.13943 7.13943 6.33333 5.66667 6.33333C4.19391 6.33333 3 5.13943 3 3.66667C3 2.19391 4.19391 1 5.66667 1C7.13943 1 8.33333 2.19391 8.33333 3.66667Z"
+                          stroke="rgba(250, 250, 250, 1)"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="1.33"
+                        />
+                      </svg>
+                    </div>
+                    <div className="font-medium text-[14px] text-left text-neutral-50 whitespace-nowrap" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500, lineHeight: '20px' }}>
+                      <p className="block leading-[20px]">{creatingAccount ? 'Creating Account...' : 'Create Account & Join Organization'}</p>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -547,7 +687,7 @@ function JoinPageContent() {
   // Original manual join interface for users without token
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="w-full max-w-2xl space-y-6">
+      <div className="w-full space-y-6">
         {/* Header */}
         <div className="text-center space-y-2">
           <Button variant="ghost" size="sm" asChild className="mb-4">

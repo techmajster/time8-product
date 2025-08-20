@@ -59,6 +59,7 @@ export async function middleware(request: NextRequest) {
     '/api/auth/signup-with-invitation', // Invitation-based signup endpoint
     '/api/auth/verify-email', // Email verification endpoint
     '/api/organizations', // Organization creation for authenticated users
+    '/api/user/organization-status', // New onboarding scenario detection API
     '/api/test-db', // Database connection test endpoint
     '/api/test-auth', // Authentication diagnostic endpoint
     '/api/debug-db', // Database diagnostic endpoint
@@ -85,9 +86,14 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
-  // If user is authenticated, check if they have an organization
+  // Enhanced onboarding routing based on user's organization status
   if (user) {
-    // Use admin client to bypass RLS policies for organization check
+    // Skip onboarding routing for join with token (direct invitation flow)
+    if (pathname === '/onboarding/join' && request.nextUrl.searchParams.get('token')) {
+      return response // Allow direct token flow to proceed
+    }
+
+    // Check user's organization status for proper routing
     const hasOrganization = await userHasOrganization(user.id, request)
 
     console.log('🔍 Middleware org check:', { 
@@ -96,9 +102,10 @@ export async function middleware(request: NextRequest) {
       pathname 
     })
 
-    // If user doesn't have an organization, redirect to onboarding
+    // If user doesn't have an organization, route to appropriate onboarding scenario
     if (!hasOrganization && !pathname.startsWith('/onboarding')) {
-      const onboardingUrl = new URL('/onboarding', request.url)
+      // Route to welcome screen (will determine correct scenario via API)
+      const onboardingUrl = new URL('/onboarding/welcome', request.url)
       return NextResponse.redirect(onboardingUrl)
     }
 

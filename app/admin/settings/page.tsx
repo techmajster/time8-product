@@ -71,11 +71,30 @@ export default async function AdminSettingsPage() {
     .order('name')
 
   // Get all users in the organization for admin selector
-  const { data: users } = await supabase
-    .from('profiles')
-    .select('id, email, full_name, role, avatar_url')
+  const { data: orgUsers } = await supabase
+    .from('user_organizations')
+    .select(`
+      user_id,
+      role,
+      profiles!inner (
+        id,
+        email,
+        full_name,
+        avatar_url
+      )
+    `)
     .eq('organization_id', profile.organization_id)
-    .order('full_name')
+    .eq('is_active', true)
+    .order('profiles(full_name)')
+
+  // Transform the data to match the expected format
+  const users = orgUsers?.map(ou => ({
+    id: ou.profiles.id,
+    email: ou.profiles.email,
+    full_name: ou.profiles.full_name,
+    avatar_url: ou.profiles.avatar_url,
+    role: ou.role
+  })) || []
 
   return (
     <AppLayout>

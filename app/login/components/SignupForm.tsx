@@ -63,7 +63,15 @@ export function SignupForm({ onModeChange, onAccountCreated, className }: Signup
       }
 
       console.log('✅ Signup successful:', result)
-      // Show success screen instead of just message
+      
+      // If user has a pending invitation, redirect to join page with pre-filled details
+      if (result.hasInvitation && result.redirectTo) {
+        console.log('🎫 Redirecting to invitation page with pre-filled details:', result.redirectTo)
+        window.location.href = result.redirectTo
+        return
+      }
+      
+      // Show success screen for normal signup
       setAccountCreated(true)
       
     } catch (error: any) {

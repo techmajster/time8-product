@@ -3,7 +3,7 @@
  */
 
 describe('Performance Optimization', () => {
-  test('should have React Query provider configured', () => {
+  test('should have performance optimizations configured', () => {
     // Basic test to verify setup
     expect(true).toBe(true)
   })

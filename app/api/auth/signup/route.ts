@@ -42,6 +42,18 @@ export async function POST(request: NextRequest) {
 
     const supabase = createAdminClient()
 
+    // First, check if there's a pending invitation for this email
+    console.log('🎫 Checking for pending invitations for:', email)
+    const { data: invitation, error: invitationError } = await supabase
+      .from('invitations')
+      .select('id, token, email, status, expires_at')
+      .eq('email', email.toLowerCase())
+      .eq('status', 'pending')
+      .single()
+
+    // If user has pending invitation, we'll create account and accept invitation automatically
+    // (they already provided name, email, password - no need to redirect to invitation page)
+
     // Check if user already exists using admin client
     const { data: existingUsers, error: checkError } = await supabase.auth.admin.listUsers()
     

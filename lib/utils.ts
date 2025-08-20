@@ -42,20 +42,25 @@ export function getAppUrl(req?: Request): string {
   if (req) {
     const host = req.headers.get('host') || ''
     const protocol = host.includes('localhost') ? 'http' : 'https'
-    return `${protocol}://${host}`
+    const computedUrl = `${protocol}://${host}`
+    console.log('🌐 getAppUrl with request:', { host, protocol, computedUrl })
+    return computedUrl
   }
 
   // For server-side without request, use environment or defaults
   if (process.env.NEXT_PUBLIC_APP_URL) {
+    console.log('🌐 getAppUrl from env:', process.env.NEXT_PUBLIC_APP_URL)
     return process.env.NEXT_PUBLIC_APP_URL
   }
 
   // Development fallback
   if (process.env.NODE_ENV === 'development') {
+    console.log('🌐 getAppUrl development fallback')
     return 'http://localhost:3000'
   }
 
   // Production fallback
+  console.log('🌐 getAppUrl production fallback')
   return 'https://app.time8.io'
 }
 

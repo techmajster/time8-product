@@ -15,6 +15,7 @@ import { Separator } from '@/components/ui/separator'
 import { EditOrganizationSheet } from './EditOrganizationSheet'
 import { EditLeaveTypesSheet } from './EditLeaveTypesSheet'
 import { EditLeavePoliciesSheet } from './EditLeavePoliciesSheet'
+import { EditGoogleWorkspaceSheet } from './EditGoogleWorkspaceSheet'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { getCountryFlag, getLanguageFlag } from '@/lib/flag-utils'
 import { Plus, MoreVertical, X } from 'lucide-react'
@@ -67,6 +68,7 @@ export default function AdminSettingsClient({
   const [isOrganizationSheetOpen, setIsOrganizationSheetOpen] = useState(false)
   const [isLeaveTypesSheetOpen, setIsLeaveTypesSheetOpen] = useState(false)
   const [isLeavePoliciesSheetOpen, setIsLeavePoliciesSheetOpen] = useState(false)
+  const [isGoogleWorkspaceSheetOpen, setIsGoogleWorkspaceSheetOpen] = useState(false)
 
   // Dialog states for leave types management
   const [editDialogOpen, setEditDialogOpen] = useState(false)
@@ -432,7 +434,7 @@ export default function AdminSettingsClient({
                     Konfiguracja domeny Google
                   </CardDescription>
                 </div>
-                <Button variant="secondary" size="sm" className="h-9" onClick={() => setIsOrganizationSheetOpen(true)}>
+                <Button variant="secondary" size="sm" className="h-9" onClick={() => setIsGoogleWorkspaceSheetOpen(true)}>
                   Edytuj dane
                 </Button>
               </div>
@@ -979,6 +981,13 @@ export default function AdminSettingsClient({
           onOpenChange={setIsOrganizationSheetOpen}
           organization={currentOrganization}
           users={users}
+          onSave={handleOrganizationSave}
+        />
+
+        <EditGoogleWorkspaceSheet
+          open={isGoogleWorkspaceSheetOpen}
+          onOpenChange={setIsGoogleWorkspaceSheetOpen}
+          organization={currentOrganization}
           onSave={handleOrganizationSave}
         />
 

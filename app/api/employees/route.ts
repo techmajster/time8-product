@@ -69,6 +69,20 @@ export async function POST(request: NextRequest) {
           continue
         }
 
+        // Validate email domain if required
+        if (organization.require_google_domain && organization.google_domain) {
+          const emailDomain = email.toLowerCase().split('@')[1]
+          const requiredDomain = organization.google_domain.toLowerCase()
+          
+          if (emailDomain !== requiredDomain) {
+            errors.push({
+              email,
+              error: `Email domain must be @${requiredDomain} according to organization policy`
+            })
+            continue
+          }
+        }
+
         // Check if user already exists in this organization
         const { data: existingUser } = await supabaseAdmin
           .from('user_organizations')

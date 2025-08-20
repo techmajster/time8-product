@@ -33,7 +33,9 @@ export default async function TeamAddPage() {
       *,
       organizations (
         id,
-        name
+        name,
+        google_domain,
+        require_google_domain
       )
     `)
     .eq('user_id', user.id)
@@ -133,6 +135,7 @@ export default async function TeamAddPage() {
         leaveTypes={leaveTypes || []}
         organizationId={profile.organization_id}
         teamMembers={teamMembers || []}
+        organization={userOrg.organizations}
       />
     </AppLayout>
   )
