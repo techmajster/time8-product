@@ -16,7 +16,8 @@ async function lookupInvitation(identifier: string, identifierType: 'token' | 'c
       team_id,
       organization_id,
       status,
-      expires_at
+      expires_at,
+      token
     `)
     .eq(identifierType, identifier)
     .eq('status', 'pending')

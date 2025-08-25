@@ -43,6 +43,8 @@ export async function middleware(request: NextRequest) {
     '/forgot-password',
     '/reset-password',
     '/onboarding/join', // Allow invitation acceptance page
+    '/onboarding/register', // Allow invitation registration page
+    '/onboarding/success', // Allow invitation success page
     '/api/logout',
     '/api/locale', // Add locale API route
     '/favicon.ico',
@@ -80,6 +82,18 @@ export async function middleware(request: NextRequest) {
     return response
   }
 
+  // Allow authenticated users to access /onboarding (handles all scenarios)
+  if (pathname === '/onboarding' && user) {
+    console.log('🎫 Allowing authenticated user to access onboarding')
+    return response
+  }
+
+  // Allow unauthenticated users to access /onboarding with invitation tokens
+  if (pathname === '/onboarding' && !user && request.nextUrl.searchParams.get('token')) {
+    console.log('🎫 Allowing unauthenticated user with invitation token to access onboarding')
+    return response
+  }
+
   // If user is not authenticated, redirect to login
   if (!user) {
     const loginUrl = new URL('/login', request.url)
@@ -102,17 +116,18 @@ export async function middleware(request: NextRequest) {
       pathname 
     })
 
-    // If user doesn't have an organization, route to appropriate onboarding scenario
-    if (!hasOrganization && !pathname.startsWith('/onboarding')) {
-      // Route to welcome screen (will determine correct scenario via API)
-      const onboardingUrl = new URL('/onboarding/welcome', request.url)
-      return NextResponse.redirect(onboardingUrl)
-    }
-
-    // If user has organization but is on onboarding, redirect to dashboard
-    if (hasOrganization && pathname.startsWith('/onboarding')) {
-      const dashboardUrl = new URL('/dashboard', request.url)
-      return NextResponse.redirect(dashboardUrl)
+    // Allow access to dashboard and other protected routes for users with organizations
+    // Users without organizations can still access /onboarding to see their scenario options
+    if (!pathname.startsWith('/onboarding') && !pathname.startsWith('/api/')) {
+      // For dashboard and other protected routes, users need an organization
+      if (hasOrganization) {
+        // User has an organization, allow them to access dashboard and other protected routes
+        return response
+      } else {
+        // User doesn't have an organization, redirect to onboarding to see their options
+        const onboardingUrl = new URL('/onboarding', request.url)
+        return NextResponse.redirect(onboardingUrl)
+      }
     }
   }
 

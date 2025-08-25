@@ -99,7 +99,7 @@ export async function PUT(request: NextRequest) {
         return NextResponse.json({ error: 'Selected user not found in organization' }, { status: 400 })
       }
 
-      console.log('New admin found:', newAdminOrg.profiles.email, 'current role:', newAdminOrg.role)
+      console.log('New admin found:', (newAdminOrg.profiles as any).email, 'current role:', newAdminOrg.role)
 
       // Check current admins in the organization
       const { data: currentAdmins, error: currentAdminError } = await supabase
@@ -135,7 +135,7 @@ export async function PUT(request: NextRequest) {
         console.error('Error setting new admin:', setError)
         return NextResponse.json({ error: 'Failed to set new admin' }, { status: 500 })
       }
-      console.log('Admin role set successfully for:', newAdminOrg.profiles.email)
+      console.log('Admin role set successfully for:', (newAdminOrg.profiles as any).email)
 
       // Then remove admin from current user
       const { error: removeError } = await supabase

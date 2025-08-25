@@ -7,6 +7,7 @@ import { ScheduleTemplateManager } from './components/ScheduleTemplateManager'
 import { WeeklyScheduleView } from './components/WeeklyScheduleView'
 import { ScheduleManager } from './components/ScheduleManager'
 import { createClient } from '@/lib/supabase/server'
+import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 
 export default async function SchedulePage() {
@@ -29,14 +30,26 @@ export default async function SchedulePage() {
     redirect('/login')
   }
 
-  // Get user's active organization from user_organizations
-  const { data: userOrg } = await supabase
+  // Get current active organization (respect workspace switching cookie)
+  const cookieStore = await cookies()
+  const activeOrgId = cookieStore.get('active-organization-id')?.value
+  
+  let userOrgQuery = supabase
     .from('user_organizations')
     .select('role, organization_id')
     .eq('user_id', user.id)
     .eq('is_active', true)
-    .eq('is_default', true)
-    .single()
+    
+  // If we have an active org cookie, use that specific org, otherwise use default
+  if (activeOrgId) {
+    userOrgQuery = userOrgQuery.eq('organization_id', activeOrgId)
+    console.log('🍪 Schedule: Using active organization from cookie:', activeOrgId)
+  } else {
+    userOrgQuery = userOrgQuery.eq('is_default', true)
+    console.log('🏠 Schedule: Using default organization (no active cookie)')
+  }
+  
+  const { data: userOrg } = await userOrgQuery.single()
 
   if (!userOrg) {
     redirect('/onboarding')

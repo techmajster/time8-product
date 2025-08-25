@@ -1,5 +1,6 @@
 import { AppLayout } from '@/components/app-layout'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -32,8 +33,11 @@ export default async function AdminTeamManagementPage() {
     redirect('/login')
   }
 
-  // Get user's active organization from user_organizations
-  const { data: userOrg } = await supabase
+  // Get current active organization (respect workspace switching cookie)
+  const cookieStore = await cookies()
+  const activeOrgId = cookieStore.get('active-organization-id')?.value
+  
+  let userOrgQuery = supabase
     .from('user_organizations')
     .select(`
       *,
@@ -44,8 +48,17 @@ export default async function AdminTeamManagementPage() {
     `)
     .eq('user_id', user.id)
     .eq('is_active', true)
-    .eq('is_default', true)
-    .single()
+    
+  // If we have an active org cookie, use that specific org, otherwise use default
+  if (activeOrgId) {
+    userOrgQuery = userOrgQuery.eq('organization_id', activeOrgId)
+    console.log('🍪 Team Management: Using active organization from cookie:', activeOrgId)
+  } else {
+    userOrgQuery = userOrgQuery.eq('is_default', true)
+    console.log('🏠 Team Management: Using default organization (no active cookie)')
+  }
+  
+  const { data: userOrg } = await userOrgQuery.single()
 
   if (!userOrg) {
     redirect('/onboarding')

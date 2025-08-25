@@ -165,7 +165,7 @@ export async function GET(request: Request) {
                 .eq('id', invitation.id)
 
               console.log('🔐 Invitation processed successfully')
-              return NextResponse.redirect(`${origin}/dashboard`)
+              return NextResponse.redirect(`${origin}/onboarding`)
             } else {
               console.error('🔐 User organization creation error:', userOrgError)
             }
@@ -233,17 +233,10 @@ export async function GET(request: Request) {
         }
       }
 
-      // MULTI-ORG UPDATE: Determine redirect based on user_organizations instead of profile.organization_id
-      const { data: userOrgs } = await supabase
-        .from('user_organizations')
-        .select('organization_id')
-        .eq('user_id', user.id)
-        .eq('is_active', true)
-        .limit(1)
-
-      const hasOrganization = userOrgs && userOrgs.length > 0
-      const finalRedirect = hasOrganization ? '/dashboard' : '/onboarding'
-      console.log('🔐 Redirecting to:', finalRedirect, 'hasOrganization:', hasOrganization)
+      // Always redirect to onboarding after OAuth - user will see their workspace options and scenario
+      // Onboarding will handle showing appropriate scenario based on user's workspaces and invitations
+      const finalRedirect = '/onboarding'
+      console.log('🔐 Redirecting to:', finalRedirect)
       
       return NextResponse.redirect(`${origin}${finalRedirect}`)
     } else {

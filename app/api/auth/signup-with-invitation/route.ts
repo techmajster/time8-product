@@ -300,7 +300,7 @@ export async function POST(request: NextRequest) {
       type: 'magiclink',
       email: email.toLowerCase(),
       options: {
-        redirectTo: `${baseUrl}/dashboard`
+        redirectTo: `${baseUrl}/onboarding`
       }
     })
 

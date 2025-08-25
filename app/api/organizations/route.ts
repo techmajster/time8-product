@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { setActiveOrganization } from '@/lib/auth-utils-v2'
 
 export async function POST(request: NextRequest) {
   console.log('🚀 Organization API called')
@@ -63,7 +64,18 @@ export async function POST(request: NextRequest) {
 
     console.log('API: Organization created:', org)
 
-    // MULTI-ORG UPDATE: Create user_organizations entry instead of updating profile
+    // MULTI-ORG UPDATE: First set all existing organizations as non-default
+    const { error: updateDefaultError } = await supabaseAdmin
+      .from('user_organizations')
+      .update({ is_default: false })
+      .eq('user_id', user.id)
+
+    if (updateDefaultError) {
+      console.error('API: Error updating existing default organizations:', updateDefaultError)
+      return NextResponse.json({ error: updateDefaultError.message }, { status: 400 })
+    }
+
+    // Create user_organizations entry with new organization as default
     const { error: userOrgError } = await supabaseAdmin
       .from('user_organizations')
       .insert({
@@ -124,6 +136,10 @@ export async function POST(request: NextRequest) {
       console.error('API: Leave types error:', leaveTypesError)
       // Don't fail - organization is already created
     }
+
+    // Set the newly created organization as active
+    console.log('🍪 Setting active organization cookie:', org.id)
+    await setActiveOrganization(org.id)
 
     return NextResponse.json({ 
       success: true, 

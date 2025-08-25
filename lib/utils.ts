@@ -69,7 +69,7 @@ export function getAppUrl(req?: Request): string {
  */
 export function getInviteUrl(token: string, req?: Request): string {
   const baseUrl = getAppUrl(req)
-  return `${baseUrl}/onboarding/join?token=${token}`
+  return `${baseUrl}/onboarding?token=${token}`
 }
 
 /**
