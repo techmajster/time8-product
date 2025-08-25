@@ -1,4 +1,61 @@
 {
+  "onboarding": {
+    "welcome": {
+      "title": "Welcome, {name}! 👋",
+      "subtitle": "Let's get you set up with your workspace to start managing leave requests.",
+      "card": {
+        "title": "Create Your Workspace",
+        "description": "Set up your organization and start inviting your team members."
+      },
+      "features": {
+        "manage": "Manage leave requests and approvals",
+        "invite": "Invite team members and assign roles",
+        "track": "Track leave balances and availability"
+      },
+      "cta": "Create New Workspace",
+      "footer": "You'll be the admin and can customize everything later."
+    },
+    "createWorkspace": {
+      "back": "Back to welcome",
+      "title": "Create Your Workspace",
+      "subtitle": "Set up your organization details and get started.",
+      "form": {
+        "title": "Organization Details",
+        "description": "This information will be visible to your team members.",
+        "name": {
+          "label": "Organization Name",
+          "placeholder": "Enter your organization name"
+        },
+        "slug": {
+          "label": "Workspace URL",
+          "help": "This will be used in your organization's URL and cannot be changed later."
+        },
+        "domain": {
+          "label": "Company Domain",
+          "help": "Team members with this email domain can join automatically."
+        },
+        "submit": "Create Workspace",
+        "submitting": "Creating workspace..."
+      },
+      "footer": "Your workspace will be ready in just a moment."
+    },
+    "choose": {
+      "title": "You Have Invitations! 🎉",
+      "subtitle": "You can join an existing organization or create your own workspace.",
+      "invitations": {
+        "title": "Pending Invitations",
+        "description": "You have {count} invitation(s) waiting for you.",
+        "accept": "Accept Invitation",
+        "accepting": "Accepting..."
+      },
+      "or": "or",
+      "createOwn": {
+        "title": "Create Your Own Workspace",
+        "description": "Start fresh with your own organization and invite your team.",
+        "cta": "Create New Workspace"
+      }
+    }
+  },
   "common": {
     "loading": "Loading...",
     "save": "Save",

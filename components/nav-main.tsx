@@ -50,7 +50,7 @@ export function NavMain({
                       e.preventDefault()
                       item.onClick?.()
                     }}
-                    className="flex items-center gap-2 w-full"
+                    className="flex items-center gap-2 w-full cursor-pointer"
                   >
                     <item.icon />
                     <span>{item.title}</span>

@@ -43,6 +43,8 @@ export async function middleware(request: NextRequest) {
     '/forgot-password',
     '/reset-password',
     '/onboarding/join', // Allow invitation acceptance page
+    '/onboarding/register', // Allow invitation registration page
+    '/onboarding/success', // Allow invitation success page
     '/api/logout',
     '/api/locale', // Add locale API route
     '/favicon.ico',
@@ -59,6 +61,7 @@ export async function middleware(request: NextRequest) {
     '/api/auth/signup-with-invitation', // Invitation-based signup endpoint
     '/api/auth/verify-email', // Email verification endpoint
     '/api/organizations', // Organization creation for authenticated users
+    '/api/user/organization-status', // New onboarding scenario detection API
     '/api/test-db', // Database connection test endpoint
     '/api/test-auth', // Authentication diagnostic endpoint
     '/api/debug-db', // Database diagnostic endpoint
@@ -79,15 +82,32 @@ export async function middleware(request: NextRequest) {
     return response
   }
 
+  // Allow authenticated users to access /onboarding (handles all scenarios)
+  if (pathname === '/onboarding' && user) {
+    console.log('🎫 Allowing authenticated user to access onboarding')
+    return response
+  }
+
+  // Allow unauthenticated users to access /onboarding with invitation tokens
+  if (pathname === '/onboarding' && !user && request.nextUrl.searchParams.get('token')) {
+    console.log('🎫 Allowing unauthenticated user with invitation token to access onboarding')
+    return response
+  }
+
   // If user is not authenticated, redirect to login
   if (!user) {
     const loginUrl = new URL('/login', request.url)
     return NextResponse.redirect(loginUrl)
   }
 
-  // If user is authenticated, check if they have an organization
+  // Enhanced onboarding routing based on user's organization status
   if (user) {
-    // Use admin client to bypass RLS policies for organization check
+    // Skip onboarding routing for join with token (direct invitation flow)
+    if (pathname === '/onboarding/join' && request.nextUrl.searchParams.get('token')) {
+      return response // Allow direct token flow to proceed
+    }
+
+    // Check user's organization status for proper routing
     const hasOrganization = await userHasOrganization(user.id, request)
 
     console.log('🔍 Middleware org check:', { 
@@ -96,16 +116,18 @@ export async function middleware(request: NextRequest) {
       pathname 
     })
 
-    // If user doesn't have an organization, redirect to onboarding
-    if (!hasOrganization && !pathname.startsWith('/onboarding')) {
-      const onboardingUrl = new URL('/onboarding', request.url)
-      return NextResponse.redirect(onboardingUrl)
-    }
-
-    // If user has organization but is on onboarding, redirect to dashboard
-    if (hasOrganization && pathname.startsWith('/onboarding')) {
-      const dashboardUrl = new URL('/dashboard', request.url)
-      return NextResponse.redirect(dashboardUrl)
+    // Allow access to dashboard and other protected routes for users with organizations
+    // Users without organizations can still access /onboarding to see their scenario options
+    if (!pathname.startsWith('/onboarding') && !pathname.startsWith('/api/')) {
+      // For dashboard and other protected routes, users need an organization
+      if (hasOrganization) {
+        // User has an organization, allow them to access dashboard and other protected routes
+        return response
+      } else {
+        // User doesn't have an organization, redirect to onboarding to see their options
+        const onboardingUrl = new URL('/onboarding', request.url)
+        return NextResponse.redirect(onboardingUrl)
+      }
     }
   }
 

@@ -73,30 +73,46 @@ export async function PUT(request: NextRequest) {
       locale
     }
 
-    // Only process admin change if adminId is different from current user
-    if (adminId && adminId !== user.id) {
+    // Process admin change if adminId is provided
+    if (adminId) {
       console.log('Processing admin change to:', adminId)
       
-      // Verify the new admin exists
-      const { data: newAdmin, error: newAdminError } = await supabase
-        .from('profiles')
-        .select('id, email, role')
-        .eq('id', adminId)
+      // Verify the new admin exists in the organization
+      const { data: newAdminOrg, error: newAdminError } = await supabase
+        .from('user_organizations')
+        .select(`
+          user_id,
+          role,
+          profiles!inner (
+            id,
+            email,
+            full_name
+          )
+        `)
+        .eq('user_id', adminId)
+        .eq('organization_id', organizationId)
+        .eq('is_active', true)
         .single()
 
-      if (newAdminError || !newAdmin) {
-        console.error('New admin not found:', adminId, newAdminError)
-        return NextResponse.json({ error: 'Selected admin not found' }, { status: 400 })
+      if (newAdminError || !newAdminOrg) {
+        console.error('New admin not found in organization:', adminId, newAdminError)
+        return NextResponse.json({ error: 'Selected user not found in organization' }, { status: 400 })
       }
 
-      console.log('New admin found:', newAdmin.email, 'current role:', newAdmin.role)
+      console.log('New admin found:', (newAdminOrg.profiles as any).email, 'current role:', newAdminOrg.role)
 
-      // Check current admins
+      // Check current admins in the organization
       const { data: currentAdmins, error: currentAdminError } = await supabase
-        .from('profiles')
-        .select('id, email')
+        .from('user_organizations')
+        .select(`
+          user_id,
+          profiles!inner (
+            email
+          )
+        `)
         .eq('organization_id', organizationId)
         .eq('role', 'admin')
+        .eq('is_active', true)
 
       if (currentAdminError) {
         console.error('Error checking current admins:', currentAdminError)
@@ -110,21 +126,23 @@ export async function PUT(request: NextRequest) {
 
       // Set the new admin as admin FIRST
       const { error: setError } = await supabase
-        .from('profiles')
+        .from('user_organizations')
         .update({ role: 'admin' })
-        .eq('id', adminId)
+        .eq('user_id', adminId)
+        .eq('organization_id', organizationId)
 
       if (setError) {
         console.error('Error setting new admin:', setError)
         return NextResponse.json({ error: 'Failed to set new admin' }, { status: 500 })
       }
-      console.log('Admin role set successfully for:', newAdmin.email)
+      console.log('Admin role set successfully for:', (newAdminOrg.profiles as any).email)
 
       // Then remove admin from current user
       const { error: removeError } = await supabase
-        .from('profiles')
+        .from('user_organizations')
         .update({ role: 'employee' })
-        .eq('id', user.id)
+        .eq('user_id', user.id)
+        .eq('organization_id', organizationId)
 
       if (removeError) {
         console.error('Error removing current user admin role:', removeError)
@@ -132,7 +150,7 @@ export async function PUT(request: NextRequest) {
       }
       console.log('Removed admin role from current user')
 
-      console.log('Admin changed successfully to:', newAdmin.email)
+      console.log('Admin changed successfully to:', newAdminOrg.profiles.email)
     } else if (adminId) {
       console.log('Admin not changing - same user selected')
     }

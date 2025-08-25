@@ -1,0 +1,3 @@
+# Spec Summary (Lite)
+
+Fix critical system-wide bug where 24 pages use hardcoded `.eq('is_default', true)` instead of respecting the active organization cookie, causing users to see data from the wrong workspace when switching organizations. Replace all hardcoded default organization logic with proper cookie-based active organization selection to ensure consistent data visibility across the entire multi-organization application.

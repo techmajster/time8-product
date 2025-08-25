@@ -59,9 +59,11 @@ export async function POST(request: NextRequest) {
     for (const employee of employees) {
       try {
         const { email, full_name, role: employeeRole, team_id, send_invitation, personal_message } = employee
+        console.log(`🔍 Processing employee:`, { email, full_name, employeeRole, send_invitation })
 
         // Validate required fields
         if (!email || !full_name || !employeeRole) {
+          console.error(`❌ Missing required fields for ${email}:`, { email: !!email, full_name: !!full_name, employeeRole: !!employeeRole })
           errors.push({
             email: email || 'unknown',
             error: 'Missing required fields: email, full_name, or role'
@@ -69,43 +71,88 @@ export async function POST(request: NextRequest) {
           continue
         }
 
-        // Check if user already exists in this organization
-        const { data: existingUser } = await supabaseAdmin
-          .from('user_organizations')
-          .select('user_id')
-          .eq('organization_id', organizationId)
-          .eq('user_id', (
-            await supabaseAdmin
-              .from('profiles')
-              .select('id')
-              .eq('email', email.toLowerCase())
-              .single()
-          ).data?.id || 'none')
-          .single()
-
-        if (existingUser) {
-          errors.push({
-            email,
-            error: 'User already exists in this organization'
-          })
-          continue
+        // Validate email domain if required
+        if (organization.require_google_domain && organization.google_domain) {
+          const emailDomain = email.toLowerCase().split('@')[1]
+          const requiredDomain = organization.google_domain.toLowerCase()
+          console.log(`🔍 Domain validation:`, { emailDomain, requiredDomain, require_google_domain: organization.require_google_domain })
+          
+          if (emailDomain !== requiredDomain) {
+            console.error(`❌ Domain validation failed for ${email}:`, { emailDomain, requiredDomain })
+            errors.push({
+              email,
+              error: `Email domain must be @${requiredDomain} according to organization policy`
+            })
+            continue
+          }
         }
 
-        // Check for existing pending invitation
+        // Check if user already exists in this organization
+        console.log(`🔍 Checking if user ${email} already exists...`)
+        
+        // First, check if user profile exists
+        const { data: existingProfile, error: profileError } = await supabaseAdmin
+          .from('profiles')
+          .select('id')
+          .eq('email', email.toLowerCase())
+          .single()
+
+        console.log(`🔍 Profile check result:`, { existingProfile: !!existingProfile, profileError })
+
+        if (existingProfile) {
+          // Check if this user is already ACTIVE in the current organization
+          const { data: existingUser, error: userOrgError } = await supabaseAdmin
+            .from('user_organizations')
+            .select('user_id, role, is_active')
+            .eq('organization_id', organizationId)
+            .eq('user_id', existingProfile.id)
+            .eq('is_active', true) // Only check active memberships
+            .single()
+
+          console.log(`🔍 User organization check result:`, { existingUser: !!existingUser, userOrgError })
+
+          if (existingUser) {
+            console.error(`❌ User already exists in organization: ${email} with role ${existingUser.role}`)
+            errors.push({
+              email,
+              error: `User already exists in this organization with role: ${existingUser.role}`
+            })
+            continue
+          } else {
+            console.log(`✅ User ${email} exists in database but not ACTIVE in this organization - will create invitation and add to org when accepted`)
+          }
+        } else {
+          console.log(`✅ User ${email} does not exist in database - can create invitation`)
+        }
+
+        // Check for existing pending invitation and clean up if needed
         const { data: existingInvitation } = await supabaseAdmin
           .from('invitations')
-          .select('id')
+          .select('id, created_at')
           .eq('email', email.toLowerCase())
           .eq('organization_id', organizationId)
           .eq('status', 'pending')
           .single()
 
         if (existingInvitation) {
-          errors.push({
-            email,
-            error: 'Pending invitation already exists for this email'
-          })
-          continue
+          // Check if invitation is older than 7 days - if so, delete it and create a new one
+          const invitationAge = Date.now() - new Date(existingInvitation.created_at).getTime()
+          const sevenDays = 7 * 24 * 60 * 60 * 1000
+          
+          if (invitationAge > sevenDays) {
+            console.log(`🗑️ Deleting expired invitation for ${email}`)
+            await supabaseAdmin
+              .from('invitations')
+              .delete()
+              .eq('id', existingInvitation.id)
+          } else {
+            console.error(`❌ Recent pending invitation already exists for: ${email}`)
+            errors.push({
+              email,
+              error: 'Pending invitation already exists for this email (created recently)'
+            })
+            continue
+          }
         }
 
         // Generate invitation details

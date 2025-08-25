@@ -153,6 +153,18 @@ export function AppLayoutClient({
   const updateOrganization = (updates: Partial<Organization>) => {
     setOrganization(prev => prev ? { ...prev, ...updates } : null)
   }
+
+  // Function to calculate organization initials
+  const calculateInitials = (name: string): string => {
+    const words = name.trim().split(/\s+/)
+    if (words.length >= 2) {
+      return (words[0][0] + words[1][0]).toUpperCase()
+    }
+    if (words.length === 1 && words[0].length >= 2) {
+      return (words[0][0] + words[0][1]).toUpperCase()
+    }
+    return (words[0][0] + words[0][0]).toUpperCase()
+  }
   
   const breadcrumbItems = getBreadcrumbItems(pathname, organization?.name, t)
 
@@ -162,6 +174,7 @@ export function AppLayoutClient({
         <AppSidebar 
           organizationName={organization?.name}
           organizationLogo={organization?.logo_url}
+          organizationInitials={organization?.name ? calculateInitials(organization.name) : undefined}
           userProfile={userProfile}
           userRole={userRole}
         />

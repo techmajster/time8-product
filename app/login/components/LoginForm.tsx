@@ -92,8 +92,9 @@ export function LoginForm({ onModeChange, className }: LoginFormProps) {
         throw authError
       }
 
-      // Redirect to dashboard
-      router.push('/dashboard')
+      // Redirect to onboarding - this will show user their workspace options and scenario
+      // User will see appropriate onboarding scenario based on their workspaces and invitations
+      router.push('/onboarding')
       router.refresh()
     } catch (error: any) {
       console.error('Login error:', error)

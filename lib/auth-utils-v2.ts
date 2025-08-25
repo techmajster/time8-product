@@ -360,7 +360,7 @@ export async function switchOrganization(organizationId: string): Promise<{
     }
 
     // Set active organization in cookies
-    setActiveOrganization(organizationId)
+    await setActiveOrganization(organizationId)
 
     // Clear relevant caches
     const cacheKey = cacheKeys.userProfileWithOrg(user.id)

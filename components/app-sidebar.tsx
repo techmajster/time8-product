@@ -21,6 +21,7 @@ import { useTranslations } from 'next-intl'
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
+import { WorkspaceSwitcher } from "@/components/workspace-switcher"
 import {
   Sidebar,
   SidebarContent,
@@ -34,6 +35,7 @@ import {
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   organizationName?: string | null
   organizationLogo?: string | null
+  organizationInitials?: string | null
   userProfile?: {
     full_name?: string | null
     email: string
@@ -42,7 +44,7 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   userRole?: string
 }
 
-export function AppSidebar({ organizationName, organizationLogo, userProfile, userRole, ...props }: AppSidebarProps) {
+export function AppSidebar({ organizationName, organizationLogo, organizationInitials, userProfile, userRole, ...props }: AppSidebarProps) {
   const t = useTranslations('navigation')
   
   // Format user data for NavUser component
@@ -178,6 +180,13 @@ export function AppSidebar({ organizationName, organizationLogo, userProfile, us
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
+        {/* Workspace Switcher */}
+        <div className="px-2 py-2">
+          <WorkspaceSwitcher 
+            currentWorkspaceName={organizationName || "Leave System"} 
+          />
+        </div>
+        
         {/* Base navigation without label */}
         <NavMain items={baseNavigationItems} />
         

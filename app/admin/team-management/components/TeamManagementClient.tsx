@@ -335,12 +335,26 @@ export function TeamManagementClient({ teamMembers, teams, leaveBalances, invita
         method: 'DELETE'
       })
 
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || error.message || 'Failed to remove employee')
+      let data: any = {}
+      
+      // Check if response has content before parsing JSON
+      const contentType = response.headers.get('content-type')
+      if (contentType && contentType.includes('application/json')) {
+        const text = await response.text()
+        if (text) {
+          try {
+            data = JSON.parse(text)
+          } catch (e) {
+            console.error('Failed to parse JSON response:', e)
+          }
+        }
       }
 
-      toast.success('Pracownik został usunięty z organizacji')
+      if (!response.ok) {
+        throw new Error(data.error || data.message || 'Failed to remove employee')
+      }
+
+      toast.success(data.message || 'Pracownik został usunięty z organizacji')
       setIsRemoveDialogOpen(false)
       setMemberToRemove(null)
       
@@ -962,8 +976,16 @@ export function TeamManagementClient({ teamMembers, teams, leaveBalances, invita
             <DialogTitle>Usuń pracownika</DialogTitle>
             <DialogDescription>
               Czy na pewno chcesz usunąć pracownika {memberToRemove?.full_name || memberToRemove?.email} z organizacji?
+              {(memberToRemove?.role === 'Manager' || memberToRemove?.role === 'Admin') && (
+                <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                  <p className="text-sm text-yellow-800">
+                    <strong>⚠️ Uwaga:</strong> Ten użytkownik jest obecnie <strong>{memberToRemove.role}</strong>. 
+                    Usunięcie go spowoduje utratę wszystkich jego uprawnień administracyjnych.
+                  </p>
+                </div>
+              )}
               <br />
-              <strong>Ta akcja jest nieodwracalna.</strong>
+              <strong className="text-red-600">Ta akcja jest nieodwracalna.</strong>
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

@@ -1,5 +1,6 @@
 import { AppLayout } from '@/components/app-layout'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { AddEmployeePage } from './components/AddEmployeePage'
@@ -27,19 +28,34 @@ export default async function TeamAddPage() {
   }
 
   // Get user's active organization from user_organizations
-  const { data: userOrg } = await supabase
+  // Get current active organization (respect workspace switching cookie)
+  const cookieStore = await cookies()
+  const activeOrgId = cookieStore.get('active-organization-id')?.value
+  
+  let userOrgQuery = supabase
     .from('user_organizations')
     .select(`
       *,
       organizations (
         id,
-        name
+        name,
+        google_domain,
+        require_google_domain
       )
     `)
     .eq('user_id', user.id)
     .eq('is_active', true)
-    .eq('is_default', true)
-    .single()
+    
+  // If we have an active org cookie, use that specific org, otherwise use default
+  if (activeOrgId) {
+    userOrgQuery = userOrgQuery.eq('organization_id', activeOrgId)
+    console.log('🍪 Add Employee: Using active organization from cookie:', activeOrgId)
+  } else {
+    userOrgQuery = userOrgQuery.eq('is_default', true)
+    console.log('🏠 Add Employee: Using default organization (no active cookie)')
+  }
+  
+  const { data: userOrg } = await userOrgQuery.single()
 
   if (!userOrg) {
     redirect('/onboarding')
@@ -133,6 +149,7 @@ export default async function TeamAddPage() {
         leaveTypes={leaveTypes || []}
         organizationId={profile.organization_id}
         teamMembers={teamMembers || []}
+        organization={userOrg.organizations}
       />
     </AppLayout>
   )

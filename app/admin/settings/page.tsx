@@ -1,5 +1,6 @@
 import { AppLayout } from '@/components/app-layout'
 import { createClient } from '@/lib/supabase/server'
+import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import AdminSettingsClient from '@/app/admin/settings/components/AdminSettingsClient'
 
@@ -23,8 +24,11 @@ export default async function AdminSettingsPage() {
     redirect('/login')
   }
 
-  // Get user's active organization from user_organizations
-  const { data: userOrg } = await supabase
+  // Get current active organization (respect workspace switching cookie)
+  const cookieStore = await cookies()
+  const activeOrgId = cookieStore.get('active-organization-id')?.value
+  
+  let userOrgQuery = supabase
     .from('user_organizations')
     .select(`
       *,
@@ -43,8 +47,17 @@ export default async function AdminSettingsPage() {
     `)
     .eq('user_id', user.id)
     .eq('is_active', true)
-    .eq('is_default', true)
-    .single()
+    
+  // If we have an active org cookie, use that specific org, otherwise use default
+  if (activeOrgId) {
+    userOrgQuery = userOrgQuery.eq('organization_id', activeOrgId)
+    console.log('🍪 Admin Settings: Using active organization from cookie:', activeOrgId)
+  } else {
+    userOrgQuery = userOrgQuery.eq('is_default', true)
+    console.log('🏠 Admin Settings: Using default organization (no active cookie)')
+  }
+  
+  const { data: userOrg } = await userOrgQuery.single()
 
   if (!userOrg) {
     redirect('/onboarding')
@@ -71,11 +84,30 @@ export default async function AdminSettingsPage() {
     .order('name')
 
   // Get all users in the organization for admin selector
-  const { data: users } = await supabase
-    .from('profiles')
-    .select('id, email, full_name, role, avatar_url')
+  const { data: orgUsers } = await supabase
+    .from('user_organizations')
+    .select(`
+      user_id,
+      role,
+      profiles!inner (
+        id,
+        email,
+        full_name,
+        avatar_url
+      )
+    `)
     .eq('organization_id', profile.organization_id)
-    .order('full_name')
+    .eq('is_active', true)
+    .order('profiles(full_name)')
+
+  // Transform the data to match the expected format
+  const users = orgUsers?.map(ou => ({
+    id: (ou.profiles as any).id,
+    email: (ou.profiles as any).email,
+    full_name: (ou.profiles as any).full_name,
+    avatar_url: (ou.profiles as any).avatar_url,
+    role: ou.role
+  })) || []
 
   return (
     <AppLayout>

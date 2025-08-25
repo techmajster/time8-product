@@ -1,6 +1,77 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params
+  try {
+    const supabase = await createClient()
+    const supabaseAdmin = await createAdminClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Get user's organization and role
+    const { data: userOrg } = await supabase
+      .from('user_organizations')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('is_active', true)
+      .eq('is_default', true)
+      .single()
+
+    if (!userOrg || userOrg.role !== 'admin') {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
+    }
+
+    // Check if the employee to be deleted is in the same organization
+    const { data: employeeOrg } = await supabaseAdmin
+      .from('user_organizations')
+      .select('*')
+      .eq('user_id', id)
+      .eq('organization_id', userOrg.organization_id)
+      .eq('is_active', true)
+      .single()
+
+    if (!employeeOrg) {
+      return NextResponse.json({ error: 'Employee not found in your organization' }, { status: 404 })
+    }
+
+    // Prevent self-deletion
+    if (id === user.id) {
+      return NextResponse.json({ error: 'You cannot delete your own account' }, { status: 400 })
+    }
+
+    // Set the employee as inactive instead of deleting
+    const { error: updateError } = await supabaseAdmin
+      .from('user_organizations')
+      .update({ is_active: false })
+      .eq('user_id', id)
+      .eq('organization_id', userOrg.organization_id)
+
+    if (updateError) {
+      console.error('Error removing employee:', updateError)
+      return NextResponse.json({ error: 'Failed to remove employee from organization' }, { status: 500 })
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      message: 'Employee successfully removed from organization' 
+    })
+
+  } catch (error) {
+    console.error('Error in DELETE /api/employees/[id]:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
