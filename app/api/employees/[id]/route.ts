@@ -40,8 +40,7 @@ export async function DELETE(
       .select('*')
       .eq('user_id', id)
       .eq('organization_id', userOrg.organization_id)
-      .eq('is_active', true)
-      .single()
+      .single() // Remove is_active filter to allow deletion of inactive members
 
     console.log('🔍 Employee lookup result:', {
       found: !!employeeOrg,
@@ -63,6 +62,16 @@ export async function DELETE(
           error: employeeOrgError?.message
         }
       }, { status: 404 })
+    }
+
+    // Check if employee is already inactive
+    if (!employeeOrg.is_active) {
+      console.log('⚠️ Employee is already inactive in this organization')
+      return NextResponse.json({ 
+        success: true, 
+        message: 'Employee was already removed from organization',
+        already_inactive: true
+      })
     }
 
     // Prevent self-deletion
