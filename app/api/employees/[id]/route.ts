@@ -15,80 +15,71 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get user's organization and role using admin client to bypass RLS
-    const { data: userOrg, error: userOrgError } = await supabaseAdmin
+    // Try to detect current organization from query params or headers, or find the organization the employee belongs to
+    const url = new URL(request.url)
+    const orgIdFromQuery = url.searchParams.get('org') || url.searchParams.get('organization_id')
+    const orgIdFromHeader = request.headers.get('x-current-organization') || request.headers.get('x-organization-id')
+    
+    // First, find which organization this employee belongs to
+    const { data: employeeOrgs } = await supabaseAdmin
+      .from('user_organizations')
+      .select('organization_id, role, is_active')
+      .eq('user_id', id)
+      .eq('is_active', true)
+    
+    console.log('🔍 Employee organizations:', { employeeOrgs, employee_id: id })
+    
+    // Get current user's organizations where they are admin
+    const { data: userAdminOrgs } = await supabaseAdmin
       .from('user_organizations')
       .select('*')
       .eq('user_id', user.id)
       .eq('is_active', true)
-      .eq('is_default', true)
-      .single()
-
-    console.log('🔍 Current user organization lookup:', {
-      found: !!userOrg,
-      error: userOrgError,
-      user_id: user.id,
-      role: userOrg?.role
-    })
-
-    if (!userOrg) {
-      console.error('❌ Could not find user organization:', {
-        user_id: user.id,
-        error: userOrgError
-      })
-      return NextResponse.json({ 
-        error: 'Could not find your organization membership',
-        debug: { user_id: user.id, error: userOrgError?.message }
-      }, { status: 404 })
-    }
-
-    if (userOrg.role !== 'admin') {
-      console.error('❌ Insufficient permissions:', {
-        user_id: user.id,
-        role: userOrg.role,
-        required: 'admin'
-      })
-      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
-    }
-
-    // Check if the employee to be deleted is in the same organization
-    console.log('🔍 Looking for employee to delete:', {
-      user_id: id,
-      organization_id: userOrg.organization_id,
-      admin_user: user.id
-    })
+      .eq('role', 'admin')
     
-    const { data: employeeOrg, error: employeeOrgError } = await supabaseAdmin
-      .from('user_organizations')
-      .select('*')
-      .eq('user_id', id)
-      .eq('organization_id', userOrg.organization_id)
-      .single() // Remove is_active filter to allow deletion of inactive members
-
-    console.log('🔍 Employee lookup result:', {
-      found: !!employeeOrg,
-      error: employeeOrgError,
-      data: employeeOrg
-    })
-
-    if (!employeeOrg) {
-      console.error('❌ Employee not found in organization:', {
-        searched_user_id: id,
-        organization_id: userOrg.organization_id,
-        error: employeeOrgError
-      })
+    console.log('🔍 User admin organizations:', { userAdminOrgs, user_id: user.id })
+    
+    // Find the organization where:
+    // 1. The employee exists 
+    // 2. Current user is admin
+    const validOrg = employeeOrgs?.find(empOrg => 
+      userAdminOrgs?.some(userOrg => userOrg.organization_id === empOrg.organization_id)
+    )
+    
+    if (!validOrg) {
+      console.error('❌ No valid organization found where user is admin and employee exists')
       return NextResponse.json({ 
-        error: 'Employee not found in your organization',
+        error: 'Employee not found in any organization where you have admin access',
         debug: {
-          user_id: id,
-          organization_id: userOrg.organization_id,
-          error: employeeOrgError?.message
+          employee_id: id,
+          employee_orgs: employeeOrgs,
+          user_admin_orgs: userAdminOrgs?.map(o => o.organization_id)
         }
       }, { status: 404 })
     }
+    
+    // Get the user's organization record for the valid org
+    const userOrg = userAdminOrgs?.find(org => org.organization_id === validOrg.organization_id)
+    const userOrgError = null
+
+    console.log('🔍 Selected organization for deletion:', {
+      found: !!userOrg,
+      organization_id: userOrg?.organization_id,
+      user_role: userOrg?.role,
+      employee_id: id
+    })
+
+    // The employee organization record (we already know it exists from validOrg)
+    const employeeOrg = employeeOrgs?.find(emp => emp.organization_id === userOrg?.organization_id)
+    
+    console.log('🔍 Employee in selected organization:', {
+      found: !!employeeOrg,
+      is_active: employeeOrg?.is_active,
+      role: employeeOrg?.role
+    })
 
     // Check if employee is already inactive
-    if (!employeeOrg.is_active) {
+    if (!employeeOrg?.is_active) {
       console.log('⚠️ Employee is already inactive in this organization')
       return NextResponse.json({ 
         success: true, 
