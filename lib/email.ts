@@ -12,10 +12,11 @@ interface InvitationEmailData {
   role: string
   invitationToken: string
   personalMessage?: string
+  request?: Request
 }
 
 export async function sendInvitationEmail(data: InvitationEmailData) {
-  const invitationUrl = getInviteUrl(data.invitationToken)
+  const invitationUrl = getInviteUrl(data.invitationToken, data.request)
   
   const htmlContent = `
 <!DOCTYPE html>

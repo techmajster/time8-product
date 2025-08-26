@@ -49,7 +49,8 @@ export async function POST(request: NextRequest) {
         inviterEmail: process.env.FROM_EMAIL || 'noreply@time8.io',
         role: 'Employee', // Should be fetched from invitation in future
         invitationToken: invitationCode,
-        personalMessage: personalMessage
+        personalMessage: personalMessage,
+        request: request // Pass request for proper URL generation
       }
       
       console.log('📧 Calling sendInvitationEmail with data:', emailData)
