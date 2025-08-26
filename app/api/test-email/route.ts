@@ -3,6 +3,34 @@ import { Resend } from 'resend'
 
 const resend = new Resend(process.env.RESEND_API_KEY!)
 
+export async function GET(request: NextRequest) {
+  try {
+    // Simple test that doesn't require body
+    const testEmail = 'test@example.com'
+    
+    console.log('🧪 Testing email configuration:', {
+      RESEND_API_KEY: process.env.RESEND_API_KEY ? 'SET' : 'MISSING',
+      FROM_EMAIL: process.env.FROM_EMAIL,
+    })
+
+    return NextResponse.json({ 
+      success: true,
+      config: {
+        hasResendKey: !!process.env.RESEND_API_KEY,
+        fromEmail: process.env.FROM_EMAIL,
+        timestamp: new Date().toISOString()
+      }
+    })
+
+  } catch (error) {
+    console.error('🧪 Test error:', error)
+    return NextResponse.json({ 
+      success: false, 
+      error: String(error) 
+    }, { status: 500 })
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
