@@ -15,8 +15,8 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get user's organization and role
-    const { data: userOrg } = await supabase
+    // Get user's organization and role using admin client to bypass RLS
+    const { data: userOrg, error: userOrgError } = await supabaseAdmin
       .from('user_organizations')
       .select('*')
       .eq('user_id', user.id)
@@ -24,7 +24,30 @@ export async function DELETE(
       .eq('is_default', true)
       .single()
 
-    if (!userOrg || userOrg.role !== 'admin') {
+    console.log('🔍 Current user organization lookup:', {
+      found: !!userOrg,
+      error: userOrgError,
+      user_id: user.id,
+      role: userOrg?.role
+    })
+
+    if (!userOrg) {
+      console.error('❌ Could not find user organization:', {
+        user_id: user.id,
+        error: userOrgError
+      })
+      return NextResponse.json({ 
+        error: 'Could not find your organization membership',
+        debug: { user_id: user.id, error: userOrgError?.message }
+      }, { status: 404 })
+    }
+
+    if (userOrg.role !== 'admin') {
+      console.error('❌ Insufficient permissions:', {
+        user_id: user.id,
+        role: userOrg.role,
+        required: 'admin'
+      })
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
     }
 
