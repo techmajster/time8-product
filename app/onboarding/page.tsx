@@ -69,8 +69,22 @@ export default function OnboardingRoutingPage() {
             
             // Enhanced handling based on authentication status
             if (user) {
-              // User is authenticated - fetch their existing workspaces and intelligently determine scenario
-              console.log('✅ Authenticated user accessing invitation - fetching existing workspaces')
+              // User is authenticated - check if they already belong to this organization
+              console.log('✅ Authenticated user accessing invitation - checking cross-workspace scenario')
+              console.log('🔍 Invitation for organization ID:', invitation.organization_id)
+              console.log('🔍 User email:', user.email)
+              console.log('🔍 Invitation email:', invitation.email)
+              
+              // Check if this is a cross-workspace invitation (user email doesn't match invitation email)
+              if (user.email !== invitation.email) {
+                console.log('🚨 Cross-workspace invitation detected - user email mismatch')
+                console.log('🔄 Redirecting to registration with invitation context')
+                
+                // Redirect to registration to allow user to create account for this specific email/workspace
+                const registerUrl = `/onboarding/register?token=${encodeURIComponent(token)}&email=${encodeURIComponent(invitation.email)}&name=${encodeURIComponent(invitation.full_name)}&org=${encodeURIComponent(mappedInvitation.organizationName)}&cross_workspace=true`
+                router.push(registerUrl)
+                return
+              }
               
               try {
                 // Fetch user's existing workspaces via organization-status API
@@ -81,6 +95,24 @@ export default function OnboardingRoutingPage() {
                 
                 const orgData = await orgResponse.json()
                 console.log('🏢 Fetched user workspaces for invitation:', orgData)
+                
+                // Check if user is already a member of the organization they're being invited to
+                const alreadyMember = orgData.userWorkspaces.some((ws: any) => ws.organization_id === invitation.organization_id)
+                if (alreadyMember) {
+                  console.log('⚠️ User is already a member of this organization')
+                  setState({
+                    loading: false,
+                    error: 'You are already a member of this organization.',
+                    user,
+                    organizationData: {
+                      scenario: 'multi-option' as any,
+                      userWorkspaces: orgData.userWorkspaces || [],
+                      pendingInvitations: orgData.pendingInvitations || [],
+                      canCreateWorkspace: true
+                    }
+                  })
+                  return
+                }
                 
                 // Enhanced scenario determination for authenticated users with invitations
                 let enhancedScenario: 'choice' | 'multi-option'
