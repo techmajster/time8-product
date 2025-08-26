@@ -29,7 +29,13 @@ export async function DELETE(
     }
 
     // Check if the employee to be deleted is in the same organization
-    const { data: employeeOrg } = await supabaseAdmin
+    console.log('🔍 Looking for employee to delete:', {
+      user_id: id,
+      organization_id: userOrg.organization_id,
+      admin_user: user.id
+    })
+    
+    const { data: employeeOrg, error: employeeOrgError } = await supabaseAdmin
       .from('user_organizations')
       .select('*')
       .eq('user_id', id)
@@ -37,8 +43,26 @@ export async function DELETE(
       .eq('is_active', true)
       .single()
 
+    console.log('🔍 Employee lookup result:', {
+      found: !!employeeOrg,
+      error: employeeOrgError,
+      data: employeeOrg
+    })
+
     if (!employeeOrg) {
-      return NextResponse.json({ error: 'Employee not found in your organization' }, { status: 404 })
+      console.error('❌ Employee not found in organization:', {
+        searched_user_id: id,
+        organization_id: userOrg.organization_id,
+        error: employeeOrgError
+      })
+      return NextResponse.json({ 
+        error: 'Employee not found in your organization',
+        debug: {
+          user_id: id,
+          organization_id: userOrg.organization_id,
+          error: employeeOrgError?.message
+        }
+      }, { status: 404 })
     }
 
     // Prevent self-deletion
