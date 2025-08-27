@@ -2,9 +2,11 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Time8Logo } from '@/components/ui/time8-logo'
+import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 
 interface Workspace {
   id: string
@@ -34,6 +36,7 @@ interface MultiOptionScreenProps {
 }
 
 export function MultiOptionScreen({ userName, userWorkspaces, pendingInvitations }: MultiOptionScreenProps) {
+  const t = useTranslations('onboarding.multi')
   const [accepting, setAccepting] = useState<string | null>(null)
   const [entering, setEntering] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -202,6 +205,12 @@ export function MultiOptionScreen({ userName, userWorkspaces, pendingInvitations
 
   return (
     <div className="bg-[#ffffff] content-stretch flex flex-col gap-2.5 items-start justify-start relative size-full min-h-screen">
+      {/* Top header with logo and language selector */}
+      <div className="flex justify-between items-center w-full p-6">
+        <Time8Logo />
+        <LanguageSwitcher />
+      </div>
+      
       <div className="basis-0 content-stretch flex flex-col gap-6 grow items-center justify-center min-h-px min-w-px relative rounded-[10px] shrink-0 w-full">
         <div className="content-stretch flex flex-col gap-12 items-center justify-start relative shrink-0">
           
@@ -209,14 +218,11 @@ export function MultiOptionScreen({ userName, userWorkspaces, pendingInvitations
           <div className="content-stretch flex flex-col gap-3 h-[88px] items-start justify-start leading-[0] relative shrink-0 text-center w-[898px]">
             <div className="content-stretch flex font-semibold gap-3 items-center justify-center relative shrink-0 text-[48px] text-neutral-950 text-nowrap w-full" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 600 }}>
               <div className="relative shrink-0">
-                <p className="leading-[48px] text-nowrap whitespace-pre">Welcome</p>
-              </div>
-              <div className="relative shrink-0">
-                <p className="leading-[48px] text-nowrap whitespace-pre">{userName}!</p>
+                <p className="leading-[48px] text-nowrap whitespace-pre">{t('title', { name: userName })}</p>
               </div>
             </div>
             <div className="font-normal relative shrink-0 text-[18px] text-neutral-500 w-full" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400 }}>
-              <p className="leading-[28px]">Let's get started with your workspace</p>
+              <p className="leading-[28px]">{t('subtitle')}</p>
             </div>
           </div>
 
@@ -240,8 +246,8 @@ export function MultiOptionScreen({ userName, userWorkspaces, pendingInvitations
                         <div className="basis-0 content-stretch flex flex-col grow items-start justify-between min-h-px min-w-px relative shrink-0 w-full">
                           <div className="content-stretch flex gap-2 items-start justify-start relative shrink-0 w-full">
                             <div className="basis-0 font-semibold grow h-14 leading-[28px] min-h-px min-w-px relative shrink-0 text-[18px] text-neutral-900" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 600 }}>
-                              <p className="mb-0">You have been invited</p>
-                              <p className="">to workspace:</p>
+                              <p className="mb-0">{t('invitation.title')}</p>
+                              <p className="">{t('invitation.subtitle')}</p>
                             </div>
                             <div className="overflow-clip relative shrink-0 size-6">
                               <svg className="w-full h-full text-neutral-900" fill="none" viewBox="0 0 24 24">
@@ -265,7 +271,7 @@ export function MultiOptionScreen({ userName, userWorkspaces, pendingInvitations
                           <button
                             onClick={() => handleAcceptInvitation(invitation)}
                             disabled={accepting === invitation.id}
-                            className="bg-neutral-900 box-border content-stretch flex gap-2 h-10 items-center justify-center px-8 py-2 relative rounded-lg shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] shrink-0 w-full hover:bg-neutral-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="bg-neutral-900 box-border content-stretch flex gap-2 h-10 items-center justify-center px-8 py-2 relative rounded-lg shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] shrink-0 w-full hover:bg-neutral-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                           >
                             <div className="overflow-clip relative shrink-0 size-4">
                               <svg className="w-full h-full text-neutral-50" fill="none" viewBox="0 0 24 24">
@@ -280,7 +286,7 @@ export function MultiOptionScreen({ userName, userWorkspaces, pendingInvitations
                             </div>
                             <div className="flex flex-col font-medium justify-center leading-[0] relative shrink-0 text-[14px] text-neutral-50 text-nowrap" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500 }}>
                               <p className="leading-[20px] whitespace-pre">
-                                {accepting === invitation.id ? 'Accepting...' : 'Accept invitation'}
+                                {accepting === invitation.id ? t('invitation.accepting') : t('invitation.accept')}
                               </p>
                             </div>
                           </button>
@@ -321,11 +327,11 @@ export function MultiOptionScreen({ userName, userWorkspaces, pendingInvitations
                           <button
                             onClick={() => handleEnterWorkspace(workspace.id)}
                             disabled={entering === workspace.id}
-                            className="bg-neutral-900 box-border content-stretch flex gap-2 h-10 items-center justify-center px-8 py-2 relative rounded-lg shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] shrink-0 w-full hover:bg-neutral-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="bg-neutral-900 box-border content-stretch flex gap-2 h-10 items-center justify-center px-8 py-2 relative rounded-lg shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] shrink-0 w-full hover:bg-neutral-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                           >
                             <div className="flex flex-col font-medium justify-center leading-[0] relative shrink-0 text-[14px] text-neutral-50 text-nowrap" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500 }}>
                               <p className="leading-[20px] whitespace-pre">
-                                {entering === workspace.id ? 'Entering...' : 'Enter workspace'}
+                                {entering === workspace.id ? t('workspace.entering') : t('workspace.enter')}
                               </p>
                             </div>
                           </button>
@@ -340,8 +346,8 @@ export function MultiOptionScreen({ userName, userWorkspaces, pendingInvitations
                         <div className="basis-0 content-stretch flex flex-col grow items-start justify-between min-h-px min-w-px relative shrink-0 w-full">
                           <div className="content-stretch flex gap-2 items-start justify-start relative shrink-0 w-full">
                             <div className="basis-0 font-semibold grow h-14 leading-[28px] min-h-px min-w-px relative shrink-0 text-[18px] text-neutral-900" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 600 }}>
-                              <p className="mb-0">Do you want to create</p>
-                              <p className="">a new workspace?</p>
+                              <p className="mb-0">{t('create.title')}</p>
+                              <p className="">{t('create.subtitle')}</p>
                             </div>
                             <div className="overflow-clip relative shrink-0 size-6">
                               <svg className="w-full h-full text-neutral-900" fill="none" viewBox="0 0 24 24">
@@ -357,20 +363,20 @@ export function MultiOptionScreen({ userName, userWorkspaces, pendingInvitations
                           </div>
                           <div className="content-stretch flex items-end justify-between leading-[0] relative shrink-0 text-nowrap w-full">
                             <div className="font-semibold relative shrink-0 text-[30px] text-neutral-950" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 600 }}>
-                              <p className="leading-[36px] text-nowrap whitespace-pre">It's free!</p>
+                              <p className="leading-[36px] text-nowrap whitespace-pre">{t('create.free')}</p>
                             </div>
                             <div className="font-normal relative shrink-0 text-[14px] text-neutral-500" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400 }}>
-                              <p className="leading-[20px] text-nowrap whitespace-pre">up to 3 users</p>
+                              <p className="leading-[20px] text-nowrap whitespace-pre">{t('create.limit')}</p>
                             </div>
                           </div>
                         </div>
                         <div className="content-stretch flex flex-col gap-2.5 items-start justify-start relative shrink-0 w-full">
                           <button
                             onClick={handleCreateWorkspace}
-                            className="bg-[#ffffff] box-border content-stretch flex gap-2 h-10 items-center justify-center px-8 py-2 relative rounded-lg shrink-0 w-full border border-neutral-200 shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] hover:bg-gray-50 transition-colors"
+                            className="bg-[#ffffff] box-border content-stretch flex gap-2 h-10 items-center justify-center px-8 py-2 relative rounded-lg shrink-0 w-full border border-neutral-200 shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] hover:bg-gray-50 transition-colors cursor-pointer"
                           >
                             <div className="flex flex-col font-medium justify-center leading-[0] relative shrink-0 text-[14px] text-neutral-950 text-nowrap" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500 }}>
-                              <p className="leading-[20px] whitespace-pre">Create new workspace</p>
+                              <p className="leading-[20px] whitespace-pre">{t('create.cta')}</p>
                             </div>
                           </button>
                         </div>
@@ -421,7 +427,7 @@ export function MultiOptionScreen({ userName, userWorkspaces, pendingInvitations
                             <button
                               onClick={() => handleAcceptInvitation(invitation)}
                               disabled={accepting === invitation.id}
-                              className="bg-neutral-900 box-border content-stretch flex gap-2 h-10 items-center justify-center px-8 py-2 relative rounded-lg shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] shrink-0 w-full hover:bg-neutral-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="bg-neutral-900 box-border content-stretch flex gap-2 h-10 items-center justify-center px-8 py-2 relative rounded-lg shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] shrink-0 w-full hover:bg-neutral-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                             >
                               <div className="overflow-clip relative shrink-0 size-4">
                                 <svg className="w-full h-full text-neutral-50" fill="none" viewBox="0 0 24 24">
@@ -452,7 +458,7 @@ export function MultiOptionScreen({ userName, userWorkspaces, pendingInvitations
                           <div className="basis-0 content-stretch flex flex-col grow items-start justify-between min-h-px min-w-px relative shrink-0 w-full">
                             <div className="content-stretch flex gap-2 items-start justify-start relative shrink-0 w-full">
                               <div className="basis-0 font-semibold grow leading-[0] min-h-px min-w-px relative shrink-0 text-[18px] text-neutral-900" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 600 }}>
-                                <p className="leading-[28px]">Your workspace:</p>
+                                <p className="leading-[28px]">{t('workspace.title')}</p>
                               </div>
                               <div className="overflow-clip relative shrink-0 size-6">
                                 <svg className="w-full h-full text-neutral-900" fill="none" viewBox="0 0 24 24">
@@ -477,7 +483,7 @@ export function MultiOptionScreen({ userName, userWorkspaces, pendingInvitations
                             <button
                               onClick={() => handleEnterWorkspace(workspace.id)}
                               disabled={entering === workspace.id}
-                              className="bg-neutral-900 box-border content-stretch flex gap-2 h-10 items-center justify-center px-8 py-2 relative rounded-lg shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] shrink-0 w-full hover:bg-neutral-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="bg-neutral-900 box-border content-stretch flex gap-2 h-10 items-center justify-center px-8 py-2 relative rounded-lg shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] shrink-0 w-full hover:bg-neutral-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                             >
                               <div className="flex flex-col font-medium justify-center leading-[0] relative shrink-0 text-[14px] text-neutral-50 text-nowrap" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500 }}>
                                 <p className="leading-[20px] whitespace-pre">
@@ -523,7 +529,7 @@ export function MultiOptionScreen({ userName, userWorkspaces, pendingInvitations
                           <div className="content-stretch flex flex-col gap-2.5 items-start justify-start relative shrink-0 w-full">
                             <button
                               onClick={handleCreateWorkspace}
-                              className="bg-[#ffffff] box-border content-stretch flex gap-2 h-10 items-center justify-center px-8 py-2 relative rounded-lg shrink-0 w-full border border-neutral-200 shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] hover:bg-gray-50 transition-colors"
+                              className="bg-[#ffffff] box-border content-stretch flex gap-2 h-10 items-center justify-center px-8 py-2 relative rounded-lg shrink-0 w-full border border-neutral-200 shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] hover:bg-gray-50 transition-colors cursor-pointer"
                             >
                               <div className="flex flex-col font-medium justify-center leading-[0] relative shrink-0 text-[14px] text-neutral-950 text-nowrap" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500 }}>
                                 <p className="leading-[20px] whitespace-pre">Create new workspace</p>
@@ -543,10 +549,6 @@ export function MultiOptionScreen({ userName, userWorkspaces, pendingInvitations
           </div>
         </div>
         
-        {/* Logo positioned absolutely */}
-        <div className="absolute content-stretch flex gap-[19.454px] items-center justify-start left-8 top-8">
-          <Time8Logo />
-        </div>
       </div>
     </div>
   )

@@ -55,6 +55,7 @@ interface OverlapUser {
 interface AddAbsenceSheetProps {
   preloadedEmployees?: Employee[]
   userRole?: string
+  activeOrganizationId?: string
   isOpen: boolean
   onClose: () => void
 }
@@ -253,16 +254,8 @@ function AddAbsenceSheetContent({ preloadedEmployees, userRole, isOpen, onClose 
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      // MULTI-ORG UPDATE: Get user's organization from user_organizations
-      const { data: userOrg } = await supabase
-        .from('user_organizations')
-        .select('organization_id')
-        .eq('user_id', user.id)
-        .eq('is_active', true)
-        .eq('is_default', true)
-        .single()
-
-      if (!userOrg?.organization_id) return
+      // Use the active organization ID passed from parent component
+      if (!activeOrganizationId) return
 
       let query = supabase
         .from('user_organizations')
@@ -277,7 +270,7 @@ function AddAbsenceSheetContent({ preloadedEmployees, userRole, isOpen, onClose 
             avatar_url
           )
         `)
-        .eq('organization_id', userOrg.organization_id)
+        .eq('organization_id', activeOrganizationId)
         .eq('is_active', true)
 
       // If manager, show team members (including themselves for self-absence requests)
@@ -288,8 +281,8 @@ function AddAbsenceSheetContent({ preloadedEmployees, userRole, isOpen, onClose 
           .from('user_organizations')
           .select('team_id')
           .eq('user_id', user.id)
+          .eq('organization_id', activeOrganizationId)
           .eq('is_active', true)
-          .eq('is_default', true)
           .single()
         
         console.log('🔍 AddAbsenceSheet - Manager org lookup:', { managerOrg, managerOrgError })
@@ -948,7 +941,7 @@ function AddAbsenceSheetContent({ preloadedEmployees, userRole, isOpen, onClose 
 }
 
 // Main component with global event listener
-export default function AddAbsenceSheet({ preloadedEmployees, userRole }: Omit<AddAbsenceSheetProps, 'isOpen' | 'onClose'>) {
+export default function AddAbsenceSheet({ preloadedEmployees, userRole, activeOrganizationId }: Omit<AddAbsenceSheetProps, 'isOpen' | 'onClose'>) {
   const [isOpen, setIsOpen] = useState(false)
 
   useEffect(() => {

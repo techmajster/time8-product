@@ -94,6 +94,14 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
   const [isSheetOpen, setIsSheetOpen] = useState(false)
   const supabase = createClient()
 
+  console.log('📅 CalendarClient rendering with props:', {
+    organizationId,
+    countryCode,
+    userId: userId ? `${userId.substring(0, 8)}...` : 'none',
+    colleaguesCount: colleagues?.length || 0,
+    teamMemberIdsCount: teamMemberIds?.length || 0
+  })
+
   // Polish month names
   const monthNames = [
     'Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec',
@@ -105,8 +113,21 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
 
   // Fetch data when component mounts or month changes
   useEffect(() => {
-    fetchHolidays()
-    fetchLeaveRequests()
+    const fetchData = async () => {
+      try {
+        console.log('📅 Starting calendar data fetch...')
+        await Promise.allSettled([
+          fetchHolidays(),
+          fetchLeaveRequests()
+        ])
+        console.log('📅 Calendar data fetch completed')
+      } catch (error) {
+        console.error('❌ Error in calendar data fetching useEffect:', error)
+        // Don't let data fetching errors break the calendar
+      }
+    }
+    
+    fetchData()
   }, [currentDate, organizationId, countryCode, teamMemberIds])
 
   const fetchHolidays = async () => {
@@ -144,7 +165,11 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
       console.log('📅 Fetched holidays from API:', holidays)
       setHolidays(holidays)
     } catch (error) {
-      console.error('❌ Error fetching holidays:', error)
+      console.error('❌ Error fetching holidays:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        name: error instanceof Error ? error.name : 'Unknown',
+        stack: error instanceof Error ? error.stack : undefined
+      })
       setHolidays([])
     }
   }
@@ -216,7 +241,11 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
         setLeaveRequests([])
       }
     } catch (error) {
-      console.error('Error fetching leave requests:', error)
+      console.error('❌ Error fetching leave requests:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        name: error instanceof Error ? error.name : 'Unknown',
+        stack: error instanceof Error ? error.stack : undefined
+      })
     }
   }
 

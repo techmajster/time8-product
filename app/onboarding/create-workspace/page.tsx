@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -9,8 +10,10 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ChevronLeft } from 'lucide-react'
 import { Time8Logo } from '@/components/ui/time8-logo'
+import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 
 function CreateWorkspacePageContent() {
+  const t = useTranslations('onboarding.createWorkspace')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [workspaceName, setWorkspaceName] = useState('')
@@ -80,11 +83,14 @@ function CreateWorkspacePageContent() {
   }
 
   return (
-    <div className="bg-white content-stretch flex gap-2.5 items-center justify-center relative min-h-screen w-full">
-      {/* Logo - Time8 */}
-      <div className="absolute left-8 top-8">
+    <div className="bg-white content-stretch flex flex-col gap-2.5 items-start justify-start relative min-h-screen w-full">
+      {/* Top header with logo and language selector */}
+      <div className="flex justify-between items-center w-full p-6">
         <Time8Logo />
+        <LanguageSwitcher />
       </div>
+      
+      <div className="flex-1 flex items-center justify-center w-full">
 
       {/* Form Container */}
       <div className="flex flex-col gap-10 items-center justify-start relative w-[400px]">
@@ -93,11 +99,11 @@ function CreateWorkspacePageContent() {
         <div className="flex gap-0.5 items-center justify-start relative w-full">
           <button
             onClick={handleBack}
-            className="bg-white flex gap-2 items-center justify-center px-4 py-2 relative rounded-lg border border-neutral-200 shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] hover:bg-gray-50 transition-colors"
+            className="bg-white flex gap-2 items-center justify-center px-4 py-2 relative rounded-lg border border-neutral-200 shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] hover:bg-gray-50 transition-colors cursor-pointer"
           >
             <ChevronLeft className="w-4 h-4 text-neutral-900" />
             <div className="font-medium text-[14px] text-neutral-950" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500, lineHeight: '20px' }}>
-              <p className="block leading-[20px] whitespace-pre">Back</p>
+              <p className="block leading-[20px] whitespace-pre">{t('back')}</p>
             </div>
           </button>
         </div>
@@ -107,7 +113,7 @@ function CreateWorkspacePageContent() {
           {/* Header */}
           <div className="flex flex-col gap-2 items-center justify-start relative w-full">
             <div className="font-bold relative text-[30px] text-neutral-950 w-full" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 700, lineHeight: '36px' }}>
-              <p className="block leading-[36px]">Create new workspace</p>
+              <p className="block leading-[36px]">{t('title')}</p>
             </div>
           </div>
 
@@ -117,7 +123,7 @@ function CreateWorkspacePageContent() {
             {/* Workspace Name Input */}
             <div className="flex flex-col gap-2 items-start justify-start relative w-full">
               <Label htmlFor="workspace-name" className="font-medium text-[14px] text-neutral-950" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500 }}>
-                Name your workspace
+                {t('form.name.label')}
               </Label>
               <div className="flex flex-col gap-2 items-start justify-start relative w-full">
                 <Input
@@ -138,7 +144,7 @@ function CreateWorkspacePageContent() {
             {/* Main Language Select */}
             <div className="flex flex-col gap-2 items-start justify-start relative w-full">
               <Label className="font-medium text-[14px] text-neutral-950" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500 }}>
-                Main language
+                {t('form.language.label')}
               </Label>
               <Select value={language} onValueChange={setLanguage}>
                 <SelectTrigger className="bg-white h-9 rounded-lg w-full border border-neutral-200 shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] px-4 py-2">
@@ -183,14 +189,14 @@ function CreateWorkspacePageContent() {
                 </SelectContent>
               </Select>
               <div className="font-normal text-[14px] text-neutral-500 w-full" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400, lineHeight: '20px' }}>
-                <p className="block leading-[20px]">This is the language that will be used in the dashboard.</p>
+                <p className="block leading-[20px]">{t('form.language.description')}</p>
               </div>
             </div>
 
             {/* Holiday Calendar Preset Select */}
             <div className="flex flex-col gap-2 items-start justify-start relative w-full">
               <Label className="font-medium text-[14px] text-neutral-950" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500 }}>
-                Holiday Calendar preset
+                {t('form.country.label')}
               </Label>
               <Select value={country} onValueChange={setCountry}>
                 <SelectTrigger className="bg-white h-9 rounded-lg w-full border border-neutral-200 shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] px-4 py-2">
@@ -224,7 +230,7 @@ function CreateWorkspacePageContent() {
                 </SelectContent>
               </Select>
               <div className="font-normal text-[14px] text-neutral-500 w-full" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400, lineHeight: '20px' }}>
-                <p className="block leading-[20px]">Calendar settings will automatically adjusted for selected country</p>
+                <p className="block leading-[20px]">{t('form.country.description')}</p>
               </div>
             </div>
 
@@ -243,15 +249,16 @@ function CreateWorkspacePageContent() {
           <button
             onClick={handleSubmit}
             disabled={isSubmitting || !workspaceName.trim()}
-            className="bg-neutral-900 flex gap-2 h-10 items-center justify-center px-8 py-2 relative rounded-lg shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] w-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-neutral-800 transition-colors"
+            className="bg-neutral-900 flex gap-2 h-10 items-center justify-center px-8 py-2 relative rounded-lg shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] w-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-neutral-800 transition-colors cursor-pointer"
           >
             <div className="font-medium text-[14px] text-neutral-50" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500, lineHeight: '20px' }}>
               <p className="block leading-[20px] whitespace-pre">
-                {isSubmitting ? 'Creating...' : `Create & let's get started`}
+                {isSubmitting ? t('form.submitting') : t('form.submit')}
               </p>
             </div>
           </button>
         </div>
+      </div>
       </div>
     </div>
   )

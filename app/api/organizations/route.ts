@@ -135,6 +135,44 @@ export async function POST(request: NextRequest) {
     if (leaveTypesError) {
       console.error('API: Leave types error:', leaveTypesError)
       // Don't fail - organization is already created
+    } else if (createdLeaveTypes && createdLeaveTypes.length > 0) {
+      // Create leave balances for the workspace creator
+      console.log('💰 Creating leave balances for workspace creator...')
+      try {
+        // Filter leave types that require balance and have days_per_year > 0
+        const balanceRequiredTypes = createdLeaveTypes.filter(lt => 
+          lt.requires_balance && 
+          lt.days_per_year > 0 &&
+          !['maternity', 'paternity', 'childcare'].includes(lt.leave_category)
+        )
+
+        if (balanceRequiredTypes.length > 0) {
+          const leaveBalances = balanceRequiredTypes.map(leaveType => ({
+            user_id: user.id,
+            leave_type_id: leaveType.id,
+            organization_id: org.id,
+            year: new Date().getFullYear(),
+            entitled_days: leaveType.days_per_year,
+            used_days: 0
+          }))
+
+          const { error: balancesError } = await supabaseAdmin
+            .from('leave_balances')
+            .insert(leaveBalances)
+
+          if (balancesError) {
+            console.error('⚠️ Leave balances creation error:', balancesError)
+            // Don't fail the process - organization is already created
+          } else {
+            console.log('✅ Leave balances created for workspace creator')
+          }
+        } else {
+          console.log('📝 No leave types require balance initialization')
+        }
+      } catch (error) {
+        console.error('⚠️ Leave balances setup error:', error)
+        // Don't fail the process - organization is already created
+      }
     }
 
     // Set the newly created organization as active

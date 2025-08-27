@@ -313,13 +313,13 @@ export default function OnboardingRoutingPage() {
             <div className="flex flex-col gap-2">
               <button 
                 onClick={() => router.push('/dashboard')}
-                className="w-full bg-neutral-900 text-white py-2 px-4 rounded-lg hover:bg-neutral-800 transition-colors"
+                className="w-full bg-neutral-900 text-white py-2 px-4 rounded-lg hover:bg-neutral-800 transition-colors cursor-pointer"
               >
                 Go to Dashboard
               </button>
               <button 
                 onClick={() => window.location.reload()}
-                className="w-full bg-gray-200 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors"
+                className="w-full bg-gray-200 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors cursor-pointer"
               >
                 Retry
               </button>
@@ -353,13 +353,13 @@ export default function OnboardingRoutingPage() {
             <div className="flex flex-col gap-2">
               <button 
                 onClick={() => router.push('/dashboard')}
-                className="w-full bg-neutral-900 text-white py-2 px-4 rounded-lg hover:bg-neutral-800 transition-colors"
+                className="w-full bg-neutral-900 text-white py-2 px-4 rounded-lg hover:bg-neutral-800 transition-colors cursor-pointer"
               >
                 Go to Dashboard
               </button>
               <button 
                 onClick={() => window.location.reload()}
-                className="w-full bg-gray-200 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors"
+                className="w-full bg-gray-200 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors cursor-pointer"
               >
                 Retry
               </button>

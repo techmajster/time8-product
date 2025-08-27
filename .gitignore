@@ -43,3 +43,5 @@ next-env.d.ts
 # CSV files (may contain sensitive data)
 *.csv
 docs/*.csv
+fix_szymon_balances.sql
+scripts/fix-szymon-balances.js

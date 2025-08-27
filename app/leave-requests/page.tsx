@@ -1,7 +1,7 @@
 import { Suspense } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { AppLayout } from '@/components/app-layout'
@@ -31,6 +31,7 @@ interface LeaveRequestWithUser {
 
 async function getLeaveRequests(status?: string) {
   const supabase = await createClient()
+  const supabaseAdmin = createAdminClient()
   
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -83,11 +84,8 @@ async function getLeaveRequests(status?: string) {
     redirect('/leave')
   }
 
-  // Get team scope for filtering
-  const teamScope = await getUserTeamScope(user.id)
-  const teamMemberIds = await getTeamMemberIds(teamScope)
-
-  let query = supabase
+  // Use admin client to bypass RLS issues, just like the calendar API does
+  let query = supabaseAdmin
     .from('leave_requests')
     .select(`
       id,
@@ -109,19 +107,56 @@ async function getLeaveRequests(status?: string) {
         name
       )
     `)
-    .in('user_id', teamMemberIds)
+    .eq('organization_id', profile.organization_id)
     .order('created_at', { ascending: false })
 
+  // Apply team filtering only for managers (not admins)
+  if (userOrg.role === 'manager') {
+    const teamScope = await getUserTeamScope(user.id)
+    const teamMemberIds = await getTeamMemberIds(teamScope)
+    query = query.in('user_id', teamMemberIds)
+  }
+
+  const statusMap: Record<string, string> = {
+    'nowe': 'pending',
+    'zaakceptowane': 'approved',
+    'odrzucone': 'rejected'
+  }
+
   if (status && status !== 'wszystkie') {
-    const statusMap: Record<string, string> = {
-      'nowe': 'pending',
-      'zaakceptowane': 'approved',
-      'odrzucone': 'rejected'
-    }
     query = query.eq('status', statusMap[status] || status)
   }
 
+  console.log('🔍 Leave requests query details:', {
+    organizationId: profile.organization_id,
+    userRole: userOrg.role,
+    queryType: userOrg.role === 'manager' ? 'team-filtered' : 'organization-wide',
+    status: status || 'all',
+    statusFilter: status && status !== 'wszystkie' ? (statusMap[status] || status) : 'none'
+  })
+
+  // Debug: Let's see ALL leave requests in this organization regardless of filters
+  const { data: allOrgRequests } = await supabaseAdmin
+    .from('leave_requests')
+    .select('id, user_id, organization_id, status, created_at')
+    .eq('organization_id', profile.organization_id)
+    .order('created_at', { ascending: false })
+    .limit(5)
+
+  console.log('🔍 All leave requests in organization (admin client):', allOrgRequests)
+
   const { data: leaveRequests, error } = await query
+
+  console.log('🔍 Leave requests query result:', {
+    count: leaveRequests?.length || 0,
+    error: error?.message,
+    firstRequest: leaveRequests?.[0] ? {
+      id: leaveRequests[0].id,
+      user_id: leaveRequests[0].user_id,
+      organization_id: leaveRequests[0].user_profile?.organization_id,
+      status: leaveRequests[0].status
+    } : null
+  })
 
   if (error) {
     console.error('Error fetching leave requests:', error)

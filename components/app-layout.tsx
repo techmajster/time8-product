@@ -146,7 +146,6 @@ export async function AppLayout({ children }: AppLayoutProps) {
           .eq('user_id', user.id)
           .eq('organization_id', profile.organization_id)
           .eq('is_active', true)
-          .eq('is_default', true)
           .single()
         
         if (managerData?.team_id) {
@@ -197,6 +196,7 @@ export async function AppLayout({ children }: AppLayoutProps) {
       leaveTypes={leaveTypes}
       leaveBalances={leaveBalances}
       preloadedEmployees={employees}
+      activeOrganizationId={profile.organization_id}
     >
       {children}
     </AppLayoutClient>

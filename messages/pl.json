@@ -1,10 +1,13 @@
 {
   "onboarding": {
     "welcome": {
-      "title": "Witamy, {name}! 👋",
-      "subtitle": "Skonfigurujmy Twoje obszar roboczy, abyś mógł zarządzać wnioskami urlopowymi.",
+      "title": "Witaj {name}!",
+      "subtitle": "Zacznijmy z Twoim obszarem roboczym",
       "card": {
-        "title": "Stwórz Swój Obszar Roboczy",
+        "title": "Czy chcesz utworzyć",
+        "subtitle": "nowy obszar roboczy?",
+        "free": "To bezpłatne!",
+        "limit": "do 3 użytkowników",
         "description": "Skonfiguruj swoją organizację i zaproś członków zespołu."
       },
       "features": {
@@ -12,12 +15,12 @@
         "invite": "Zapraszaj członków zespołu i przypisuj role",
         "track": "Śledź salda urlopowe i dostępność"
       },
-      "cta": "Stwórz Nową Organizację",
+      "cta": "Utwórz nowy obszar roboczy",
       "footer": "Będziesz administratorem i możesz wszystko dostosować później."
     },
     "createWorkspace": {
-      "back": "Powrót do powitalnej",
-      "title": "Stwórz Swój Obszar Roboczy",
+      "back": "Wstecz",
+      "title": "Utwórz nowy obszar roboczy",
       "subtitle": "Skonfiguruj szczegóły organizacji i zacznij pracę.",
       "form": {
         "title": "Szczegóły Organizacji",
@@ -34,25 +37,56 @@
           "label": "Domena Firmy",
           "help": "Członkowie zespołu z tą domeną e-mail mogą dołączyć automatycznie."
         },
-        "submit": "Stwórz Obszar Roboczy",
-        "submitting": "Tworzenie obszaru roboczego..."
+        "language": {
+          "label": "Główny język",
+          "description": "To język, który będzie używany w panelu zarządzania."
+        },
+        "country": {
+          "label": "Kalendarz świąt",
+          "description": "Ustawienia kalendarza zostaną automatycznie dostosowane dla wybranego kraju"
+        },
+        "submit": "Utwórz i zacznijmy",
+        "submitting": "Tworzenie..."
       },
       "footer": "Twój obszar roboczy będzie gotowy za chwilę."
     },
     "choose": {
-      "title": "Masz Zaproszenia! 🎉",
-      "subtitle": "Możesz dołączyć do istniejącej organizacji lub stworzyć własny obszar roboczy.",
-      "invitations": {
-        "title": "Oczekujące Zaproszenia",
-        "description": "Masz {count} zaproszenie(ń) czekające na Ciebie.",
-        "accept": "Zaakceptuj Zaproszenie",
+      "title": "Witaj {name}!",
+      "subtitle": "Zacznijmy z Twoim obszarem roboczym",
+      "invitation": {
+        "title": "Zostałeś zaproszony",
+        "subtitle": "do obszaru roboczego:",
+        "accept": "Zaakceptuj zaproszenie",
         "accepting": "Akceptowanie..."
       },
-      "or": "lub",
-      "createOwn": {
-        "title": "Stwórz Własny Obszar Roboczy",
-        "description": "Zacznij od nowa z własną organizacją i zaproś swój zespół.",
-        "cta": "Stwórz Nowy Obszar Roboczy"
+      "create": {
+        "title": "Czy chcesz utworzyć",
+        "subtitle": "nowy obszar roboczy?",
+        "free": "To bezpłatne!",
+        "limit": "do 3 użytkowników",
+        "cta": "Utwórz nowy obszar roboczy"
+      }
+    },
+    "multi": {
+      "title": "Witaj {name}!",
+      "subtitle": "Zacznijmy z Twoim obszarem roboczym",
+      "invitation": {
+        "title": "Zostałeś zaproszony",
+        "subtitle": "do obszaru roboczego:",
+        "accept": "Zaakceptuj zaproszenie",
+        "accepting": "Akceptowanie..."
+      },
+      "workspace": {
+        "title": "Twój obszar roboczy:",
+        "enter": "Wejdź do obszaru roboczego",
+        "entering": "Wchodzenie..."
+      },
+      "create": {
+        "title": "Czy chcesz utworzyć",
+        "subtitle": "nowy obszar roboczy?",
+        "free": "To bezpłatne!",
+        "limit": "do 3 użytkowników",
+        "cta": "Utwórz nowy obszar roboczy"
       }
     }
   },
@@ -451,22 +485,6 @@
     "approved": "Zatwierdzony",
     "rejected": "Odrzucony",
     "noRecentActivity": "Brak ostatniej aktywności"
-  },
-  "onboarding": {
-    "welcome": "Witamy w systemie zarządzania urlopami",
-    "getStarted": "Rozpocznij",
-    "createOrganization": "Utwórz organizację",
-    "joinOrganization": "Dołącz do organizacji",
-    "organizationCode": "Kod organizacji",
-    "completeSetup": "Ukończ konfigurację",
-    "setupComplete": "Konfiguracja zakończona",
-    "goToDashboard": "Przejdź do panelu głównego",
-    "whatsNext": "Co dalej?",
-    "nextStep1": "Skonfiguruj polityki i typy urlopów",
-    "nextStep2": "Zaproś członków zespołu",
-    "nextStep3": "Ustaw kalendarze świąt",
-    "nextStep4": "Rozpocznij zarządzanie wnioskami urlopowymi!",
-    "autoRedirect": "Automatyczne przekierowanie za 5 sekund..."
   },
   "dashboard": {
     "title": "Panel główny",

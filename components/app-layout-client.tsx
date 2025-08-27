@@ -39,6 +39,7 @@ interface AppLayoutClientProps {
   leaveTypes: LeaveType[]
   leaveBalances: LeaveBalance[]
   preloadedEmployees?: any[]
+  activeOrganizationId?: string
 }
 
 // Context for organization updates
@@ -136,7 +137,8 @@ export function AppLayoutClient({
   teamInviteCount,
   leaveTypes,
   leaveBalances,
-  preloadedEmployees
+  preloadedEmployees,
+  activeOrganizationId
 }: AppLayoutClientProps) {
   const pathname = usePathname()
   const t = useTranslations()
@@ -214,7 +216,11 @@ export function AppLayoutClient({
         
         {/* Add Absence Sheet */}
         {(userRole === 'admin' || userRole === 'manager') && (
-          <AddAbsenceSheet preloadedEmployees={preloadedEmployees} userRole={userRole} />
+          <AddAbsenceSheet 
+            preloadedEmployees={preloadedEmployees} 
+            userRole={userRole} 
+            activeOrganizationId={activeOrganizationId}
+          />
         )}
       </SidebarProvider>
     </OrganizationContext.Provider>

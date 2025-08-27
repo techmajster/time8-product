@@ -75,6 +75,10 @@ export default function AdminSettingsClient({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [selectedLeaveType, setSelectedLeaveType] = useState<LeaveType | null>(null)
   const [loading, setLoading] = useState(false)
+  
+  // Workspace deletion state
+  const [deleteWorkspaceDialogOpen, setDeleteWorkspaceDialogOpen] = useState(false)
+  const [workspaceDeleteLoading, setWorkspaceDeleteLoading] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
     days_per_year: 0,
@@ -238,6 +242,44 @@ export default function AdminSettingsClient({
     }
   }
 
+  // Workspace deletion handler
+  const handleDeleteWorkspace = () => {
+    setDeleteWorkspaceDialogOpen(true)
+  }
+
+  const handleConfirmDeleteWorkspace = async () => {
+    setWorkspaceDeleteLoading(true)
+
+    try {
+      const response = await fetch(`/api/workspaces/${currentOrganization?.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Nie udało się usunąć workspace')
+      }
+
+      toast.success('Workspace został pomyślnie usunięty!')
+      
+      // Redirect to onboarding since current workspace no longer exists
+      setTimeout(() => {
+        window.location.href = '/onboarding'
+      }, 2000)
+
+    } catch (error) {
+      console.error('Error deleting workspace:', error)
+      toast.error(error instanceof Error ? error.message : 'Wystąpił błąd podczas usuwania workspace')
+    } finally {
+      setWorkspaceDeleteLoading(false)
+      setDeleteWorkspaceDialogOpen(false)
+    }
+  }
+
   const getUserInitials = (name: string, email: string) => {
     if (name && name !== email?.split('@')[0]) {
       return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
@@ -258,6 +300,7 @@ export default function AdminSettingsClient({
           <FigmaTabsList className="border-b-0">
             <FigmaTabsTrigger value="general">Ogólne</FigmaTabsTrigger>
             <FigmaTabsTrigger value="leave-types">Urlopy</FigmaTabsTrigger>
+            <FigmaTabsTrigger value="workspace">Workspace</FigmaTabsTrigger>
             <FigmaTabsTrigger value="notifications">Powiadomienia</FigmaTabsTrigger>
             <FigmaTabsTrigger value="work-modes">Tryby pracy</FigmaTabsTrigger>
             <FigmaTabsTrigger value="additional-rules">Dodatkowe reguły</FigmaTabsTrigger>
@@ -789,6 +832,97 @@ export default function AdminSettingsClient({
           </Tabs>
         </FigmaTabsContent>
 
+        <FigmaTabsContent value="workspace" className="mt-6 space-y-6">
+          {/* Workspace Management Card */}
+          <Card className="border border-border">
+            <CardHeader className="pb-0">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <CardTitle className="text-xl font-semibold">Zarządzanie workspace</CardTitle>
+                  </div>
+                  <CardDescription>
+                    Zarządzaj ustawieniami i danymi workspace
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0 pb-6 px-6 space-y-6">
+              <div className="space-y-6">
+                <div className="w-[400px] space-y-2">
+                  <Label htmlFor="workspace-name">Nazwa workspace</Label>
+                  <Input 
+                    id="workspace-name"
+                    value={currentOrganization?.name || ''} 
+                    disabled 
+                    className="opacity-50"
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Obecna nazwa Twojego workspace
+                  </p>
+                </div>
+                
+                <div className="w-[400px] space-y-2">
+                  <Label htmlFor="workspace-slug">Identyfikator workspace</Label>
+                  <Input 
+                    id="workspace-slug"
+                    value={currentOrganization?.slug || ''} 
+                    disabled 
+                    className="opacity-50"
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Unikalny identyfikator używany w URL
+                  </p>
+                </div>
+
+                <div className="w-[400px] space-y-2">
+                  <Label htmlFor="workspace-created">Data utworzenia</Label>
+                  <Input 
+                    id="workspace-created"
+                    value={currentOrganization?.created_at ? new Date(currentOrganization.created_at).toLocaleDateString('pl-PL') : 'Nieznana'} 
+                    disabled 
+                    className="opacity-50"
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Kiedy workspace został utworzony
+                  </p>
+                </div>
+
+                <Separator />
+                
+                {/* Danger Zone */}
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-base font-semibold text-red-600">Strefa niebezpieczna</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Nieodwracalne operacje dotyczące workspace. Użyj ostrożnie.
+                    </p>
+                  </div>
+                  
+                  <div className="border border-red-200 rounded-lg p-4 bg-red-50">
+                    <div className="space-y-3">
+                      <div>
+                        <h4 className="text-sm font-semibold text-red-800">Usuń workspace</h4>
+                        <p className="text-sm text-red-600 mt-1">
+                          Trwale usuwa workspace wraz z wszystkimi danymi: użytkownikami, urlopami, żądaniami, zespołami i ustawieniami. 
+                          <strong> Ta operacja jest nieodwracalna!</strong>
+                        </p>
+                      </div>
+                      <Button
+                        onClick={handleDeleteWorkspace}
+                        disabled={workspaceDeleteLoading}
+                        className="bg-red-600 text-red-50 hover:bg-red-700 h-9 px-4 rounded-lg"
+                      >
+                        {workspaceDeleteLoading ? 'Usuwanie...' : 'Usuń workspace'}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </FigmaTabsContent>
+
         <FigmaTabsContent value="notifications" className="mt-6">
           <Card>
             <CardHeader>
@@ -970,6 +1104,66 @@ export default function AdminSettingsClient({
               className="h-9 px-4 bg-red-600 text-red-50 hover:bg-red-700"
             >
               {loading ? 'Usuwanie...' : 'Usuń rodzaj urlopu'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Workspace Confirmation Dialog */}
+      <Dialog open={deleteWorkspaceDialogOpen} onOpenChange={setDeleteWorkspaceDialogOpen}>
+        <DialogContent className="max-w-md">
+          <div className="absolute right-4 top-4 z-10">
+            <Button
+              variant="ghost" 
+              size="sm" 
+              className="h-9 w-9 p-0 border border-neutral-200 bg-white shadow-sm"
+              onClick={() => setDeleteWorkspaceDialogOpen(false)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          <DialogHeader className="space-y-1.5">
+            <DialogTitle className="text-lg font-semibold text-red-950">
+              Usuń workspace
+            </DialogTitle>
+            <div className="space-y-3">
+              <DialogDescription className="text-sm text-red-500">
+                Czy na pewno chcesz usunąć workspace <strong>"{currentOrganization?.name}"</strong>?
+              </DialogDescription>
+              
+              <div className="text-sm text-red-500">
+                <p>Ta operacja usunie <strong>WSZYSTKIE DANE</strong> z workspace:</p>
+                <ul className="list-disc list-inside mt-2 space-y-1">
+                  <li>Wszystkich użytkowników i ich uprawnienia</li>
+                  <li>Wszystkie urlopy i wnioski urlopowe</li>
+                  <li>Wszystkie zespoły i struktura organizacyjna</li>
+                  <li>Wszystkie ustawienia i konfiguracje</li>
+                </ul>
+                <p className="mt-3">
+                  <strong className="text-red-600">Ta operacja jest nieodwracalna!</strong>
+                </p>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <DialogFooter className="flex justify-end gap-2 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setDeleteWorkspaceDialogOpen(false)}
+              disabled={workspaceDeleteLoading}
+              className="h-9 px-4 border-neutral-200 bg-white"
+            >
+              Anuluj
+            </Button>
+            <Button
+              type="button"
+              onClick={handleConfirmDeleteWorkspace}
+              disabled={workspaceDeleteLoading}
+              className="h-9 px-4 bg-red-600 text-red-50 hover:bg-red-700"
+            >
+              {workspaceDeleteLoading ? 'Usuwanie workspace...' : 'Tak, usuń workspace'}
             </Button>
           </DialogFooter>
         </DialogContent>

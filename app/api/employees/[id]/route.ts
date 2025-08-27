@@ -1,5 +1,6 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 
 export async function DELETE(
   request: NextRequest,
@@ -144,14 +145,26 @@ export async function PUT(
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
     }
 
-    // Get user's organization and role
-    const { data: userOrg } = await supabase
+    // Get current active organization (respect workspace switching cookie)
+    const cookieStore = await cookies()
+    const activeOrgId = cookieStore.get('active-organization-id')?.value
+    
+    let userOrgQuery = supabase
       .from('user_organizations')
       .select('*')
       .eq('user_id', user.id)
       .eq('is_active', true)
-      .eq('is_default', true)
-      .single()
+      
+    // If we have an active org cookie, use that specific org, otherwise use default
+    if (activeOrgId) {
+      userOrgQuery = userOrgQuery.eq('organization_id', activeOrgId)
+      console.log('🍪 Employee API: Using active organization from cookie:', activeOrgId)
+    } else {
+      userOrgQuery = userOrgQuery.eq('is_default', true)
+      console.log('🏠 Employee API: Using default organization (no active cookie)')
+    }
+    
+    const { data: userOrg } = await userOrgQuery.single()
 
     if (!userOrg || userOrg.role !== 'admin') {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })

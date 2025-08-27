@@ -12,15 +12,12 @@ const customJestConfig = {
     // Handle module aliases (this will be automatically configured for you based on your tsconfig.json paths)
     '^@/(.*)$': '<rootDir>/$1',
   },
-  testEnvironment: 'node', // Use node environment for database tests
+  testEnvironment: 'jsdom', // Use jsdom environment for component tests
   testMatch: [
     '**/__tests__/**/*.(ts|tsx|js)',
     '**/*.(test|spec).(ts|tsx|js)'
   ],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
-  transform: {
-    '^.+\\.(ts|tsx)$': 'ts-jest',
-  },
   collectCoverageFrom: [
     'app/**/*.{ts,tsx}',
     'lib/**/*.{ts,tsx}',
@@ -28,6 +25,10 @@ const customJestConfig = {
     '!**/*.d.ts',
   ],
   testTimeout: 30000, // Increase timeout for performance tests
+  // Handle ES modules from next-intl and other packages
+  transformIgnorePatterns: [
+    'node_modules/(?!(next-intl|use-intl)/)',
+  ],
   // Override test environment per file if needed
   testEnvironmentOptions: {},
 }

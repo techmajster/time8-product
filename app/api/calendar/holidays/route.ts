@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { cookies } from 'next/headers'
 
 export async function GET(request: NextRequest) {
   try {
@@ -18,14 +19,26 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get user's organization
-    const { data: userOrg, error: orgError } = await supabase
+    // Get current active organization (respect workspace switching cookie)
+    const cookieStore = await cookies()
+    const activeOrgId = cookieStore.get('active-organization-id')?.value
+    
+    let userOrgQuery = supabase
       .from('user_organizations')
       .select('organization_id')
       .eq('user_id', user.id)
       .eq('is_active', true)
-      .eq('is_default', true)
-      .single()
+      
+    // If we have an active org cookie, use that specific org, otherwise use default
+    if (activeOrgId) {
+      userOrgQuery = userOrgQuery.eq('organization_id', activeOrgId)
+      console.log('🍪 Calendar holidays API: Using active organization from cookie:', activeOrgId)
+    } else {
+      userOrgQuery = userOrgQuery.eq('is_default', true)
+      console.log('🏠 Calendar holidays API: Using default organization (no active cookie)')
+    }
+    
+    const { data: userOrg, error: orgError } = await userOrgQuery.single()
 
     console.log('🔍 Calendar holidays API org check:', { userOrg, orgError })
 

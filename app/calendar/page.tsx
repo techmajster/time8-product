@@ -4,7 +4,6 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { NewLeaveRequestSheet } from '@/app/leave/components/NewLeaveRequestSheet'
 import CalendarClient from './components/CalendarClient'
-import { getUserTeamScope, getTeamMemberIds } from '@/lib/team-utils'
 
 export default async function CalendarPage() {
   const supabase = await createClient()
@@ -90,14 +89,53 @@ export default async function CalendarPage() {
     .eq('year', new Date().getFullYear())
     .eq('leave_types.requires_balance', true)
 
-  // Get team scope for filtering
-  const teamScope = await getUserTeamScope(user.id)
-  const teamMemberIds = await getTeamMemberIds(teamScope)
+  // Get team scope for filtering - use same logic as dashboard (bypasses team-utils)
+  let teamScope: any
+  let teamMemberIds: string[] = []
+  
+  // Determine team scope using admin client to bypass RLS (same as dashboard)
+  if (profile.role === 'admin') {
+    // Admin sees all organization members
+    teamScope = { type: 'organization', organizationId: profile.organization_id }
+    
+    const { data: allOrgMembers } = await supabaseAdmin
+      .from('user_organizations')
+      .select('user_id')
+      .eq('organization_id', profile.organization_id)
+      .eq('is_active', true)
+    
+    teamMemberIds = allOrgMembers?.map(m => m.user_id) || []
+  } else if (userOrg.team_id) {
+    // Team members see only their team
+    teamScope = { type: 'team', teamId: userOrg.team_id, organizationId: profile.organization_id }
+    
+    const { data: teamMembers } = await supabaseAdmin
+      .from('user_organizations')
+      .select('user_id')
+      .eq('team_id', userOrg.team_id)
+      .eq('is_active', true)
+    
+    teamMemberIds = teamMembers?.map(m => m.user_id) || []
+  } else {
+    // Fallback: show all organization members
+    teamScope = { type: 'organization', organizationId: profile.organization_id }
+    
+    const { data: allOrgMembers } = await supabaseAdmin
+      .from('user_organizations')
+      .select('user_id')
+      .eq('organization_id', profile.organization_id)
+      .eq('is_active', true)
+    
+    teamMemberIds = allOrgMembers?.map(m => m.user_id) || []
+  }
 
-  console.log('📅 Calendar page - team member IDs:', { 
+  console.log('📅 Calendar page - team member IDs (dashboard logic):', { 
     count: teamMemberIds.length, 
     teamScope,
-    organizationId: profile.organization_id
+    organizationId: profile.organization_id,
+    userRole: profile.role,
+    userTeamId: userOrg.team_id,
+    memberIds: teamMemberIds
   })
 
   // Get colleagues' birthday data for birthday card functionality (team-filtered)

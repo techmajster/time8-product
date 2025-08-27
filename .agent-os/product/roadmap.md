@@ -42,7 +42,7 @@
 
 ### Features
 
-- [ ] **User Onboarding Flow** - Streamlined signup and organization setup `M`
+- [x] **User Onboarding Flow** - Streamlined signup and organization setup `M`
 - [ ] **Data Migration Tools** - Import existing leave data from spreadsheets `L`
 - [ ] **Mobile Optimization** - Enhanced mobile experience and PWA support `M`
 - [ ] **Help Documentation** - User guides and support materials `M`

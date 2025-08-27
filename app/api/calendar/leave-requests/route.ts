@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { cookies } from 'next/headers'
 
 export async function GET(request: NextRequest) {
   try {
@@ -18,14 +19,26 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get user's organization
-    const { data: userOrg, error: orgError } = await supabase
+    // Get current active organization (respect workspace switching cookie)
+    const cookieStore = await cookies()
+    const activeOrgId = cookieStore.get('active-organization-id')?.value
+    
+    let userOrgQuery = supabase
       .from('user_organizations')
       .select('organization_id')
       .eq('user_id', user.id)
       .eq('is_active', true)
-      .eq('is_default', true)
-      .single()
+      
+    // If we have an active org cookie, use that specific org, otherwise use default
+    if (activeOrgId) {
+      userOrgQuery = userOrgQuery.eq('organization_id', activeOrgId)
+      console.log('🍪 Calendar leave requests API: Using active organization from cookie:', activeOrgId)
+    } else {
+      userOrgQuery = userOrgQuery.eq('is_default', true)
+      console.log('🏠 Calendar leave requests API: Using default organization (no active cookie)')
+    }
+    
+    const { data: userOrg, error: orgError } = await userOrgQuery.single()
 
     console.log('🔍 Calendar leave requests API org check:', { userOrg, orgError })
 
@@ -94,6 +107,14 @@ export async function GET(request: NextRequest) {
     }
 
     console.log('✅ Calendar leave requests fetched successfully:', leaveRequests?.length || 0, 'requests')
+    console.log('🔍 Calendar leave requests details:', leaveRequests?.map(req => ({
+      id: req.id,
+      user_id: req.user_id,
+      status: req.status,
+      start_date: req.start_date,
+      end_date: req.end_date,
+      user_name: req.profiles?.full_name
+    })))
     return NextResponse.json(leaveRequests || [])
 
   } catch (error) {
