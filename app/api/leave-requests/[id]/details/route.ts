@@ -8,6 +8,7 @@ export async function GET(
 ) {
   try {
     const { id: requestId } = await params
+    console.log('🔍 API: Getting leave request details:', { requestId })
 
     // Use optimized auth utility
     const auth = await authenticateAndGetOrgContext()
@@ -16,11 +17,19 @@ export async function GET(
     const { user, organization, userOrganization } = context
     const organizationId = organization.id
 
+    console.log('🔍 API: Auth context:', {
+      userId: user.id,
+      organizationId,
+      userRole: userOrganization.role,
+      requestId
+    })
+
     const supabase = await createClient()
     const supabaseAdmin = createAdminClient()
 
     // Get the leave request details with relations
-    const { data: leaveRequest, error: fetchError } = await supabase
+    // Use admin client since we've already validated user permissions through auth context
+    const { data: leaveRequest, error: fetchError } = await supabaseAdmin
       .from('leave_requests')
       .select(`
         *,
@@ -45,8 +54,20 @@ export async function GET(
       .single()
 
     if (fetchError || !leaveRequest) {
+      console.error('Leave request fetch failed:', {
+        requestId,
+        organizationId,
+        userId: user.id,
+        fetchError: {
+          message: fetchError?.message,
+          code: fetchError?.code,
+          details: fetchError?.details,
+          hint: fetchError?.hint
+        },
+        hasLeaveRequest: !!leaveRequest
+      })
       return NextResponse.json(
-        { error: 'Leave request not found or access denied' },
+        { error: 'Leave request not found or access denied', debug: { requestId, organizationId } },
         { status: 404 }
       )
     }

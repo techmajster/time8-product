@@ -16,6 +16,7 @@ import { createClient } from '@/lib/supabase/client'
 import { RejectLeaveRequestDialog } from './RejectLeaveRequestDialog'
 import { useSonnerToast } from '@/hooks/use-sonner-toast'
 import { useRouter } from 'next/navigation'
+import { useOrganization } from '@/components/app-layout-client'
 
 interface LeaveRequestDetailsSheetProps {
   requestId: string | null
@@ -63,10 +64,20 @@ export function LeaveRequestDetailsSheet({ requestId, isOpen, onClose }: LeaveRe
   
   const { showSuccess, showError } = useSonnerToast()
   const router = useRouter()
+  const { organization } = useOrganization()
 
   const fetchLeaveRequestDetails = async () => {
-    if (!requestId) return
+    if (!requestId) {
+      console.log('No requestId provided')
+      return
+    }
+    
+    if (!organization?.id) {
+      console.log('No organization context available:', organization)
+      return
+    }
 
+    console.log('Fetching leave request details:', { requestId, organizationId: organization.id })
     setLoading(true)
     const supabase = createClient()
 
@@ -87,10 +98,21 @@ export function LeaveRequestDetailsSheet({ requestId, isOpen, onClose }: LeaveRe
           )
         `)
         .eq('id', requestId)
+        .eq('organization_id', organization.id)
         .single()
 
+      console.log('Leave request query result:', { data, error, requestId, organizationId: organization.id })
+
       if (error) {
-        console.error('Error fetching leave request:', error)
+        console.error('Error fetching leave request:', {
+          error,
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          requestId,
+          organizationId: organization.id
+        })
         return
       }
 
@@ -137,7 +159,7 @@ export function LeaveRequestDetailsSheet({ requestId, isOpen, onClose }: LeaveRe
             avatar_url
           )
         `)
-        .eq('organization_id', data.organization_id)
+        .eq('organization_id', organization.id)
         .neq('user_id', data.user_id) // Exclude the current request's user
         .neq('id', data.id) // Exclude the current request itself
         .in('status', ['approved', 'pending']) // Include both approved and pending requests
@@ -165,17 +187,23 @@ export function LeaveRequestDetailsSheet({ requestId, isOpen, onClose }: LeaveRe
       }
 
     } catch (error) {
-      console.error('Error:', error)
+      console.error('Unexpected error in fetchLeaveRequestDetails:', {
+        error,
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        requestId,
+        organizationId: organization?.id
+      })
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
-    if (isOpen && requestId) {
+    if (isOpen && requestId && organization?.id) {
       fetchLeaveRequestDetails()
     }
-  }, [isOpen, requestId])
+  }, [isOpen, requestId, organization?.id])
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('pl-PL', {

@@ -85,8 +85,14 @@ export function LeaveRequestDetailsSheet({ requestId, isOpen, onClose }: LeaveRe
       const response = await fetch(`/api/leave-requests/${requestId}/details`)
       
       if (!response.ok) {
-        const errorData = await response.json()
-        console.error('❌ API Error:', errorData)
+        const errorData = await response.json().catch(() => ({}))
+        console.error('❌ API Error:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorData,
+          requestId,
+          url: response.url
+        })
         return
       }
 
@@ -119,7 +125,13 @@ export function LeaveRequestDetailsSheet({ requestId, isOpen, onClose }: LeaveRe
       setLastFetchedId(requestId)
 
     } catch (error) {
-      console.error('❌ Fetch error:', error)
+      console.error('❌ Fetch error:', {
+        error,
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        requestId,
+        name: error instanceof Error ? error.name : typeof error
+      })
     } finally {
       setLoading(false)
     }
