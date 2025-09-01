@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { useTranslations } from 'next-intl'
 import { FigmaTabs, FigmaTabsList, FigmaTabsTrigger, FigmaTabsContent } from '@/app/admin/team-management/components/FigmaTabs'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -58,6 +59,7 @@ export default function AdminSettingsClient({
   users, 
   leaveTypes 
 }: AdminSettingsClientProps) {
+  const t = useTranslations('billing')
   const [currentOrganization, setCurrentOrganization] = useState(initialOrganization)
   const router = useRouter()
   
@@ -85,6 +87,12 @@ export default function AdminSettingsClient({
     requires_balance: true
   })
 
+  // Billing state
+  const [subscriptionData, setSubscriptionData] = useState<any>(null)
+  const [subscriptionLoading, setSubscriptionLoading] = useState(true)
+  const [subscriptionError, setSubscriptionError] = useState<string | null>(null)
+  const [portalLoading, setPortalLoading] = useState(false)
+
   // Mock leave policies data (would come from API)
   const [leavePolicies] = useState<LeavePolicies>({
     minimum_notice_days: 7,
@@ -102,6 +110,57 @@ export default function AdminSettingsClient({
   useEffect(() => {
     setCurrentOrganization(initialOrganization)
   }, [initialOrganization])
+
+  // Fetch subscription data
+  useEffect(() => {
+    const fetchSubscriptionData = async () => {
+      if (!currentOrganization?.id) {
+        // No organization ID - show free tier
+        setSubscriptionData(null)
+        setSubscriptionLoading(false)
+        return
+      }
+
+      setSubscriptionLoading(true)
+      setSubscriptionError(null)
+
+      try {
+        const response = await fetch(`/api/billing/subscription?organization_id=${currentOrganization.id}&_t=${Date.now()}`, {
+          cache: 'no-cache',
+          headers: {
+            'Cache-Control': 'no-cache'
+          }
+        })
+        const result = await response.json()
+
+        console.log('🔥 BILLING API RESPONSE:', {
+          status: response.status,
+          ok: response.ok,
+          result: result
+        })
+
+        if (!response.ok) {
+          // If API fails, assume free tier for now
+          console.warn('Billing API failed, showing free tier:', result.error)
+          setSubscriptionData(null)
+          setSubscriptionError(null) // Don't show error, just show free tier
+          return
+        }
+
+        console.log('🔥 SETTING SUBSCRIPTION DATA:', result.subscription)
+        setSubscriptionData(result.subscription)
+      } catch (error: any) {
+        console.error('Error fetching subscription:', error)
+        // If network/server error, show free tier instead of error
+        setSubscriptionData(null)
+        setSubscriptionError(null)
+      } finally {
+        setSubscriptionLoading(false)
+      }
+    }
+
+    fetchSubscriptionData()
+  }, [currentOrganization?.id])
 
   // Handler for organization updates
   const handleOrganizationSave = (updatedOrganization: any) => {
@@ -280,11 +339,106 @@ export default function AdminSettingsClient({
     }
   }
 
+  // Handle seat management - always redirect to seat management page
+  const handleManageSeatSubscription = () => {
+    if (!currentOrganization?.id) return
+
+    // Always redirect to seat management page (add users/upgrade page)
+    const currentSeats = getSeatUsage().total
+    window.location.href = `/onboarding/add-users?upgrade=true&current_org=${currentOrganization?.id}&seats=${currentSeats}`
+  }
+
+  // Handle customer portal access for billing issues
+  const handleOpenCustomerPortal = async () => {
+    if (!currentOrganization?.id) return
+
+    setPortalLoading(true)
+
+    try {
+      const response = await fetch(`/api/billing/customer-portal?organization_id=${currentOrganization.id}`)
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to generate customer portal link')
+      }
+
+      // Open customer portal in new tab
+      window.open(result.portal_url, '_blank')
+      toast.success('Opening customer portal...')
+
+    } catch (error: any) {
+      console.error('Error opening customer portal:', error)
+      toast.error(error.message || 'Unable to open customer portal')
+    } finally {
+      setPortalLoading(false)
+    }
+  }
+
   const getUserInitials = (name: string, email: string) => {
     if (name && name !== email?.split('@')[0]) {
       return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
     }
     return email?.slice(0, 2).toUpperCase() || 'DB'
+  }
+
+  // Billing helper functions
+  const getSubscriptionStatus = () => {
+    if (!subscriptionData) return { status: 'free', badge: t('subscriptionStatus.free'), color: 'bg-green-100 text-green-800 border-green-200' }
+    
+    switch (subscriptionData.status) {
+      case 'active':
+        return { status: 'active', badge: t('subscriptionStatus.active'), color: 'bg-green-100 text-green-800 border-green-200' }
+      case 'paused':
+        return { status: 'paused', badge: t('subscriptionStatus.paused'), color: 'bg-yellow-100 text-yellow-800 border-yellow-200' }
+      case 'cancelled':
+        return { status: 'cancelled', badge: t('subscriptionStatus.cancelled'), color: 'bg-red-100 text-red-800 border-red-200' }
+      case 'past_due':
+        return { status: 'past_due', badge: t('subscriptionStatus.pastDue'), color: 'bg-red-100 text-red-800 border-red-200' }
+      default:
+        return { status: 'unknown', badge: 'Unknown', color: 'bg-gray-100 text-gray-800 border-gray-200' }
+    }
+  }
+
+  const formatCurrency = (amount: number, currency: string = 'PLN') => {
+    return new Intl.NumberFormat('pl-PL', {
+      style: 'currency',
+      currency: currency,
+      minimumFractionDigits: 2
+    }).format(amount / 100) // Convert from cents/grosze
+  }
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('pl-PL', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    })
+  }
+
+  const getSeatUsage = () => {
+    if (!subscriptionData?.seat_info) {
+      // Free tier calculation
+      const currentEmployees = users.length || 0
+      const freeSeats = 3
+      return {
+        used: currentEmployees,
+        total: freeSeats,
+        remaining: Math.max(0, freeSeats - currentEmployees),
+        percentage: Math.min(100, (currentEmployees / freeSeats) * 100),
+        freeSeats,
+        paidSeats: 0
+      }
+    }
+
+    const { total_seats, current_employees, seats_remaining, free_seats, paid_seats } = subscriptionData.seat_info
+    return {
+      used: current_employees,
+      total: total_seats,
+      remaining: seats_remaining,
+      percentage: Math.min(100, (current_employees / total_seats) * 100),
+      freeSeats: free_seats,
+      paidSeats: paid_seats
+    }
   }
 
   return (
@@ -300,6 +454,7 @@ export default function AdminSettingsClient({
           <FigmaTabsList className="border-b-0">
             <FigmaTabsTrigger value="general">Ogólne</FigmaTabsTrigger>
             <FigmaTabsTrigger value="leave-types">Urlopy</FigmaTabsTrigger>
+            <FigmaTabsTrigger value="billing">Billing</FigmaTabsTrigger>
             <FigmaTabsTrigger value="workspace">Workspace</FigmaTabsTrigger>
             <FigmaTabsTrigger value="notifications">Powiadomienia</FigmaTabsTrigger>
             <FigmaTabsTrigger value="work-modes">Tryby pracy</FigmaTabsTrigger>
@@ -830,6 +985,314 @@ export default function AdminSettingsClient({
               </Card>
             </TabsContent>
           </Tabs>
+        </FigmaTabsContent>
+
+        <FigmaTabsContent value="billing" className="mt-6 space-y-6">
+          {/* Current Subscription Card */}
+          <Card className="border border-border">
+            <CardHeader className="pb-0">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <CardTitle className="text-xl font-semibold">{t('currentSubscription')}</CardTitle>
+                  </div>
+                  <CardDescription>
+                    {t('subscriptionDescription')}
+                  </CardDescription>
+                </div>
+                <Button 
+                  variant="secondary" 
+                  size="sm" 
+                  className="h-9"
+                  onClick={handleManageSeatSubscription}
+                >
+                  {t('manageSeatSubscription')}
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0 pb-6 px-6 space-y-6">
+              {subscriptionLoading ? (
+                <div className="space-y-4">
+                  <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="h-20 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="h-16 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+              ) : subscriptionError ? (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <div className="text-red-800 font-medium">Failed to load subscription data</div>
+                  <div className="text-red-600 text-sm mt-1">{subscriptionError}</div>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <Badge className={getSubscriptionStatus().color}>
+                        {getSubscriptionStatus().badge}
+                      </Badge>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {subscriptionData 
+                        ? `${getSeatUsage().total} seats total` 
+                        : '3 seats included'}
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div className="w-[400px] space-y-2">
+                      <Label className="text-sm font-medium text-neutral-950">
+                        {t('seatUsage')}
+                      </Label>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">{t('currentUsage')}</span>
+                          <span className="font-medium">{t('seatsUsed', {used: getSeatUsage().used, total: getSeatUsage().total})}</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div 
+                            className="bg-blue-600 h-2 rounded-full transition-all" 
+                            style={{ width: `${getSeatUsage().percentage}%` }}
+                          ></div>
+                        </div>
+                        {getSeatUsage().remaining === 0 && (
+                          <div className="text-amber-600 text-sm font-medium">
+                            {t('allSeatsInUse')}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {subscriptionData ? (
+                      <div className="space-y-4">
+                        <div className="w-[400px] space-y-2">
+                          <Label className="text-sm font-medium text-neutral-950">
+                            {t('planDetails')}
+                          </Label>
+                          <div className="text-sm text-muted-foreground space-y-1">
+                            <div>• {t('plan')}: {subscriptionData.variant?.name || 'Subscription Plan'}</div>
+                            <div>• {t('price')}: {formatCurrency(subscriptionData.variant?.price || 0)} {t('perSeat')}</div>
+                            {subscriptionData.current_period_end && (
+                              <div>• {t('nextBilling')}: {formatDate(subscriptionData.current_period_end)}</div>
+                            )}
+                            <div className="text-xs text-muted-foreground pt-1">
+                              {t('pricesInPLN')}
+                            </div>
+                          </div>
+                        </div>
+
+                        {subscriptionData.billing_info?.card_brand && (
+                          <div className="w-[400px] space-y-2">
+                            <Label className="text-sm font-medium text-neutral-950">
+                              {t('paymentMethod')}
+                            </Label>
+                            <div className="text-sm text-muted-foreground">
+                              {subscriptionData.billing_info.card_brand.charAt(0).toUpperCase() + subscriptionData.billing_info.card_brand.slice(1)} {t('endingIn')} {subscriptionData.billing_info.card_last_four}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="w-[400px] space-y-2">
+                        <Label className="text-sm font-medium text-neutral-950">
+                          {t('planDetails')}
+                        </Label>
+                        <div className="text-sm text-muted-foreground">
+                          • {t('freeSeats')}<br />
+                          • {t('basicFeatures')}<br />
+                          • {t('emailSupport')}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div className="space-y-4">
+                    {!subscriptionData ? (
+                      <>
+                        <Button 
+                          className="bg-neutral-900 hover:bg-neutral-800 text-neutral-50 h-9 px-4 rounded-lg shadow-sm"
+                          onClick={() => {
+                            // Redirect to upgrade flow - start with current team size + 1 buffer
+                            const currentTeamSize = users.length || 1
+                            const recommendedSeats = Math.max(currentTeamSize + 1, 4) // At least 4 total
+                            router.push(`/onboarding/add-users?upgrade=true&current_org=${currentOrganization?.id}&seats=${recommendedSeats}`)
+                          }}
+                        >
+                          {t('upgradeToPaid')}
+                        </Button>
+                        <p className="text-xs text-muted-foreground">
+                          {t('upgradeDescription')}
+                        </p>
+                      </>
+                    ) : subscriptionData.status === 'past_due' ? (
+                      <>
+                        <Button 
+                          className="bg-red-600 hover:bg-red-700 text-white h-9 px-4 rounded-lg shadow-sm"
+                          onClick={handleOpenCustomerPortal}
+                          disabled={portalLoading}
+                        >
+                          {t('updatePaymentMethod')}
+                        </Button>
+                        <p className="text-xs text-red-600">
+                          {t('paymentFailed')}
+                        </p>
+                      </>
+                    ) : subscriptionData.status === 'cancelled' ? (
+                      <>
+                        <Button 
+                          className="bg-neutral-900 hover:bg-neutral-800 text-neutral-50 h-9 px-4 rounded-lg shadow-sm"
+                          onClick={() => router.push('/onboarding/add-users')}
+                        >
+                          {t('reactivateSubscription')}
+                        </Button>
+                        <p className="text-xs text-muted-foreground">
+                          {t('subscriptionCancelled')}
+                        </p>
+                      </>
+                    ) : null}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Seat Management Card */}
+          <Card className="border border-border">
+            <CardHeader className="pb-0">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1.5">
+                  <CardTitle className="text-xl font-semibold">{t('seatManagement')}</CardTitle>
+                  <CardDescription>
+                    {t('seatManagementDescription')}
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0 pb-6 px-6 space-y-6">
+              {subscriptionLoading ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-3 gap-6">
+                    <div className="text-center">
+                      <div className="h-8 bg-gray-200 rounded animate-pulse mb-2"></div>
+                      <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                    </div>
+                    <div className="text-center">
+                      <div className="h-8 bg-gray-200 rounded animate-pulse mb-2"></div>
+                      <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                    </div>
+                    <div className="text-center">
+                      <div className="h-8 bg-gray-200 rounded animate-pulse mb-2"></div>
+                      <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-3 gap-6">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-green-600">{getSeatUsage().freeSeats}</div>
+                      <div className="text-sm text-muted-foreground">{t('freeSeatsLabel')}</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-blue-600">{getSeatUsage().paidSeats}</div>
+                      <div className="text-sm text-muted-foreground">{t('paidSeatsLabel')}</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-neutral-900">{getSeatUsage().total}</div>
+                      <div className="text-sm text-muted-foreground">{t('totalSeatsLabel')}</div>
+                    </div>
+                  </div>
+                  
+                  <div className="w-[400px] space-y-2">
+                    <Label className="text-sm font-medium text-neutral-950">
+                      {t('currentTeamMembers')}
+                    </Label>
+                    <div className="text-sm text-muted-foreground">
+                      {t('activeTeamMembers', {count: getSeatUsage().used, plural: getSeatUsage().used !== 1 ? 's' : ''})}
+                    </div>
+                  </div>
+                  
+                  {!subscriptionData ? (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <div className="space-y-2">
+                        <div className="font-medium text-blue-900 text-sm">
+                          {t('readyToGrow')}
+                        </div>
+                        <div className="text-blue-700 text-sm">
+                          {t('growDescription')}
+                        </div>
+                      </div>
+                    </div>
+                  ) : getSeatUsage().remaining <= 1 ? (
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                      <div className="space-y-2">
+                        <div className="font-medium text-amber-900 text-sm">
+                          {getSeatUsage().remaining === 0 ? t('allSeatsInUse') : 'Almost out of seats'}
+                        </div>
+                        <div className="text-amber-700 text-sm">
+                          {getSeatUsage().remaining === 0 
+                            ? t('allSeatsInUse')
+                            : t('almostOutOfSeats', {remaining: getSeatUsage().remaining})
+                          }
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <div className="space-y-2">
+                        <div className="font-medium text-green-900 text-sm">
+                          {t('seatsAvailable', {remaining: getSeatUsage().remaining})}
+                        </div>
+                        <div className="text-green-700 text-sm">
+                          {t('inviteMoreMembers')}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Billing Override Banner */}
+          {currentOrganization?.billing_override_reason && (
+            <Card className="border border-blue-200 bg-blue-50">
+              <CardContent className="p-6">
+                <div className="flex items-start gap-4">
+                  <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <div className="w-3 h-3 bg-white rounded-full"></div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="font-medium text-blue-900">
+                      {t('specialBilling')}
+                    </div>
+                    <div className="text-blue-700 text-sm">
+                      {currentOrganization.billing_override_reason}
+                      {currentOrganization.billing_override_seats && (
+                        <span className="ml-2">
+                          {t('seatsIncluded', {seats: currentOrganization.billing_override_seats})}
+                        </span>
+                      )}
+                      {currentOrganization.billing_override_expires_at && (
+                        <div className="mt-1">
+                          {t('validUntil', {date: formatDate(currentOrganization.billing_override_expires_at)})}
+                        </div>
+                      )}
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="mt-2 border-blue-300 text-blue-700 hover:bg-blue-100"
+                      onClick={() => window.open('mailto:support@time8.io?subject=Billing Override Inquiry', '_blank')}
+                    >
+                      {t('contactSupport')}
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
         </FigmaTabsContent>
 
         <FigmaTabsContent value="workspace" className="mt-6 space-y-6">
