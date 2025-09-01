@@ -5,13 +5,23 @@
  * Ensures currency consistency and proper price display.
  */
 
-import { lemonSqueezySetup, getVariant } from '@lemonsqueezy/lemonsqueezy.js'
+// Dynamic imports to handle module resolution issues
+let lemonSqueezySetup: any
+let getVariant: any
 
-// Setup Lemon Squeezy client
-lemonSqueezySetup({
-  apiKey: process.env.LEMONSQUEEZY_API_KEY!,
-  onError: (error) => console.error('Lemon Squeezy API Error:', error),
-})
+async function initializeLemonSqueezy() {
+  if (!lemonSqueezySetup) {
+    const lemonSqueezy = await import('@lemonsqueezy/lemonsqueezy.js')
+    lemonSqueezySetup = lemonSqueezy.lemonSqueezySetup
+    getVariant = lemonSqueezy.getVariant
+    
+    // Setup Lemon Squeezy client
+    lemonSqueezySetup({
+      apiKey: process.env.LEMONSQUEEZY_API_KEY!,
+      onError: (error: any) => console.error('Lemon Squeezy API Error:', error),
+    })
+  }
+}
 
 export interface PricingInfo {
   monthlyPricePerSeat: number
@@ -39,6 +49,7 @@ const FREE_SEATS = 3
  */
 async function fetchVariantPricing(variantId: string) {
   try {
+    await initializeLemonSqueezy()
     const variant = await getVariant(variantId)
     
     if (variant.error) {

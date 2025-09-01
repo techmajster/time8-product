@@ -6,13 +6,24 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { lemonSqueezySetup, createCheckout } from '@lemonsqueezy/lemonsqueezy.js';
 
-// Setup Lemon Squeezy client
-lemonSqueezySetup({
-  apiKey: process.env.LEMONSQUEEZY_API_KEY!,
-  onError: (error) => console.error('Lemon Squeezy API Error:', error),
-});
+// Dynamic imports to handle module resolution issues
+let lemonSqueezySetup: any
+let createCheckout: any
+
+async function initializeLemonSqueezy() {
+  if (!lemonSqueezySetup) {
+    const lemonSqueezy = await import('@lemonsqueezy/lemonsqueezy.js')
+    lemonSqueezySetup = lemonSqueezy.lemonSqueezySetup
+    createCheckout = lemonSqueezy.createCheckout
+    
+    // Setup Lemon Squeezy client
+    lemonSqueezySetup({
+      apiKey: process.env.LEMONSQUEEZY_API_KEY!,
+      onError: (error: any) => console.error('Lemon Squeezy API Error:', error),
+    })
+  }
+}
 
 interface CheckoutRequest {
   variant_id: string;
@@ -41,6 +52,7 @@ function calculateRequiredPaidSeats(totalUsers: number): number {
  */
 export async function POST(request: NextRequest) {
   try {
+    await initializeLemonSqueezy()
     // Validate environment variables
     if (!process.env.LEMONSQUEEZY_API_KEY || !process.env.LEMONSQUEEZY_STORE_ID) {
       return NextResponse.json(
