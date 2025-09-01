@@ -114,31 +114,6 @@ export function AppSidebar({ organizationName, organizationLogo, organizationIni
       url: "/admin/settings",
       icon: Settings,
     },
-    {
-      title: t('adminPages.components'),
-      url: "/admin/components",
-      icon: Settings,
-    },
-    {
-      title: t('adminPages.holidays'),
-      url: "/admin/holidays",
-      icon: Calendar,
-    },
-    {
-      title: t('adminPages.fixBalance'),
-      url: "/admin/fix-balance",
-      icon: Settings,
-    },
-    {
-      title: t('adminPages.setupHolidays'),
-      url: "/admin/setup-holidays",
-      icon: CalendarDays,
-    },
-    {
-      title: t('adminPages.testEmail'),
-      url: "/admin/test-email",
-      icon: Send,
-    },
   ]
 
   const navSecondaryData = [

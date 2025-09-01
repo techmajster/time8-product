@@ -86,11 +86,6 @@ const getNavigationItems = (t: any, userRole: string) => {
       roles: ['admin']
     },
     {
-      name: t('admin.holidayManagement'),
-      href: '/admin/holidays',
-      roles: ['admin']
-    },
-    {
       name: t('navigation.calendar'),
       href: '/calendar',
       roles: ['admin', 'manager']
