@@ -7,21 +7,25 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
-// Dynamic imports to handle module resolution issues
+// Conditional imports to handle module resolution issues
 let lemonSqueezySetup: any
 let createCheckout: any
 
-async function initializeLemonSqueezy() {
+function initializeLemonSqueezy() {
   if (!lemonSqueezySetup) {
-    const lemonSqueezy = await import('@lemonsqueezy/lemonsqueezy.js')
-    lemonSqueezySetup = lemonSqueezy.lemonSqueezySetup
-    createCheckout = lemonSqueezy.createCheckout
-    
-    // Setup Lemon Squeezy client
-    lemonSqueezySetup({
-      apiKey: process.env.LEMONSQUEEZY_API_KEY!,
-      onError: (error: any) => console.error('Lemon Squeezy API Error:', error),
-    })
+    try {
+      const lemonSqueezy = require('@lemonsqueezy/lemonsqueezy.js')
+      lemonSqueezySetup = lemonSqueezy.lemonSqueezySetup
+      createCheckout = lemonSqueezy.createCheckout
+      
+      // Setup Lemon Squeezy client
+      lemonSqueezySetup({
+        apiKey: process.env.LEMONSQUEEZY_API_KEY!,
+        onError: (error: any) => console.error('Lemon Squeezy API Error:', error),
+      })
+    } catch (error) {
+      console.warn('LemonSqueezy not available:', error)
+    }
   }
 }
 
@@ -52,7 +56,7 @@ function calculateRequiredPaidSeats(totalUsers: number): number {
  */
 export async function POST(request: NextRequest) {
   try {
-    await initializeLemonSqueezy()
+    initializeLemonSqueezy()
     // Validate environment variables
     if (!process.env.LEMONSQUEEZY_API_KEY || !process.env.LEMONSQUEEZY_STORE_ID) {
       return NextResponse.json(

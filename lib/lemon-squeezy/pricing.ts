@@ -5,21 +5,25 @@
  * Ensures currency consistency and proper price display.
  */
 
-// Dynamic imports to handle module resolution issues
+// Conditional imports to handle module resolution issues
 let lemonSqueezySetup: any
 let getVariant: any
 
-async function initializeLemonSqueezy() {
-  if (!lemonSqueezySetup) {
-    const lemonSqueezy = await import('@lemonsqueezy/lemonsqueezy.js')
-    lemonSqueezySetup = lemonSqueezy.lemonSqueezySetup
-    getVariant = lemonSqueezy.getVariant
-    
-    // Setup Lemon Squeezy client
-    lemonSqueezySetup({
-      apiKey: process.env.LEMONSQUEEZY_API_KEY!,
-      onError: (error: any) => console.error('Lemon Squeezy API Error:', error),
-    })
+function initializeLemonSqueezy() {
+  if (!lemonSqueezySetup && typeof window === 'undefined') {
+    try {
+      const lemonSqueezy = require('@lemonsqueezy/lemonsqueezy.js')
+      lemonSqueezySetup = lemonSqueezy.lemonSqueezySetup
+      getVariant = lemonSqueezy.getVariant
+      
+      // Setup Lemon Squeezy client
+      lemonSqueezySetup({
+        apiKey: process.env.LEMONSQUEEZY_API_KEY!,
+        onError: (error: any) => console.error('Lemon Squeezy API Error:', error),
+      })
+    } catch (error) {
+      console.warn('LemonSqueezy not available:', error)
+    }
   }
 }
 
@@ -49,7 +53,7 @@ const FREE_SEATS = 3
  */
 async function fetchVariantPricing(variantId: string) {
   try {
-    await initializeLemonSqueezy()
+    initializeLemonSqueezy()
     const variant = await getVariant(variantId)
     
     if (variant.error) {
