@@ -1,0 +1,1 @@
+always warn about the context remaining and before starting a new task make sure the left over context is enough for the task or not. if not ask the user to use compact

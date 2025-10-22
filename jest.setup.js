@@ -87,6 +87,13 @@ jest.mock('next-intl', () => ({
   NextIntlClientProvider: ({ children }) => children,
 }))
 
+// Environment variables for tests
+process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co';
+process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key';
+process.env.LEMONSQUEEZY_API_KEY = 'test-api-key';
+process.env.LEMONSQUEEZY_STORE_ID = 'test-store-id';
+process.env.LEMONSQUEEZY_WEBHOOK_SECRET = 'test-webhook-secret';
+
 // Global test setup
 global.console = {
   ...console,

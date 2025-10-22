@@ -7,22 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Settings, Users, Calendar, Plus, CalendarDays } from 'lucide-react'
 import Link from 'next/link'
-import dynamic from 'next/dynamic'
-import { Skeleton } from '@/components/ui/skeleton'
 import { getTranslations } from 'next-intl/server'
 
-// ✅ OPTIMIZATION: Lazy load heavy admin components
-const LeaveBalanceManager = dynamic(() => 
-  import('./components/LeaveBalanceManager').then(mod => ({ default: mod.LeaveBalanceManager })), 
-  { 
-    loading: () => (
-      <div className="space-y-4">
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-64 w-full" />
-      </div>
-    )
-  }
-)
 
 export default async function AdminPage() {
   const t = await getTranslations('admin')
@@ -238,19 +224,9 @@ export default async function AdminPage() {
             </div>
 
             {/* Main Content */}
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-              {/* Leave Balance Management - Takes up 2/3 of the space */}
-              <div className="xl:col-span-2">
-                <LeaveBalanceManager 
-                  teamMembers={teamMembers || []}
-                  leaveTypes={leaveTypes || []}
-                  leaveBalances={leaveBalances as any[]}
-                  organizationId={profile.organization_id}
-                />
-              </div>
-
-              {/* Admin Actions Sidebar */}
-              <div className="xl:col-span-1">
+            <div className="grid grid-cols-1 xl:grid-cols-1 gap-8">
+              {/* Admin Actions */}
+              <div>
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -278,29 +254,7 @@ export default async function AdminPage() {
                       </Button>
                     </Link>
 
-                    {/* Holiday Management */}
-                    <Link href="/admin/holidays">
-                      <Button variant="outline" className="w-full justify-start">
-                        <CalendarDays className="h-4 w-4 mr-2" />
-                        {t('holidayManagement')}
-                      </Button>
-                    </Link>
 
-                    {/* Setup Holidays */}
-                    <Link href="/admin/setup-holidays">
-                      <Button variant="outline" className="w-full justify-start">
-                        <Calendar className="h-4 w-4 mr-2" />
-                        {t('setupHolidays')}
-                      </Button>
-                    </Link>
-
-                    {/* Test Email */}
-                    <Link href="/admin/test-email">
-                      <Button variant="outline" className="w-full justify-start">
-                        <Plus className="h-4 w-4 mr-2" />
-                        {t('testEmail')}
-                      </Button>
-                    </Link>
                   </CardContent>
                 </Card>
 

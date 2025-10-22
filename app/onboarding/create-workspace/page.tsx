@@ -51,32 +51,25 @@ function CreateWorkspacePageContent() {
       setIsSubmitting(true)
       setError(null)
 
-      // Create organization
-      const response = await fetch('/api/organizations', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          name: workspaceName.trim(),
-          slug: workspaceName.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').substring(0, 50),
-          country_code: country === 'ireland' ? 'IE' : country === 'poland' ? 'PL' : 'GB'
-        })
-      })
-
-      const result = await response.json()
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to create workspace')
+      // Store organization data in session storage instead of creating in DB
+      const organizationData = {
+        name: workspaceName.trim(),
+        slug: workspaceName.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').substring(0, 50),
+        country_code: country === 'ireland' ? 'IE' : country === 'poland' ? 'PL' : 'GB'
       }
 
-      console.log('✅ Workspace created successfully:', result)
-      // Redirect to dashboard
-      router.push('/dashboard')
+      // Store in session storage
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        sessionStorage.setItem('pending_organization', JSON.stringify(organizationData))
+      }
+
+      console.log('✅ Workspace data stored in session:', organizationData)
+      // Redirect to add users page (no org_id since not created yet)
+      router.push('/onboarding/add-users')
       
     } catch (error: any) {
-      console.error('❌ Workspace creation error:', error)
-      setError(error.message || 'Failed to create workspace. Please try again.')
+      console.error('❌ Workspace data storage error:', error)
+      setError(error.message || 'Failed to store workspace data. Please try again.')
     } finally {
       setIsSubmitting(false)
     }

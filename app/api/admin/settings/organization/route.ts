@@ -5,6 +5,11 @@ import { authenticateAndGetOrgContext } from '@/lib/auth-utils-v2'
 export async function PUT(request: NextRequest) {
   try {
     console.log('=== API START ===')
+    console.log('Request headers:', {
+      'x-organization-id': request.headers.get('x-organization-id'),
+      'content-type': request.headers.get('content-type')
+    })
+    
     // Use optimized auth utility
     const auth = await authenticateAndGetOrgContext()
     console.log('Auth result:', { success: auth.success, role: auth.success ? auth.context.role : 'N/A' })
@@ -73,9 +78,9 @@ export async function PUT(request: NextRequest) {
       locale
     }
 
-    // Process admin change if adminId is provided
-    if (adminId) {
-      console.log('Processing admin change to:', adminId)
+    // Process admin change if adminId is provided and it's different from current user
+    if (adminId && adminId !== user.id) {
+      console.log('Processing admin change from', user.id, 'to:', adminId)
       
       // Verify the new admin exists in the organization
       const { data: newAdminOrg, error: newAdminError } = await supabase
@@ -150,9 +155,9 @@ export async function PUT(request: NextRequest) {
       }
       console.log('Removed admin role from current user')
 
-      console.log('Admin changed successfully to:', newAdminOrg.profiles.email)
-    } else if (adminId) {
-      console.log('Admin not changing - same user selected')
+      console.log('Admin changed successfully to:', (newAdminOrg.profiles as any).email)
+    } else if (adminId === user.id) {
+      console.log('Admin not changing - same user selected, keeping current admin')
     }
 
     // Handle logo upload if provided

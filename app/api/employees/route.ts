@@ -54,6 +54,92 @@ export async function POST(request: NextRequest) {
     const results = []
     const errors = []
 
+    // Check seat availability before processing invitations
+    console.log('🪑 Checking seat availability...')
+    
+    // Get current active members count using service client to bypass RLS
+    const { count: currentMembersCount, error: memberCountError } = await supabaseAdmin
+      .from('user_organizations')
+      .select('user_id', { count: 'exact' })
+      .eq('organization_id', organizationId)
+      .eq('is_active', true)
+
+    if (memberCountError) {
+      console.error('❌ Failed to count current members:', memberCountError)
+      return NextResponse.json(
+        { error: 'Failed to check seat availability' },
+        { status: 500 }
+      )
+    }
+
+    const currentMembers = currentMembersCount || 0
+    console.log(`👥 Current active members: ${currentMembers}`)
+
+    // Calculate seat limits based on subscription
+    const FREE_SEATS = 3
+    let totalSeatsAvailable = FREE_SEATS // Default to free plan
+    let hasUnlimitedSeats = false
+
+    // Check if organization has billing override
+    if (organization.billing_override_reason) {
+      console.log('🎫 Organization has billing override - allowing unlimited seats')
+      hasUnlimitedSeats = true
+      totalSeatsAvailable = Infinity
+    } else if (organization.subscription_tier === 'paid' && organization.paid_seats > 0) {
+      // Paid subscription: 3 free + paid seats
+      totalSeatsAvailable = FREE_SEATS + organization.paid_seats
+      console.log(`💳 Paid subscription: ${FREE_SEATS} free + ${organization.paid_seats} paid = ${totalSeatsAvailable} total seats`)
+    } else {
+      console.log(`🆓 Free plan: ${FREE_SEATS} seats total`)
+    }
+
+    // Count pending invitations that would consume seats
+    const { count: pendingInvitationsCount, error: pendingCountError } = await supabaseAdmin
+      .from('invitations')
+      .select('id', { count: 'exact' })
+      .eq('organization_id', organizationId)
+      .eq('status', 'pending')
+
+    if (pendingCountError) {
+      console.error('❌ Failed to count pending invitations:', pendingCountError)
+      return NextResponse.json(
+        { error: 'Failed to check pending invitations' },
+        { status: 500 }
+      )
+    }
+
+    const pendingInvitations = pendingInvitationsCount || 0
+    const totalUsedSeats = currentMembers + pendingInvitations
+    const availableSeats = hasUnlimitedSeats ? Infinity : Math.max(0, totalSeatsAvailable - totalUsedSeats)
+
+    console.log(`🪑 Seat calculation:`)
+    console.log(`   - Current members: ${currentMembers}`)
+    console.log(`   - Pending invitations: ${pendingInvitations}`)
+    console.log(`   - Total used: ${totalUsedSeats}`)
+    console.log(`   - Total available: ${hasUnlimitedSeats ? 'Unlimited' : totalSeatsAvailable}`)
+    console.log(`   - Available seats: ${hasUnlimitedSeats ? 'Unlimited' : availableSeats}`)
+
+    // Check if we have enough seats for the new invitations
+    if (!hasUnlimitedSeats && employees.length > availableSeats) {
+      console.error(`❌ Seat limit exceeded: requesting ${employees.length} seats but only ${availableSeats} available`)
+      return NextResponse.json(
+        { 
+          error: 'Seat limit exceeded',
+          details: {
+            requested: employees.length,
+            available: availableSeats,
+            current_members: currentMembers,
+            pending_invitations: pendingInvitations,
+            total_seats: totalSeatsAvailable,
+            upgrade_required: !hasUnlimitedSeats
+          }
+        },
+        { status: 409 } // Conflict status for seat limit exceeded
+      )
+    }
+
+    console.log(`✅ Seat check passed: ${employees.length} new invitations within ${hasUnlimitedSeats ? 'unlimited' : availableSeats} available seats`)
+
     console.log(`📝 Processing ${employees.length} employee(s) in ${mode} mode`)
 
     for (const employee of employees) {

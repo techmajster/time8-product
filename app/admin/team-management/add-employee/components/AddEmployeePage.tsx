@@ -203,6 +203,26 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
       const data = await response.json()
 
       if (!response.ok) {
+        // Handle seat limit exceeded error specifically
+        if (response.status === 409 && data.error === 'Seat limit exceeded') {
+          const details = data.details
+          toast.error(
+            `Brak dostępnych miejsc! Masz ${details.available} wolnych miejsc, ale próbujesz dodać ${details.requested} osób.`,
+            {
+              duration: 6000,
+              action: {
+                label: "Zwiększ plan",
+                onClick: () => {
+                  const currentSeats = details.current_members + details.pending_invitations + details.requested
+                  const recommendedSeats = Math.max(currentSeats, details.total_seats + 1)
+                  window.location.href = `/onboarding/add-users?upgrade=true&current_org=${organizationId}&seats=${recommendedSeats}`
+                }
+              }
+            }
+          )
+          return
+        }
+        
         throw new Error(data.error || 'Failed to add employee')
       }
 
@@ -266,6 +286,26 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
       const data = await response.json()
 
       if (!response.ok) {
+        // Handle seat limit exceeded error specifically
+        if (response.status === 409 && data.error === 'Seat limit exceeded') {
+          const details = data.details
+          toast.error(
+            `Brak dostępnych miejsc! Masz ${details.available} wolnych miejsc, ale próbujesz dodać ${details.requested} osób.`,
+            {
+              duration: 8000,
+              action: {
+                label: "Zwiększ plan",
+                onClick: () => {
+                  const currentSeats = details.current_members + details.pending_invitations + details.requested
+                  const recommendedSeats = Math.max(currentSeats, details.total_seats + 1)
+                  window.location.href = `/onboarding/add-users?upgrade=true&current_org=${organizationId}&seats=${recommendedSeats}`
+                }
+              }
+            }
+          )
+          return
+        }
+        
         throw new Error(data.error || 'Failed to process employees')
       }
 

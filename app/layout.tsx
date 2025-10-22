@@ -6,6 +6,8 @@ import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 import { LeaveRequestProvider } from "@/components/providers/LeaveRequestProvider";
 import { GlobalLeaveRequestSheet } from "@/components/GlobalLeaveRequestSheet";
+import { QueryProvider } from "@/components/providers/query-provider";
+import { WebVitals } from "@/components/web-vitals";
 
 // Force dynamic rendering due to cookie usage for internationalization
 export const dynamic = 'force-dynamic';
@@ -59,18 +61,21 @@ export default async function RootLayout({
   return (
     <html lang={locale} suppressHydrationWarning>
       <body className={`${geist.variable} ${geistMono.variable}`}>
-        <ThemeProvider>
-          <LeaveRequestProvider>
-            <NextIntlClientProvider 
-              locale={locale} 
-              messages={messages}
-              >
-                {children}
-                <Toaster />
-                <GlobalLeaveRequestSheet />
-            </NextIntlClientProvider>
-          </LeaveRequestProvider>
-        </ThemeProvider>
+        <QueryProvider>
+          <ThemeProvider>
+            <LeaveRequestProvider>
+              <NextIntlClientProvider
+                locale={locale}
+                messages={messages}
+                >
+                  {children}
+                  <Toaster />
+                  <GlobalLeaveRequestSheet />
+                  <WebVitals />
+              </NextIntlClientProvider>
+            </LeaveRequestProvider>
+          </ThemeProvider>
+        </QueryProvider>
       </body>
     </html>
   );

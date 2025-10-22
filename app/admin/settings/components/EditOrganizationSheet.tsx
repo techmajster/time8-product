@@ -95,10 +95,14 @@ export function EditOrganizationSheet({
       console.log('Sending form data:', formData)
       console.log('Available users:', users.map(u => ({ id: u.id, email: u.email, role: u.role })))
       
+      // Get organization ID from the current organization being edited
+      const organizationId = organization?.id
+      
       const response = await fetch('/api/admin/settings/organization', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'X-Organization-ID': organizationId || '', // Pass organization context
         },
         body: JSON.stringify(formData),
       })

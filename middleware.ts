@@ -72,6 +72,9 @@ export async function middleware(request: NextRequest) {
     '/api/debug-database-state', // Comprehensive database state check
     '/api/fix-broken-accounts', // Fix missing profiles and organization memberships
     '/api/migrate-profiles-to-multi-org', // Complete profile to multi-org migration
+    '/api/billing/products', // Public billing products endpoint
+    '/api/billing/create-checkout', // Public checkout creation for onboarding
+    '/api/webhooks/lemonsqueezy', // Lemon Squeezy webhooks
   ]
 
   const { pathname } = request.nextUrl
