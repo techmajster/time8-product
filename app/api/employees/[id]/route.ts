@@ -101,7 +101,7 @@ export async function PUT(
     }
 
     const { context } = auth
-    const { user, organization, role } = context
+    const { user, organization } = context
     const organizationId = organization.id
 
     // Only admins can update employees
@@ -113,7 +113,7 @@ export async function PUT(
     const supabaseAdmin = await createAdminClient()
 
     const body = await request.json()
-    const { email, full_name, birth_date, role, team_id, leave_balance_overrides } = body
+    const { email, full_name, birth_date, role: employeeRole, team_id, leave_balance_overrides } = body
 
     // Update profile in profiles table
     if (email || full_name || birth_date) {
@@ -134,9 +134,9 @@ export async function PUT(
     }
 
     // Update user organization data
-    if (role !== undefined || team_id !== undefined) {
+    if (employeeRole !== undefined || team_id !== undefined) {
       const orgUpdates: any = {}
-      if (role !== undefined) orgUpdates.role = role
+      if (employeeRole !== undefined) orgUpdates.role = employeeRole
       if (team_id !== undefined) orgUpdates.team_id = team_id
 
       const { error: orgError } = await supabaseAdmin
