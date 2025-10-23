@@ -42,7 +42,8 @@ export default async function AdminSettingsPage() {
         logo_url,
         country_code,
         locale,
-        created_at
+        created_at,
+        restrict_calendar_by_group
       )
     `)
     .eq('user_id', user.id)
@@ -79,7 +80,7 @@ export default async function AdminSettingsPage() {
   // Get leave types for this organization
   const { data: leaveTypes } = await supabase
     .from('leave_types')
-    .select('id, name, color, leave_category, requires_balance, days_per_year, requires_approval, organization_id')
+    .select('id, name, color, leave_category, requires_balance, days_per_year, requires_approval, organization_id, is_mandatory')
     .eq('organization_id', profile.organization_id)
     .order('name')
 
@@ -109,12 +110,29 @@ export default async function AdminSettingsPage() {
     role: ou.role
   })) || []
 
+  // Get all teams/groups for calendar visibility settings
+  const { data: teams } = await supabase
+    .from('teams')
+    .select('id, name')
+    .eq('organization_id', profile.organization_id)
+    .order('name')
+
+  // Get team member assignments from user_organizations.team_id
+  const { data: teamMembers } = await supabase
+    .from('user_organizations')
+    .select('user_id, team_id')
+    .eq('organization_id', profile.organization_id)
+    .eq('is_active', true)
+    .not('team_id', 'is', null)
+
   return (
     <AppLayout>
-      <AdminSettingsClient 
+      <AdminSettingsClient
         currentOrganization={organization}
         leaveTypes={leaveTypes || []}
         users={users || []}
+        teams={teams || []}
+        teamMembers={teamMembers || []}
       />
     </AppLayout>
   )
