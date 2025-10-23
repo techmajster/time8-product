@@ -1,12 +1,13 @@
 /**
  * Customer Portal Endpoint
- * 
+ *
  * Generates customer portal URL for subscription management.
  * Allows users to update payment methods, view invoices, and manage subscriptions.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { authenticateAndGetOrgContext } from '@/lib/auth-utils-v2';
 
 interface LocalSubscription {
   id: string;
@@ -20,18 +21,17 @@ interface LocalSubscription {
  */
 export async function GET(request: NextRequest) {
   try {
-    // Get organization ID from query parameters
-    const { searchParams } = new URL(request.url);
-    const organizationId = searchParams.get('organization_id');
-
-    if (!organizationId) {
-      return NextResponse.json(
-        { error: 'Missing required parameter: organization_id' },
-        { status: 400 }
-      );
+    // SECURITY: Validate user belongs to organization before accessing billing
+    const auth = await authenticateAndGetOrgContext();
+    if (!auth.success) {
+      return auth.error;
     }
 
-    const supabase = createClient();
+    const { context } = auth;
+    const { organization } = context;
+    const organizationId = organization.id;
+
+    const supabase = await createClient();
 
     // Fetch active subscription for organization
     const { data: subscription, error: subError } = await supabase
@@ -84,36 +84,33 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    // Parse request body
-    let body: { organization_id: string; return_url?: string };
+    // SECURITY: Validate user belongs to organization before accessing billing
+    const auth = await authenticateAndGetOrgContext();
+    if (!auth.success) {
+      return auth.error;
+    }
+
+    const { context } = auth;
+    const { organization } = context;
+    const organizationId = organization.id;
+
+    // Parse request body for optional return_url
+    let body: { return_url?: string } = {};
     try {
       body = await request.json();
     } catch (error) {
-      return NextResponse.json(
-        { error: 'Invalid request payload' },
-        { status: 400 }
-      );
+      // Body is optional - only used for return_url
     }
 
-    const { organization_id, return_url } = body;
+    const { return_url } = body;
 
-    if (!organization_id) {
-      return NextResponse.json(
-        { 
-          error: 'Missing required parameter',
-          required: ['organization_id']
-        },
-        { status: 400 }
-      );
-    }
-
-    const supabase = createClient();
+    const supabase = await createClient();
 
     // Fetch active subscription for organization
     const { data: subscription, error: subError } = await supabase
       .from('subscriptions')
       .select('lemonsqueezy_subscription_id, status')
-      .eq('organization_id', organization_id)
+      .eq('organization_id', organizationId)
       .in('status', ['active', 'paused', 'past_due'])
       .single();
 
