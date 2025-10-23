@@ -10,6 +10,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Info } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 interface TeamMember {
   id: string
@@ -46,6 +49,8 @@ interface ManagerTeamViewProps {
 }
 
 export function ManagerTeamView({ teamMembers, leaveBalances }: ManagerTeamViewProps) {
+  const t = useTranslations('permissions')
+
   // Get leave balance for a specific user and leave type
   const getLeaveBalance = (userId: string, leaveTypeName: string): number => {
     const balance = leaveBalances.find(
@@ -68,6 +73,14 @@ export function ManagerTeamView({ teamMembers, leaveBalances }: ManagerTeamViewP
       <div>
         <h1 className="text-3xl font-semibold text-foreground">Mój zespół</h1>
       </div>
+
+      {/* READ-ONLY Alert Banner */}
+      <Alert className="border-blue-200 bg-blue-50">
+        <Info className="h-4 w-4 text-blue-600" />
+        <AlertDescription className="text-blue-900">
+          <strong>{t('readOnlyMode')}:</strong> {t('readOnlyModeDescription')}
+        </AlertDescription>
+      </Alert>
 
       {/* Table */}
       <Card className="shadow-sm py-2">

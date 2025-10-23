@@ -1,11 +1,12 @@
 /**
  * Create Checkout Session Endpoint (Simplified)
- * 
+ *
  * Creates a Lemon Squeezy checkout session using direct API calls with environment variables.
  * No database syncing - Lemon Squeezy is the source of truth for products/pricing.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { authenticateAndGetOrgContext } from '@/lib/auth-utils-v2';
 
 // Conditional imports to handle module resolution issues
 let lemonSqueezySetup: any
@@ -77,7 +78,28 @@ export async function POST(request: NextRequest) {
     }
 
     const { variant_id, organization_data, user_count, tier, return_url, failure_url } = body;
-    
+
+    // SECURITY: If organization_data includes an existing org ID (upgrade scenario),
+    // validate user belongs to that organization
+    if (organization_data?.id) {
+      const auth = await authenticateAndGetOrgContext();
+      if (!auth.success) {
+        return auth.error;
+      }
+
+      const { context } = auth;
+      const { organization } = context;
+
+      // Verify the organization ID matches the authenticated user's organization
+      if (organization.id !== organization_data.id) {
+        return NextResponse.json(
+          { error: 'Unauthorized: Cannot create checkout for different organization' },
+          { status: 403 }
+        );
+      }
+    }
+    // NOTE: New organization creation (no ID) is allowed for all authenticated users
+
     console.log('🔍 Simplified checkout request:', {
       variant_id,
       organization_data: organization_data?.name,
@@ -89,7 +111,7 @@ export async function POST(request: NextRequest) {
     // Validate required parameters
     if (!variant_id || !organization_data || !user_count || !tier) {
       return NextResponse.json(
-        { 
+        {
           error: 'Missing required parameters',
           required: ['variant_id', 'organization_data', 'user_count', 'tier']
         },

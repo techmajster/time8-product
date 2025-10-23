@@ -66,6 +66,21 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // SECURITY: Verify the target organization actually exists and is active
+    const { data: targetOrg, error: orgCheckError } = await supabaseAdmin
+      .from('organizations')
+      .select('id, name')
+      .eq('id', invitation.organization_id)
+      .single()
+
+    if (orgCheckError || !targetOrg) {
+      console.error('❌ Target organization not found:', orgCheckError)
+      return NextResponse.json(
+        { error: 'The organization for this invitation no longer exists' },
+        { status: 400 }
+      )
+    }
+
     console.log('✅ Invitation verified')
 
     // 2. Check if user has any membership (active or inactive) in this organization
@@ -182,14 +197,14 @@ export async function POST(request: NextRequest) {
         .from('leave_types')
         .select('*')
         .eq('organization_id', invitation.organization_id)
-        .eq('requires_balance', true)
         .gt('days_per_year', 0)
 
       if (leaveTypesError) {
         console.error('⚠️ Leave types fetch error:', leaveTypesError)
       } else if (organizationLeaveTypes && organizationLeaveTypes.length > 0) {
-        // Filter out child-specific leave types
-        const balanceRequiredTypes = organizationLeaveTypes.filter(lt => 
+        // Filter leave types that require balance tracking (including mandatory types) and aren't child-specific
+        const balanceRequiredTypes = organizationLeaveTypes.filter(lt =>
+          (lt.requires_balance || lt.is_mandatory) &&
           !['maternity', 'paternity', 'childcare'].includes(lt.leave_category)
         )
 

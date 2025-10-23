@@ -1,11 +1,13 @@
 /**
  * Schedule Cleanup Task Endpoint
- * 
+ *
  * Handles scheduling and running cleanup tasks for abandoned checkout sessions.
+ * ADMIN-ONLY: This endpoint schedules/runs system-wide billing cleanup tasks.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { authenticateAndGetOrgContext, requireRole } from '@/lib/auth-utils-v2';
 
 interface ScheduleRequest {
   task_type: string;
@@ -19,6 +21,18 @@ interface ScheduleRequest {
  */
 export async function POST(request: NextRequest) {
   try {
+    // SECURITY: Admin-only endpoint for system-wide billing cleanup scheduling
+    const auth = await authenticateAndGetOrgContext();
+    if (!auth.success) {
+      return auth.error;
+    }
+
+    const { context } = auth;
+    const roleCheck = requireRole(context, ['admin']);
+    if (roleCheck) {
+      return roleCheck;
+    }
+
     // Parse request body
     let body: ScheduleRequest;
     try {
@@ -32,10 +46,10 @@ export async function POST(request: NextRequest) {
 
     const { task_type, schedule, threshold_hours = 24, force_run = false } = body;
     console.log('⏰ Schedule cleanup request:', { task_type, schedule, threshold_hours, force_run });
-    
+
     if (!task_type || !schedule) {
       return NextResponse.json(
-        { 
+        {
           error: 'Missing required parameters',
           required: ['task_type', 'schedule']
         },

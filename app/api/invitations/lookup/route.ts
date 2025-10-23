@@ -50,11 +50,16 @@ async function lookupInvitation(identifier: string, identifierType: 'token' | 'c
     teamName = team?.name || null
   }
 
+  // Check if user with this email already exists
+  const { data: existingUser } = await supabase.auth.admin.listUsers()
+  const userExists = existingUser?.users.some(user => user.email === invitation.email) || false
+
   // Return invitation with organization and team info
   return {
     ...invitation,
     organization_name: org?.name || 'Unknown Organization',
-    team_name: teamName
+    team_name: teamName,
+    user_exists: userExists
   }
 }
 

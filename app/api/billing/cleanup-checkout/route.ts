@@ -1,11 +1,13 @@
 /**
  * Cleanup Checkout Session Endpoint
- * 
+ *
  * Handles cleanup of abandoned checkout sessions and related data.
+ * ADMIN-ONLY: This endpoint modifies system-wide billing data.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { authenticateAndGetOrgContext, requireRole } from '@/lib/auth-utils-v2';
 
 interface CleanupRequest {
   checkout_id: string;
@@ -17,6 +19,18 @@ interface CleanupRequest {
  */
 export async function POST(request: NextRequest) {
   try {
+    // SECURITY: Admin-only endpoint for system-wide billing cleanup
+    const auth = await authenticateAndGetOrgContext();
+    if (!auth.success) {
+      return auth.error;
+    }
+
+    const { context } = auth;
+    const roleCheck = requireRole(context, ['admin']);
+    if (roleCheck) {
+      return roleCheck;
+    }
+
     // Parse request body
     let body: CleanupRequest;
     try {
@@ -30,10 +44,10 @@ export async function POST(request: NextRequest) {
 
     const { checkout_id, action } = body;
     console.log('🧹 Cleanup request:', { checkout_id, action });
-    
+
     if (!checkout_id || !action) {
       return NextResponse.json(
-        { 
+        {
           error: 'Missing required parameters',
           required: ['checkout_id', 'action']
         },

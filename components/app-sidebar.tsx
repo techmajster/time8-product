@@ -11,12 +11,12 @@ import {
   Users,
   ClipboardList,
   Clock,
-  Shield,
   User,
   GalleryVerticalEnd,
   HelpCircle,
 } from "lucide-react"
 import { useTranslations } from 'next-intl'
+import { UserRole, isManagerOrAdmin, isAdmin } from '@/lib/permissions'
 
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
@@ -100,13 +100,13 @@ export function AppSidebar({ organizationName, organizationLogo, organizationIni
 
   const getAdminItems = () => [
     {
-      title: t('adminPages.overview'),
-      url: "/admin",
-      icon: Shield,
-    },
-    {
       title: t('adminPages.teamManagement'),
       url: "/admin/team-management",
+      icon: Users,
+    },
+    {
+      title: t('groupsPage'),
+      url: "/admin/groups",
       icon: Users,
     },
     {
@@ -127,9 +127,10 @@ export function AppSidebar({ organizationName, organizationLogo, organizationIni
   // Get base navigation items (for all users)
   const baseNavigationItems = getBaseNavItems()
 
-  // Check if user has manager/admin privileges
-  const hasManagerAccess = userRole === 'manager' || userRole === 'admin'
-  const hasAdminAccess = userRole === 'admin'
+  // Check if user has manager/admin privileges using permission utilities
+  const normalizedRole = (userRole as UserRole) || null
+  const hasManagerAccess = isManagerOrAdmin(normalizedRole)
+  const hasAdminAccess = isAdmin(normalizedRole)
 
   return (
     <Sidebar variant="inset" {...props}>

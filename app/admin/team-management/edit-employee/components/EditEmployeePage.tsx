@@ -60,13 +60,14 @@ interface EditEmployeePageProps {
     employment_type: string | null
     contract_start_date: string | null
   }
+  existingBalances: LeaveBalance[]
 }
 
-export function EditEmployeePage({ teams, leaveTypes, organizationId, teamMembers, employeeToEdit }: EditEmployeePageProps) {
+export function EditEmployeePage({ teams, leaveTypes, organizationId, teamMembers, employeeToEdit, existingBalances }: EditEmployeePageProps) {
   const [loading, setLoading] = useState(false)
   const [isCreateTeamOpen, setIsCreateTeamOpen] = useState(false)
   const router = useRouter()
-  
+
   // Form state for single employee - initialize with existing data
   const [formData, setFormData] = useState({
     full_name: employeeToEdit.full_name || '',
@@ -78,17 +79,21 @@ export function EditEmployeePage({ teams, leaveTypes, organizationId, teamMember
   })
 
   // Filter leave types to show only the specific ones in the table
-  const displayedLeaveTypes = leaveTypes.filter(type => 
+  const displayedLeaveTypes = leaveTypes.filter(type =>
     ['Urlop wypoczynkowy', 'Dni wolne wychowawcze', 'Urlop macierzyński', 'Urlop ojcowski', 'Urlop rodzicielski'].includes(type.name)
   )
 
-  // Leave balances state - initialize with all leave types but only display filtered ones
+  // Leave balances state - initialize with existing balances or defaults
   const [leaveBalances, setLeaveBalances] = useState<LeaveBalance[]>(
-    leaveTypes.map(type => ({
-      leave_type_id: type.id,
-      entitled_days: type.days_per_year,
-      used_days: 0
-    }))
+    leaveTypes.map(type => {
+      // Check if employee already has a balance for this leave type
+      const existingBalance = existingBalances.find(b => b.leave_type_id === type.id)
+      return {
+        leave_type_id: type.id,
+        entitled_days: existingBalance?.entitled_days ?? type.days_per_year,
+        used_days: existingBalance?.used_days ?? 0
+      }
+    })
   )
 
   const handleInputChange = (field: string, value: string) => {
@@ -130,7 +135,11 @@ export function EditEmployeePage({ teams, leaveTypes, organizationId, teamMember
           full_name: formData.full_name,
           birth_date: formData.birth_date || null,
           role: formData.role,
-          team_id: formData.team_id || null
+          team_id: formData.team_id || null,
+          leave_balance_overrides: leaveBalances.map(balance => ({
+            leave_type_id: balance.leave_type_id,
+            entitled_days: balance.entitled_days
+          }))
         })
       })
 
@@ -140,7 +149,13 @@ export function EditEmployeePage({ teams, leaveTypes, organizationId, teamMember
         throw new Error(data.error || 'Failed to update employee')
       }
 
-      toast.success('Pracownik został pomyślnie zaktualizowany')
+      // Show success message with balance updates if any
+      if (data.balance_updates && data.balance_updates.length > 0) {
+        toast.success(`Pracownik i ${data.balance_updates.length} sald urlopowych zostało zaktualizowanych`)
+      } else {
+        toast.success('Pracownik został pomyślnie zaktualizowany')
+      }
+
       router.push('/admin/team-management')
     } catch (error) {
       console.error('Error updating employee:', error)

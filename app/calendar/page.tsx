@@ -89,52 +89,85 @@ export default async function CalendarPage() {
     .eq('year', new Date().getFullYear())
     .eq('leave_types.requires_balance', true)
 
-  // Get team scope for filtering - use same logic as dashboard (bypasses team-utils)
+  // Get organization's calendar restriction setting
+  const { data: orgSettings } = await supabaseAdmin
+    .from('organizations')
+    .select('restrict_calendar_by_group')
+    .eq('id', profile.organization_id)
+    .single()
+
+  const restrictByGroup = orgSettings?.restrict_calendar_by_group || false
+
+  // Get team scope for filtering based on group membership and restriction setting
   let teamScope: any
   let teamMemberIds: string[] = []
-  
-  // Determine team scope using admin client to bypass RLS (same as dashboard)
+
+  // Determine team scope using admin client to bypass RLS
   if (profile.role === 'admin') {
-    // Admin sees all organization members
+    // Admin always sees all organization members
     teamScope = { type: 'organization', organizationId: profile.organization_id }
-    
+
     const { data: allOrgMembers } = await supabaseAdmin
       .from('user_organizations')
       .select('user_id')
       .eq('organization_id', profile.organization_id)
       .eq('is_active', true)
-    
+
     teamMemberIds = allOrgMembers?.map(m => m.user_id) || []
-  } else if (userOrg.team_id) {
-    // Team members see only their team
-    teamScope = { type: 'team', teamId: userOrg.team_id, organizationId: profile.organization_id }
-    
-    const { data: teamMembers } = await supabaseAdmin
+  } else if (restrictByGroup) {
+    // Restriction is ON - apply group-based filtering
+    // Check if user is in a team/group via user_organizations.team_id
+    const { data: userTeamMembership } = await supabaseAdmin
       .from('user_organizations')
-      .select('user_id')
-      .eq('team_id', userOrg.team_id)
+      .select('team_id')
+      .eq('user_id', user.id)
+      .eq('organization_id', profile.organization_id)
       .eq('is_active', true)
-    
-    teamMemberIds = teamMembers?.map(m => m.user_id) || []
+      .single()
+
+    if (userTeamMembership?.team_id) {
+      // User is in a group - show only group members' calendars
+      teamScope = { type: 'team', teamId: userTeamMembership.team_id, organizationId: profile.organization_id }
+
+      const { data: groupMembers } = await supabaseAdmin
+        .from('user_organizations')
+        .select('user_id')
+        .eq('organization_id', profile.organization_id)
+        .eq('team_id', userTeamMembership.team_id)
+        .eq('is_active', true)
+
+      teamMemberIds = groupMembers?.map(m => m.user_id) || []
+    } else {
+      // User has no group - show all organization members
+      teamScope = { type: 'organization', organizationId: profile.organization_id }
+
+      const { data: allOrgMembers } = await supabaseAdmin
+        .from('user_organizations')
+        .select('user_id')
+        .eq('organization_id', profile.organization_id)
+        .eq('is_active', true)
+
+      teamMemberIds = allOrgMembers?.map(m => m.user_id) || []
+    }
   } else {
-    // Fallback: show all organization members
+    // Restriction is OFF - everyone sees everyone
     teamScope = { type: 'organization', organizationId: profile.organization_id }
-    
+
     const { data: allOrgMembers } = await supabaseAdmin
       .from('user_organizations')
       .select('user_id')
       .eq('organization_id', profile.organization_id)
       .eq('is_active', true)
-    
+
     teamMemberIds = allOrgMembers?.map(m => m.user_id) || []
   }
 
-  console.log('📅 Calendar page - team member IDs (dashboard logic):', { 
-    count: teamMemberIds.length, 
+  console.log('📅 Calendar page - team member IDs (group-based filtering):', {
+    count: teamMemberIds.length,
     teamScope,
     organizationId: profile.organization_id,
     userRole: profile.role,
-    userTeamId: userOrg.team_id,
+    restrictByGroup,
     memberIds: teamMemberIds
   })
 

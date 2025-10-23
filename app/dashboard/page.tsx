@@ -98,7 +98,8 @@ export default async function DashboardPage() {
         name,
         color,
         leave_category,
-        requires_balance
+        requires_balance,
+        days_per_year
       )
     `)
     .eq('user_id', user.id)
@@ -109,6 +110,11 @@ export default async function DashboardPage() {
   const vacationBalance = leaveBalances?.find(b => b.leave_types?.name === 'Urlop wypoczynkowy')
   const remainingVacationDays = vacationBalance?.remaining_days || 0
 
+  // Check if vacation balance is an override (custom entitled_days)
+  const workspaceDefault = vacationBalance?.leave_types?.days_per_year || 0
+  const actualEntitled = vacationBalance?.entitled_days || 0
+  const isVacationOverride = actualEntitled !== workspaceDefault
+
   // Get all leave types for the organization
   const { data: leaveTypes } = await supabaseAdmin
     .from('leave_types')
@@ -116,52 +122,77 @@ export default async function DashboardPage() {
     .eq('organization_id', profile.organization_id)
     .order('name')
 
+  // Get organization's calendar restriction setting
+  const { data: orgSettings } = await supabaseAdmin
+    .from('organizations')
+    .select('restrict_calendar_by_group')
+    .eq('id', profile.organization_id)
+    .single()
+
+  const restrictByGroup = orgSettings?.restrict_calendar_by_group || false
+
   // Get team scope for filtering data - bypass team-utils to use admin client
   let teamScope: any
   let teamMemberIds: string[] = []
-  
+
   // Determine team scope using admin client to bypass RLS
   if (profile.role === 'admin') {
-    // Admin sees all organization members
+    // Admin always sees all organization members
     teamScope = { type: 'organization', organizationId: profile.organization_id }
-    
+
     const { data: allOrgMembers } = await supabaseAdmin
       .from('user_organizations')
       .select('user_id')
       .eq('organization_id', profile.organization_id)
       .eq('is_active', true)
-    
+
     teamMemberIds = allOrgMembers?.map(m => m.user_id) || []
-  } else if (userOrg.team_id) {
-    // Team members see only their team
-    teamScope = { type: 'team', teamId: userOrg.team_id, organizationId: profile.organization_id }
-    
-    const { data: teamMembers } = await supabaseAdmin
-      .from('user_organizations')
-      .select('user_id')
-      .eq('team_id', userOrg.team_id)
-      .eq('is_active', true)
-    
-    teamMemberIds = teamMembers?.map(m => m.user_id) || []
+  } else if (restrictByGroup) {
+    // Restriction is ON - apply group-based filtering
+    if (userOrg.team_id) {
+      // User is in a group - show only group members' calendars
+      teamScope = { type: 'team', teamId: userOrg.team_id, organizationId: profile.organization_id }
+
+      const { data: teamMembers } = await supabaseAdmin
+        .from('user_organizations')
+        .select('user_id')
+        .eq('organization_id', profile.organization_id)
+        .eq('team_id', userOrg.team_id)
+        .eq('is_active', true)
+
+      teamMemberIds = teamMembers?.map(m => m.user_id) || []
+    } else {
+      // User has no group - show all organization members
+      teamScope = { type: 'organization', organizationId: profile.organization_id }
+
+      const { data: allOrgMembers } = await supabaseAdmin
+        .from('user_organizations')
+        .select('user_id')
+        .eq('organization_id', profile.organization_id)
+        .eq('is_active', true)
+
+      teamMemberIds = allOrgMembers?.map(m => m.user_id) || []
+    }
   } else {
-    // Fallback: show all organization members
+    // Restriction is OFF - everyone sees everyone
     teamScope = { type: 'organization', organizationId: profile.organization_id }
-    
+
     const { data: allOrgMembers } = await supabaseAdmin
       .from('user_organizations')
       .select('user_id')
       .eq('organization_id', profile.organization_id)
       .eq('is_active', true)
-    
+
     teamMemberIds = allOrgMembers?.map(m => m.user_id) || []
   }
 
-  console.log('🏠 Dashboard - team scope and member IDs:', { 
-    count: teamMemberIds.length, 
+  console.log('🏠 Dashboard - team scope and member IDs:', {
+    count: teamMemberIds.length,
     teamScope,
     organizationId: profile.organization_id,
     userRole: profile.role,
     userTeamId: userOrg.team_id,
+    restrictByGroup,
     memberIds: teamMemberIds
   })
 
@@ -354,6 +385,11 @@ export default async function DashboardPage() {
                 <div className="flex items-center gap-3 text-xl text-foreground">
                   <span className="font-normal">Masz jeszcze</span>
                   <span className="font-semibold">{remainingVacationDays} dni urlopu</span>
+                  {isVacationOverride && (
+                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full" title={`Niestandardowe saldo (domyślnie: ${workspaceDefault} dni)`}>
+                      Niestandardowe
+                    </span>
+                  )}
                 </div>
                 <LeaveRequestButton />
               </div>

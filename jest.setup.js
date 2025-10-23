@@ -1,4 +1,13 @@
 import '@testing-library/jest-dom'
+import { TextEncoder, TextDecoder } from 'util'
+import { config } from 'dotenv'
+
+// Load environment variables from .env.local for integration tests
+config({ path: '.env.local' })
+
+// Polyfill for Next.js Web APIs
+global.TextEncoder = TextEncoder
+global.TextDecoder = TextDecoder
 
 // Mock Next.js router
 jest.mock('next/navigation', () => ({
@@ -88,11 +97,22 @@ jest.mock('next-intl', () => ({
 }))
 
 // Environment variables for tests
-process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co';
-process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key';
-process.env.LEMONSQUEEZY_API_KEY = 'test-api-key';
-process.env.LEMONSQUEEZY_STORE_ID = 'test-store-id';
-process.env.LEMONSQUEEZY_WEBHOOK_SECRET = 'test-webhook-secret';
+// Use real credentials if available (for integration tests), otherwise use mocks
+if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+  process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co';
+}
+if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key';
+}
+if (!process.env.LEMONSQUEEZY_API_KEY) {
+  process.env.LEMONSQUEEZY_API_KEY = 'test-api-key';
+}
+if (!process.env.LEMONSQUEEZY_STORE_ID) {
+  process.env.LEMONSQUEEZY_STORE_ID = 'test-store-id';
+}
+if (!process.env.LEMONSQUEEZY_WEBHOOK_SECRET) {
+  process.env.LEMONSQUEEZY_WEBHOOK_SECRET = 'test-webhook-secret';
+}
 
 // Global test setup
 global.console = {

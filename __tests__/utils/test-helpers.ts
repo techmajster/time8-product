@@ -11,17 +11,76 @@ const supabase = createClient(
 )
 
 export interface MockRequestOptions {
+  method: string
+  url?: string
   userId?: string
   organizationId?: string
   headers?: Record<string, string>
+  cookies?: Record<string, string>
+  body?: any
 }
 
+export function createMockRequest(options: MockRequestOptions): NextRequest
 export function createMockRequest(
   method: string,
   url: string,
   body?: any,
-  options: MockRequestOptions = {}
+  options?: { userId?: string; organizationId?: string; headers?: Record<string, string> }
+): NextRequest
+export function createMockRequest(
+  methodOrOptions: string | MockRequestOptions,
+  url?: string,
+  body?: any,
+  legacyOptions?: { userId?: string; organizationId?: string; headers?: Record<string, string> }
 ): NextRequest {
+  // Handle object-based signature (new style)
+  if (typeof methodOrOptions === 'object') {
+    const options = methodOrOptions
+    const headers = new Headers({
+      'Content-Type': 'application/json',
+      ...options.headers
+    })
+
+    if (options.organizationId) {
+      headers.set('x-organization-id', options.organizationId)
+    }
+
+    // Set cookie header if cookies provided
+    if (options.cookies) {
+      const cookieString = Object.entries(options.cookies)
+        .map(([key, value]) => `${key}=${value}`)
+        .join('; ')
+      headers.set('Cookie', cookieString)
+    }
+
+    const requestInit: RequestInit = {
+      method: options.method,
+      headers
+    }
+
+    if (options.body && options.method !== 'GET') {
+      requestInit.body = JSON.stringify(options.body)
+    }
+
+    const fullUrl = options.url?.startsWith('http')
+      ? options.url
+      : `http://localhost${options.url || '/'}`
+    const request = new NextRequest(fullUrl, requestInit)
+
+    // Mock authentication by setting user context
+    if (options.userId) {
+      Object.defineProperty(request, 'auth', {
+        value: { userId: options.userId },
+        writable: false
+      })
+    }
+
+    return request
+  }
+
+  // Handle legacy signature (old style)
+  const method = methodOrOptions
+  const options = legacyOptions || {}
   const headers = new Headers({
     'Content-Type': 'application/json',
     ...options.headers
@@ -40,12 +99,11 @@ export function createMockRequest(
     requestInit.body = JSON.stringify(body)
   }
 
-  const fullUrl = url.startsWith('http') ? url : `http://localhost${url}`
+  const fullUrl = url!.startsWith('http') ? url! : `http://localhost${url!}`
   const request = new NextRequest(fullUrl, requestInit)
 
   // Mock authentication by setting user context
   if (options.userId) {
-    // This would typically be handled by middleware/auth utils
     Object.defineProperty(request, 'auth', {
       value: { userId: options.userId },
       writable: false
@@ -56,28 +114,54 @@ export function createMockRequest(
 }
 
 export async function createTestUser(
-  email: string, 
-  organizationId?: string, 
+  email: string,
+  organizationId?: string,
   role: 'admin' | 'manager' | 'employee' = 'employee'
 ): Promise<string> {
-  // Create user profile
+  // 1. Create auth user first using Auth Admin API
+  // This satisfies the FK constraint from profiles.id -> auth.users.id
+  const testPassword = `test-password-${Math.random().toString(36).slice(2)}`
+  const fullName = `Test User ${email.split('@')[0]}`
+
+  const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+    email,
+    password: testPassword,
+    email_confirm: true, // Auto-confirm email for test users
+    user_metadata: {
+      full_name: fullName
+    }
+  })
+
+  if (authError || !authData.user) {
+    throw new Error(`Failed to create auth user: ${authError?.message || 'Unknown error'}`)
+  }
+
+  const userId = authData.user.id
+
+  // 2. Update or create user profile
+  // Note: Supabase may auto-create profile via trigger, so we try upsert
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
-    .insert({
+    .upsert({
+      id: userId,
       email,
-      full_name: `Test User ${email.split('@')[0]}`,
+      full_name: fullName,
       auth_provider: 'email',
       organization_id: organizationId || null,
       role: organizationId ? role : null
+    }, {
+      onConflict: 'id'
     })
     .select()
     .single()
 
   if (profileError) {
-    throw new Error(`Failed to create test user: ${profileError.message}`)
+    // Clean up auth user if profile creation fails
+    await supabase.auth.admin.deleteUser(userId)
+    throw new Error(`Failed to create test user profile: ${profileError.message}`)
   }
 
-  // If organization is provided, create user-organization relationship
+  // 3. If organization is provided, create user-organization relationship
   if (organizationId) {
     const { error: userOrgError } = await supabase
       .from('user_organizations')
@@ -92,8 +176,9 @@ export async function createTestUser(
       })
 
     if (userOrgError) {
-      // Clean up profile if user-org creation fails
+      // Clean up profile and auth user if user-org creation fails
       await supabase.from('profiles').delete().eq('id', profile.id)
+      await supabase.auth.admin.deleteUser(userId)
       throw new Error(`Failed to create user-organization relationship: ${userOrgError.message}`)
     }
   }
@@ -148,12 +233,32 @@ export async function cleanupTestData(
         .in('user_id', userIds)
     }
 
+    // Clean up leave balances
+    if (userIds.length > 0) {
+      await supabase
+        .from('leave_balances')
+        .delete()
+        .in('user_id', userIds)
+    }
+
     // Clean up profiles
     if (userIds.length > 0) {
       await supabase
         .from('profiles')
         .delete()
         .in('id', userIds)
+    }
+
+    // Clean up auth users (IMPORTANT: Must be after profiles due to FK constraint)
+    if (userIds.length > 0) {
+      for (const userId of userIds) {
+        try {
+          await supabase.auth.admin.deleteUser(userId)
+        } catch (authError) {
+          // Log but don't fail cleanup if auth user deletion fails
+          console.error(`Failed to delete auth user ${userId}:`, authError)
+        }
+      }
     }
 
     // Clean up organization settings
@@ -179,10 +284,17 @@ export async function cleanupTestData(
 export async function createTestInvitation(
   organizationId: string,
   email: string,
-  role: 'admin' | 'manager' | 'employee' = 'employee'
+  role: 'admin' | 'manager' | 'employee' = 'employee',
+  invitedBy?: string
 ): Promise<string> {
   const token = `test-token-${Date.now()}-${Math.random().toString(36).slice(2)}`
-  
+
+  // If no invitedBy provided, create a temporary admin user for the invitation
+  let inviterId = invitedBy
+  if (!inviterId) {
+    inviterId = await createTestUser('test-inviter@temp.test', organizationId, 'admin')
+  }
+
   const { data: invitation, error } = await supabase
     .from('invitations')
     .insert({
@@ -190,6 +302,7 @@ export async function createTestInvitation(
       email,
       role,
       token,
+      invited_by: inviterId,
       expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours from now
     })
     .select()
