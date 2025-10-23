@@ -175,14 +175,13 @@ BEGIN
           AND year = current_year
           AND organization_id = org_id
       ) THEN
-        -- Create the missing balance record
+        -- Create the missing balance record (remaining_days is auto-generated)
         INSERT INTO leave_balances (
           user_id,
           leave_type_id,
           year,
           entitled_days,
           used_days,
-          remaining_days,
           organization_id
         ) VALUES (
           user_record.user_id,
@@ -190,7 +189,6 @@ BEGIN
           current_year,
           type_record.days_per_year,  -- Use workspace default
           0,  -- No days used yet
-          type_record.days_per_year,  -- All days remaining
           org_id
         );
 
