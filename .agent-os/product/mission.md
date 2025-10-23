@@ -2,7 +2,7 @@
 
 ## Pitch
 
-TeamLeave is a SaaS leave management platform that helps small and medium-sized company owners (3+ employees) optimize team availability and track holidays by providing streamlined multi-organization leave management with smart scheduling capabilities.
+Time8 is a SaaS leave management platform that helps small and medium-sized company owners (3+ employees) optimize team availability and track holidays by providing streamlined multi-organization leave management with smart scheduling capabilities.
 
 ## Users
 

@@ -232,7 +232,52 @@ export function calculateEffectiveSeatLimit(
 }
 
 /**
+ * Calculate comprehensive seat information including pending invitations
+ * This is the SINGLE SOURCE OF TRUTH for seat calculations across the app
+ */
+export function calculateComprehensiveSeatInfo(
+  paidSeats: number,
+  currentActiveMembers: number,
+  pendingInvitations: number,
+  billingOverrideSeats: number | null = null,
+  billingOverrideExpiresAt: string | null = null
+): {
+  totalSeats: number;
+  paidSeats: number;
+  freeSeats: number;
+  currentActiveMembers: number;
+  pendingInvitations: number;
+  totalUsedSeats: number;
+  availableSeats: number;
+  utilizationPercentage: number;
+  canAddMore: boolean;
+} {
+  const seatLimit = calculateEffectiveSeatLimit(
+    paidSeats,
+    billingOverrideSeats,
+    billingOverrideExpiresAt
+  );
+
+  const totalUsedSeats = currentActiveMembers + pendingInvitations;
+  const availableSeats = Math.max(0, seatLimit - totalUsedSeats);
+  const utilizationPercentage = seatLimit > 0 ? Math.round((totalUsedSeats / seatLimit) * 100) : 0;
+
+  return {
+    totalSeats: seatLimit,
+    paidSeats: paidSeats,
+    freeSeats: BILLING_CONSTANTS.FREE_SEATS,
+    currentActiveMembers,
+    pendingInvitations,
+    totalUsedSeats,
+    availableSeats,
+    utilizationPercentage,
+    canAddMore: availableSeats > 0
+  };
+}
+
+/**
  * Validate employee invitation against seat limits
+ * IMPORTANT: Use calculateComprehensiveSeatInfo() for accurate seat counts
  */
 export function validateEmployeeInvitation(
   currentEmployees: number,
@@ -248,11 +293,11 @@ export function validateEmployeeInvitation(
   seatLimit: number;
 } {
   const seatLimit = calculateEffectiveSeatLimit(
-    paidSeats, 
-    billingOverrideSeats, 
+    paidSeats,
+    billingOverrideSeats,
     billingOverrideExpiresAt
   );
-  
+
   const totalSeatsAfterInvite = currentEmployees + newInvitations;
   const availableSeats = seatLimit - currentEmployees;
   const canInvite = totalSeatsAfterInvite <= seatLimit;

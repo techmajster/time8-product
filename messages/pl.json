@@ -199,6 +199,7 @@
     "leave-requests": "Wnioski urlopowe",
     "calendar": "Kalendarz",
     "team": "Mój zespół",
+    "groupsPage": "Grupy",
     "team-management": "Zarządzanie zespołem",
     "schedule": "Harmonogram",
     "settings": "Ustawienia",
@@ -580,5 +581,23 @@
     "nextMonth": "Następny miesiąc",
     "selectDate": "Wybierz datę",
     "dateRange": "Zakres dat"
+  },
+  "roles": {
+    "employee": "Pracownik",
+    "manager": "Kierownik",
+    "admin": "Administrator",
+    "selectRole": "Wybierz rolę",
+    "roleDescription": {
+      "employee": "Może zarządzać własnymi wnioskami urlopowymi i przeglądać kalendarz",
+      "manager": "Może przeglądać zespół i grupy (tylko do odczytu) oraz zatwierdzać wnioski urlopowe",
+      "admin": "Pełny dostęp do wszystkich funkcji i ustawień"
+    }
+  },
+  "permissions": {
+    "noAccess": "Nie masz uprawnień do tej strony",
+    "readOnly": "Masz dostęp tylko do odczytu",
+    "contactAdmin": "Skontaktuj się z administratorem",
+    "readOnlyMode": "Tryb tylko do odczytu",
+    "readOnlyModeDescription": "Możesz przeglądać tę stronę, ale nie możesz wprowadzać zmian. Skontaktuj się z administratorem, jeśli potrzebujesz dostępu do edycji."
   }
 } 

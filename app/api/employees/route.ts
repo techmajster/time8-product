@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { authenticateAndGetOrgContext, requireRole } from '@/lib/auth-utils-v2'
+import { calculateComprehensiveSeatInfo } from '@/lib/billing/seat-calculation'
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,12 +35,14 @@ export async function POST(request: NextRequest) {
     const { user, organization, role } = context
     const organizationId = organization.id
     
-    console.log('✅ Auth context:', { 
-      userId: user.id, 
+    console.log('✅ Auth context:', {
+      userId: user.id,
       userEmail: user.email,
-      organizationId, 
+      organizationId,
       organizationName: organization.name,
-      role 
+      role,
+      subscription_tier: organization.subscription_tier,
+      paid_seats: organization.paid_seats
     })
     
     // Only admins can create employees
@@ -54,9 +57,9 @@ export async function POST(request: NextRequest) {
     const results = []
     const errors = []
 
-    // Check seat availability before processing invitations
+    // Check seat availability before processing invitations using unified calculation
     console.log('🪑 Checking seat availability...')
-    
+
     // Get current active members count using service client to bypass RLS
     const { count: currentMembersCount, error: memberCountError } = await supabaseAdmin
       .from('user_organizations')
@@ -75,24 +78,6 @@ export async function POST(request: NextRequest) {
     const currentMembers = currentMembersCount || 0
     console.log(`👥 Current active members: ${currentMembers}`)
 
-    // Calculate seat limits based on subscription
-    const FREE_SEATS = 3
-    let totalSeatsAvailable = FREE_SEATS // Default to free plan
-    let hasUnlimitedSeats = false
-
-    // Check if organization has billing override
-    if (organization.billing_override_reason) {
-      console.log('🎫 Organization has billing override - allowing unlimited seats')
-      hasUnlimitedSeats = true
-      totalSeatsAvailable = Infinity
-    } else if (organization.subscription_tier === 'paid' && organization.paid_seats > 0) {
-      // Paid subscription: 3 free + paid seats
-      totalSeatsAvailable = FREE_SEATS + organization.paid_seats
-      console.log(`💳 Paid subscription: ${FREE_SEATS} free + ${organization.paid_seats} paid = ${totalSeatsAvailable} total seats`)
-    } else {
-      console.log(`🆓 Free plan: ${FREE_SEATS} seats total`)
-    }
-
     // Count pending invitations that would consume seats
     const { count: pendingInvitationsCount, error: pendingCountError } = await supabaseAdmin
       .from('invitations')
@@ -109,36 +94,56 @@ export async function POST(request: NextRequest) {
     }
 
     const pendingInvitations = pendingInvitationsCount || 0
-    const totalUsedSeats = currentMembers + pendingInvitations
-    const availableSeats = hasUnlimitedSeats ? Infinity : Math.max(0, totalSeatsAvailable - totalUsedSeats)
 
-    console.log(`🪑 Seat calculation:`)
-    console.log(`   - Current members: ${currentMembers}`)
-    console.log(`   - Pending invitations: ${pendingInvitations}`)
-    console.log(`   - Total used: ${totalUsedSeats}`)
-    console.log(`   - Total available: ${hasUnlimitedSeats ? 'Unlimited' : totalSeatsAvailable}`)
-    console.log(`   - Available seats: ${hasUnlimitedSeats ? 'Unlimited' : availableSeats}`)
-
-    // Check if we have enough seats for the new invitations
-    if (!hasUnlimitedSeats && employees.length > availableSeats) {
-      console.error(`❌ Seat limit exceeded: requesting ${employees.length} seats but only ${availableSeats} available`)
-      return NextResponse.json(
-        { 
-          error: 'Seat limit exceeded',
-          details: {
-            requested: employees.length,
-            available: availableSeats,
-            current_members: currentMembers,
-            pending_invitations: pendingInvitations,
-            total_seats: totalSeatsAvailable,
-            upgrade_required: !hasUnlimitedSeats
-          }
-        },
-        { status: 409 } // Conflict status for seat limit exceeded
-      )
+    // Check if organization has billing override (unlimited seats)
+    let hasUnlimitedSeats = false
+    if (organization.billing_override_reason) {
+      console.log('🎫 Organization has billing override - allowing unlimited seats')
+      hasUnlimitedSeats = true
     }
 
-    console.log(`✅ Seat check passed: ${employees.length} new invitations within ${hasUnlimitedSeats ? 'unlimited' : availableSeats} available seats`)
+    if (!hasUnlimitedSeats) {
+      // Use unified seat calculation
+      // Check if organization has paid seats (regardless of tier name)
+      const paidSeats = organization.paid_seats > 0 ? organization.paid_seats : 0
+      const seatInfo = calculateComprehensiveSeatInfo(
+        paidSeats,
+        currentMembers,
+        pendingInvitations,
+        organization.billing_override_seats,
+        organization.billing_override_expires_at
+      )
+
+      console.log(`🪑 Seat calculation (unified):`)
+      console.log(`   - Current members: ${seatInfo.currentActiveMembers}`)
+      console.log(`   - Pending invitations: ${seatInfo.pendingInvitations}`)
+      console.log(`   - Total used: ${seatInfo.totalUsedSeats}`)
+      console.log(`   - Total available: ${seatInfo.totalSeats}`)
+      console.log(`   - Available seats: ${seatInfo.availableSeats}`)
+
+      // Check if we have enough seats for the new invitations
+      if (employees.length > seatInfo.availableSeats) {
+        console.error(`❌ Seat limit exceeded: requesting ${employees.length} seats but only ${seatInfo.availableSeats} available`)
+        return NextResponse.json(
+          {
+            error: 'Seat limit exceeded',
+            details: {
+              requested: employees.length,
+              available: seatInfo.availableSeats,
+              current_members: seatInfo.currentActiveMembers,
+              pending_invitations: seatInfo.pendingInvitations,
+              total_seats: seatInfo.totalSeats,
+              upgrade_required: true
+            }
+          },
+          { status: 409 } // Conflict status for seat limit exceeded
+        )
+      }
+
+      console.log(`✅ Seat check passed: ${employees.length} new invitations within ${seatInfo.availableSeats} available seats`)
+    } else {
+      console.log(`✅ Seat check passed: unlimited seats (billing override)`)
+    }
 
     console.log(`📝 Processing ${employees.length} employee(s) in ${mode} mode`)
 

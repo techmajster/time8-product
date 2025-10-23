@@ -15,6 +15,7 @@ interface InvitationDetails {
   team_id?: string | null
   team_name?: string | null
   expires_at: string
+  user_exists: boolean
 }
 
 function JoinPageContent() {
@@ -58,8 +59,16 @@ function JoinPageContent() {
       }
 
       setInvitationDetails(invitation)
+
+      // If user already exists, redirect to login with invitation token
+      if (invitation.user_exists) {
+        console.log('🔄 User exists, redirecting to login with invitation token')
+        router.push(`/login?invitation_token=${token}&email=${encodeURIComponent(invitation.email)}`)
+        return
+      }
+
       setLoading(false)
-      
+
     } catch (error) {
       console.error('❌ Token processing error:', error)
       setError('Failed to process invitation. Please try again.')

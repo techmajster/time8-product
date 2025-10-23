@@ -198,6 +198,7 @@
     "leave-requests": "Leave Requests",
     "calendar": "Calendar",
     "team": "Team",
+    "groupsPage": "Groups",
     "team-management": "Team Management",
     "addAbsence": "Add Absence",
     "add": "Add Employee",
@@ -578,5 +579,23 @@
     "nextMonth": "Next Month",
     "selectDate": "Select Date",
     "dateRange": "Date Range"
+  },
+  "roles": {
+    "employee": "Employee",
+    "manager": "Manager",
+    "admin": "Administrator",
+    "selectRole": "Select Role",
+    "roleDescription": {
+      "employee": "Can manage their own leave requests and view calendar",
+      "manager": "Can view team and groups (read-only) and approve leave requests",
+      "admin": "Full access to all features and settings"
+    }
+  },
+  "permissions": {
+    "noAccess": "You don't have permission to access this page",
+    "readOnly": "You have read-only access to this page",
+    "contactAdmin": "Contact your administrator for access",
+    "readOnlyMode": "Read-Only Mode",
+    "readOnlyModeDescription": "You can view this page but cannot make changes. Contact an administrator if you need edit access."
   }
 } 

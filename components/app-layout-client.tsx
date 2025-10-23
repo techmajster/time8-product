@@ -20,6 +20,8 @@ import { useTranslations } from 'next-intl'
 import React, { useState, useEffect, createContext, useContext } from 'react'
 import { LeaveType, LeaveBalance, UserProfile } from '@/types/leave'
 import AddAbsenceSheet from './AddAbsenceSheet'
+import { UserRoleContext } from '@/hooks/use-user-role'
+import { UserRole, isValidRole } from '@/lib/permissions'
 
 interface Organization {
   id: string
@@ -72,32 +74,29 @@ function getBreadcrumbItems(pathname: string, organizationName?: string | null, 
 
   // Map route segments to translated labels
   const getRouteLabel = (segment: string): string => {
-    // Try navigation translations first
-    const navKey = `navigation.${segment}`
-    let label = t?.(navKey)
-    if (label === navKey) {
-      // Fallback to specific translations
-      const translations: Record<string, string> = {
-        'dashboard': t?.('navigation.dashboard') || 'Dashboard',
-        'leave': t?.('navigation.leave') || 'Leave Requests',
-        'leave-requests': t?.('navigation.leaveRequests') || 'Leave Requests',
-        'calendar': t?.('navigation.calendar') || 'Calendar',
-        'team': t?.('navigation.team') || 'Team',
-        'schedule': t?.('navigation.schedule') || 'Schedule',
-        'settings': t?.('navigation.settings') || 'Settings',
-        'profile': t?.('navigation.profile') || 'Profile',
-        'admin': t?.('navigation.admin') || 'Administration',
-        'new': t?.('leave.newRequest') || 'New Request',
-        'edit': t?.('common.edit') || 'Edit Request',
-        'invite': t?.('team.invite') || 'Invite Members',
-        'add': 'Nowy pracownik',
-        'add-employee': 'Nowy pracownik',
-        'edit-employee': t?.('navigation.edit-employee') || 'Edit Employee',
-        'team-management': 'Zarządzanie zespołem'
-      }
-      label = translations[segment] || segment.charAt(0).toUpperCase() + segment.slice(1)
+    // Use specific translations map to avoid object conflicts
+    const translations: Record<string, string> = {
+      'dashboard': t?.('navigation.dashboard') || 'Dashboard',
+      'leave': t?.('navigation.leave') || 'Leave Requests',
+      'leave-requests': t?.('navigation.leaveRequests') || 'Leave Requests',
+      'calendar': t?.('navigation.calendar') || 'Calendar',
+      'team': t?.('navigation.team') || 'Team',
+      'groups': t?.('navigation.groupsPage') || 'Groups',
+      'schedule': t?.('navigation.schedule') || 'Schedule',
+      'settings': t?.('navigation.settings') || 'Settings',
+      'profile': t?.('navigation.profile') || 'Profile',
+      'admin': t?.('navigation.admin') || 'Administration',
+      'new': t?.('leave.newRequest') || 'New Request',
+      'edit': t?.('common.edit') || 'Edit Request',
+      'invite': t?.('team.invite') || 'Invite Members',
+      'add': 'Nowy pracownik',
+      'add-employee': 'Nowy pracownik',
+      'edit-employee': t?.('navigation.edit-employee') || 'Edit Employee',
+      'team-management': 'Zarządzanie zespołem'
     }
-    return label
+
+    // Return translation or capitalize segment
+    return translations[segment] || segment.charAt(0).toUpperCase() + segment.slice(1)
   }
 
   // Build breadcrumb trail
@@ -166,9 +165,13 @@ export function AppLayoutClient({
   
   const breadcrumbItems = getBreadcrumbItems(pathname, organization?.name, t)
 
+  // Validate and normalize user role
+  const normalizedRole: UserRole | null = isValidRole(userRole) ? userRole : null
+
   return (
-    <OrganizationContext.Provider value={{ organization, updateOrganization }}>
-      <SidebarProvider>
+    <UserRoleContext.Provider value={{ role: normalizedRole, userId: userId || null }}>
+      <OrganizationContext.Provider value={{ organization, updateOrganization }}>
+        <SidebarProvider>
         <AppSidebar 
           organizationName={organization?.name}
           organizationLogo={organization?.logo_url}
@@ -219,6 +222,7 @@ export function AppLayoutClient({
           />
         )}
       </SidebarProvider>
-    </OrganizationContext.Provider>
+      </OrganizationContext.Provider>
+    </UserRoleContext.Provider>
   )
 }

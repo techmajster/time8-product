@@ -25,13 +25,25 @@ export function LoginForm({ onModeChange, className }: LoginFormProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [invitationToken, setInvitationToken] = useState<string | null>(null)
 
   // Check for verification status in URL params and cookies (client-side only)
   useEffect(() => {
     const verified = searchParams.get('verified')
     const emailParam = searchParams.get('email')
     const error = searchParams.get('error')
-    
+    const invToken = searchParams.get('invitation_token')
+
+    // Handle invitation token
+    if (invToken) {
+      setInvitationToken(invToken)
+      setSuccess('Please log in to accept your workspace invitation.')
+      // Auto-fill email if available
+      if (emailParam) {
+        setEmail(decodeURIComponent(emailParam))
+      }
+    }
+
     if (verified === 'true') {
       setSuccess('Email verified successfully! You can now log in.')
       // Auto-fill email if available
@@ -90,6 +102,40 @@ export function LoginForm({ onModeChange, className }: LoginFormProps) {
 
       if (authError) {
         throw authError
+      }
+
+      // If invitation token exists, accept the invitation
+      if (invitationToken) {
+        try {
+          // Look up invitation
+          const invitationResponse = await fetch(`/api/invitations/lookup?token=${encodeURIComponent(invitationToken)}`)
+          if (invitationResponse.ok) {
+            const invitation = await invitationResponse.json()
+
+            // Accept invitation
+            const acceptResponse = await fetch('/api/invitations/accept', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                invitation_id: invitation.id,
+              }),
+            })
+
+            if (acceptResponse.ok) {
+              console.log('✅ Invitation accepted successfully')
+              // Redirect to dashboard of the new workspace
+              router.push('/dashboard')
+              router.refresh()
+              return
+            } else {
+              console.error('❌ Failed to accept invitation')
+            }
+          }
+        } catch (error) {
+          console.error('❌ Error accepting invitation:', error)
+        }
       }
 
       // Redirect to onboarding - this will show user their workspace options and scenario

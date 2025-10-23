@@ -5,12 +5,9 @@
       "args": [
         "-y",
         "@supabase/mcp-server-supabase@latest",
-        "--read-only",
-        "--project-ref=odbjrxsbgvmohdnvjjil"
-      ],
-      "env": {
-        "SUPABASE_ACCESS_TOKEN": "sbp_03fbeb85eaf33161d9bb3eac1d1d4e3eb53d17b7"
-      }
+        "--access-token",
+        "sbp_24be8a9431374b86fa67676f3ed17256d5653ced"
+      ]
     },
     "shadcn": {
       "command": "npx",

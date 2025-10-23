@@ -1,6 +1,8 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { cookies } from 'next/headers'
 import { userHasOrganization } from './lib/middleware-utils'
+import { UserRole, isManagerOrAdmin, isAdmin } from './lib/permissions'
 
 export async function middleware(request: NextRequest) {
   // Create a response object
@@ -124,7 +126,55 @@ export async function middleware(request: NextRequest) {
     if (!pathname.startsWith('/onboarding') && !pathname.startsWith('/api/')) {
       // For dashboard and other protected routes, users need an organization
       if (hasOrganization) {
-        // User has an organization, allow them to access dashboard and other protected routes
+        // Get user's role for role-based route protection
+        // IMPORTANT: Respect the active-organization-id cookie for multi-workspace support
+        const cookieStore = await cookies()
+        const activeOrgId = cookieStore.get('active-organization-id')?.value
+
+        let userOrgQuery = supabase
+          .from('user_organizations')
+          .select('role, organization_id')
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+
+        // Use active org cookie if present, otherwise use default
+        if (activeOrgId) {
+          userOrgQuery = userOrgQuery.eq('organization_id', activeOrgId)
+        } else {
+          userOrgQuery = userOrgQuery.eq('is_default', true)
+        }
+
+        const { data: userOrg } = await userOrgQuery.single()
+        const userRole = (userOrg?.role as UserRole) || null
+
+        console.log('🔐 Middleware permission check:', {
+          pathname,
+          activeOrgId,
+          userRole
+        })
+
+        // Define role-based protected routes
+        const managerOnlyRoutes = ['/team', '/leave-requests']
+        const adminOnlyRoutes = ['/admin', '/settings']
+
+        // Check if current path requires specific role
+        const requiresManager = managerOnlyRoutes.some(route => pathname.startsWith(route))
+        const requiresAdmin = adminOnlyRoutes.some(route => pathname.startsWith(route))
+
+        // Enforce role-based access
+        if (requiresAdmin && !isAdmin(userRole)) {
+          console.log('🚫 Admin route access denied for role:', userRole)
+          const dashboardUrl = new URL('/dashboard', request.url)
+          return NextResponse.redirect(dashboardUrl)
+        }
+
+        if (requiresManager && !isManagerOrAdmin(userRole)) {
+          console.log('🚫 Manager route access denied for role:', userRole)
+          const dashboardUrl = new URL('/dashboard', request.url)
+          return NextResponse.redirect(dashboardUrl)
+        }
+
+        // User has an organization and proper role, allow them to access the route
         return response
       } else {
         // User doesn't have an organization, redirect to onboarding to see their options

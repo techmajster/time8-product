@@ -1,6 +1,6 @@
 /**
  * Subscription Retrieval Endpoint
- * 
+ *
  * Retrieves subscription information using stored Lemon Squeezy subscription ID.
  * Follows best practice: store subscription ID locally + fetch real data from Lemon Squeezy.
  */
@@ -8,23 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
-
-/**
- * Calculate seat information (same as checkout)
- */
-function calculateSeatInfo(paidSeats: number, currentEmployees: number) {
-  const FREE_SEATS = 3;
-  const totalSeats = paidSeats + FREE_SEATS;
-  const seatsRemaining = totalSeats - currentEmployees;
-
-  return {
-    total_seats: totalSeats,
-    paid_seats: paidSeats,
-    free_seats: FREE_SEATS,
-    current_employees: currentEmployees,
-    seats_remaining: Math.max(0, seatsRemaining)
-  };
-}
+import { calculateComprehensiveSeatInfo } from '@/lib/billing/seat-calculation';
 
 /**
  * GET handler for retrieving subscription information
@@ -73,7 +57,7 @@ export async function GET(request: NextRequest) {
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
-    
+
     const { data: members, count: memberCount, error: memberError } = await serviceClient
       .from('user_organizations')
       .select('user_id', { count: 'exact' })
@@ -86,16 +70,42 @@ export async function GET(request: NextRequest) {
 
     const currentMembers = memberCount || 1; // Default to 1 if count fails
 
+    // Count pending invitations that will consume seats when accepted
+    const { count: pendingInvitationsCount, error: pendingCountError } = await serviceClient
+      .from('invitations')
+      .select('id', { count: 'exact' })
+      .eq('organization_id', organizationId)
+      .eq('status', 'pending');
+
+    if (pendingCountError) {
+      console.error('❌ Pending invitations count query failed:', pendingCountError);
+    }
+
+    const pendingInvitations = pendingInvitationsCount || 0;
+
     // Check subscription based on database fields
     if (organization.subscription_tier === 'free' || organization.paid_seats === 0) {
-      // Return free tier
+      // Return free tier with comprehensive seat calculation
+      const seatInfo = calculateComprehensiveSeatInfo(
+        0, // 0 paid seats
+        currentMembers,
+        pendingInvitations
+      );
+
       return NextResponse.json({
         success: true,
         subscription: null,
         organization_info: {
           id: organization.id,
           name: organization.name,
-          seat_info: calculateSeatInfo(0, currentMembers) // Free tier: 0 paid + 3 free = 3 total
+          seat_info: {
+            total_seats: seatInfo.totalSeats,
+            paid_seats: seatInfo.paidSeats,
+            free_seats: seatInfo.freeSeats,
+            current_employees: seatInfo.currentActiveMembers,
+            pending_invitations: seatInfo.pendingInvitations,
+            seats_remaining: seatInfo.availableSeats
+          }
         }
       });
     }
@@ -110,13 +120,26 @@ export async function GET(request: NextRequest) {
 
     if (subError || !subscriptionRecord) {
       console.error('❌ No subscription record found:', subError);
+      const seatInfo = calculateComprehensiveSeatInfo(
+        organization.paid_seats,
+        currentMembers,
+        pendingInvitations
+      );
+
       return NextResponse.json({
         success: true,
         subscription: null,
         organization_info: {
           id: organization.id,
           name: organization.name,
-          seat_info: calculateSeatInfo(organization.paid_seats, currentMembers)
+          seat_info: {
+            total_seats: seatInfo.totalSeats,
+            paid_seats: seatInfo.paidSeats,
+            free_seats: seatInfo.freeSeats,
+            current_employees: seatInfo.currentActiveMembers,
+            pending_invitations: seatInfo.pendingInvitations,
+            seats_remaining: seatInfo.availableSeats
+          }
         }
       });
     }
@@ -141,7 +164,13 @@ export async function GET(request: NextRequest) {
       const lsAttrs = data.data.attributes;
       
       console.log(`✅ Found subscription: ${lsAttrs.variant_name} (${lsAttrs.first_subscription_item?.quantity || 'N/A'} seats)`);
-      
+
+      const seatInfo = calculateComprehensiveSeatInfo(
+        organization.paid_seats,
+        currentMembers,
+        pendingInvitations
+      );
+
       const subscriptionData = {
         id: data.data.id,
         status: lsAttrs.status,
@@ -167,7 +196,14 @@ export async function GET(request: NextRequest) {
           customer_portal_url: lsAttrs.urls?.customer_portal
         },
         test_mode: lsAttrs.test_mode,
-        seat_info: calculateSeatInfo(organization.paid_seats, currentMembers)
+        seat_info: {
+          total_seats: seatInfo.totalSeats,
+          paid_seats: seatInfo.paidSeats,
+          free_seats: seatInfo.freeSeats,
+          current_employees: seatInfo.currentActiveMembers,
+          pending_invitations: seatInfo.pendingInvitations,
+          seats_remaining: seatInfo.availableSeats
+        }
       };
 
       // Add pause info if subscription is paused
@@ -183,7 +219,13 @@ export async function GET(request: NextRequest) {
     } catch (error) {
       console.error('❌ Failed to fetch from Lemon Squeezy:', error);
       console.log('🔄 Falling back to database subscription data...');
-      
+
+      const seatInfo = calculateComprehensiveSeatInfo(
+        organization.paid_seats,
+        currentMembers,
+        pendingInvitations
+      );
+
       // If Lemon Squeezy fails, return subscription info from our database
       const fallbackSubscriptionData = {
         id: subscriptionRecord.lemonsqueezy_subscription_id,
@@ -205,7 +247,14 @@ export async function GET(request: NextRequest) {
           customer_portal_url: null
         },
         test_mode: true,
-        seat_info: calculateSeatInfo(organization.paid_seats, currentMembers)
+        seat_info: {
+          total_seats: seatInfo.totalSeats,
+          paid_seats: seatInfo.paidSeats,
+          free_seats: seatInfo.freeSeats,
+          current_employees: seatInfo.currentActiveMembers,
+          pending_invitations: seatInfo.pendingInvitations,
+          seats_remaining: seatInfo.availableSeats
+        }
       };
 
       return NextResponse.json({

@@ -3,24 +3,13 @@
 import React, { useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { FigmaTabs, FigmaTabsContent, FigmaTabsList, FigmaTabsTrigger } from './FigmaTabs'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Loader2, Plus, Edit, Trash2, Users, UserPlus, UserMinus, ChevronDownIcon, MoreHorizontal } from 'lucide-react'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Loader2, Plus, MoreHorizontal } from 'lucide-react'
 import { toast } from 'sonner'
-import { ManageTeamMembersSheet } from './ManageTeamMembersSheet'
 import { PendingInvitationsSection } from './PendingInvitationsSection'
-import { CreateTeamSheet } from './CreateTeamSheet'
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -37,15 +26,6 @@ interface TeamMember {
     name: string
     color: string
   } | null
-}
-
-interface Team {
-  id: string
-  name: string
-  description?: string | null
-  manager?: any
-  members?: any[]
-  member_count?: number
 }
 
 interface LeaveBalance {
@@ -80,7 +60,7 @@ interface Invitation {
 
 interface TeamManagementClientProps {
   teamMembers: TeamMember[]
-  teams: Team[]
+  teams: any[]
   leaveBalances: LeaveBalance[]
   invitations: Invitation[]
 }
@@ -99,27 +79,11 @@ export function TeamManagementClient({ teamMembers, teams, leaveBalances, invita
   
   // State for active team filter
   const [activeTeamFilter, setActiveTeamFilter] = useState('Wszyscy')
-  
-  // State for team editing
-  const [selectedTeam, setSelectedTeam] = useState<Team | null>(null)
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
-  const [isMembersSheetOpen, setIsMembersSheetOpen] = useState(false)
-  const [isTeamDetailsOpen, setIsTeamDetailsOpen] = useState(false)
   const [loading, setLoading] = useState(false)
-  
+
   // State for employee removal confirmation
   const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false)
   const [memberToRemove, setMemberToRemove] = useState<TeamMember | null>(null)
-  
-  // State for team deletion confirmation
-  const [isDeleteTeamDialogOpen, setIsDeleteTeamDialogOpen] = useState(false)
-  const [teamToDelete, setTeamToDelete] = useState<Team | null>(null)
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    manager_id: ''
-  })
 
   // Create team filter tabs - "Wszyscy" + actual teams
   const teamTabs = ['Wszyscy', ...teams.map(team => team.name)]
@@ -166,153 +130,6 @@ export function TeamManagementClient({ teamMembers, teams, leaveBalances, invita
       return team?.manager?.full_name || 'Brak menedżera'
     }
     return 'Brak grupy'
-  }
-
-  // Team editing functions
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      description: '',
-      manager_id: ''
-    })
-  }
-
-  const handleTeamRowClick = (team: Team) => {
-    setSelectedTeam(team)
-    setIsTeamDetailsOpen(true)
-  }
-
-  const handleCreateTeam = async () => {
-    if (!formData.name.trim()) return
-
-    setLoading(true)
-    try {
-      const response = await fetch('/api/teams', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          manager_id: formData.manager_id === 'none' ? null : formData.manager_id
-        })
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to create group')
-      }
-
-      toast.success(data.message || 'Grupa została utworzona pomyślnie')
-      setIsCreateDialogOpen(false)
-      resetForm()
-      
-      // TODO: Implement proper state refresh instead of page reload
-      window.location.reload()
-
-    } catch (error) {
-      console.error('Error creating team:', error)
-      toast.error(error instanceof Error ? error.message : 'Błąd podczas tworzenia grupy')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleUpdateTeam = async () => {
-    if (!selectedTeam || !formData.name.trim()) return
-
-    setLoading(true)
-    try {
-      const response = await fetch(`/api/teams/${selectedTeam.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          manager_id: formData.manager_id === 'none' ? null : formData.manager_id
-        })
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to update group')
-      }
-
-      toast.success(data.message || 'Grupa została zaktualizowana pomyślnie')
-      setIsEditDialogOpen(false)
-      setSelectedTeam(null)
-      resetForm()
-      
-      // TODO: Implement proper state refresh instead of page reload
-      window.location.reload()
-
-    } catch (error) {
-      console.error('Error updating team:', error)
-      toast.error(error instanceof Error ? error.message : 'Błąd podczas aktualizacji grupy')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleDeleteTeam = (team: Team) => {
-    if (team.member_count && team.member_count > 0) {
-      toast.error('Nie można usunąć grupy z członkami. Najpierw usuń wszystkich członków.')
-      return
-    }
-
-    setTeamToDelete(team)
-    setIsDeleteTeamDialogOpen(true)
-  }
-
-  const confirmDeleteTeam = async () => {
-    if (!teamToDelete) return
-
-    setLoading(true)
-    try {
-      const response = await fetch(`/api/teams/${teamToDelete.id}`, {
-        method: 'DELETE'
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to delete group')
-      }
-
-      toast.success(data.message || 'Grupa została usunięta pomyślnie')
-      setIsDeleteTeamDialogOpen(false)
-      setTeamToDelete(null)
-      
-      // TODO: Implement proper state refresh instead of page reload
-      window.location.reload()
-
-    } catch (error) {
-      console.error('Error deleting team:', error)
-      toast.error(error instanceof Error ? error.message : 'Błąd podczas usuwania grupy')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const openEditDialog = (team: Team) => {
-    setSelectedTeam(team)
-    setFormData({
-      name: team.name,
-      description: team.description || '',
-      manager_id: team.manager?.id || 'none'
-    })
-    setIsEditDialogOpen(true)
-  }
-
-  // Team member management functions
-  const openMembersSheet = (team: Team) => {
-    setSelectedTeam(team)
-    setIsTeamDetailsOpen(false) // Close details sheet if open
-    setIsMembersSheetOpen(true)
-  }
-
-  const handleTeamUpdated = () => {
-    // TODO: Implement proper state refresh instead of page reload
-    window.location.reload()
   }
 
   // Employee management functions
@@ -369,11 +186,6 @@ export function TeamManagementClient({ teamMembers, teams, leaveBalances, invita
     }
   }
 
-  // Get potential managers (admins and managers)
-  const potentialManagers = teamMembers.filter(member => 
-    member.role === 'admin' || member.role === 'manager'
-  )
-
   return (
     <div className="p-8 space-y-6">
       {/* Header */}
@@ -381,18 +193,8 @@ export function TeamManagementClient({ teamMembers, teams, leaveBalances, invita
         <h1 className="text-3xl font-semibold text-foreground">Zarządzanie zespołami</h1>
       </div>
 
-      {/* Tabs */}
-      <FigmaTabs defaultValue="employees" className="w-full">
-        <div className="relative -mx-12 px-12">
-          <FigmaTabsList className="border-b-0">
-            <FigmaTabsTrigger value="employees">Pracownicy</FigmaTabsTrigger>
-            <FigmaTabsTrigger value="teams">Grupy</FigmaTabsTrigger>
-          </FigmaTabsList>
-          <div className="absolute bottom-0 left-0 right-0 h-px bg-border" />
-        </div>
-
-        {/* Pracownicy Tab */}
-        <FigmaTabsContent value="employees" className="mt-6">
+      {/* Employees Section (no tabs anymore) */}
+      <div className="mt-6">
           {/* Pending Invitations Section */}
           <PendingInvitationsSection invitations={invitations} />
           
@@ -544,430 +346,7 @@ export function TeamManagementClient({ teamMembers, teams, leaveBalances, invita
               </Table>
             </CardContent>
           </Card>
-        </FigmaTabsContent>
-
-        {/* Grupy Tab */}
-        <FigmaTabsContent value="teams" className="mt-2">
-          <div className="mb-4 min-h-[60px] flex items-center">
-            <div className="flex items-center justify-between w-full">
-              <h2 className="text-lg font-medium">Lista zespołów</h2>
-              <div className="flex gap-2">
-                <Button 
-                  size="sm" 
-                  className="bg-foreground text-background"
-                  onClick={() => {
-                    resetForm()
-                    setIsCreateDialogOpen(true)
-                  }}
-                  disabled={loading}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Dodaj grupę
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          {teams.length === 0 ? (
-            <div className="text-center py-4 text-muted-foreground text-sm border rounded-lg">
-              Brak zespołów
-            </div>
-          ) : (
-            <Card className="py-2">
-              <CardContent className="px-4 py-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="font-medium text-muted-foreground">Nazwa grupy</TableHead>
-                      <TableHead className="font-medium text-muted-foreground">Manager grupy</TableHead>
-                      <TableHead className="font-medium text-muted-foreground text-right">Członkowie</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {teams.map((team) => (
-                      <TableRow 
-                        key={team.id} 
-                        className="h-[72px] cursor-pointer hover:bg-muted/50 transition-colors"
-                        onClick={() => handleTeamRowClick(team)}
-                      >
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <div>
-                              <div className="font-medium text-foreground">
-                                {team.name}
-                              </div>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {team.manager ? (
-                            <div className="flex items-center gap-3">
-                              <Avatar className="size-10">
-                                <AvatarFallback className="bg-muted text-sm font-medium">
-                                  {team.manager.full_name ? team.manager.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : team.manager.email.charAt(0).toUpperCase()}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <div className="font-medium text-foreground">
-                                  {team.manager.full_name || team.manager.email}
-                                </div>
-                                <div className="text-sm text-muted-foreground">
-                                  {team.manager.email}
-                                </div>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="font-medium text-muted-foreground">
-                              Brak menedżera
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="text-foreground">
-                            {team.member_count || 0}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          )}
-        </FigmaTabsContent>
-      </FigmaTabs>
-
-      {/* Create Team Sheet */}
-      <CreateTeamSheet
-        open={isCreateDialogOpen}
-        onOpenChange={setIsCreateDialogOpen}
-        teamMembers={teamMembers}
-        onTeamCreated={() => window.location.reload()}
-      />
-
-      {/* Edit Team Sheet */}
-      <Sheet open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <SheetContent 
-          side="right" 
-          size="content"
-          className="overflow-y-auto"
-        >
-          <div className="bg-background relative rounded-lg h-full">
-            <div className="flex flex-col h-full">
-              <div className="flex flex-col gap-6 p-6 flex-1 overflow-y-auto">
-                {/* Dialog Header */}
-                <div className="flex flex-col gap-1.5 w-full">
-                  <SheetTitle className="text-xl font-semibold text-neutral-950">
-                    Edytuj grupę
-                  </SheetTitle>
-                </div>
-
-                {/* Separator */}
-                <div className="w-full">
-                  <div className="h-px bg-neutral-200 w-full" />
-                </div>
-
-                {/* Content */}
-                <div className="flex-1 flex flex-col gap-6">
-                  {/* Nazwa grupy */}
-                  <div className="flex flex-col gap-2">
-                    <Label className="text-sm font-medium text-neutral-950">
-                      Nazwa grupy
-                    </Label>
-                    <Input
-                      id="edit-name"
-                      value={formData.name}
-                      onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                      placeholder="Design team"
-                      className="h-9 border-neutral-200 shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]"
-                    />
-                  </div>
-
-                  {/* Opis grupy */}
-                  <div className="flex flex-col gap-2">
-                    <Label className="text-sm font-medium text-neutral-950">
-                      Opis grupy
-                    </Label>
-                    <Textarea
-                      id="edit-description"
-                      value={formData.description}
-                      onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                      placeholder="Opcjonalny opis grupy"
-                      className="min-h-[60px] border-neutral-200 shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] resize-none"
-                    />
-                  </div>
-
-                  {/* Wybierz managera grupy */}
-                  <div className="flex flex-col gap-2">
-                    <Label className="text-sm font-medium text-neutral-950">
-                      Wybierz managera grupy
-                    </Label>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className="w-full justify-between h-12 px-3 py-2 border-neutral-200 shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]"
-                        >
-                          {formData.manager_id && formData.manager_id !== 'none' ? (
-                            (() => {
-                              const selectedManager = potentialManagers.find(m => m.id === formData.manager_id)
-                              return selectedManager ? (
-                                <div className="flex items-center gap-2">
-                                  <Avatar className="size-8">
-                                    <AvatarImage src={selectedManager.avatar_url || undefined} />
-                                    <AvatarFallback className="bg-neutral-100 text-sm font-normal text-neutral-950">
-                                      {selectedManager.full_name ? selectedManager.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : selectedManager.email.charAt(0).toUpperCase()}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  <div className="flex flex-col text-left">
-                                    <div className="text-sm font-medium text-neutral-950 leading-5">
-                                      {selectedManager.full_name || selectedManager.email}
-                                    </div>
-                                    <div className="text-xs font-normal text-neutral-500 leading-4">
-                                      {selectedManager.email}
-                                    </div>
-                                  </div>
-                                </div>
-                              ) : null
-                            })()
-                          ) : (
-                            <span className="text-neutral-500">Wybierz menedżera grupy</span>
-                          )}
-                          <ChevronDownIcon className="size-4 opacity-50" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent className="w-[var(--radix-dropdown-menu-trigger-width)]">
-                        <DropdownMenuItem
-                          onClick={() => setFormData(prev => ({ ...prev, manager_id: 'none' }))}
-                          className="cursor-pointer"
-                        >
-                          <div className="flex items-center gap-2">
-                            <div className="size-8 bg-neutral-100 rounded-full flex items-center justify-center">
-                              <span className="text-xs text-neutral-500">—</span>
-                            </div>
-                            <div className="flex flex-col">
-                              <div className="text-sm font-medium">Brak przypisanego menedżera</div>
-                            </div>
-                          </div>
-                        </DropdownMenuItem>
-                        {potentialManagers.length > 0 && <DropdownMenuSeparator />}
-                        {potentialManagers.map((manager, index, array) => (
-                          <React.Fragment key={manager.id}>
-                            <DropdownMenuItem
-                              onClick={() => setFormData(prev => ({ ...prev, manager_id: manager.id }))}
-                              className="cursor-pointer"
-                            >
-                              <div className="flex items-center gap-2">
-                                <Avatar className="size-8">
-                                  <AvatarImage src={manager.avatar_url || undefined} />
-                                  <AvatarFallback className="bg-neutral-100 text-sm font-normal text-neutral-950">
-                                    {manager.full_name ? manager.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : manager.email.charAt(0).toUpperCase()}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div className="flex flex-col">
-                                  <div className="text-sm font-medium text-neutral-950">
-                                    {manager.full_name || manager.email}
-                                  </div>
-                                  <div className="text-xs text-neutral-500">
-                                    {manager.email}
-                                  </div>
-                                </div>
-                              </div>
-                            </DropdownMenuItem>
-                            {index < array.length - 1 && <DropdownMenuSeparator />}
-                          </React.Fragment>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Footer */}
-              <div className="flex flex-row gap-2 items-center justify-end w-full p-6 pt-0 bg-background">
-                <Button 
-                  variant="destructive"
-                  onClick={() => {
-                    if (selectedTeam) {
-                      handleDeleteTeam(selectedTeam)
-                      setIsEditDialogOpen(false)
-                    }
-                  }}
-                  className="h-9"
-                  disabled={loading}
-                >
-                  Usuń grupę
-                </Button>
-                <div className="flex-1" />
-                <Button 
-                  variant="outline"
-                  onClick={() => setIsEditDialogOpen(false)}
-                  className="h-9"
-                >
-                  Anuluj
-                </Button>
-                <Button 
-                  onClick={handleUpdateTeam} 
-                  disabled={loading}
-                  className="h-9"
-                >
-                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Zaktualizuj grupę
-                </Button>
-              </div>
-            </div>
-          </div>
-        </SheetContent>
-      </Sheet>
-
-      {/* Manage Team Members Sheet */}
-      <ManageTeamMembersSheet
-        open={isMembersSheetOpen}
-        onOpenChange={setIsMembersSheetOpen}
-        selectedTeam={selectedTeam}
-        teamMembers={teamMembers}
-        onTeamUpdated={handleTeamUpdated}
-      />
-
-
-      {/* Team Details Sheet */}
-      <Sheet open={isTeamDetailsOpen} onOpenChange={setIsTeamDetailsOpen}>
-        <SheetContent 
-          side="right" 
-          size="content"
-          className="overflow-y-auto"
-        >
-          <div className="bg-background relative rounded-lg h-full">
-            <div className="flex flex-col h-full">
-              <div className="flex flex-col gap-6 p-6 flex-1 overflow-y-auto">
-                {/* Dialog Header */}
-                <div className="flex flex-col gap-1.5 w-full">
-                  <SheetTitle className="text-xl font-semibold text-neutral-950">
-                    Szczegóły grupy
-                  </SheetTitle>
-                </div>
-
-                {/* Separator */}
-                <div className="w-full">
-                  <div className="h-px bg-neutral-200 w-full" />
-                </div>
-
-                {selectedTeam && (
-                  <div className="flex-1 flex flex-col gap-8">
-                    {/* Nazwa grupy */}
-                    <div className="flex flex-col gap-2">
-                      <div className="text-sm font-medium text-neutral-950">
-                        Nazwa grupy
-                      </div>
-                      <div className="text-xl font-semibold text-neutral-950 leading-7">
-                        {selectedTeam.name}
-                      </div>
-                    </div>
-
-                    {/* Opis grupy */}
-                    <div className="flex flex-col gap-2">
-                      <div className="text-sm font-medium text-neutral-950">
-                        Opis grupy
-                      </div>
-                      <div className="text-base font-normal text-neutral-950 leading-6">
-                        {selectedTeam.description || 'brak'}
-                      </div>
-                    </div>
-
-                    {/* Manager grupy */}
-                    <div className="flex flex-col gap-2">
-                      <div className="text-sm font-medium text-neutral-950">
-                        Manager grupy
-                      </div>
-                      {selectedTeam.manager ? (
-                        <div className="flex items-center gap-4">
-                          <Avatar className="size-10">
-                            <AvatarImage src={selectedTeam.manager.avatar_url || undefined} />
-                            <AvatarFallback className="bg-neutral-100 text-sm font-normal text-neutral-950">
-                              {selectedTeam.manager.full_name ? selectedTeam.manager.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : selectedTeam.manager.email.charAt(0).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex flex-col">
-                            <div className="text-sm font-medium text-neutral-950 leading-5">
-                              {selectedTeam.manager.full_name || selectedTeam.manager.email}
-                            </div>
-                            <div className="text-sm font-normal text-neutral-500 leading-5">
-                              {selectedTeam.manager.email}
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="text-base font-normal text-neutral-950 leading-6">
-                          brak
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Członkowie grupy */}
-                    <div className="flex flex-col gap-2">
-                      <div className="text-sm font-medium text-neutral-950">
-                        Członkowie grupy ({Array.isArray(selectedTeam.members) ? selectedTeam.members.length : 0})
-                      </div>
-                      <div className="flex flex-col gap-4">
-                        {Array.isArray(selectedTeam.members) && selectedTeam.members.length > 0 ? (
-                          selectedTeam.members.map((member: any) => (
-                            <div key={member.id} className="flex items-center gap-4">
-                              <Avatar className="size-10">
-                                <AvatarImage src={member.avatar_url || undefined} />
-                                <AvatarFallback className="bg-neutral-100 text-sm font-normal text-neutral-950">
-                                  {member.full_name ? member.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : member.email.charAt(0).toUpperCase()}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div className="flex flex-col flex-1">
-                                <div className="text-sm font-medium text-neutral-950 leading-5">
-                                  {member.full_name || member.email}
-                                </div>
-                                <div className="text-sm font-normal text-neutral-500 leading-5">
-                                  {member.email}
-                                </div>
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="text-base font-normal text-neutral-500 leading-6">
-                            Ta grupa nie ma jeszcze członków
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-              
-              {/* Footer - Fixed at Bottom */}
-              <div className="flex flex-row gap-2 items-center justify-end w-full p-6 pt-0 bg-background">
-                <Button 
-                  variant="outline"
-                  onClick={() => {
-                    if (selectedTeam) {
-                      openMembersSheet(selectedTeam)
-                    }
-                  }}
-                  className="h-9"
-                >
-                  Zarządzaj członkami
-                </Button>
-                <Button 
-                  onClick={() => {
-                    if (selectedTeam) {
-                      openEditDialog(selectedTeam)
-                      setIsTeamDetailsOpen(false)
-                    }
-                  }}
-                  className="h-9"
-                >
-                  Edytuj grupę
-                </Button>
-              </div>
-            </div>
-          </div>
-        </SheetContent>
-      </Sheet>
+        </div>
 
       {/* Remove Employee Confirmation Dialog */}
       <Dialog open={isRemoveDialogOpen} onOpenChange={setIsRemoveDialogOpen}>
@@ -1003,37 +382,6 @@ export function TeamManagementClient({ teamMembers, teams, leaveBalances, invita
             >
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Usuń pracownika
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Team Confirmation Dialog */}
-      <Dialog open={isDeleteTeamDialogOpen} onOpenChange={setIsDeleteTeamDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Usuń grupę</DialogTitle>
-            <DialogDescription>
-              Czy na pewno chcesz usunąć grupę "{teamToDelete?.name}"?
-              <br />
-              <strong>Ta akcja jest nieodwracalna.</strong>
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setIsDeleteTeamDialogOpen(false)}
-              disabled={loading}
-            >
-              Anuluj
-            </Button>
-            <Button 
-              variant="destructive" 
-              onClick={confirmDeleteTeam}
-              disabled={loading}
-            >
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Usuń grupę
             </Button>
           </DialogFooter>
         </DialogContent>

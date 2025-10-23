@@ -257,23 +257,9 @@ export async function DELETE(
       )
     }
 
-    // Check if team has members (query user_organizations table)
-    const { count: memberCount, error: memberCountError } = await supabaseAdmin
-      .from('user_organizations')
-      .select('*', { count: 'exact', head: true })
-      .eq('team_id', id)
-      .eq('organization_id', organizationId)
-      .eq('is_active', true)
-
-
-    if (memberCount && memberCount > 0) {
-      return NextResponse.json(
-        { error: 'Cannot delete group with members. Remove all members first.' },
-        { status: 400 }
-      )
-    }
-
     // Delete the team
+    // Note: Members will automatically be removed from the group (team_id set to NULL)
+    // due to ON DELETE SET NULL constraint in the database
     const { error } = await supabaseAdmin
       .from('teams')
       .delete()
