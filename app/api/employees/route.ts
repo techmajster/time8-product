@@ -226,24 +226,18 @@ export async function POST(request: NextRequest) {
           .single()
 
         if (existingInvitation) {
-          // Check if invitation is older than 7 days - if so, delete it and create a new one
-          const invitationAge = Date.now() - new Date(existingInvitation.created_at).getTime()
-          const sevenDays = 7 * 24 * 60 * 60 * 1000
-          
-          if (invitationAge > sevenDays) {
-            console.log(`🗑️ Deleting expired invitation for ${email}`)
-            await supabaseAdmin
-              .from('invitations')
-              .delete()
-              .eq('id', existingInvitation.id)
-          } else {
-            console.error(`❌ Recent pending invitation already exists for: ${email}`)
-            errors.push({
-              email,
-              error: 'Pending invitation already exists for this email (created recently)'
-            })
-            continue
-          }
+          // Delete the old invitation and create a new one
+          // This handles cases where:
+          // - User was deleted and is being re-invited
+          // - Admin wants to resend/update an invitation
+          // - Old invitation needs to be replaced
+          console.log(`🗑️ Deleting existing pending invitation for ${email}`)
+          await supabaseAdmin
+            .from('invitations')
+            .delete()
+            .eq('id', existingInvitation.id)
+
+          console.log(`✅ Old invitation deleted, will create new one`)
         }
 
         // Generate invitation details
