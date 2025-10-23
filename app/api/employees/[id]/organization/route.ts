@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createAdminClient } from '@/lib/supabase/server'
+import { authenticateAndGetOrgContext } from '@/lib/auth-utils-v2'
 
 export async function GET(
   request: NextRequest,
@@ -7,74 +9,40 @@ export async function GET(
   const { id: employeeId } = await params
 
   try {
-
     if (!employeeId) {
       console.error('❌ No employee ID provided')
       return NextResponse.json({ error: 'Employee ID required' }, { status: 400 })
     }
 
-    // Verify current user is authenticated
-    const { createClient } = await import('@/lib/supabase/server')
-    const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      console.error('❌ Authentication failed:', authError)
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    // REFACTOR: Use standard auth pattern for workspace isolation
+    const auth = await authenticateAndGetOrgContext()
+    if (!auth.success) {
+      return auth.error
     }
 
-    // Get active organization from cookie (multi-workspace support)
-    const { cookies } = await import('next/headers')
-    const cookieStore = await cookies()
-    const activeOrgId = cookieStore.get('active-organization-id')?.value
+    const { context } = auth
+    const { organization } = context
+    const organizationId = organization.id
 
-    // Use admin client to bypass RLS for organization lookup
-    const { createAdminClient } = await import('@/lib/supabase/server')
     const adminClient = await createAdminClient()
 
-    // Get employee's organization in the ACTIVE workspace context
-    let employeeOrgQuery = adminClient
+    // Get employee's organization membership in current workspace
+    const { data: employeeOrg, error: employeeOrgError } = await adminClient
       .from('user_organizations')
       .select('organization_id, role')
       .eq('user_id', employeeId)
+      .eq('organization_id', organizationId)
       .eq('is_active', true)
+      .single()
 
-    // If we have an active org cookie, prefer that organization
-    if (activeOrgId) {
-      employeeOrgQuery = employeeOrgQuery.eq('organization_id', activeOrgId)
-    }
-
-    const { data: employeeOrg, error: employeeOrgError } = await employeeOrgQuery.limit(1)
-
-    if (employeeOrgError) {
-      console.error('❌ Employee org lookup error:', employeeOrgError)
-      return NextResponse.json({ error: 'Database error' }, { status: 500 })
-    }
-
-    if (!employeeOrg || employeeOrg.length === 0) {
-      console.error('❌ Employee has no organization')
-      return NextResponse.json({ error: 'Employee has no organization' }, { status: 400 })
-    }
-
-    const employeeOrgId = employeeOrg[0].organization_id
-
-    // Verify current user has access to employee's organization (security check)
-    const { data: currentUserInEmployeeOrg } = await adminClient
-      .from('user_organizations')
-      .select('organization_id')
-      .eq('user_id', user.id)
-      .eq('organization_id', employeeOrgId)
-      .eq('is_active', true)
-      .limit(1)
-
-    if (!currentUserInEmployeeOrg || currentUserInEmployeeOrg.length === 0) {
-      console.error('❌ Current user does not have access to employee\'s organization')
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+    if (employeeOrgError || !employeeOrg) {
+      console.error('❌ Employee not found in current organization:', employeeOrgError)
+      return NextResponse.json({ error: 'Employee not found in this organization' }, { status: 404 })
     }
 
     return NextResponse.json({
-      organization_id: employeeOrg[0].organization_id,
-      role: employeeOrg[0].role
+      organization_id: employeeOrg.organization_id,
+      role: employeeOrg.role
     })
 
   } catch (error) {
