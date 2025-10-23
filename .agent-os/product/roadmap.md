@@ -87,12 +87,16 @@
   - Document standard cookie usage pattern for future API development
   - Prevent data leakage between workspaces for multi-org admins
 
-- [ ] **Mandatory Absence Types System** `M`
+- [x] **Mandatory Absence Types System** `M` ✅ **COMPLETED**
   - Two non-deletable global types:
-    - **Urlop wypoczynkowy:** Default 20 days (configurable per workspace + per user)
-    - **Urlop bezpłatny:** Unlimited days, non-deletable
-  - Workspace-level default configuration
-  - Individual user balance overrides
+    - **Urlop wypoczynkowy:** Default 20 days (configurable per workspace + per user) ✅
+    - **Urlop bezpłatny:** Unlimited days, non-deletable ✅
+  - Workspace-level default configuration ✅
+  - Individual user balance overrides ✅
+  - Database triggers preventing deletion ✅
+  - UI indicators (lock icons, badges) ✅
+  - Integration tests passing (100%) ✅
+  - Spec: `.agent-os/specs/2025-10-23-mandatory-absence-types/`
 
 - [ ] **Optional Polish Law Templates** `M`
   - 11 additional Polish labor law leave types from existing `types/leave.ts`
@@ -104,12 +108,6 @@
   - Admin can create custom absence types per workspace
   - Full CRUD operations on custom types
   - Custom types only visible to workspace users
-
-- [ ] **Leave Balance Calculation Update** `M`
-  - Workspace-level defaults for Urlop wypoczynkowy
-  - Individual user override capability via edit employee page
-  - Balance tracking for mandatory vs custom vs template types
-  - Unlimited balance handling for Urlop bezpłatny
 
 - [ ] **UI Permission Enforcement** `M`
   - Route guards for unauthorized access
