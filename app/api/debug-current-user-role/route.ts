@@ -3,15 +3,23 @@ import { createClient } from '@/lib/supabase/server'
 
 export async function GET(request: NextRequest) {
   console.log('🔍 Debug current user role API called')
-  
+
   try {
+    // SECURITY: Debug endpoint - only allow in development
+    if (process.env.NODE_ENV === 'production') {
+      return NextResponse.json(
+        { error: 'Debug endpoints are disabled in production' },
+        { status: 403 }
+      )
+    }
+
     const supabase = await createClient()
     const { data: { user }, error: userError } = await supabase.auth.getUser()
-    
+
     if (userError || !user) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         authenticated: false,
-        error: userError?.message || 'No user found' 
+        error: userError?.message || 'No user found'
       })
     }
 

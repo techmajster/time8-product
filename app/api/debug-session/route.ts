@@ -4,6 +4,14 @@ import { NextResponse } from 'next/server'
 
 export async function GET() {
   try {
+    // SECURITY: Debug endpoint - only allow in development
+    if (process.env.NODE_ENV === 'production') {
+      return NextResponse.json(
+        { error: 'Debug endpoints are disabled in production' },
+        { status: 403 }
+      )
+    }
+
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 

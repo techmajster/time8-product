@@ -2,9 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
   try {
+    // SECURITY: Debug endpoint - only allow in development
+    if (process.env.NODE_ENV === 'production') {
+      return NextResponse.json(
+        { error: 'Debug endpoints are disabled in production' },
+        { status: 403 }
+      )
+    }
+
     const { searchParams } = new URL(request.url)
     const employeeId = searchParams.get('employee_id')
-    
+
     if (!employeeId) {
       return NextResponse.json({ error: 'employee_id parameter required' }, { status: 400 })
     }
@@ -13,7 +21,7 @@ export async function GET(request: NextRequest) {
     const { createClient } = await import('@/lib/supabase/server')
     const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
+
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
