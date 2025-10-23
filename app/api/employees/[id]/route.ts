@@ -74,6 +74,29 @@ export async function DELETE(
       return NextResponse.json({ error: 'Failed to remove employee from organization' }, { status: 500 })
     }
 
+    // Clean up any invitations for this user in this organization
+    // This prevents orphaned invitations from blocking re-invitation later
+    const { data: userProfile } = await supabaseAdmin
+      .from('profiles')
+      .select('email')
+      .eq('id', id)
+      .single()
+
+    if (userProfile?.email) {
+      const { error: invitationCleanupError } = await supabaseAdmin
+        .from('invitations')
+        .delete()
+        .eq('email', userProfile.email.toLowerCase())
+        .eq('organization_id', organizationId)
+
+      if (invitationCleanupError) {
+        console.error('⚠️ Failed to cleanup invitations:', invitationCleanupError)
+        // Don't fail the whole operation - this is just cleanup
+      } else {
+        console.log('✅ Cleaned up invitations for removed user')
+      }
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Employee successfully removed from organization'
