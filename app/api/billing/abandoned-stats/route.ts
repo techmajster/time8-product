@@ -1,20 +1,34 @@
 /**
  * Abandoned Checkout Statistics Endpoint
- * 
+ *
  * Provides statistics about abandoned checkout sessions.
+ * ADMIN-ONLY: This endpoint returns system-wide billing statistics.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { authenticateAndGetOrgContext, requireRole } from '@/lib/auth-utils-v2';
 
 /**
  * GET handler for abandoned checkout statistics
  */
 export async function GET(request: NextRequest) {
   try {
+    // SECURITY: Admin-only endpoint for system-wide billing statistics
+    const auth = await authenticateAndGetOrgContext();
+    if (!auth.success) {
+      return auth.error;
+    }
+
+    const { context } = auth;
+    const roleCheck = requireRole(context, ['admin']);
+    if (roleCheck) {
+      return roleCheck;
+    }
+
     const { searchParams } = new URL(request.url);
     const days = parseInt(searchParams.get('days') || '7');
-    
+
     if (days < 1 || days > 365) {
       return NextResponse.json(
         { error: 'Days parameter must be between 1 and 365' },
