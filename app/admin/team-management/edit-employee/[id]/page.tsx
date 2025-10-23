@@ -171,14 +171,24 @@ export default async function TeamEditPage({ params }: { params: Promise<{ id: s
     contract_start_date: employeeToEdit.contract_start_date
   }
 
+  // Fetch employee's existing leave balances
+  const currentYear = new Date().getFullYear()
+  const { data: existingBalances } = await supabaseAdmin
+    .from('leave_balances')
+    .select('leave_type_id, entitled_days, used_days')
+    .eq('user_id', employeeData.id)
+    .eq('organization_id', profile.organization_id)
+    .eq('year', currentYear)
+
   return (
     <AppLayout>
-      <EditEmployeePage 
+      <EditEmployeePage
         teams={teamsWithMembers}
         leaveTypes={leaveTypes || []}
         organizationId={profile.organization_id}
         teamMembers={teamMembers || []}
         employeeToEdit={employeeData}
+        existingBalances={existingBalances || []}
       />
     </AppLayout>
   )
