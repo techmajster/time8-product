@@ -64,8 +64,13 @@ export async function GET(
 
     if (balancesError) {
       console.error('Leave balances query error:', balancesError)
-      return NextResponse.json({ error: 'Database error' }, { status: 500 })
+      return NextResponse.json({
+        error: 'Database error',
+        details: balancesError.message
+      }, { status: 500 })
     }
+
+    console.log(`✅ Leave balances API - Found ${balances?.length || 0} balances for employee ${employeeId}`)
 
     return NextResponse.json({
       balances: balances || [],
