@@ -9,6 +9,7 @@ export interface LeaveType {
   // Business rules
   is_paid: boolean
   requires_balance: boolean // Whether this leave type requires a configured balance
+  is_mandatory?: boolean // Whether this leave type is mandatory and cannot be deleted (Polish labor law compliance)
   min_days_per_request?: number
   max_days_per_request?: number
   advance_notice_days?: number // Minimum days notice required

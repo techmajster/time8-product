@@ -19,7 +19,7 @@ import { EditLeavePoliciesSheet } from './EditLeavePoliciesSheet'
 import { EditGoogleWorkspaceSheet } from './EditGoogleWorkspaceSheet'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { getCountryFlag, getLanguageFlag } from '@/lib/flag-utils'
-import { Plus, MoreVertical, X } from 'lucide-react'
+import { Plus, MoreVertical, X, Lock } from 'lucide-react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -34,6 +34,7 @@ interface LeaveType {
   color: string
   requires_balance: boolean
   requires_approval: boolean
+  is_mandatory?: boolean
 }
 
 interface LeavePolicies {
@@ -48,16 +49,30 @@ interface LeavePolicies {
   holiday_policy: 'count' | 'exclude'
 }
 
+interface Team {
+  id: string
+  name: string
+}
+
+interface TeamMember {
+  user_id: string
+  team_id: string
+}
+
 interface AdminSettingsClientProps {
   currentOrganization: any
   users: any[]
   leaveTypes: LeaveType[]
+  teams: Team[]
+  teamMembers: TeamMember[]
 }
 
-export default function AdminSettingsClient({ 
-  currentOrganization: initialOrganization, 
-  users, 
-  leaveTypes 
+export default function AdminSettingsClient({
+  currentOrganization: initialOrganization,
+  users,
+  leaveTypes,
+  teams,
+  teamMembers
 }: AdminSettingsClientProps) {
   const t = useTranslations('billing')
   const [currentOrganization, setCurrentOrganization] = useState(initialOrganization)
@@ -188,6 +203,42 @@ export default function AdminSettingsClient({
     window.location.reload()
   }
 
+  // Handler for calendar restriction toggle
+  const handleCalendarRestrictionToggle = async (checked: boolean) => {
+    try {
+      const response = await fetch('/api/admin/settings/calendar-restriction', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          organizationId: currentOrganization.id,
+          restrictCalendarByGroup: checked
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update calendar restriction setting')
+      }
+
+      // Update local state
+      setCurrentOrganization({
+        ...currentOrganization,
+        restrict_calendar_by_group: checked
+      })
+
+      toast.success(
+        checked
+          ? 'Widoczność kalendarza została ograniczona według grup'
+          : 'Widoczność kalendarza została odblokowana dla wszystkich'
+      )
+    } catch (error) {
+      console.error('Error updating calendar restriction:', error)
+      toast.error(error instanceof Error ? error.message : 'Nie udało się zaktualizować ustawienia')
+    }
+  }
+
+
   // Handlers for leave types edit and delete
   const handleEditLeaveType = (leaveType: LeaveType) => {
     setFormData({
@@ -241,6 +292,11 @@ export default function AdminSettingsClient({
 
     try {
       const supabase = createClient()
+
+      // Check if leave type is mandatory (cannot be deleted)
+      if (selectedLeaveType?.is_mandatory) {
+        throw new Error('Nie można usunąć obowiązkowego rodzaju urlopu. Ten typ jest wymagany przez polskie prawo pracy.')
+      }
 
       // Check if leave type is being used
       const { count } = await supabase
@@ -426,18 +482,33 @@ export default function AdminSettingsClient({
         remaining: Math.max(0, freeSeats - currentEmployees),
         percentage: Math.min(100, (currentEmployees / freeSeats) * 100),
         freeSeats,
-        paidSeats: 0
+        paidSeats: 0,
+        pendingInvitations: 0,
+        activeMembers: currentEmployees
       }
     }
 
-    const { total_seats, current_employees, seats_remaining, free_seats, paid_seats } = subscriptionData.seat_info
+    const {
+      total_seats,
+      current_employees,
+      seats_remaining,
+      free_seats,
+      paid_seats,
+      pending_invitations = 0
+    } = subscriptionData.seat_info
+
+    // Calculate total used including pending invitations
+    const totalUsed = current_employees + pending_invitations
+
     return {
-      used: current_employees,
+      used: totalUsed,
       total: total_seats,
       remaining: seats_remaining,
-      percentage: Math.min(100, (current_employees / total_seats) * 100),
+      percentage: Math.min(100, (totalUsed / total_seats) * 100),
       freeSeats: free_seats,
-      paidSeats: paid_seats
+      paidSeats: paid_seats,
+      pendingInvitations: pending_invitations,
+      activeMembers: current_employees
     }
   }
 
@@ -454,6 +525,7 @@ export default function AdminSettingsClient({
           <FigmaTabsList className="border-b-0">
             <FigmaTabsTrigger value="general">Ogólne</FigmaTabsTrigger>
             <FigmaTabsTrigger value="leave-types">Urlopy</FigmaTabsTrigger>
+            <FigmaTabsTrigger value="calendar-visibility">Widoczność kalendarza</FigmaTabsTrigger>
             <FigmaTabsTrigger value="billing">Billing</FigmaTabsTrigger>
             <FigmaTabsTrigger value="workspace">Workspace</FigmaTabsTrigger>
             <FigmaTabsTrigger value="notifications">Powiadomienia</FigmaTabsTrigger>
@@ -732,15 +804,25 @@ export default function AdminSettingsClient({
                           <tr key={leaveType.id} className="border-b border-neutral-200 last:border-b-0">
                             <td className="py-2 px-2">
                               <div className="flex flex-col gap-0">
-                                <span className="text-sm font-medium text-neutral-950">
-                                  {leaveType.name}
-                                </span>
+                                <div className="flex items-center gap-2">
+                                  {leaveType.is_mandatory && (
+                                    <Lock className="h-4 w-4 text-neutral-500" title="Obowiązkowy typ urlopu - nie można usunąć" />
+                                  )}
+                                  <span className="text-sm font-medium text-neutral-950">
+                                    {leaveType.name}
+                                  </span>
+                                  {leaveType.is_mandatory && (
+                                    <Badge className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-lg border border-blue-200">
+                                      Obowiązkowy
+                                    </Badge>
+                                  )}
+                                </div>
                               </div>
                             </td>
                             <td className="py-2 px-2">
                               <span className="text-sm font-medium text-neutral-950">
-                                {leaveType.days_per_year === 0 
-                                  ? "Nielimitowany" 
+                                {leaveType.days_per_year === 0
+                                  ? "Nielimitowany"
                                   : `${leaveType.days_per_year} dni rocznie`}
                               </span>
                             </td>
@@ -762,9 +844,20 @@ export default function AdminSettingsClient({
                                   <DropdownMenuItem onClick={() => handleEditLeaveType(leaveType)}>
                                     Edytuj
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleDeleteLeaveType(leaveType)} className="text-red-600 focus:text-red-600">
-                                    Usuń
-                                  </DropdownMenuItem>
+                                  {leaveType.is_mandatory ? (
+                                    <DropdownMenuItem
+                                      disabled
+                                      className="text-neutral-400 cursor-not-allowed"
+                                      title="Nie można usunąć obowiązkowego typu urlopu"
+                                    >
+                                      <Lock className="h-3 w-3 mr-2" />
+                                      Usuń
+                                    </DropdownMenuItem>
+                                  ) : (
+                                    <DropdownMenuItem onClick={() => handleDeleteLeaveType(leaveType)} className="text-red-600 focus:text-red-600">
+                                      Usuń
+                                    </DropdownMenuItem>
+                                  )}
                                   <DropdownMenuItem>
                                     Anuluj
                                   </DropdownMenuItem>
@@ -987,6 +1080,135 @@ export default function AdminSettingsClient({
           </Tabs>
         </FigmaTabsContent>
 
+        <FigmaTabsContent value="calendar-visibility" className="mt-6 space-y-6">
+          {/* Calendar Visibility Settings Card */}
+          <Card className="border border-border">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-xl font-semibold">Widoczność kalendarza</CardTitle>
+              <CardDescription>
+                Kontroluj, którzy użytkownicy mogą widzieć kalendarze innych osób w organizacji.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Calendar Restriction Toggle */}
+              <div className="flex items-center justify-between p-4 border border-border rounded-lg bg-muted/30">
+                <div className="space-y-1">
+                  <div className="font-medium text-foreground">
+                    Ogranicz widoczność kalendarza według grup
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Gdy włączone, użytkownicy w grupach widzą tylko kalendarze członków swojej grupy. Użytkownicy bez grupy widzą wszystkich.
+                  </div>
+                </div>
+                <Switch
+                  checked={currentOrganization?.restrict_calendar_by_group || false}
+                  onCheckedChange={handleCalendarRestrictionToggle}
+                />
+              </div>
+
+              {/* Current Status Explanation */}
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-900">
+                  <strong>Obecny status:</strong>{' '}
+                  {currentOrganization?.restrict_calendar_by_group
+                    ? 'Użytkownicy w grupach widzą tylko kalendarze członków swojej grupy. Użytkownicy bez grupy widzą wszystkich w organizacji.'
+                    : 'Wszyscy użytkownicy w organizacji widzą nawzajem swoje kalendarze, niezależnie od przynależności do grup.'}
+                </p>
+              </div>
+
+              <Separator />
+
+              {/* User Group Assignments */}
+              <div className="space-y-2">
+                <h3 className="text-base font-medium text-foreground">Przypisania użytkowników do grup</h3>
+                <p className="text-sm text-muted-foreground">
+                  Zarządzaj grupami użytkowników na stronie Zarządzania Zespołem
+                </p>
+              </div>
+
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="font-medium text-muted-foreground">Użytkownik</TableHead>
+                    <TableHead className="font-medium text-muted-foreground">Email</TableHead>
+                    <TableHead className="font-medium text-muted-foreground">Grupa</TableHead>
+                    <TableHead className="font-medium text-muted-foreground">Widoczność kalendarza</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {users.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="h-16 text-center">
+                        <div className="text-muted-foreground">
+                          Brak użytkowników w organizacji
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    users.map((user) => {
+                      const userTeam = teamMembers.find(tm => tm.user_id === user.id)
+                      const team = userTeam ? teams.find(t => t.id === userTeam.team_id) : null
+
+                      // Calculate visibility based on restriction setting
+                      let visibilityText: string
+                      if (currentOrganization?.restrict_calendar_by_group) {
+                        // Restriction is ON
+                        visibilityText = team
+                          ? `Tylko grupa: ${team.name}`
+                          : 'Wszyscy w organizacji'
+                      } else {
+                        // Restriction is OFF - everyone sees everyone
+                        visibilityText = 'Wszyscy w organizacji'
+                      }
+
+                      return (
+                        <TableRow key={user.id} className="h-[72px]">
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <Avatar className="size-10">
+                                <AvatarImage src={user.avatar_url || undefined} />
+                                <AvatarFallback className="bg-muted text-sm font-medium">
+                                  {user.full_name
+                                    ? user.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase()
+                                    : user.email.charAt(0).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <div className="font-medium text-foreground">
+                                  {user.full_name || 'Bez nazwiska'}
+                                </div>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm text-muted-foreground">
+                              {user.email}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {team ? (
+                              <Badge variant="secondary">
+                                {team.name}
+                              </Badge>
+                            ) : (
+                              <span className="text-sm text-muted-foreground">Brak grupy</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm text-muted-foreground">
+                              {visibilityText}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </FigmaTabsContent>
+
         <FigmaTabsContent value="billing" className="mt-6 space-y-6">
           {/* Current Subscription Card */}
           <Card className="border border-border">
@@ -1048,11 +1270,16 @@ export default function AdminSettingsClient({
                           <span className="font-medium">{t('seatsUsed', {used: getSeatUsage().used, total: getSeatUsage().total})}</span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div 
-                            className="bg-blue-600 h-2 rounded-full transition-all" 
+                          <div
+                            className="bg-blue-600 h-2 rounded-full transition-all"
                             style={{ width: `${getSeatUsage().percentage}%` }}
                           ></div>
                         </div>
+                        {getSeatUsage().pendingInvitations > 0 && (
+                          <div className="text-xs text-muted-foreground pt-1">
+                            {getSeatUsage().activeMembers} aktywnych + {getSeatUsage().pendingInvitations} oczekujących zaproszeń
+                          </div>
+                        )}
                         {getSeatUsage().remaining === 0 && (
                           <div className="text-amber-600 text-sm font-medium">
                             {t('allSeatsInUse')}
