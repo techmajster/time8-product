@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { authenticateAndGetOrgContext, requireRole } from '@/lib/auth-utils-v2'
 
 interface WorkspaceOwner {
   user_id: string
@@ -26,28 +27,24 @@ interface ExistingBalance {
 
 export async function POST(request: NextRequest) {
   console.log('🚀 Workspace owner balance fix API called')
-  
+
   try {
-    // Get current user from session
-    const supabase = await createClient()
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-    
-    if (userError || !user) {
-      console.error('API: Authentication error:', userError)
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+    // SECURITY FIX: Use proper multi-workspace authentication with admin check
+    const auth = await authenticateAndGetOrgContext()
+    if (!auth.success) {
+      return auth.error
     }
 
-    // Check if user is admin
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
+    const { context } = auth
+    const { role, organization } = context
 
-    if (profileError || !profile || profile.role !== 'admin') {
-      console.error('API: Authorization error - user not admin')
-      return NextResponse.json({ error: 'Unauthorized - admin access required' }, { status: 403 })
+    // Only admins can run this utility
+    const roleCheck = requireRole(context, ['admin'])
+    if (roleCheck) {
+      return roleCheck
     }
+
+    console.log(`✅ Admin ${context.user.email} running balance fix for organization: ${organization.name}`)
 
     const supabaseAdmin = createAdminClient()
     const currentYear = new Date().getFullYear()

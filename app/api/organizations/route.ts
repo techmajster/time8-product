@@ -41,7 +41,23 @@ export async function POST(request: NextRequest) {
 
     console.log('API: User profile found:', profile.full_name, profile.role)
 
+    // SECURITY: Validate slug is unique (prevent conflicts)
+    const { data: existingOrg, error: slugCheckError } = await supabaseAdmin
+      .from('organizations')
+      .select('id')
+      .eq('slug', slug)
+      .single()
+
+    if (existingOrg) {
+      console.error('API: Slug already taken:', slug)
+      return NextResponse.json({
+        error: 'Organization slug is already taken. Please choose a different slug.'
+      }, { status: 409 })
+    }
+
     // Create organization with admin client (bypasses RLS)
+    // NOTE: Any authenticated user can create an organization and become its admin.
+    // This is intentional - organization creation is open to all users.
     console.log('🏢 Creating organization...')
     const { data: org, error: orgError } = await supabaseAdmin
       .from('organizations')

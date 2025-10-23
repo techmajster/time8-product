@@ -3,12 +3,16 @@
  *
  * Retrieves subscription information using stored Lemon Squeezy subscription ID.
  * Follows best practice: store subscription ID locally + fetch real data from Lemon Squeezy.
+ *
+ * SECURITY: Uses authenticateAndGetOrgContext() to ensure user belongs to the organization
+ * before allowing access to billing data (multi-workspace isolation).
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { calculateComprehensiveSeatInfo } from '@/lib/billing/seat-calculation';
+import { authenticateAndGetOrgContext } from '@/lib/auth-utils-v2';
 
 /**
  * GET handler for retrieving subscription information
@@ -24,28 +28,28 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get organization ID from query parameters
-    const { searchParams } = new URL(request.url);
-    const organizationId = searchParams.get('organization_id');
-
-    if (!organizationId) {
-      return NextResponse.json(
-        { error: 'Missing required parameter: organization_id' },
-        { status: 400 }
-      );
+    // SECURITY FIX: Authenticate and get organization context from active workspace
+    // This ensures user belongs to the organization before accessing billing data
+    const auth = await authenticateAndGetOrgContext();
+    if (!auth.success) {
+      return auth.error;
     }
+
+    const { context } = auth;
+    const { organization } = context;
+    const organizationId = organization.id;
 
     const supabase = await createClient();
 
-    // Get organization with subscription data
-    const { data: organization, error: orgError } = await supabase
+    // Get organization subscription details (organization basic info already from context)
+    const { data: orgDetails, error: orgError } = await supabase
       .from('organizations')
       .select('id, name, subscription_tier, paid_seats')
       .eq('id', organizationId)
       .single();
 
-    if (orgError || !organization) {
-      console.error('Organization not found:', orgError);
+    if (orgError || !orgDetails) {
+      console.error('Organization details not found:', orgError);
       return NextResponse.json(
         { error: 'Organization not found' },
         { status: 404 }
@@ -84,7 +88,7 @@ export async function GET(request: NextRequest) {
     const pendingInvitations = pendingInvitationsCount || 0;
 
     // Check subscription based on database fields
-    if (organization.subscription_tier === 'free' || organization.paid_seats === 0) {
+    if (orgDetails.subscription_tier === 'free' || orgDetails.paid_seats === 0) {
       // Return free tier with comprehensive seat calculation
       const seatInfo = calculateComprehensiveSeatInfo(
         0, // 0 paid seats
@@ -96,8 +100,8 @@ export async function GET(request: NextRequest) {
         success: true,
         subscription: null,
         organization_info: {
-          id: organization.id,
-          name: organization.name,
+          id: orgDetails.id,
+          name: orgDetails.name,
           seat_info: {
             total_seats: seatInfo.totalSeats,
             paid_seats: seatInfo.paidSeats,
@@ -121,7 +125,7 @@ export async function GET(request: NextRequest) {
     if (subError || !subscriptionRecord) {
       console.error('❌ No subscription record found:', subError);
       const seatInfo = calculateComprehensiveSeatInfo(
-        organization.paid_seats,
+        orgDetails.paid_seats,
         currentMembers,
         pendingInvitations
       );
@@ -130,8 +134,8 @@ export async function GET(request: NextRequest) {
         success: true,
         subscription: null,
         organization_info: {
-          id: organization.id,
-          name: organization.name,
+          id: orgDetails.id,
+          name: orgDetails.name,
           seat_info: {
             total_seats: seatInfo.totalSeats,
             paid_seats: seatInfo.paidSeats,
@@ -166,7 +170,7 @@ export async function GET(request: NextRequest) {
       console.log(`✅ Found subscription: ${lsAttrs.variant_name} (${lsAttrs.first_subscription_item?.quantity || 'N/A'} seats)`);
 
       const seatInfo = calculateComprehensiveSeatInfo(
-        organization.paid_seats,
+        orgDetails.paid_seats,
         currentMembers,
         pendingInvitations
       );
@@ -175,7 +179,7 @@ export async function GET(request: NextRequest) {
         id: data.data.id,
         status: lsAttrs.status,
         status_formatted: lsAttrs.status_formatted,
-        quantity: lsAttrs.first_subscription_item?.quantity || organization.paid_seats,
+        quantity: lsAttrs.first_subscription_item?.quantity || orgDetails.paid_seats,
         current_period_start: lsAttrs.current_period_start,
         current_period_end: lsAttrs.current_period_end,
         renews_at: lsAttrs.renews_at,
@@ -188,7 +192,7 @@ export async function GET(request: NextRequest) {
         variant: {
           name: lsAttrs.variant_name,
           price: lsAttrs.first_subscription_item?.price_id || 0, // Real price from Lemon Squeezy
-          quantity: lsAttrs.first_subscription_item?.quantity || organization.paid_seats
+          quantity: lsAttrs.first_subscription_item?.quantity || orgDetails.paid_seats
         },
         billing_info: {
           card_brand: lsAttrs.card_brand,
@@ -221,7 +225,7 @@ export async function GET(request: NextRequest) {
       console.log('🔄 Falling back to database subscription data...');
 
       const seatInfo = calculateComprehensiveSeatInfo(
-        organization.paid_seats,
+        orgDetails.paid_seats,
         currentMembers,
         pendingInvitations
       );
@@ -231,7 +235,7 @@ export async function GET(request: NextRequest) {
         id: subscriptionRecord.lemonsqueezy_subscription_id,
         status: 'active',
         status_formatted: 'Active',
-        quantity: organization.paid_seats + 3, // Convert paid seats back to total users
+        quantity: orgDetails.paid_seats + 3, // Convert paid seats back to total users
         product: {
           name: 'Leave Management System',
           description: 'Database subscription (Lemon Squeezy unavailable)'
@@ -239,7 +243,7 @@ export async function GET(request: NextRequest) {
         variant: {
           name: 'Monthly Plan', // Default assumption
           price: 1299, // Default monthly price in cents
-          quantity: organization.paid_seats + 3
+          quantity: orgDetails.paid_seats + 3
         },
         billing_info: {
           card_brand: null,

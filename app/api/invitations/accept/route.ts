@@ -66,6 +66,21 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // SECURITY: Verify the target organization actually exists and is active
+    const { data: targetOrg, error: orgCheckError } = await supabaseAdmin
+      .from('organizations')
+      .select('id, name')
+      .eq('id', invitation.organization_id)
+      .single()
+
+    if (orgCheckError || !targetOrg) {
+      console.error('❌ Target organization not found:', orgCheckError)
+      return NextResponse.json(
+        { error: 'The organization for this invitation no longer exists' },
+        { status: 400 }
+      )
+    }
+
     console.log('✅ Invitation verified')
 
     // 2. Check if user has any membership (active or inactive) in this organization
