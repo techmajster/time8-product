@@ -1,4 +1,6 @@
 /**
+ * @jest-environment node
+ *
  * Workspace Isolation Audit - Integration Test Suite
  *
  * Tests for validating Sprint 1 & 2 security fixes from the
@@ -13,7 +15,7 @@
  */
 
 import { describe, test, expect, beforeEach, afterEach } from '@jest/globals'
-import { createMockRequest, createTestUser, createTestOrganization, cleanupTestData } from '../utils/test-helpers'
+import { createMockRequest, createTestUser, createTestOrganization, cleanupTestData, createTestInvitation } from '../utils/test-helpers'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 
@@ -29,6 +31,9 @@ import { GET as leaveBalancesGet } from '@/app/api/employees/[id]/leave-balances
 import { GET as employeeOrgGet } from '@/app/api/employees/[id]/organization/route'
 import { GET as calendarLeaveRequestsGet } from '@/app/api/calendar/leave-requests/route'
 import { GET as calendarHolidaysGet } from '@/app/api/calendar/holidays/route'
+import { POST as acceptInvitationPost } from '@/app/api/invitations/accept/route'
+import { POST as createOrganizationPost } from '@/app/api/organizations/route'
+import { POST as fixWorkspaceOwnersPost } from '@/app/api/admin/fix-workspace-owners-balances/route'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -123,17 +128,80 @@ describe('Workspace Isolation Audit - Integration Tests', () => {
     describe('Invitation Acceptance Route (/api/invitations/accept)', () => {
       test('should validate target organization exists', async () => {
         // Sprint 1 fix: Prevents accepting invitations to deleted organizations
-        // This test would require creating an invitation and testing acceptance
-        // For now, we document the expected behavior
-        expect(true).toBe(true) // Placeholder for invitation validation test
+
+        // Create a test organization and invitation
+        const testOrgId = await createTestOrganization('Test Invitation Org')
+        const inviteeEmail = 'invitee@audit.test'
+        const inviteeUser = await createTestUser(inviteeEmail)
+
+        // Create invitation for the test organization
+        const invitationToken = await createTestInvitation(testOrgId, inviteeEmail, 'employee')
+
+        // Delete the organization (simulating deleted org scenario)
+        await supabaseAdmin.from('organizations').delete().eq('id', testOrgId)
+
+        // Attempt to accept invitation to deleted organization
+        const request = createMockRequest({
+          method: 'POST',
+          userId: inviteeUser,
+          body: {
+            token: invitationToken
+          }
+        })
+
+        const response = await acceptInvitationPost(request)
+        const data = await response.json()
+
+        // Should fail with appropriate error message
+        expect(response.status).toBe(400)
+        expect(data.error).toContain('organization')
+        expect(data.error.toLowerCase()).toContain('no longer exists')
+
+        // Cleanup
+        await supabaseAdmin.from('invitations').delete().eq('token', invitationToken)
+        await supabaseAdmin.from('profiles').delete().eq('id', inviteeUser)
       })
     })
 
     describe('Organization Creation Route (/api/organizations POST)', () => {
       test('should validate slug uniqueness', async () => {
         // Sprint 1 fix: Prevents organization slug conflicts
-        // This test would require creating organizations with duplicate slugs
-        expect(true).toBe(true) // Placeholder for slug uniqueness test
+
+        // Create first organization with a specific slug
+        const firstOrgId = await createTestOrganization('First Slug Test Org')
+        const testSlug = 'unique-slug-test'
+
+        // Update the organization to have our test slug
+        await supabaseAdmin
+          .from('organizations')
+          .update({ slug: testSlug })
+          .eq('id', firstOrgId)
+
+        // Attempt to create second organization with same slug
+        const request = createMockRequest({
+          method: 'POST',
+          userId: adminUser1,
+          organizationId: org1Id,
+          cookies: {
+            'active-organization-id': org1Id
+          },
+          body: {
+            name: 'Second Slug Test Org',
+            slug: testSlug, // Duplicate slug - should fail
+            country_code: 'US'
+          }
+        })
+
+        const response = await createOrganizationPost(request)
+        const data = await response.json()
+
+        // Should fail with 409 Conflict status
+        expect(response.status).toBe(409)
+        expect(data.error).toContain('slug')
+        expect(data.error.toLowerCase()).toContain('already taken')
+
+        // Cleanup
+        await supabaseAdmin.from('organizations').delete().eq('id', firstOrgId)
       })
     })
 
@@ -142,7 +210,58 @@ describe('Workspace Isolation Audit - Integration Tests', () => {
         // Sprint 1 fix: Admin utility now respects multi-workspace context
         // Previously used single-org pattern (profiles.role)
         // Now uses per-org role from user_organizations
-        expect(true).toBe(true) // Placeholder for admin utility test
+
+        // Admin in org1 should be able to run utility for org1
+        const adminRequest = createMockRequest({
+          method: 'POST',
+          userId: adminUser1,
+          organizationId: org1Id,
+          cookies: {
+            'active-organization-id': org1Id
+          },
+          body: {
+            dryRun: true // Use dry run to avoid side effects
+          }
+        })
+
+        const adminResponse = await fixWorkspaceOwnersPost(adminRequest)
+        expect(adminResponse.status).toBe(200)
+
+        // Employee in org1 should NOT be able to run admin utility
+        const employeeRequest = createMockRequest({
+          method: 'POST',
+          userId: employeeUser1,
+          organizationId: org1Id,
+          cookies: {
+            'active-organization-id': org1Id
+          },
+          body: {
+            dryRun: true
+          }
+        })
+
+        const employeeResponse = await fixWorkspaceOwnersPost(employeeRequest)
+        expect(employeeResponse.status).toBe(403) // Should be forbidden
+
+        // Multi-org admin should be able to run utility for org2 when that's their active org
+        const multiOrgRequest = createMockRequest({
+          method: 'POST',
+          userId: multiOrgAdmin,
+          organizationId: org2Id,
+          cookies: {
+            'active-organization-id': org2Id
+          },
+          body: {
+            dryRun: true
+          }
+        })
+
+        const multiOrgResponse = await fixWorkspaceOwnersPost(multiOrgRequest)
+        expect(multiOrgResponse.status).toBe(200)
+
+        // Verify the utility respects workspace context (per-org role, not global)
+        const multiOrgData = await multiOrgResponse.json()
+        expect(multiOrgData.success).toBe(true)
       })
     })
   })

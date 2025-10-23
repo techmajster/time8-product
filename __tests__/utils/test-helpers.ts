@@ -11,17 +11,76 @@ const supabase = createClient(
 )
 
 export interface MockRequestOptions {
+  method: string
+  url?: string
   userId?: string
   organizationId?: string
   headers?: Record<string, string>
+  cookies?: Record<string, string>
+  body?: any
 }
 
+export function createMockRequest(options: MockRequestOptions): NextRequest
 export function createMockRequest(
   method: string,
   url: string,
   body?: any,
-  options: MockRequestOptions = {}
+  options?: { userId?: string; organizationId?: string; headers?: Record<string, string> }
+): NextRequest
+export function createMockRequest(
+  methodOrOptions: string | MockRequestOptions,
+  url?: string,
+  body?: any,
+  legacyOptions?: { userId?: string; organizationId?: string; headers?: Record<string, string> }
 ): NextRequest {
+  // Handle object-based signature (new style)
+  if (typeof methodOrOptions === 'object') {
+    const options = methodOrOptions
+    const headers = new Headers({
+      'Content-Type': 'application/json',
+      ...options.headers
+    })
+
+    if (options.organizationId) {
+      headers.set('x-organization-id', options.organizationId)
+    }
+
+    // Set cookie header if cookies provided
+    if (options.cookies) {
+      const cookieString = Object.entries(options.cookies)
+        .map(([key, value]) => `${key}=${value}`)
+        .join('; ')
+      headers.set('Cookie', cookieString)
+    }
+
+    const requestInit: RequestInit = {
+      method: options.method,
+      headers
+    }
+
+    if (options.body && options.method !== 'GET') {
+      requestInit.body = JSON.stringify(options.body)
+    }
+
+    const fullUrl = options.url?.startsWith('http')
+      ? options.url
+      : `http://localhost${options.url || '/'}`
+    const request = new NextRequest(fullUrl, requestInit)
+
+    // Mock authentication by setting user context
+    if (options.userId) {
+      Object.defineProperty(request, 'auth', {
+        value: { userId: options.userId },
+        writable: false
+      })
+    }
+
+    return request
+  }
+
+  // Handle legacy signature (old style)
+  const method = methodOrOptions
+  const options = legacyOptions || {}
   const headers = new Headers({
     'Content-Type': 'application/json',
     ...options.headers
@@ -40,12 +99,11 @@ export function createMockRequest(
     requestInit.body = JSON.stringify(body)
   }
 
-  const fullUrl = url.startsWith('http') ? url : `http://localhost${url}`
+  const fullUrl = url!.startsWith('http') ? url! : `http://localhost${url!}`
   const request = new NextRequest(fullUrl, requestInit)
 
   // Mock authentication by setting user context
   if (options.userId) {
-    // This would typically be handled by middleware/auth utils
     Object.defineProperty(request, 'auth', {
       value: { userId: options.userId },
       writable: false
@@ -56,14 +114,19 @@ export function createMockRequest(
 }
 
 export async function createTestUser(
-  email: string, 
-  organizationId?: string, 
+  email: string,
+  organizationId?: string,
   role: 'admin' | 'manager' | 'employee' = 'employee'
 ): Promise<string> {
+  // Generate a UUID for the test user
+  const { data: uuidData } = await supabase.rpc('gen_random_uuid')
+  const userId = uuidData || crypto.randomUUID()
+
   // Create user profile
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .insert({
+      id: userId,
       email,
       full_name: `Test User ${email.split('@')[0]}`,
       auth_provider: 'email',
