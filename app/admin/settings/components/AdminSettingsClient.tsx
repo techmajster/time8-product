@@ -298,26 +298,7 @@ export default function AdminSettingsClient({
         throw new Error('Nie można usunąć obowiązkowego rodzaju urlopu. Ten typ jest wymagany przez polskie prawo pracy.')
       }
 
-      // Check if leave type is being used in leave requests
-      const { count: requestsCount } = await supabase
-        .from('leave_requests')
-        .select('*', { count: 'exact', head: true })
-        .eq('leave_type_id', selectedLeaveType?.id)
-
-      if (requestsCount && requestsCount > 0) {
-        throw new Error('Nie można usunąć rodzaju urlopu, który jest używany w istniejących wnioskach')
-      }
-
-      // Check if leave type is being used in leave balances
-      const { count: balancesCount } = await supabase
-        .from('leave_balances')
-        .select('*', { count: 'exact', head: true })
-        .eq('leave_type_id', selectedLeaveType?.id)
-
-      if (balancesCount && balancesCount > 0) {
-        throw new Error('Nie można usunąć rodzaju urlopu, który ma przypisane salda. Usuń najpierw wszystkie salda dla tego typu urlopu.')
-      }
-
+      // Delete the leave type (CASCADE will automatically delete related leave_requests and leave_balances)
       const { error: deleteError } = await supabase
         .from('leave_types')
         .delete()
