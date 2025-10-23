@@ -157,11 +157,23 @@ export default function OnboardingRoutingPage() {
                 return
               }
             } else {
-              // User not authenticated - redirect to registration screen with invitation data
-              console.log('🔥 Unauthenticated user with invitation - redirecting to registration screen')
-              const registerUrl = `/onboarding/register?token=${encodeURIComponent(token)}&email=${encodeURIComponent(invitation.email)}&name=${encodeURIComponent(invitation.full_name)}&org=${encodeURIComponent(mappedInvitation.organizationName)}`
-              router.push(registerUrl)
-              return
+              // User not authenticated - check if user exists in system
+              console.log('🔥 Unauthenticated user with invitation')
+              console.log('🔍 Checking if user exists:', invitation.user_exists)
+
+              if (invitation.user_exists) {
+                // Existing user - redirect to login with invitation token
+                console.log('✅ User exists in system - redirecting to login with invitation token')
+                const loginUrl = `/login?invitation_token=${encodeURIComponent(token)}&email=${encodeURIComponent(invitation.email)}`
+                router.push(loginUrl)
+                return
+              } else {
+                // New user - redirect to registration screen with invitation data
+                console.log('🆕 New user - redirecting to registration screen')
+                const registerUrl = `/onboarding/register?token=${encodeURIComponent(token)}&email=${encodeURIComponent(invitation.email)}&name=${encodeURIComponent(invitation.full_name)}&org=${encodeURIComponent(mappedInvitation.organizationName)}`
+                router.push(registerUrl)
+                return
+              }
             }
           } catch (error) {
             console.error('❌ Error processing invitation token:', error)

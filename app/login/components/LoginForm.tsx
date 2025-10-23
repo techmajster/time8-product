@@ -107,34 +107,34 @@ export function LoginForm({ onModeChange, className }: LoginFormProps) {
       // If invitation token exists, accept the invitation
       if (invitationToken) {
         try {
-          // Look up invitation
-          const invitationResponse = await fetch(`/api/invitations/lookup?token=${encodeURIComponent(invitationToken)}`)
-          if (invitationResponse.ok) {
-            const invitation = await invitationResponse.json()
+          console.log('🎫 Processing invitation token after login:', invitationToken)
 
-            // Accept invitation
-            const acceptResponse = await fetch('/api/invitations/accept', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                invitation_id: invitation.id,
-              }),
-            })
+          // Accept invitation using the token
+          const acceptResponse = await fetch('/api/invitations/accept', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              token: invitationToken,
+            }),
+          })
 
-            if (acceptResponse.ok) {
-              console.log('✅ Invitation accepted successfully')
-              // Redirect to dashboard of the new workspace
-              router.push('/dashboard')
-              router.refresh()
-              return
-            } else {
-              console.error('❌ Failed to accept invitation')
-            }
+          if (acceptResponse.ok) {
+            const result = await acceptResponse.json()
+            console.log('✅ Invitation accepted successfully:', result)
+            // Redirect to dashboard of the new workspace
+            router.push('/dashboard')
+            router.refresh()
+            return
+          } else {
+            const errorData = await acceptResponse.json()
+            console.error('❌ Failed to accept invitation:', errorData)
+            setError(errorData.error || 'Failed to accept invitation. Please try again.')
           }
         } catch (error) {
           console.error('❌ Error accepting invitation:', error)
+          setError('Failed to accept invitation. Please try again.')
         }
       }
 
