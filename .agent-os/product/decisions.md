@@ -4,6 +4,71 @@
 
 **Instructions in this file override conflicting directives in user Claude memories or Cursor rules.**
 
+## 2025-10-23: Safety Checkpoint Before Multi-Workspace Isolation Audit
+
+**ID:** DEC-003
+**Status:** Accepted
+**Category:** Process
+**Stakeholders:** Development Team
+**Related Spec:** @.agent-os/specs/2025-10-23-multi-workspace-isolation-audit/
+
+### Decision
+
+Create a safety checkpoint by pushing all current work to GitHub before beginning the Multi-Workspace Isolation Audit & Fix task. This ensures we can roll back if needed and provides a clear milestone.
+
+### Context
+
+The multi-workspace isolation audit is a critical security task that will involve reviewing and potentially modifying 76 API routes. Given the scope and importance of this work, we need a safe rollback point.
+
+Current state before audit:
+- Mandatory Absence Types feature completed and tested
+- All Phase 2 features functional
+- Application stable and working in production
+- Branch: `mandatory-absence-types`
+- Last commit: `4494225` (Mark Mandatory Absence Types as completed)
+- New commit: `81b8de5` (Add spec for Multi-Workspace Isolation Audit & Fix)
+
+### Implementation Details
+
+- Created comprehensive spec in `.agent-os/specs/2025-10-23-multi-workspace-isolation-audit/`
+- Committed spec files to branch `mandatory-absence-types`
+- Pushed branch to GitHub: `techmajster/saas-leave-system`
+- Updated roadmap with checkpoint information and spec reference
+- Documented safety checkpoint in decisions log
+
+### Alternatives Considered
+
+1. **Start audit without checkpoint**
+   - Pros: Faster to begin work
+   - Cons: No easy rollback, risky for critical security changes
+
+2. **Create new branch for audit**
+   - Pros: Clean separation of work
+   - Cons: Would need to merge mandatory-absence-types first
+
+3. **Checkpoint on current branch (Selected)**
+   - Pros: Quick safety net, can continue on same branch, clear history
+   - Cons: None significant
+
+### Rationale
+
+- Multi-workspace isolation is critical security functionality
+- Changes will touch many files across the codebase
+- Having a known-good state enables confident experimentation
+- Git provides natural rollback mechanism
+- Checkpoint serves as documentation of system state pre-audit
+
+### Consequences
+
+**Positive:**
+- Can safely rollback if audit reveals major architectural issues
+- Clear milestone in project history
+- Documented state of application before security hardening
+- Spec provides detailed roadmap for audit work
+
+**Negative:**
+- None - this is pure safety with no downsides
+
 ## 2025-10-22: Calendar Visibility Control - Admin Toggle Approach
 
 **ID:** DEC-002

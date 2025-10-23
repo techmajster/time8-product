@@ -71,20 +71,20 @@
   - Maintain invitation context (token) through login flow
   - Update `/api/invitations/lookup` to check for existing users
 
-- [ ] **Multi-Workspace Isolation Audit & Fix** `L` 🔥 **HIGH PRIORITY**
-  - Audit all 30+ API routes that reference `organization_id`
-  - Ensure all routes respect `active-organization-id` cookie
+- [ ] **Multi-Workspace Isolation Audit & Fix** `L` 🔥 **HIGH PRIORITY** 📋 **SPEC READY**
+  - **Spec:** `.agent-os/specs/2025-10-23-multi-workspace-isolation-audit/`
+  - **Safety Checkpoint:** Branch `mandatory-absence-types` pushed to GitHub (commit 81b8de5)
+  - Audit all 76 API routes, prioritize 24+ critical organization-scoped routes
+  - Ensure all routes respect `active-organization-id` cookie via `authenticateAndGetOrgContext()`
   - Fix routes that query data without proper workspace context
-  - Critical routes to fix:
-    - `/api/employees/route.ts` - Employee listing
-    - `/api/teams/**` - Team management endpoints
-    - `/api/leave-requests/**` - Leave request operations
-    - `/api/calendar/**` - Calendar data endpoints
-    - `/api/billing/**` - Billing and subscription operations
-    - `/api/admin/settings/**` - Admin settings endpoints
-    - And 20+ additional organization-aware routes
-  - Add integration tests for multi-workspace admin scenarios
-  - Document standard cookie usage pattern for future API development
+  - Critical routes to fix (Priority 1-5):
+    - P1: `/api/employees/**`, `/api/teams/**`, `/api/leave-requests/**`
+    - P2: `/api/calendar/**`, `/api/dashboard-data`
+    - P3: `/api/admin/settings/**`, `/api/admin/leave-balances`
+    - P4: `/api/billing/**`
+    - P5: `/api/invitations/**`, `/api/organization/members`
+  - Add comprehensive integration test suite for multi-workspace scenarios
+  - Document standard cookie usage pattern in `docs/api-development-standards.md`
   - Prevent data leakage between workspaces for multi-org admins
 
 - [x] **Mandatory Absence Types System** `M` ✅ **COMPLETED**
