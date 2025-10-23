@@ -101,29 +101,113 @@
   - Integration tests passing (100%) ✅
   - Spec: `.agent-os/specs/2025-10-23-mandatory-absence-types/`
 
-- [ ] **Optional Polish Law Templates** `M`
-  - 11 additional Polish labor law leave types from existing `types/leave.ts`
-  - Admin can enable/disable specific templates per workspace
-  - Deduplication logic to prevent conflicts with mandatory types
-  - Templates only visible in current workspace
+- [x] **Optional Polish Law Templates** `M`
+  - 13 Polish labor law leave types available via "Create default leave types" button ✅
+  - Includes: Urlop macierzyński, Urlop ojcowski, Urlop rodzicielski, Dni wolne wychowawcze, Urlop okolicznościowy, Urlop opiekuńczy, Urlop szkoleniowy, Urlop na żądanie, plus others ✅
+  - Smart deduplication logic prevents conflicts with existing types ✅
+  - Automatic balance creation for existing employees (excludes child-specific types) ✅
+  - Accessible via Admin Settings → Urlopy → "Utwórz domyślne rodzaje urlopów" ✅
+  - API endpoint: `/api/admin/create-default-leave-types` ✅
 
-- [ ] **Custom Absence Type Management** `S`
-  - Admin can create custom absence types per workspace
-  - Full CRUD operations on custom types
-  - Custom types only visible to workspace users
+- [x] **Custom Absence Type Management** `S`
+  - Admin can create custom absence types via "Dodaj rodzaj urlopu" button ✅
+  - Full CRUD operations implemented (Create, Read, Update, Delete) ✅
+  - CreateLeaveTypeSheet component with comprehensive form fields ✅
+  - Automatic balance creation for existing employees when applicable ✅
+  - Edit and delete dialogs with mandatory type protection ✅
+  - Custom types scoped to workspace via organization_id ✅
+  - UI location: Admin Settings → Urlopy → "Dodaj rodzaj urlopu" ✅
 
-- [ ] **UI Permission Enforcement** `M`
-  - Route guards for unauthorized access
-  - Navigation menu filtering by role
-  - Component-level button visibility (hide Add/Edit/Delete for managers on Team/Groups)
-  - Team page READ-ONLY mode for managers
-  - Groups page READ-ONLY mode for managers
+- [x] **UI Permission Enforcement** `M`
+  - Route guards for unauthorized access ✅
+    - Admin Settings: [page.tsx:73](app/admin/settings/page.tsx#L73)
+    - Team Management: [page.tsx:73](app/admin/team-management/page.tsx#L73)
+    - Groups: [page.tsx:64](app/admin/groups/page.tsx#L64)
+    - All admin routes redirect non-admins to /dashboard
+  - Navigation menu filtering by role ✅
+    - Manager navigation shown only to managers/admins: [app-sidebar.tsx:170](components/app-sidebar.tsx#L170)
+    - Admin navigation shown only to admins: [app-sidebar.tsx:175](components/app-sidebar.tsx#L175)
+    - Uses permission utilities: isManagerOrAdmin(), isAdmin()
+  - Team page READ-ONLY mode for managers ✅
+    - ManagerTeamView component with READ-ONLY alert banner: [ManagerTeamView.tsx:77-83](app/team/components/ManagerTeamView.tsx#L77-L83)
+    - No Add/Edit/Delete buttons for managers
+    - View-only access to team member data
+  - Groups page admin-only ✅
+    - Managers cannot access Groups page at all
+    - Route guard redirects non-admins
+  - Comprehensive permissions library ✅
+    - Three-tier RBAC: employee, manager, admin
+    - Permission matrix at [lib/permissions.ts](lib/permissions.ts)
+    - Utility functions: hasPermission(), canEditResource(), isAdmin(), etc.
 
 ### Dependencies
 
 - Phase 1 complete ✅
 - Page structure outline from user
 - Database schema review for permission tables
+
+## Phase 2.5: Subscription System Enhancement 💳
+
+**Goal:** Complete LemonSqueezy integration with all subscription states, trial periods, and webhook events properly handled
+**Success Criteria:** All subscription statuses display correctly in UI, trial users see conversion prompts, payment failures captured immediately via webhooks
+
+### Features
+
+- [ ] **Missing Subscription Status UI** `S`
+  - Add `on_trial` status badge and UI (currently shows "Unknown")
+  - Add `expired` status badge and UI (currently shows "Unknown")
+  - Update English and Polish translations for new statuses
+  - Files: `AdminSettingsClient.tsx`, `messages/en.json`, `messages/pl.json`
+
+- [ ] **Trial Period Display & Conversion** `M`
+  - Show trial countdown banner when `trial_ends_at` exists
+  - Display "X days remaining in trial" messaging
+  - Add upgrade CTA for trial users approaching expiration
+  - Special UI treatment for `on_trial` status
+  - Files: `AdminSettingsClient.tsx`, translations
+
+- [ ] **Payment Failure Webhook Handler** `S` ⚡ **High Priority**
+  - Add `subscription_payment_failed` handler for immediate payment alerts
+  - Log payment failures to `billing_events` table
+  - Send email notification to organization admin (future enhancement)
+  - Files: `app/api/webhooks/lemonsqueezy/handlers.ts`, `route.ts`
+
+- [ ] **Pause/Resume Webhook Handlers** `S`
+  - Add `subscription_paused` handler to update status when paused via portal
+  - Add `subscription_resumed` handler to reactivate paused subscriptions
+  - Ensure database stays in sync with LemonSqueezy portal actions
+  - Files: `app/api/webhooks/lemonsqueezy/handlers.ts`, `route.ts`
+
+- [ ] **Enhanced Status-Specific Actions** `S`
+  - Update customer portal access logic for new statuses
+  - Add context-aware CTAs (upgrade for trial, fix payment for past_due, etc.)
+  - Improve messaging for each subscription state
+  - Files: `AdminSettingsClient.tsx`
+
+- [ ] **Webhook Event Tests** `M`
+  - Test new webhook handlers (`payment_failed`, `paused`, `resumed`)
+  - Test idempotency for new event types
+  - Test error handling and logging
+  - Files: `__tests__/billing/webhook-subscription-events.test.ts`
+
+- [ ] **UI Status Display Tests** `S`
+  - Test rendering for all 7 subscription statuses (including `on_trial`, `expired`)
+  - Test trial countdown logic and display
+  - Test status badge colors and translations
+  - Files: `__tests__/billing/subscription-display-logic.test.ts`
+
+### Dependencies
+
+- Phase 2 complete ✅
+- LemonSqueezy already integrated ✅ (basic functionality working)
+- Webhook infrastructure in place ✅
+
+### Technical Notes
+
+- Currently collecting `trial_ends_at` from LemonSqueezy but not displaying it
+- Webhook handlers recognize all 7 statuses but only handle 4 event types
+- UI status switch only handles 4 of 7 possible statuses
+- Missing handlers: `subscription_payment_failed`, `subscription_paused`, `subscription_resumed`
 
 ## Phase 3: Design System Implementation 🎨
 
@@ -169,7 +253,6 @@
 ### Features
 
 - [x] **User Onboarding Flow** - Streamlined signup and organization setup `M`
-- [ ] **Data Migration Tools** - Import existing leave data from spreadsheets `L`
 - [ ] **Mobile Optimization** - Enhanced mobile experience and PWA support `M`
 - [ ] **Help Documentation** - User guides and support materials `M`
 - [ ] **Error Monitoring** - Production monitoring and alerting `S`

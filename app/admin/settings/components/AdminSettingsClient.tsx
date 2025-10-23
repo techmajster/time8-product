@@ -17,6 +17,7 @@ import { EditOrganizationSheet } from './EditOrganizationSheet'
 import { EditLeaveTypesSheet } from './EditLeaveTypesSheet'
 import { EditLeavePoliciesSheet } from './EditLeavePoliciesSheet'
 import { EditGoogleWorkspaceSheet } from './EditGoogleWorkspaceSheet'
+import { CreateLeaveTypeSheet } from './CreateLeaveTypeSheet'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { getCountryFlag, getLanguageFlag } from '@/lib/flag-utils'
 import { Plus, MoreVertical, X, Lock } from 'lucide-react'
@@ -86,6 +87,7 @@ export default function AdminSettingsClient({
   const [isLeaveTypesSheetOpen, setIsLeaveTypesSheetOpen] = useState(false)
   const [isLeavePoliciesSheetOpen, setIsLeavePoliciesSheetOpen] = useState(false)
   const [isGoogleWorkspaceSheetOpen, setIsGoogleWorkspaceSheetOpen] = useState(false)
+  const [isCreateLeaveTypeSheetOpen, setIsCreateLeaveTypeSheetOpen] = useState(false)
 
   // Dialog states for leave types management
   const [editDialogOpen, setEditDialogOpen] = useState(false)
@@ -767,7 +769,10 @@ export default function AdminSettingsClient({
                       >
                         {loading ? 'Tworzenie...' : 'Utwórz domyślne rodzaje urlopów'}
                       </Button>
-                      <Button className="bg-neutral-900 text-neutral-50 h-9 px-4 rounded-lg shadow-sm">
+                      <Button
+                        onClick={() => setIsCreateLeaveTypeSheetOpen(true)}
+                        className="bg-neutral-900 text-neutral-50 h-9 px-4 rounded-lg shadow-sm"
+                      >
                         <Plus className="h-4 w-4 mr-2" />
                         Dodaj rodzaj urlopu
                       </Button>
@@ -1878,6 +1883,12 @@ export default function AdminSettingsClient({
           onOpenChange={setIsLeavePoliciesSheetOpen}
           policies={leavePolicies}
           onSave={handleLeavePoliciesUpdate}
+        />
+
+        <CreateLeaveTypeSheet
+          open={isCreateLeaveTypeSheetOpen}
+          onOpenChange={setIsCreateLeaveTypeSheetOpen}
+          organizationId={currentOrganization?.id}
         />
     </div>
   )
