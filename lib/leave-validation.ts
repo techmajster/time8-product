@@ -123,17 +123,23 @@ export function calculateWorkingDays(startDate: Date, endDate: Date): number {
   return count
 }
 
-export function hasAvailableBalance(_organizationId: string, leaveTypeId: string, requestedDays: number, leaveBalances: LeaveBalance[]): { hasBalance: boolean; availableDays?: number } {
+export function hasAvailableBalance(_organizationId: string, leaveTypeId: string, requestedDays: number, leaveBalances: LeaveBalance[]): { hasBalance: boolean; availableDays?: number; is_unlimited?: boolean } {
   const balance = leaveBalances.find(b => b.leave_type_id === leaveTypeId)
-  
+
   if (!balance) {
     // If no balance exists, it means it's unlimited (like sick leave, unpaid leave)
-    return { hasBalance: true }
+    return { hasBalance: true, is_unlimited: true }
   }
-  
+
+  // Check if this leave type requires balance tracking
+  // If requires_balance is false (like Urlop bezpłatny), it's unlimited
+  if (balance.leave_types && balance.leave_types.requires_balance === false) {
+    return { hasBalance: true, is_unlimited: true }
+  }
+
   // Use remaining_days directly from the database (it's calculated as entitled_days - used_days)
   const availableDays = balance.remaining_days
-  
+
   // Special case for "Urlop na żądanie" - also check "Urlop wypoczynkowy" balance
   // since on-demand leave is part of vacation leave in Polish law
   if (balance.leave_types?.name === 'Urlop na żądanie') {
@@ -143,19 +149,21 @@ export function hasAvailableBalance(_organizationId: string, leaveTypeId: string
       const annualLimit = 4
       const usedThisYear = Math.min(balance.used_days, annualLimit)
       const remainingAnnual = annualLimit - usedThisYear
-      
+
       // Can only take on-demand leave if both annual limit and vacation balance allow it
       const actualAvailable = Math.min(remainingAnnual, vacationBalance.remaining_days)
       return {
         hasBalance: actualAvailable >= requestedDays,
-        availableDays: actualAvailable
+        availableDays: actualAvailable,
+        is_unlimited: false
       }
     }
   }
-  
+
   return {
     hasBalance: availableDays >= requestedDays,
-    availableDays
+    availableDays,
+    is_unlimited: false
   }
 }
 

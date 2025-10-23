@@ -171,7 +171,7 @@ export async function PUT(
     }
 
     const body = await request.json()
-    const { email, full_name, birth_date, role, team_id } = body
+    const { email, full_name, birth_date, role, team_id, leave_balance_overrides } = body
 
     // Update profile in profiles table
     if (email || full_name || birth_date) {
@@ -210,7 +210,63 @@ export async function PUT(
       }
     }
 
-    return NextResponse.json({ success: true, message: 'Employee updated successfully' })
+    // Update leave balance overrides
+    const balanceUpdateResults: any[] = []
+    if (leave_balance_overrides && Array.isArray(leave_balance_overrides)) {
+      const currentYear = new Date().getFullYear()
+
+      for (const override of leave_balance_overrides) {
+        const { leave_type_id, entitled_days } = override
+
+        // Validate entitled_days range (0-50)
+        if (entitled_days < 0 || entitled_days > 50) {
+          return NextResponse.json({
+            error: `Invalid entitled_days: ${entitled_days}. Must be between 0 and 50.`
+          }, { status: 400 })
+        }
+
+        // Get previous value for audit trail
+        const { data: existingBalance } = await supabaseAdmin
+          .from('leave_balances')
+          .select('entitled_days')
+          .eq('user_id', id)
+          .eq('leave_type_id', leave_type_id)
+          .eq('organization_id', userOrg.organization_id)
+          .eq('year', currentYear)
+          .single()
+
+        // Upsert the balance with custom entitled_days
+        const { error: balanceError } = await supabaseAdmin
+          .from('leave_balances')
+          .upsert({
+            user_id: id,
+            leave_type_id: leave_type_id,
+            organization_id: userOrg.organization_id,
+            year: currentYear,
+            entitled_days: entitled_days,
+            used_days: existingBalance?.used_days || 0
+          }, {
+            onConflict: 'user_id,leave_type_id,year'
+          })
+
+        if (balanceError) {
+          console.error('Error updating leave balance:', balanceError)
+          return NextResponse.json({ error: 'Failed to update leave balance' }, { status: 500 })
+        }
+
+        balanceUpdateResults.push({
+          leave_type_id,
+          previous_entitled_days: existingBalance?.entitled_days || 0,
+          new_entitled_days: entitled_days
+        })
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Employee updated successfully',
+      balance_updates: balanceUpdateResults.length > 0 ? balanceUpdateResults : undefined
+    })
 
   } catch (error) {
     console.error('Error updating employee:', error)
