@@ -216,28 +216,29 @@ export async function POST(request: NextRequest) {
           console.log(`✅ User ${email} does not exist in database - can create invitation`)
         }
 
-        // Check for existing pending invitation and clean up if needed
-        const { data: existingInvitation } = await supabaseAdmin
+        // Check for existing invitations and clean up if needed
+        // We need to check ALL invitations (pending, accepted, rejected) because:
+        // - User might have been deleted after accepting (leaving accepted invitation)
+        // - Old pending invitations might exist
+        // - We want to allow re-inviting in all cases
+        const { data: existingInvitations } = await supabaseAdmin
           .from('invitations')
-          .select('id, created_at')
+          .select('id, status, created_at')
           .eq('email', email.toLowerCase())
           .eq('organization_id', organizationId)
-          .eq('status', 'pending')
-          .single()
 
-        if (existingInvitation) {
-          // Delete the old invitation and create a new one
-          // This handles cases where:
-          // - User was deleted and is being re-invited
-          // - Admin wants to resend/update an invitation
-          // - Old invitation needs to be replaced
-          console.log(`🗑️ Deleting existing pending invitation for ${email}`)
+        if (existingInvitations && existingInvitations.length > 0) {
+          console.log(`🗑️ Found ${existingInvitations.length} existing invitation(s) for ${email}:`,
+            existingInvitations.map(inv => `${inv.status} (${inv.created_at})`).join(', '))
+
+          // Delete ALL old invitations to allow creating a fresh one
           await supabaseAdmin
             .from('invitations')
             .delete()
-            .eq('id', existingInvitation.id)
+            .eq('email', email.toLowerCase())
+            .eq('organization_id', organizationId)
 
-          console.log(`✅ Old invitation deleted, will create new one`)
+          console.log(`✅ Old invitations deleted, will create new one`)
         }
 
         // Generate invitation details
