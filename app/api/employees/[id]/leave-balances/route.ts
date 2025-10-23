@@ -24,7 +24,6 @@ export async function GET(
     const { cookies } = await import('next/headers')
     const cookieStore = await cookies()
     const activeOrgId = cookieStore.get('active-organization-id')?.value
-    console.log('🍪 Active org from cookie:', activeOrgId)
 
     // Use admin client to bypass RLS
     const { createAdminClient } = await import('@/lib/supabase/server')
@@ -83,19 +82,22 @@ export async function GET(
       }, { status: 500 })
     }
 
-    console.log(`✅ Leave balances API - Found ${balances?.length || 0} balances for employee ${employeeId}`)
-
     // Enhance balances with override information for admins/managers
+    // Balance Override Hierarchy (from Phase 2 Mandatory Absence Types):
+    // 1. Individual override (leave_balances.entitled_days) - highest priority
+    // 2. Workspace default (leave_types.days_per_year) - fallback
+    // This allows admins to set org-wide defaults while permitting per-employee customization
     const enhancedBalances = balances?.map(balance => {
       const workspaceDefault = balance.leave_types?.days_per_year || 0
       const actualEntitled = balance.entitled_days || 0
+      // An override exists when employee's entitled_days differs from workspace default
       const isOverride = actualEntitled !== workspaceDefault
 
       return {
         ...balance,
-        is_override: isOverride,
-        workspace_default: workspaceDefault,
-        effective_entitled_days: actualEntitled
+        is_override: isOverride,           // True if employee has custom balance
+        workspace_default: workspaceDefault, // Org-wide default for reference
+        effective_entitled_days: actualEntitled // Actual entitled days (may be override or default)
       }
     }) || []
 

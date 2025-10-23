@@ -5,22 +5,19 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id: employeeId } = await params
-  console.log('🔍 Employee organization API called for:', employeeId)
-  
+
   try {
-    
+
     if (!employeeId) {
       console.error('❌ No employee ID provided')
       return NextResponse.json({ error: 'Employee ID required' }, { status: 400 })
     }
-    
+
     // Verify current user is authenticated
     const { createClient } = await import('@/lib/supabase/server')
     const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
-    console.log('🔍 Auth check:', { user: user?.id, authError })
-    
+
     if (authError || !user) {
       console.error('❌ Authentication failed:', authError)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -30,7 +27,6 @@ export async function GET(
     const { cookies } = await import('next/headers')
     const cookieStore = await cookies()
     const activeOrgId = cookieStore.get('active-organization-id')?.value
-    console.log('🍪 Active org from cookie:', activeOrgId)
 
     // Use admin client to bypass RLS for organization lookup
     const { createAdminClient } = await import('@/lib/supabase/server')
@@ -49,8 +45,6 @@ export async function GET(
     }
 
     const { data: employeeOrg, error: employeeOrgError } = await employeeOrgQuery.limit(1)
-
-    console.log('🔍 Employee org lookup:', { employeeOrg, error: employeeOrgError })
 
     if (employeeOrgError) {
       console.error('❌ Employee org lookup error:', employeeOrgError)
@@ -78,7 +72,6 @@ export async function GET(
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
 
-    console.log('✅ Employee org found and access verified:', employeeOrg[0])
     return NextResponse.json({
       organization_id: employeeOrg[0].organization_id,
       role: employeeOrg[0].role

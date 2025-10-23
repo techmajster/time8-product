@@ -76,7 +76,18 @@ export function getApplicableLeaveTypes(
   })
 }
 
-// New helper function to check if a leave type should be disabled
+/**
+ * Checks if a leave type should be disabled in the UI
+ *
+ * Mandatory Absence Types (Phase 2) logic:
+ * - Urlop wypoczynkowy: requires balance tracking, check remaining_days
+ * - Urlop bezpłatny: unlimited (requires_balance = false), never disabled
+ *
+ * @param leaveType - The leave type to check
+ * @param leaveBalance - The employee's balance for this leave type (may be undefined for unlimited types)
+ * @param requestedDays - Number of days being requested
+ * @returns Object with disabled state and optional reason message
+ */
 export function isLeaveTypeDisabled(
   leaveType: LeaveType,
   leaveBalance: LeaveBalance | undefined,
@@ -88,23 +99,24 @@ export function isLeaveTypeDisabled(
     // If insufficient remaining days, disable it
     if (leaveBalance.remaining_days < requestedDays) {
       // Only show error message for negative balances, not zero balances
-      const errorMessage = leaveBalance.remaining_days < 0 
+      const errorMessage = leaveBalance.remaining_days < 0
         ? `Niewystarczające saldo (pozostało ${leaveBalance.remaining_days} dni)`
         : undefined
-      return { 
-        disabled: true, 
+      return {
+        disabled: true,
         reason: errorMessage
       }
     }
     return { disabled: false }
   }
-  
+
   // If leave type requires balance tracking but no balance exists, disable it
   if (leaveType.requires_balance && !leaveBalance) {
     return { disabled: true, reason: 'Brak przypisanego salda' }
   }
-  
+
   // If no balance exists and leave type doesn't require balance, never disable
+  // This handles unlimited leave types like "Urlop bezpłatny" (Phase 2)
   return { disabled: false }
 }
 
