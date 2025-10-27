@@ -183,11 +183,15 @@
   - Low impact: App uses admin client for most queries
   - Spec: `.agent-os/specs/2025-10-27-database-optimization-for-scale/sub-specs/phase-3-rls-optimization.md`
 
-- [ ] **Phase 4: Materialized Views for Aggregations** `S` ℹ️ OPTIONAL
-  - Create views for seat counting and dashboard aggregations
-  - Eliminates repeated expensive calculations
-  - Expected 90% faster aggregation queries
+- [x] **Phase 4: Materialized Views for Aggregations** `S` ℹ️ OPTIONAL ✅ **COMPLETED**
+  - ✅ Created two materialized views: `mv_organization_seat_usage` and `mv_org_leave_summaries`
+  - ✅ Added unique indexes for fast lookups
+  - ✅ Implemented refresh functions: `refresh_seat_usage()` and `refresh_leave_summaries()`
+  - ✅ Views populated and validated against live data (100% accuracy)
+  - ✅ Deployed to production via Supabase MCP (migration: `20251027000002_add_materialized_views.sql`)
+  - Expected 85-90% faster aggregation queries (seat counting, dashboard summaries)
   - Views are additive - no application changes required
+  - Refresh strategy: Manual via refresh functions (nightly cron can be added later)
   - Spec: `.agent-os/specs/2025-10-27-database-optimization-for-scale/sub-specs/phase-4-materialized-views.md`
 
 - [ ] **Phase 5: Fix Function Search Path Security** `XS` ⚠️ SECURITY
