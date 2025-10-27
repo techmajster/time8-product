@@ -205,12 +205,15 @@
     - Invitation validation: Instantaneous
   - Note: `mv_org_leave_summaries` ready for future use (no aggregation queries exist yet)
 
-- [ ] **Phase 5: Fix Function Search Path Security** `XS` ⚠️ SECURITY
-  - Fix 12 functions with mutable search_path (Supabase security advisory)
-  - Add `SET search_path = public` to prevent search path hijacking
-  - Addresses: `update_design_themes_updated_at`, `update_access_requests_updated_at`, `auto_expire_join_requests`, and 9 more functions
-  - Zero risk: Only hardens function security, no behavior changes
-  - Spec: `.agent-os/specs/2025-10-27-database-optimization-for-scale/sub-specs/phase-5-function-search-path.md`
+- [x] **Phase 5: Fix Function Search Path Security** `XS` ⚠️ SECURITY ✅ **COMPLETED**
+  - ✅ Fixed all 12 function_search_path_mutable warnings
+  - ✅ Fixed 2 materialized_view_in_api warnings
+  - ✅ Added explicit search_path to all database functions
+  - ✅ Revoked public API access to materialized views
+  - ✅ Deployed via migrations: `20251028000001_fix_function_search_path_warnings_v2.sql`, `20251028000002_fix_materialized_view_api_exposure.sql`
+  - Affected functions: update_design_themes_updated_at, update_access_requests_updated_at, auto_expire_join_requests, fix_workspace_owners_balances, migrate_to_multi_org, ensure_mandatory_leave_types, validate_multi_org_migration, rollback_multi_org_migration, backfill_mandatory_leave_balances, calculate_easter, prevent_mandatory_leave_type_deletion, update_updated_at_column
+  - Affected views: mv_organization_seat_usage, mv_org_leave_summaries
+  - Result: **14 security warnings eliminated** 🎉
 
 ### Dependencies
 
