@@ -100,11 +100,16 @@ export async function getTeamMemberIds(scope: TeamScope): Promise<string[]> {
 
 /**
  * Applies team filtering to a Supabase query builder
- * Use this to filter queries by team membership
+ * Fetches team member IDs first, then filters query with parameterized array
+ *
+ * @param query - Supabase query builder
+ * @param scope - Team scope (organization or team-based)
+ * @param userIdColumn - Column name to filter on (default: 'user_id')
+ * @returns Modified query with team filtering applied
  */
-export function applyTeamFilter(
-  query: any, 
-  scope: TeamScope, 
+export async function applyTeamFilter(
+  query: any,
+  scope: TeamScope,
   userIdColumn: string = 'user_id'
 ) {
   if (scope.type === 'organization') {
@@ -113,11 +118,18 @@ export function applyTeamFilter(
   }
 
   if (scope.type === 'team' && scope.teamId) {
-    // MULTI-ORG UPDATE: Filter by team members via user_organizations
-    return query.in(userIdColumn, `(
-      SELECT user_id FROM user_organizations 
-      WHERE team_id = '${scope.teamId}' AND is_active = true
-    )`)
+    // ✅ SAFE: Fetch member IDs first using parameterized query
+    const memberIds = await getTeamMemberIds(scope)
+
+    // ✅ EDGE CASE: No members found
+    if (memberIds.length === 0) {
+      // Return query that matches no rows
+      return query.eq(userIdColumn, null)
+    }
+
+    // ✅ PARAMETERIZED: Uses array of UUIDs, not string interpolation
+    // ✅ OPTIMIZABLE: PostgreSQL can cache query plan
+    return query.in(userIdColumn, memberIds)
   }
 
   return query
