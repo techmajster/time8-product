@@ -151,6 +151,71 @@
 **Goal:** Complete LemonSqueezy integration with all subscription states, trial periods, and webhook events properly handled
 **Success Criteria:** All subscription statuses display correctly in UI, trial users see conversion prompts, payment failures captured immediately via webhooks
 
+## Phase 2.75: Database Optimization for Scale 🚀
+
+**Goal:** Optimize database performance to handle 100,000+ user accounts with sub-second response times
+**Success Criteria:** <100ms query times for APIs, <500ms dashboard loads, 50-90% performance improvement on key queries
+
+### Features
+
+- [x] **Phase 1: Composite Index Additions** `S` ✅ ZERO RISK - **COMPLETED**
+  - ✅ Added 6 composite indexes to optimize common query patterns
+  - ✅ Used CREATE INDEX CONCURRENTLY to avoid table locks
+  - ✅ Deployed to production via Supabase MCP (migration: `20251027000000_add_composite_indexes_for_scale.sql`)
+  - ✅ Total index size: ~88 KB (minimal storage impact)
+  - Expected 50-90% improvement on dashboard, calendar, API queries
+  - Affects: Dashboard loads, calendar queries, seat counting, team member lookups
+  - Spec: `.agent-os/specs/2025-10-27-database-optimization-for-scale/sub-specs/phase-1-indexes.md`
+
+- [x] **Phase 2: Fix team-utils.ts SQL Anti-Pattern** `XS` ⚠️ LOW RISK - **COMPLETED**
+  - ✅ Replaced string-interpolated SQL with parameterized queries
+  - ✅ Eliminated SQL injection risk in team filtering
+  - ✅ Converted `applyTeamFilter()` to async function
+  - ✅ Added comprehensive test suite (4 tests)
+  - ✅ Committed and pushed to main (commit: `cb87287`)
+  - Affects: `lib/team-utils.ts` (function not yet in active use)
+  - Spec: `.agent-os/specs/2025-10-27-database-optimization-for-scale/sub-specs/phase-2-team-utils-fix.md`
+
+- [ ] **Phase 3: RLS Policy Optimization** `M` ⚠️ OPTIONAL
+  - Optimize 4 RLS policies from IN+subquery to EXISTS+JOIN
+  - Only proceed if performance testing shows RLS bottleneck
+  - Expected 75% faster on RLS-enforced queries
+  - Low impact: App uses admin client for most queries
+  - Spec: `.agent-os/specs/2025-10-27-database-optimization-for-scale/sub-specs/phase-3-rls-optimization.md`
+
+- [ ] **Phase 4: Materialized Views for Aggregations** `S` ℹ️ OPTIONAL
+  - Create views for seat counting and dashboard aggregations
+  - Eliminates repeated expensive calculations
+  - Expected 90% faster aggregation queries
+  - Views are additive - no application changes required
+  - Spec: `.agent-os/specs/2025-10-27-database-optimization-for-scale/sub-specs/phase-4-materialized-views.md`
+
+### Dependencies
+
+- Phase 2 complete ✅
+- Test suite passing (30K+ lines, 3.5K test cases) ✅
+- Comprehensive deep analysis completed ✅
+- Rollback procedures documented ✅
+
+### Technical Notes
+
+- **Key Finding:** App uses `createAdminClient()` extensively (30+ endpoints) which bypasses RLS
+- Security enforced at application level via `authenticateAndGetOrgContext()`
+- RLS policies serve as secondary defense, not primary security mechanism
+- All changes preserve current behavior and are fully reversible
+- Complete spec with breaking-points analysis: `.agent-os/specs/2025-10-27-database-optimization-for-scale/`
+
+### Estimated Impact
+
+- Dashboard load time: 500ms → 150ms (70% faster)
+- Calendar queries: 800ms → 200ms (75% faster)
+- Seat counting: 300ms → 50ms (83% faster)
+- API response times: 40-60% improvement overall
+
+---
+
+## Phase 2.5 (continued): Subscription System Enhancement 💳
+
 ### Features
 
 - [ ] **Missing Subscription Status UI** `S`
@@ -282,26 +347,8 @@
 - User feedback on current scheduling needs
 - Core platform stability
 
-## Phase 6: Subscription & Growth 💰
 
-**Goal:** Monetization and scaling beyond free tier
-**Success Criteria:** Sustainable revenue with smooth upgrade experience
-
-### Features
-
-- [ ] **Subscription System** - Stripe integration with tiered pricing `L`
-- [ ] **Usage Analytics** - Track usage against subscription limits `M`
-- [ ] **Billing Dashboard** - Self-service subscription management `M`
-- [ ] **Feature Gating** - Premium features based on subscription tier `M`
-- [ ] **Team Size Limits** - Enforce 3-user free tier with upgrade prompts `S`
-- [ ] **Payment Recovery** - Failed payment handling and dunning `M`
-
-### Dependencies
-
-- Stripe vs alternative payment platform decision
-- Pricing strategy validation
-
-## Phase 7: Enterprise Features 🏢
+## Phase 6: Enterprise Features 🏢
 
 **Goal:** Advanced features for larger organizations
 **Success Criteria:** Support for 50+ employee organizations with complex needs
