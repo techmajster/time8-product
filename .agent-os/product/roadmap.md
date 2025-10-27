@@ -190,6 +190,13 @@
   - Views are additive - no application changes required
   - Spec: `.agent-os/specs/2025-10-27-database-optimization-for-scale/sub-specs/phase-4-materialized-views.md`
 
+- [ ] **Phase 5: Fix Function Search Path Security** `XS` ⚠️ SECURITY
+  - Fix 12 functions with mutable search_path (Supabase security advisory)
+  - Add `SET search_path = public` to prevent search path hijacking
+  - Addresses: `update_design_themes_updated_at`, `update_access_requests_updated_at`, `auto_expire_join_requests`, and 9 more functions
+  - Zero risk: Only hardens function security, no behavior changes
+  - Spec: `.agent-os/specs/2025-10-27-database-optimization-for-scale/sub-specs/phase-5-function-search-path.md`
+
 ### Dependencies
 
 - Phase 2 complete ✅
