@@ -35,24 +35,32 @@ Remove all test data and unused records created during development/roadmap phase
 - szymon.brodzicki@bb8.pl
 - dajana.bieganowska@bb8.pl
 
-### Empty Tables Analysis
+### Empty Tables Analysis & API Endpoint Usage
 
-**Phase 5 Feature Tables (Not Yet Implemented):**
-- `employee_schedules` - 0 rows
-- `work_schedules` - 0 rows
-- `work_schedule_templates` - 0 rows
+**CRITICAL: Endpoint usage analysis completed to identify truly unused tables**
 
-**Decision:** KEEP these tables (Phase 5 features planned for future)
+**Phase 5 Feature Tables (HAS Active Code):**
+- `employee_schedules` - 0 rows, **USED BY 5 endpoints** (schedule/weekly, schedule/employee/[id], schedule/custom, schedule/employee-info, schedule/assign-template)
+- `work_schedule_templates` - 0 rows, **USED BY 4 endpoints** (schedule/templates/[id], schedule/templates, schedule/create-default-templates, schedule/assign-template)
+- `work_schedules` - 0 rows, **NOT USED** by any endpoint ⚠️
+
+**Decision:** KEEP employee_schedules and work_schedule_templates (active code), **DROP work_schedules** (no code references)
 
 **Webhook/Logging Tables:**
-- `billing_events` - 0 rows (LemonSqueezy webhook logging)
+- `billing_events` - 0 rows, **ACTIVELY USED** by webhook handlers for logging and idempotency checks (5 endpoints)
 
-**Decision:** KEEP this table (will be used when billing webhooks fire)
+**Decision:** KEEP this table (critical for billing webhook processing)
 
 **Multi-Org Feature Tables:**
-- `organization_domains` - 0 rows (email domain auto-join feature)
+- `organization_domains` - 0 rows, **USED BY 3 endpoints** (organizations, workspaces/[id], auth/verify-email)
 
-**Decision:** KEEP this table (feature may be used in future)
+**Decision:** KEEP this table (active multi-org feature code)
+
+**Audit/Logging Tables (NO Code Usage):**
+- `cleanup_log` - 6 rows, **NOT USED** by any endpoint ⚠️
+- `migration_logs` - 2 rows, **NOT USED** by any endpoint ⚠️
+
+**Decision:** **DROP both tables** (no code references, no active usage)
 
 ### Other Cleanup Candidates
 
@@ -119,7 +127,22 @@ Remove all test data and unused records created during development/roadmap phase
 **Expired/Accepted Invitations:**
 - Remove invitations in terminal states (optional)
 
-### Phase 4: Verification
+### Phase 4: Drop Unused Tables (CRITICAL)
+
+**Tables to Drop (Based on API Endpoint Analysis):**
+1. **work_schedules** - 0 rows, NO API endpoint usage
+2. **cleanup_log** - 6 rows, NO API endpoint usage
+3. **migration_logs** - 2 rows, NO API endpoint usage
+
+**Tables to KEEP (Active Usage):**
+- employee_schedules (5 endpoints use this)
+- work_schedule_templates (4 endpoints use this)
+- billing_events (5 endpoints + webhook handlers)
+- organization_domains (3 endpoints use this)
+
+**Risk:** LOW - Tables have no code references, dropping will not break any functionality
+
+### Phase 5: Verification
 
 **Post-cleanup checks:**
 1. Verify 2 production organizations remain (BB8 Studio, Kontury)
@@ -259,7 +282,23 @@ DELETE FROM public.invitations
 WHERE status IN ('accepted', 'expired');
 
 -- =============================================================================
--- STEP 5: Verification
+-- STEP 5: Drop Unused Tables (CRITICAL)
+-- =============================================================================
+
+-- Drop tables with NO code references in the application
+-- Based on comprehensive API endpoint analysis
+
+DROP TABLE IF EXISTS public.work_schedules CASCADE;
+-- Reason: 0 rows, no API endpoint references this table
+
+DROP TABLE IF EXISTS public.cleanup_log CASCADE;
+-- Reason: 6 rows, no API endpoint references this table
+
+DROP TABLE IF EXISTS public.migration_logs CASCADE;
+-- Reason: 2 rows, no API endpoint references this table
+
+-- =============================================================================
+-- STEP 6: Verification
 -- =============================================================================
 
 DO $$
@@ -296,7 +335,12 @@ END $$;
 - user_organizations: Estimated 50-100 test records
 - invitations: Estimated 20-30 test records
 
-**Total Storage Freed:** ~500-1000 rows across all tables
+**Tables Dropped:** 3 unused tables
+- work_schedules (0 rows)
+- cleanup_log (6 rows)
+- migration_logs (2 rows)
+
+**Total Storage Freed:** ~500-1000 rows across all tables + 3 table definitions removed
 
 ### Performance Impact
 
@@ -304,6 +348,8 @@ END $$;
 - Faster queries on organization-scoped data
 - Reduced index bloat
 - Simplified data management
+- Removal of unused table overhead
+- Cleaner schema for development and maintenance
 
 ## Rollback Plan
 

@@ -323,24 +323,28 @@
     - All dependent records for removed organizations
     - 7 expired/accepted invitations (optional)
 
-  - **Empty Tables Decision:**
-    - KEEP all empty tables (employee_schedules, work_schedules, work_schedule_templates)
-    - KEEP billing_events table (for future webhook logging)
-    - KEEP organization_domains table (for future multi-org features)
+  - **Unused Tables Analysis (Endpoint Usage Research Completed):**
+    - **DROP 3 unused tables:** work_schedules, cleanup_log, migration_logs (no API endpoint usage)
+    - **KEEP employee_schedules** (used by 5 schedule endpoints)
+    - **KEEP work_schedule_templates** (used by 4 template endpoints)
+    - **KEEP billing_events** (used by 5 endpoints + webhook handlers - CRITICAL)
+    - **KEEP organization_domains** (used by 3 multi-org endpoints)
 
   - **Cleanup Strategy:**
     1. Create full database backup before execution
     2. Delete dependent records (access_requests, leave_balances, leave_requests, etc.)
     3. Delete profiles NOT in production user whitelist
     4. Delete organizations NOT in ('BB8 Studio', 'Kontury')
-    5. Verify 2 organizations and 4 profiles remain
+    5. Drop 3 unused tables with no code references
+    6. Verify 2 organizations and 4 profiles remain
 
   - **Expected Impact:**
     - ~31 organizations removed
     - ~11+ user profiles removed
     - ~500-1000 rows deleted across all tables
-    - Cleaner database for production launch
-    - Simplified data management
+    - 3 unused table definitions removed
+    - Cleaner database schema for production launch
+    - Simplified data management and development
 
   - **Safety Measures:**
     - Explicit email whitelist for user protection
