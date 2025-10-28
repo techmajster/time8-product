@@ -217,6 +217,141 @@
   - Result: **2 warnings eliminated**, 1 critical bug fixed 🎉
   - Note: Function search_path warnings remain (12 warnings) - needs different approach
 
+- [x] **Phase 6: Critical Advisory Warnings Resolution** `XL` ⚡ PERFORMANCE ✅ **COMPLETED**
+  - **Goal:** Resolve all 269 critical Supabase advisory warnings to optimize database performance
+  - **Status:** 269 of 269 critical warnings resolved (100% complete)
+  - **Total Warnings:** 27 resolved (Part 1) + 240 resolved (Part 2) + 2 resolved (Part 3) = 269 total
+
+  - [x] **Part 1: RLS Auth Function Optimization** ✅ **COMPLETED** `M`
+    - ✅ Optimized 32 RLS policies across 13 tables that re-evaluate auth functions per-row
+    - ✅ Replaced `auth.uid()` with `(select auth.uid())` to force single evaluation per query
+    - ✅ Replaced `auth.jwt()` with `(select auth.jwt())` in service role checks
+    - Expected 40-85% performance improvement on queries with large result sets
+    - Migration: `20251027121508_optimize_rls_auth_calls.sql`
+    - Result: **27 `auth_rls_initplan` warnings resolved** ✅
+    - Spec: `.agent-os/specs/2025-10-27-database-optimization-for-scale/sub-specs/phase-6-rls-auth-optimization.md`
+
+  - [x] **Part 2: Multiple Permissive Policies Consolidation** ✅ **COMPLETED** `XL`
+    - ✅ **240 warnings resolved across 15 tables**
+    - ✅ Consolidated 3-6 policies per table into single policies with OR logic
+    - Expected 66-83% faster RLS policy evaluation
+    - **All 15 tasks completed:**
+      - [x] Task 1: company_holidays (20 warnings) ✅
+      - [x] Task 2: invitations (20 warnings) ✅
+      - [x] Task 3: leave_balances (20 warnings) ✅
+      - [x] Task 4: leave_requests (20 warnings) ✅
+      - [x] Task 5: leave_types (20 warnings) ✅
+      - [x] Task 6: organization_domains (20 warnings) ✅
+      - [x] Task 7: organization_settings (20 warnings) ✅
+      - [x] Task 8: profiles (20 warnings) ✅
+      - [x] Task 9: subscriptions (20 warnings) ✅
+      - [x] Task 10: teams (20 warnings) ✅
+      - [x] Task 11: user_organizations (20 warnings) ✅
+      - [x] Task 12: organizations (15 warnings) ✅
+      - [x] Task 13: customers (5 warnings) ✅
+      - [x] Task 14: price_variants (5 warnings) ✅
+      - [x] Task 15: products (5 warnings) ✅
+    - Migrations applied via Supabase MCP
+    - Result: **All 240 `multiple_permissive_policies` warnings resolved** 🎉
+    - Affects: All RLS-protected queries (dashboard, calendar, API endpoints)
+    - Spec: `.agent-os/specs/2025-10-27-database-optimization-for-scale/sub-specs/phase-6-part2-multiple-permissive-policies.md`
+
+  - [x] **Part 3: Duplicate Index Removal** ✅ **COMPLETED** `XS`
+    - ✅ **2 warnings resolved on 2 tables**
+    - ✅ customers: Dropped `idx_customers_lemonsqueezy_id` (kept UNIQUE constraint index)
+    - ✅ subscriptions: Dropped `idx_subscriptions_lemonsqueezy_id` (kept UNIQUE constraint index)
+    - Expected 50% reduction in write overhead for these tables
+    - Migration: `supabase/migrations/20251027_remove_duplicate_indexes.sql`
+    - Result: **2 `duplicate_index` warnings resolved** ✅
+    - Spec: `.agent-os/specs/2025-10-27-database-optimization-for-scale/sub-specs/phase-6-part3-duplicate-index-removal.md`
+
+- [x] **Phase 7: Index Cleanup & Optimization** `M` ℹ️ OPTIONAL ✅ **COMPLETED**
+  - **Goal:** Optimize index strategy by removing redundant indexes and ensuring all foreign keys are covered
+  - **Status:** Completed - All 49 original warnings resolved, index strategy optimized
+  - **Priority:** Low - INFO-level warnings, not critical issues
+  - **Total Warnings Resolved:** 49 (1 unindexed foreign key + 48 unused indexes from original report)
+
+  - [x] **Part 1: Initial Index Analysis** ✅ **COMPLETED** `XS`
+    - Added index for `organization_domains.default_team_id` foreign key
+    - Removed 48 indexes flagged as unused by PostgreSQL statistics
+    - Migration: `add_missing_foreign_key_index`, `remove_unused_indexes`
+    - Result: Resolved all 49 warnings from original report
+
+  - [x] **Part 2: Foreign Key Index Restoration** ✅ **COMPLETED** `M`
+    - **Discovery:** Removing "unused" indexes exposed 14 unindexed foreign keys
+    - **Root cause:** Indexes were covering foreign keys but appeared unused due to low query volume
+    - **Action:** Restored essential foreign key indexes for referential integrity
+    - Added 14 foreign key indexes covering:
+      - company_holidays.organization_id
+      - employee_schedules.organization_id
+      - invitations (invited_by, team_id)
+      - leave_requests.reviewed_by
+      - price_variants.product_id
+      - profiles (manager_id, organization_id, team_id)
+      - subscriptions (customer_id, variant_id)
+      - user_organizations.team_id
+      - work_schedules (organization_id, template_id)
+    - Migration: `add_foreign_key_indexes`
+    - Result: **All unindexed_foreign_keys warnings resolved** 🎉
+
+  - [x] **Part 3: Validation** ✅ **COMPLETED** `XS`
+    - Verified all original 49 warnings from user report are resolved
+    - Index strategy optimized: Essential foreign key indexes kept, redundant patterns removed
+    - New advisory status: 15 `unused_index` warnings (expected - foreign key indexes for future JOINs)
+    - These new warnings are preventive indexes that will be used as the app scales
+
+  - **Key Learning:** "Unused" indexes covering foreign keys should be retained for referential integrity and JOIN performance, even if not currently exercised
+  - **Net Result:** Cleaner index strategy with proper foreign key coverage
+  - **Spec:** `.agent-os/specs/2025-10-27-database-optimization-for-scale/sub-specs/phase-7-index-cleanup.md`
+  - **Risk Level:** LOW - All changes improve database structure
+
+- [ ] **Phase 9: Database Cleanup** `M` 🧹 PRE-LAUNCH
+
+  - **Goal:** Remove all test data created during development and prepare database for production launch
+  - **Status:** Planning - Spec created, ready for execution
+  - **Priority:** Medium - Should be done before Phase 4 (Launch Preparation)
+  - **Risk Level:** MEDIUM-HIGH - Irreversible deletion, requires backup
+
+  - **Production Data to KEEP:**
+    - 2 organizations: BB8 Studio, Kontury
+    - 4 users: szymon.rajca@bb8.pl, pawel.chrosciak@bb8.pl, szymon.brodzicki@bb8.pl, dajana.bieganowska@bb8.pl
+    - All associated production data (leave requests, balances, settings)
+
+  - **Test Data to REMOVE:**
+    - 31 organizations (29 test organizations + Angela)
+    - All profiles except 4 production users
+    - All dependent records for removed organizations
+    - 7 expired/accepted invitations (optional)
+
+  - **Empty Tables Decision:**
+    - KEEP all empty tables (employee_schedules, work_schedules, work_schedule_templates)
+    - KEEP billing_events table (for future webhook logging)
+    - KEEP organization_domains table (for future multi-org features)
+
+  - **Cleanup Strategy:**
+    1. Create full database backup before execution
+    2. Delete dependent records (access_requests, leave_balances, leave_requests, etc.)
+    3. Delete profiles NOT in production user whitelist
+    4. Delete organizations NOT in ('BB8 Studio', 'Kontury')
+    5. Verify 2 organizations and 4 profiles remain
+
+  - **Expected Impact:**
+    - ~31 organizations removed
+    - ~11+ user profiles removed
+    - ~500-1000 rows deleted across all tables
+    - Cleaner database for production launch
+    - Simplified data management
+
+  - **Safety Measures:**
+    - Explicit email whitelist for user protection
+    - Organization name matching (not pattern matching)
+    - Transaction-based execution with verification checkpoints
+    - Service role execution to bypass RLS
+    - Multiple verification steps
+
+  - **Spec:** `.agent-os/specs/2025-10-27-database-optimization-for-scale/sub-specs/phase-9-database-cleanup.md`
+  - **Migration:** To be created after user approval
+
 ### Dependencies
 
 - Phase 2 complete ✅
