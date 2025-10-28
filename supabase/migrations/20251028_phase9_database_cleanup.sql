@@ -183,7 +183,15 @@ DROP TABLE IF EXISTS public.migration_logs CASCADE;
 -- Reason: 2 rows, no API endpoint references this table
 
 -- =============================================================================
--- STEP 6: Final Verification
+-- STEP 6: Refresh Materialized Views (Remove Stale Data)
+-- =============================================================================
+
+-- Refresh materialized views to remove references to deleted organizations
+SELECT refresh_seat_usage();
+SELECT refresh_leave_summaries();
+
+-- =============================================================================
+-- STEP 7: Final Verification
 -- =============================================================================
 
 DO $$
