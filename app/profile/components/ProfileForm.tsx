@@ -122,7 +122,7 @@ export function ProfileForm({ profile }: ProfileFormProps) {
               type="email"
               value={profile.email}
               disabled
-              className="bg-muted"
+              className=""
             />
             <p className="text-xs text-muted-foreground">
               Adres email nie może być zmieniony

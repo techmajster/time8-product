@@ -60,7 +60,7 @@ const AvatarGroup = ({ memberAvatars, memberCount }: {
             alt={member.full_name}
             className="object-cover"
           />
-          <AvatarFallback className="text-xs bg-neutral-100 text-neutral-600">
+          <AvatarFallback className="text-xs">
             {member.full_name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?'}
           </AvatarFallback>
         </Avatar>

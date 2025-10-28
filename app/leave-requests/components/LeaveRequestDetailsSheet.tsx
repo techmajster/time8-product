@@ -348,7 +348,7 @@ export function LeaveRequestDetailsSheet({ requestId, isOpen, onClose }: LeaveRe
                       <div className="flex flex-row gap-4 items-center w-full min-w-[85px]">
                         <Avatar className="w-10 h-10">
                           <AvatarImage src={leaveRequest.profiles?.avatar_url || undefined} />
-                          <AvatarFallback className="bg-muted text-foreground">
+                          <AvatarFallback className="text-foreground">
                             {leaveRequest.profiles?.full_name?.split(' ').map(n => n[0]).join('') || leaveRequest.profiles?.email.charAt(0).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
@@ -436,7 +436,7 @@ export function LeaveRequestDetailsSheet({ requestId, isOpen, onClose }: LeaveRe
                           <div key={conflict.id} className="flex flex-row gap-4 items-center justify-start min-w-[85px] w-full">
                             <Avatar className="w-10 h-10 rounded-full bg-neutral-100">
                               <AvatarImage src={conflict.avatar_url || undefined} />
-                              <AvatarFallback className="bg-neutral-100 text-neutral-950">
+                              <AvatarFallback className="">
                                 {conflict.full_name?.split(' ').map(n => n[0]).join('') || conflict.email[0].toUpperCase()}
                               </AvatarFallback>
                             </Avatar>

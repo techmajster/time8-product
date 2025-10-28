@@ -181,7 +181,7 @@ export function PendingInvitationsSection({ invitations }: PendingInvitationsSec
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <Avatar className="size-10">
-                        <AvatarFallback className="bg-muted text-sm font-medium">
+                        <AvatarFallback className="text-sm font-medium">
                           {getInviteeInitials(invitation)}
                         </AvatarFallback>
                       </Avatar>

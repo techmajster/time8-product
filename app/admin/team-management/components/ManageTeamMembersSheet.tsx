@@ -215,7 +215,7 @@ export function ManageTeamMembersSheet({
                           <div key={member.id} className="flex items-center gap-4">
                             <Avatar className="size-10">
                               <AvatarImage src={member.avatar_url || undefined} />
-                              <AvatarFallback className="bg-muted text-sm font-normal text-foreground">
+                              <AvatarFallback className="text-sm font-normal text-foreground">
                                 {getUserInitials(member)}
                               </AvatarFallback>
                             </Avatar>
@@ -248,7 +248,7 @@ export function ManageTeamMembersSheet({
                         <div key={`removing-${member.id}`} className="flex items-center gap-4 opacity-50">
                           <Avatar className="size-10">
                             <AvatarImage src={member.avatar_url || undefined} />
-                            <AvatarFallback className="bg-muted text-sm font-normal text-foreground">
+                            <AvatarFallback className="text-sm font-normal text-foreground">
                               {getUserInitials(member)}
                             </AvatarFallback>
                           </Avatar>
@@ -287,7 +287,7 @@ export function ManageTeamMembersSheet({
                           <div key={member.id} className="flex items-center gap-4">
                             <Avatar className="size-10">
                               <AvatarImage src={member.avatar_url || undefined} />
-                              <AvatarFallback className="bg-muted text-sm font-normal text-foreground">
+                              <AvatarFallback className="text-sm font-normal text-foreground">
                                 {getUserInitials(member)}
                               </AvatarFallback>
                             </Avatar>
@@ -320,7 +320,7 @@ export function ManageTeamMembersSheet({
                         <div key={`adding-${member.id}`} className="flex items-center gap-4 opacity-50">
                           <Avatar className="size-10">
                             <AvatarImage src={member.avatar_url || undefined} />
-                            <AvatarFallback className="bg-muted text-sm font-normal text-foreground">
+                            <AvatarFallback className="text-sm font-normal text-foreground">
                               {getUserInitials(member)}
                             </AvatarFallback>
                           </Avatar>

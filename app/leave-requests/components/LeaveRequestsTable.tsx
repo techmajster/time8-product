@@ -112,7 +112,7 @@ export function LeaveRequestsTable({ requests }: { requests: LeaveRequestWithUse
                   <div className="flex items-center gap-3">
                     <Avatar className="w-10 h-10">
                       <AvatarImage src={request.user_profile.avatar_url || undefined} />
-                      <AvatarFallback className="bg-neutral-100">
+                      <AvatarFallback className="">
                         {request.user_profile.full_name?.charAt(0) || request.user_profile.email.charAt(0)}
                       </AvatarFallback>
                     </Avatar>

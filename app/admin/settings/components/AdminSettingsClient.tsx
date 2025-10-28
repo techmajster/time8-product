@@ -598,7 +598,7 @@ export default function AdminSettingsClient({
                         <>
                           <Avatar className="h-10 w-10">
                             <AvatarImage src={adminUser.avatar_url || undefined} />
-                            <AvatarFallback className="bg-muted">
+                            <AvatarFallback className="">
                               {getUserInitials(adminUser.full_name || '', adminUser.email)}
                             </AvatarFallback>
                           </Avatar>
@@ -1163,7 +1163,7 @@ export default function AdminSettingsClient({
                             <div className="flex items-center gap-3">
                               <Avatar className="size-10">
                                 <AvatarImage src={user.avatar_url || undefined} />
-                                <AvatarFallback className="bg-muted text-sm font-medium">
+                                <AvatarFallback className="text-sm font-medium">
                                   {user.full_name
                                     ? user.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase()
                                     : user.email.charAt(0).toUpperCase()}

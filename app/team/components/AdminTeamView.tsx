@@ -170,7 +170,7 @@ export function AdminTeamView({ teamMembers, leaveBalances, teams }: AdminTeamVi
                         <div className="flex items-center gap-3">
                           <Avatar className="size-10">
                             <AvatarImage src={member.avatar_url || undefined} />
-                            <AvatarFallback className="bg-muted text-sm font-medium">
+                            <AvatarFallback className="text-sm font-medium">
                               {getUserInitials(member)}
                             </AvatarFallback>
                           </Avatar>

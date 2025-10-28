@@ -225,7 +225,7 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
                       {team.manager ? (
                         <div className="flex items-center gap-3">
                           <Avatar className="size-10">
-                            <AvatarFallback className="bg-muted text-sm font-medium">
+                            <AvatarFallback className="text-sm font-medium">
                               {team.manager.full_name ? team.manager.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : team.manager.email.charAt(0).toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
@@ -335,7 +335,7 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
                                 <div className="flex items-center gap-2">
                                   <Avatar className="size-8">
                                     <AvatarImage src={selectedManager.avatar_url || undefined} />
-                                    <AvatarFallback className="bg-neutral-100 text-sm font-normal text-neutral-950">
+                                    <AvatarFallback className="text-sm font-normal">
                                       {selectedManager.full_name ? selectedManager.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : selectedManager.email.charAt(0).toUpperCase()}
                                     </AvatarFallback>
                                   </Avatar>
@@ -380,7 +380,7 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
                               <div className="flex items-center gap-2">
                                 <Avatar className="size-8">
                                   <AvatarImage src={manager.avatar_url || undefined} />
-                                  <AvatarFallback className="bg-neutral-100 text-sm font-normal text-neutral-950">
+                                  <AvatarFallback className="text-sm font-normal">
                                     {manager.full_name ? manager.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : manager.email.charAt(0).toUpperCase()}
                                   </AvatarFallback>
                                 </Avatar>
@@ -502,7 +502,7 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
                         <div className="flex items-center gap-4">
                           <Avatar className="size-10">
                             <AvatarImage src={selectedTeam.manager.avatar_url || undefined} />
-                            <AvatarFallback className="bg-neutral-100 text-sm font-normal text-neutral-950">
+                            <AvatarFallback className="text-sm font-normal">
                               {selectedTeam.manager.full_name ? selectedTeam.manager.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : selectedTeam.manager.email.charAt(0).toUpperCase()}
                             </AvatarFallback>
                           </Avatar>

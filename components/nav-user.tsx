@@ -3,12 +3,10 @@
 import {
   ChevronsUpDown,
   LogOut,
-  Settings,
   User,
   Languages,
   Moon,
   Sun,
-  Monitor,
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useTranslations, useLocale } from 'next-intl'
@@ -119,9 +117,6 @@ export function NavUser({
     });
   };
 
-  // Check if user can access profile and settings
-  const canAccessProfileSettings = user.role === 'admin' || user.role === 'manager'
-
   const isDarkMode = theme === 'dark'
 
   return (
@@ -133,9 +128,9 @@ export function NavUser({
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
-              <Avatar className="h-8 w-8 rounded-lg">
+              <Avatar className="h-8 w-8">
                 <AvatarImage src={user.avatar} alt={user.name} />
-                <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
+                <AvatarFallback>{initials}</AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{user.name}</span>
@@ -152,9 +147,9 @@ export function NavUser({
           >
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                <Avatar className="h-8 w-8 rounded-lg">
+                <Avatar className="h-8 w-8">
                   <AvatarImage src={user.avatar} alt={user.name} />
-                  <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
+                  <AvatarFallback>{initials}</AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">{user.name}</span>
@@ -163,14 +158,14 @@ export function NavUser({
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            
+
             {/* Dark Mode Toggle */}
             <DropdownMenuItem className="flex items-center justify-between">
               <div className="flex items-center">
                 {isDarkMode ? <Moon className="h-4 w-4 mr-2" /> : <Sun className="h-4 w-4 mr-2" />}
-                {t('userMenu.darkMode')}
+                Tryb ciemny
               </div>
-              <Switch 
+              <Switch
                 checked={isDarkMode}
                 onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
               />
@@ -180,7 +175,7 @@ export function NavUser({
             <DropdownMenuSub>
               <DropdownMenuSubTrigger>
                 <Languages className="h-4 w-4 mr-2" />
-                {t('userMenu.language')}
+                Język
               </DropdownMenuSubTrigger>
               <DropdownMenuSubContent>
                 {languages.map((language) => (
@@ -202,25 +197,18 @@ export function NavUser({
 
             <DropdownMenuSeparator />
 
-            {/* Profile and Settings (only for managers/admins) */}
-            {canAccessProfileSettings && (
-              <DropdownMenuItem onClick={() => router.push('/profile')}>
-                <User className="h-4 w-4 mr-2" />
-                {t('userMenu.account')}
-              </DropdownMenuItem>
-            )}
-            {canAccessProfileSettings && (
-              <DropdownMenuItem onClick={() => router.push('/admin/settings')}>
-                <Settings className="h-4 w-4 mr-2" />
-                {t('userMenu.settings')}
-              </DropdownMenuItem>
-            )}
-            {canAccessProfileSettings && <DropdownMenuSeparator />}
-            
+            {/* My Profile - accessible to all users */}
+            <DropdownMenuItem onClick={() => router.push('/profile')}>
+              <User className="h-4 w-4 mr-2" />
+              Mój profil
+            </DropdownMenuItem>
+
+            <DropdownMenuSeparator />
+
             {/* Sign Out */}
             <DropdownMenuItem onClick={handleSignOut}>
               <LogOut className="h-4 w-4 mr-2" />
-              {t('userMenu.signOut')}
+              Wyloguj się
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

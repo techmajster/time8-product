@@ -1,0 +1,137 @@
+# Spec Tasks
+
+## Tasks
+
+- [ ] 1. Database Setup
+  - [ ] 1.1 Create `notifications` table migration with proper schema
+  - [ ] 1.2 Add indexes for performance (user+org+created_at, unread, leave_request)
+  - [ ] 1.3 Enable RLS and create policies (SELECT, UPDATE, INSERT)
+  - [ ] 1.4 Create trigger function `notify_employee_on_leave_status_change()`
+  - [ ] 1.5 Create trigger function `notify_managers_on_new_leave_request()`
+  - [ ] 1.6 Attach triggers to `leave_requests` table (AFTER UPDATE, AFTER INSERT)
+  - [ ] 1.7 Test migration with sample data (create test leave request, verify notifications created)
+  - [ ] 1.8 Verify RLS policies work correctly (users only see own notifications)
+
+- [ ] 2. TypeScript Types and Utility Functions
+  - [ ] 2.1 Create `types/notification.ts` with type definitions
+  - [ ] 2.2 Add `NotificationType`, `NotificationMetadata`, `Notification` types
+  - [ ] 2.3 Add response types: `NotificationsResponse`, `MarkReadResponse`, `MarkAllReadResponse`
+
+- [ ] 3. API Routes Implementation
+  - [ ] 3.1 Create `app/api/notifications/route.ts` (GET endpoint)
+    - [ ] 3.1.1 Implement authentication via `authenticateAndGetProfile()`
+    - [ ] 3.1.2 Add query parameter parsing (limit, offset, unread_only)
+    - [ ] 3.1.3 Fetch notifications from Supabase with pagination
+    - [ ] 3.1.4 Calculate unread_count, total_count, has_more
+    - [ ] 3.1.5 Return formatted response with proper error handling
+  - [ ] 3.2 Create `app/api/notifications/[id]/route.ts` (PATCH endpoint)
+    - [ ] 3.2.1 Implement authentication
+    - [ ] 3.2.2 Validate notification ID and is_read parameter
+    - [ ] 3.2.3 Update notification with read_at timestamp
+    - [ ] 3.2.4 Return updated notification with error handling
+  - [ ] 3.3 Create `app/api/notifications/mark-all-read/route.ts` (POST endpoint)
+    - [ ] 3.3.1 Implement authentication
+    - [ ] 3.3.2 Update all unread notifications for current user
+    - [ ] 3.3.3 Return updated_count with error handling
+  - [ ] 3.4 Test all API endpoints with different user roles and scenarios
+
+- [ ] 4. UI Components Development
+  - [ ] 4.1 Create `components/notifications/notification-bell.tsx`
+    - [ ] 4.1.1 Implement bell icon with Badge component for unread count
+    - [ ] 4.1.2 Add state management (isOpen, unreadCount, isLoading)
+    - [ ] 4.1.3 Implement fetch unread count on mount
+    - [ ] 4.1.4 Add polling interval (30 seconds) for real-time updates
+    - [ ] 4.1.5 Implement sheet open/close handlers
+    - [ ] 4.1.6 Add optimistic UI updates for unread count
+  - [ ] 4.2 Create `components/notifications/notification-sheet.tsx`
+    - [ ] 4.2.1 Implement Sheet component from shadcn (side="right", 560px width)
+    - [ ] 4.2.2 Add header with "Powiadomienia" title and unread badge
+    - [ ] 4.2.3 Implement notification list with scroll container
+    - [ ] 4.2.4 Add loading state with skeleton loaders
+    - [ ] 4.2.5 Add empty state (no notifications message)
+    - [ ] 4.2.6 Implement fetch notifications on sheet open
+    - [ ] 4.2.7 Add footer with "Zamknij" button
+    - [ ] 4.2.8 Implement pagination support (future enhancement placeholder)
+  - [ ] 4.3 Create `components/notifications/notification-item.tsx`
+    - [ ] 4.3.1 Implement notification card with proper styling (blue-50 unread, white read)
+    - [ ] 4.3.2 Add icon mapping (Check, X, Info based on type)
+    - [ ] 4.3.3 Display title and message with proper typography
+    - [ ] 4.3.4 Implement "Szczegóły" button
+    - [ ] 4.3.5 Add mark as read functionality on button click
+    - [ ] 4.3.6 Implement navigation to leave request details
+    - [ ] 4.3.7 Add memoization for performance optimization
+  - [ ] 4.4 Style components to match Figma design exactly
+
+- [ ] 5. Integration with Application
+  - [ ] 5.1 Add NotificationBell to `components/app-layout-client.tsx` header
+    - [ ] 5.1.1 Import NotificationBell component
+    - [ ] 5.1.2 Add to header after breadcrumbs (right-aligned)
+    - [ ] 5.1.3 Test positioning and responsiveness
+  - [ ] 5.2 Update leave request approval handler to trigger notifications
+    - [ ] 5.2.1 Verify database trigger fires on status change to 'approved'
+    - [ ] 5.2.2 Test notification creation for employee
+    - [ ] 5.2.3 Verify notification metadata is correct
+  - [ ] 5.3 Update leave request rejection handler to trigger notifications
+    - [ ] 5.3.1 Verify database trigger fires on status change to 'rejected'
+    - [ ] 5.3.2 Test notification creation for employee
+    - [ ] 5.3.3 Verify rejection reason included in metadata
+  - [ ] 5.4 Test new leave request submission triggers manager notifications
+    - [ ] 5.4.1 Verify database trigger fires on INSERT
+    - [ ] 5.4.2 Test notifications created for all managers and admins
+    - [ ] 5.4.3 Verify employee who created request doesn't receive notification
+  - [ ] 5.5 Test navigation from notification to leave request detail view
+    - [ ] 5.5.1 Click "Szczegóły" opens LeaveRequestDetailsSheet
+    - [ ] 5.5.2 Correct leave request is displayed
+    - [ ] 5.5.3 Notification marked as read automatically
+
+- [ ] 6. End-to-End Testing
+  - [ ] 6.1 Test as employee receiving approved notification
+    - [ ] 6.1.1 Submit leave request
+    - [ ] 6.1.2 Manager approves request
+    - [ ] 6.1.3 Employee sees bell badge increment
+    - [ ] 6.1.4 Open notification sheet, see "Urlop zaakceptowany"
+    - [ ] 6.1.5 Click "Szczegóły", navigate to leave request detail
+    - [ ] 6.1.6 Notification marked as read, badge decrements
+  - [ ] 6.2 Test as employee receiving rejected notification
+    - [ ] 6.2.1 Submit leave request
+    - [ ] 6.2.2 Manager rejects request
+    - [ ] 6.2.3 Employee sees bell badge increment
+    - [ ] 6.2.4 Open notification sheet, see "Urlop odrzucony"
+    - [ ] 6.2.5 Click "Szczegóły", view rejection details
+  - [ ] 6.3 Test as manager receiving new request notification
+    - [ ] 6.3.1 Employee submits new leave request
+    - [ ] 6.3.2 Manager sees bell badge increment
+    - [ ] 6.3.3 Open notification sheet, see "Nowy wniosek urlopowy"
+    - [ ] 6.3.4 Click "Szczegóły", review and approve/reject request
+  - [ ] 6.4 Test mark all as read functionality
+    - [ ] 6.4.1 User has multiple unread notifications
+    - [ ] 6.4.2 (Future: Add "Mark all as read" button to sheet)
+    - [ ] 6.4.3 All notifications marked as read
+    - [ ] 6.4.4 Badge count resets to 0
+  - [ ] 6.5 Test multi-tenant isolation
+    - [ ] 6.5.1 User A in Organization 1 submits request
+    - [ ] 6.5.2 User B in Organization 2 should NOT see notification
+    - [ ] 6.5.3 Manager in Organization 1 should see notification
+  - [ ] 6.6 Test polling and real-time updates
+    - [ ] 6.6.1 New notification created while bell is visible
+    - [ ] 6.6.2 Badge updates within 30 seconds
+    - [ ] 6.6.3 Opening sheet shows new notification
+
+- [ ] 7. Performance and UX Polish
+  - [ ] 7.1 Optimize API queries with proper indexes
+  - [ ] 7.2 Add loading skeletons for better perceived performance
+  - [ ] 7.3 Implement optimistic UI updates (immediate visual feedback)
+  - [ ] 7.4 Test with large number of notifications (50+)
+  - [ ] 7.5 Verify sheet scroll behavior
+  - [ ] 7.6 Test responsive design on mobile devices
+  - [ ] 7.7 Verify accessibility (keyboard navigation, screen readers)
+
+- [ ] 8. Final Verification
+  - [ ] 8.1 All database migrations applied successfully
+  - [ ] 8.2 All API endpoints return correct data
+  - [ ] 8.3 UI matches Figma design pixel-perfect
+  - [ ] 8.4 All user flows work as expected
+  - [ ] 8.5 No console errors or warnings
+  - [ ] 8.6 Multi-tenant isolation verified
+  - [ ] 8.7 Performance metrics acceptable (<200ms API responses)
+  - [ ] 8.8 Code reviewed and ready for deployment

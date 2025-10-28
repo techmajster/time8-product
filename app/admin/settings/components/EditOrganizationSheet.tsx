@@ -273,7 +273,7 @@ export function EditOrganizationSheet({
                           <div className="flex items-center gap-2">
                             <Avatar className="h-8 w-8">
                               <AvatarImage src={selectedUser.avatar_url || undefined} />
-                              <AvatarFallback className="bg-muted text-sm">
+                              <AvatarFallback className="text-sm">
                                 {getUserInitials(selectedUser)}
                               </AvatarFallback>
                             </Avatar>
@@ -303,7 +303,7 @@ export function EditOrganizationSheet({
                         <div className="flex items-center gap-2">
                           <Avatar className="h-8 w-8">
                             <AvatarImage src={user.avatar_url || undefined} />
-                            <AvatarFallback className="bg-muted text-sm">
+                            <AvatarFallback className="text-sm">
                               {getUserInitials(user)}
                             </AvatarFallback>
                           </Avatar>

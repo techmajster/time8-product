@@ -2,22 +2,17 @@
 
 import * as React from "react"
 import {
-  Calendar,
+  CalendarCheck2,
   CalendarDays,
-  Home,
-  LifeBuoy,
-  Send,
-  Settings,
+  CalendarX,
+  Gauge,
+  CircleHelp,
+  FileSymlink,
   Users,
-  ClipboardList,
-  Clock,
-  User,
-  GalleryVerticalEnd,
-  HelpCircle,
 } from "lucide-react"
-import { useTranslations } from 'next-intl'
 import { UserRole, isManagerOrAdmin, isAdmin } from '@/lib/permissions'
 
+import { Logo } from "@/components/logo"
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
@@ -45,8 +40,6 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 }
 
 export function AppSidebar({ organizationName, organizationLogo, organizationInitials, userProfile, userRole, ...props }: AppSidebarProps) {
-  const t = useTranslations('navigation')
-  
   // Format user data for NavUser component
   const userData = {
     name: userProfile?.full_name || userProfile?.email?.split('@')[0] || 'User',
@@ -55,72 +48,78 @@ export function AppSidebar({ organizationName, organizationLogo, organizationIni
     role: userRole || 'employee'
   }
 
-  // Base navigation items for all users
+  // Base navigation items for all users - "Twoje konto"
   const getBaseNavItems = () => [
     {
-      title: t('dashboard'),
+      title: 'Dashboard',
       url: "/dashboard",
-      icon: Home,
+      icon: Gauge,
       isActive: true,
     },
     {
-      title: t('leave'),
+      title: 'Moje urlopy',
       url: "/leave",
-      icon: ClipboardList,
+      icon: CalendarCheck2,
     },
     {
-      title: t('calendar'),
+      title: 'Kalendarz',
       url: "/calendar",
-      icon: Calendar,
+      icon: CalendarDays,
     },
   ]
 
-  // Get manager/admin specific items
+  // Get manager/admin specific items - "Kierownik"
   const getManagerItems = () => [
     {
-      title: t('team'),
+      title: 'Mój zespół',
       url: "/team",
       icon: Users,
     },
     {
-      title: t('leaveRequests'),
+      title: 'Wnioski urlopowe',
       url: "/leave-requests",
-      icon: ClipboardList,
+      icon: FileSymlink,
     },
     {
-      title: t('addAbsence'),
+      title: 'Dodaj nieobecność',
       url: "#",
-      icon: Send,
+      icon: CalendarX,
       onClick: () => {
         const event = new CustomEvent('openAddAbsence')
         window.dispatchEvent(event)
       }
     },
+    {
+      title: 'Grafik',
+      url: "/schedule",
+      icon: CalendarDays,
+    },
   ]
 
+  // Admin items - "Administrator"
   const getAdminItems = () => [
     {
-      title: t('adminPages.teamManagement'),
-      url: "/admin/team-management",
-      icon: Users,
-    },
-    {
-      title: t('groupsPage'),
-      url: "/admin/groups",
-      icon: Users,
-    },
-    {
-      title: t('adminPages.settings'),
+      title: 'Ustawienia administracyjne',
       url: "/admin/settings",
-      icon: Settings,
+      icon: Users,
+    },
+    {
+      title: 'Użytkownicy',
+      url: "/admin/team-management",
+      icon: FileSymlink,
+    },
+    {
+      title: 'Grupy',
+      url: "/admin/groups",
+      icon: CalendarX,
     },
   ]
 
   const navSecondaryData = [
     {
-      title: t('help'),
+      title: 'Centrum pomocy',
       url: "/help",
-      icon: LifeBuoy,
+      icon: CircleHelp,
     },
   ]
 
@@ -133,27 +132,11 @@ export function AppSidebar({ organizationName, organizationLogo, organizationIni
   const hasAdminAccess = isAdmin(normalizedRole)
 
   return (
-    <Sidebar variant="inset" {...props}>
+    <Sidebar variant="sidebar" {...props}>
       <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild>
-              <a href="/dashboard">
-                <div className="bg-primary text-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                  <GalleryVerticalEnd className="size-4" />
-                </div>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">
-                    {organizationName || "Leave System"}
-                  </span>
-                  <span className="truncate text-xs text-sidebar-foreground/70">
-                    Leave Management
-                  </span>
-                </div>
-              </a>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+        <div className="flex items-center px-4 py-3">
+          <Logo />
+        </div>
       </SidebarHeader>
       <SidebarContent>
         {/* Workspace Switcher */}
@@ -163,17 +146,17 @@ export function AppSidebar({ organizationName, organizationLogo, organizationIni
           />
         </div>
         
-        {/* Base navigation without label */}
-        <NavMain items={baseNavigationItems} />
-        
-        {/* Manager navigation with "Manager" label */}
+        {/* Base navigation with "Twoje konto" label */}
+        <NavMain items={baseNavigationItems} label="Twoje konto" />
+
+        {/* Manager navigation with "Kierownik" label */}
         {hasManagerAccess && (
-          <NavMain items={getManagerItems()} label={t('groups.manager')} />
+          <NavMain items={getManagerItems()} label="Kierownik" />
         )}
-        
-        {/* Admin navigation */}
+
+        {/* Admin navigation with "Administrator" label */}
         {hasAdminAccess && (
-          <NavMain items={getAdminItems()} label={t('groups.admin')} />
+          <NavMain items={getAdminItems()} label="Administrator" />
         )}
         
         <NavSecondary items={navSecondaryData} className="mt-auto" />

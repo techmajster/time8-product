@@ -73,7 +73,7 @@ function SuccessPageContent() {
                 alt={member.full_name}
               />
             )}
-            <AvatarFallback className="bg-neutral-100 font-normal text-[12px] text-neutral-950" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400, lineHeight: '20px' }}>
+            <AvatarFallback className="font-normal text-[12px]" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400, lineHeight: '20px' }}>
               {getInitials(member.full_name || member.email)}
             </AvatarFallback>
           </Avatar>
@@ -82,7 +82,7 @@ function SuccessPageContent() {
         {/* Only show +X if there are MORE than 3 members total */}
         {companyMembers.length > maxVisible && (
           <Avatar className="bg-neutral-100 size-6 border-2 border-white" style={{ marginLeft: '8px' }}>
-            <AvatarFallback className="bg-neutral-100 font-normal text-[12px] text-neutral-950" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400, lineHeight: '20px' }}>
+            <AvatarFallback className="font-normal text-[12px]" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400, lineHeight: '20px' }}>
               +{remainingCount}
             </AvatarFallback>
           </Avatar>

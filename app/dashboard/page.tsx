@@ -373,7 +373,7 @@ export default async function DashboardPage() {
                 <span className="text-5xl font-light text-foreground">Cześć</span>
                 <Avatar className="w-12 h-12">
                   <AvatarImage src="" />
-                  <AvatarFallback className="bg-muted">
+                  <AvatarFallback>
                     {profile.full_name?.split(' ').map((n: string) => n[0]).join('') || 'U'}
                   </AvatarFallback>
                 </Avatar>

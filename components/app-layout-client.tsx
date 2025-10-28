@@ -22,6 +22,8 @@ import { LeaveType, LeaveBalance, UserProfile } from '@/types/leave'
 import AddAbsenceSheet from './AddAbsenceSheet'
 import { UserRoleContext } from '@/hooks/use-user-role'
 import { UserRole, isValidRole } from '@/lib/permissions'
+import { NotificationBell } from './notifications/notification-bell'
+import { useUserBackground } from '@/lib/hooks/use-user-background'
 
 interface Organization {
   id: string
@@ -61,16 +63,21 @@ export const useOrganization = () => {
 }
 
 // Function to generate breadcrumb items based on pathname
-function getBreadcrumbItems(pathname: string, organizationName?: string | null, t?: any) {
+function getBreadcrumbItems(pathname: string, t?: any) {
   const segments = pathname.split('/').filter(Boolean)
   const items = []
 
-  // Always start with organization/home
+  // Always start with Dashboard
   items.push({
     href: '/dashboard',
-    label: organizationName || 'Leave System',
+    label: t?.('navigation.dashboard') || 'Dashboard',
     isHome: true
   })
+
+  // If we're on the dashboard page, don't add duplicate breadcrumb
+  if (pathname === '/dashboard') {
+    return items
+  }
 
   // Map route segments to translated labels
   const getRouteLabel = (segment: string): string => {
@@ -112,9 +119,12 @@ function getBreadcrumbItems(pathname: string, organizationName?: string | null, 
     
     const label = getRouteLabel(segment)
     const isLast = i === segments.length - 1
-    
+
+    // Make admin breadcrumb non-clickable since /admin page doesn't exist
+    const isNonClickable = segment === 'admin'
+
     items.push({
-      href: isLast ? undefined : currentPath,
+      href: (isLast || isNonClickable) ? undefined : currentPath,
       label,
       isLast
     })
@@ -163,25 +173,41 @@ export function AppLayoutClient({
     return (words[0][0] + words[0][0]).toUpperCase()
   }
   
-  const breadcrumbItems = getBreadcrumbItems(pathname, organization?.name, t)
+  const breadcrumbItems = getBreadcrumbItems(pathname, t)
 
   // Validate and normalize user role
   const normalizedRole: UserRole | null = isValidRole(userRole) ? userRole : null
+
+  // Get user's current leave status for background
+  const { backgroundState } = useUserBackground()
+
+  // Map background state to CSS variable
+  const getBackgroundStyle = () => {
+    switch (backgroundState) {
+      case 'vacation':
+        return { backgroundColor: 'var(--bg-vacation)' }
+      case 'sick-leave':
+        return { backgroundColor: 'var(--bg-sick-leave)' }
+      case 'default':
+      default:
+        return { backgroundColor: 'var(--bg-default)' }
+    }
+  }
 
   return (
     <UserRoleContext.Provider value={{ role: normalizedRole, userId: userId || null }}>
       <OrganizationContext.Provider value={{ organization, updateOrganization }}>
         <SidebarProvider>
-        <AppSidebar 
+        <AppSidebar
           organizationName={organization?.name}
           organizationLogo={organization?.logo_url}
           organizationInitials={organization?.name ? calculateInitials(organization.name) : undefined}
           userProfile={userProfile}
           userRole={userRole}
         />
-        <SidebarInset>
-          <header className="sticky top-0 z-50 flex h-16 shrink-0 items-center gap-2 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 rounded-t-xl">
-            <div className="flex items-center gap-2 px-4">
+        <SidebarInset style={getBackgroundStyle()}>
+          <header className="flex h-12 shrink-0 items-center gap-2 border-b">
+            <div className="flex items-center gap-2 px-4 flex-1">
               <SidebarTrigger className="-ml-1" />
               <Separator
                 orientation="vertical"
@@ -207,8 +233,11 @@ export function AppLayoutClient({
               </Breadcrumb>
             </div>
 
+            <div className="flex items-center gap-2 px-4">
+              <NotificationBell />
+            </div>
           </header>
-          <main className="flex flex-1 flex-col gap-4 p-4 pt-0">
+          <main className="flex flex-1 flex-col gap-4 p-11 pt-0">
             {children}
           </main>
         </SidebarInset>

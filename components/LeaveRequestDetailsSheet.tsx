@@ -16,6 +16,8 @@ import {
 } from 'lucide-react'
 import { EditLeaveRequestSheet } from './EditLeaveRequestSheet'
 import { LeaveType, LeaveBalance, UserProfile } from '@/types/leave'
+import { useSonnerToast } from '@/hooks/use-sonner-toast'
+import { useRouter } from 'next/navigation'
 
 interface LeaveRequestDetailsSheetProps {
   requestId: string | null
@@ -73,6 +75,10 @@ export function LeaveRequestDetailsSheet({ requestId, isOpen, onClose }: LeaveRe
   const [leaveBalances, setLeaveBalances] = useState<LeaveBalance[]>([])
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [lastFetchedId, setLastFetchedId] = useState<string | null>(null)
+  const [isProcessing, setIsProcessing] = useState(false)
+
+  const { showSuccess, showError } = useSonnerToast()
+  const router = useRouter()
 
   const fetchLeaveRequestDetails = async () => {
     if (!requestId) return
@@ -175,6 +181,78 @@ export function LeaveRequestDetailsSheet({ requestId, isOpen, onClose }: LeaveRe
 
   const isOwner = leaveRequest?.user_id === currentUserId
   const canEdit = isOwner && leaveRequest?.status !== 'cancelled'
+  const canApprove = (userRole === 'admin' || userRole === 'manager') && !isOwner && leaveRequest?.status === 'pending'
+
+  const handleApprove = async () => {
+    if (!requestId || !leaveRequest) return
+
+    setIsProcessing(true)
+    try {
+      const response = await fetch(`/api/leave-requests/${requestId}/approve`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'approve'
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to approve leave request')
+      }
+
+      const data = await response.json()
+      showSuccess(data.message || 'Wniosek urlopowy został zatwierdzony')
+
+      // Close sheet and refresh data
+      onClose()
+      router.refresh()
+
+    } catch (error) {
+      console.error('Error approving leave request:', error)
+      showError(error instanceof Error ? error.message : 'Nie udało się zatwierdzić wniosku')
+    } finally {
+      setIsProcessing(false)
+    }
+  }
+
+  const handleReject = async () => {
+    if (!requestId || !leaveRequest) return
+
+    setIsProcessing(true)
+    try {
+      const response = await fetch(`/api/leave-requests/${requestId}/approve`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'reject',
+          comment: 'Odrzucony przez administratora'
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to reject leave request')
+      }
+
+      const data = await response.json()
+      showSuccess(data.message || 'Wniosek urlopowy został odrzucony')
+
+      // Close sheet and refresh data
+      onClose()
+      router.refresh()
+
+    } catch (error) {
+      console.error('Error rejecting leave request:', error)
+      showError(error instanceof Error ? error.message : 'Nie udało się odrzucić wniosku')
+    } finally {
+      setIsProcessing(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -350,7 +428,7 @@ export function LeaveRequestDetailsSheet({ requestId, isOpen, onClose }: LeaveRe
                         <div key={conflictingLeave.id} className="flex flex-row gap-4 items-center w-full">
                           <Avatar className="w-10 h-10">
                             <AvatarImage src={conflictingLeave.avatar_url || undefined} />
-                            <AvatarFallback className="bg-muted">
+                            <AvatarFallback className="">
                               {conflictingLeave.full_name?.split(' ').map(n => n[0]).join('') || conflictingLeave.email[0].toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
@@ -397,29 +475,54 @@ export function LeaveRequestDetailsSheet({ requestId, isOpen, onClose }: LeaveRe
             
             {/* Footer - Fixed at Bottom */}
             <div className="flex flex-row gap-2 items-center justify-between w-full p-6 pt-0 bg-background">
-              {canEdit && (
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => {
-                    console.log('🔘 Edit button clicked:', {
-                      canEdit,
-                      hasLeaveRequest: !!leaveRequest,
-                      hasUserProfile: !!userProfile,
-                      leaveRequestStatus: leaveRequest?.status,
-                      currentIsEditOpen: isEditOpen
-                    })
-                    onClose() // Close the current details sheet
-                    setIsEditOpen(true) // Open the edit sheet
-                    console.log('🔘 Set isEditOpen to true')
-                  }}
-                >
-                  Edytuj wniosek
-                </Button>
-              )}
-              <Button variant="outline" size="sm" onClick={onClose}>
-                Zamknij
-              </Button>
+              <div className="flex gap-2">
+                {canEdit && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      console.log('🔘 Edit button clicked:', {
+                        canEdit,
+                        hasLeaveRequest: !!leaveRequest,
+                        hasUserProfile: !!userProfile,
+                        leaveRequestStatus: leaveRequest?.status,
+                        currentIsEditOpen: isEditOpen
+                      })
+                      onClose() // Close the current details sheet
+                      setIsEditOpen(true) // Open the edit sheet
+                      console.log('🔘 Set isEditOpen to true')
+                    }}
+                  >
+                    Edytuj wniosek
+                  </Button>
+                )}
+              </div>
+              <div className="flex gap-2">
+                {canApprove && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleReject}
+                      disabled={isProcessing}
+                    >
+                      {isProcessing ? 'Przetwarzanie...' : 'Odrzuć wniosek'}
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={handleApprove}
+                      disabled={isProcessing}
+                    >
+                      {isProcessing ? 'Przetwarzanie...' : 'Zaakceptuj wniosek'}
+                    </Button>
+                  </>
+                )}
+                {!canApprove && (
+                  <Button variant="outline" size="sm" onClick={onClose}>
+                    Zamknij
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         </div>

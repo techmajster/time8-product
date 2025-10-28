@@ -95,7 +95,7 @@ function EmployeeSelectTrigger({
     <div className="flex flex-row items-center gap-2 h-12 px-3 py-2 w-full">
       <Avatar className="size-8">
         <AvatarImage src={employee.avatar_url || undefined} />
-        <AvatarFallback className="bg-neutral-100 text-neutral-950 text-sm font-normal">
+        <AvatarFallback className="text-sm font-normal">
           {(employee.full_name || employee.email)?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
         </AvatarFallback>
       </Avatar>
@@ -152,7 +152,7 @@ function OverlapUserItem({ user }: { user: OverlapUser }) {
     <div className="flex flex-row gap-4 items-center justify-start w-full min-w-[85px]">
       <Avatar className="size-10">
         <AvatarImage src={user.avatar_url || undefined} />
-        <AvatarFallback className="bg-neutral-100 text-neutral-950">
+        <AvatarFallback>
           {(user.full_name || user.email)?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
         </AvatarFallback>
       </Avatar>
@@ -688,7 +688,7 @@ function AddAbsenceSheetContent({ preloadedEmployees, userRole, isOpen, onClose 
                           <div className="flex items-center gap-2">
                             <Avatar className="size-6">
                               <AvatarImage src={selectedEmployee.avatar_url || undefined} />
-                              <AvatarFallback className="bg-neutral-100 text-neutral-950 text-xs">
+                              <AvatarFallback className="text-xs">
                                 {(selectedEmployee.full_name || selectedEmployee.email)?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
@@ -717,7 +717,7 @@ function AddAbsenceSheetContent({ preloadedEmployees, userRole, isOpen, onClose 
                       <div className="flex items-center gap-2">
                         <Avatar className="size-6">
                           <AvatarImage src={employee.avatar_url || undefined} />
-                          <AvatarFallback className="bg-neutral-100 text-neutral-950 text-xs">
+                          <AvatarFallback className="text-xs">
                             {(employee.full_name || employee.email)?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>

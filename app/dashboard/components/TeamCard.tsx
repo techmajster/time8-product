@@ -129,7 +129,7 @@ export function TeamCard({ allTeamMembers, absentMembers, teams, defaultTeamId, 
                     <div key={index} className="flex items-center gap-4">
                       <Avatar className="w-10 h-10">
                         <AvatarImage src={member.avatar_url || undefined} />
-                        <AvatarFallback className="bg-muted">{initials}</AvatarFallback>
+                        <AvatarFallback>{initials}</AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
                         <div className="text-sm font-medium text-foreground">{member.full_name}</div>
@@ -166,7 +166,7 @@ export function TeamCard({ allTeamMembers, absentMembers, teams, defaultTeamId, 
                     <div key={index} className="flex items-center gap-4">
                       <Avatar className="w-10 h-10">
                         <AvatarImage src={member.avatar_url || undefined} />
-                        <AvatarFallback className="bg-muted">{initials}</AvatarFallback>
+                        <AvatarFallback>{initials}</AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
                         <div className="flex items-center gap-2">

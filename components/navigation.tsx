@@ -218,7 +218,7 @@ export function Navigation({
                     src={userProfile?.avatar_url || undefined} 
                     alt={userDisplayName} 
                   />
-                  <AvatarFallback className="bg-muted">
+                  <AvatarFallback className="">
                     {userInitials}
                   </AvatarFallback>
                 </Avatar>

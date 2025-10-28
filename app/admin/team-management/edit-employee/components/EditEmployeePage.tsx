@@ -340,7 +340,7 @@ export function EditEmployeePage({ teams, leaveTypes, organizationId, teamMember
                         <Button 
                           variant="outline" 
                           size="sm" 
-                          className="bg-neutral-100"
+                          className=""
                           onClick={() => setIsCreateTeamOpen(true)}
                         >
                           <Plus className="h-4 w-4 mr-2" />

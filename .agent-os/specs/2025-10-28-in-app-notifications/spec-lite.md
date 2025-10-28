@@ -1,0 +1,3 @@
+# Spec Summary (Lite)
+
+Implement in-app notification system that alerts users about leave request updates via a notification bell icon in the application header. Employees receive notifications when their leave requests are approved or rejected. Managers and admins receive notifications when new leave requests are submitted. Users can click the bell to open a slide-out sheet showing all notifications, navigate to detailed views via "Szczegóły" button, and see notifications automatically marked as read. System includes database table, API endpoints, UI components using shadcn Sheet, and automatic notification creation via database triggers.

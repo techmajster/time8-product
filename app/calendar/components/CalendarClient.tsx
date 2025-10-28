@@ -724,7 +724,7 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
                           <div key={leave.id} className="flex flex-row gap-4 items-center justify-start min-w-[85px] w-full">
                             <Avatar className="w-10 h-10 rounded-full bg-neutral-100">
                               <AvatarImage src={leave.user_avatar || undefined} />
-                              <AvatarFallback className="bg-neutral-100 text-neutral-950">
+                              <AvatarFallback className="">
                                 {leave.user_name.split(' ').map(n => n[0]).join('') || leave.user_email[0].toUpperCase()}
                               </AvatarFallback>
                             </Avatar>

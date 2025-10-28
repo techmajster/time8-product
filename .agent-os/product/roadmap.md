@@ -464,17 +464,46 @@
 
 ### Features
 
-- [ ] **Figma & Shadcn Integration Setup** `M`
-  - Configure Shadcn MCP server for component generation
-  - Configure Figma MCP for design-to-code workflow
-  - Establish design token system (colors, typography, spacing)
-  - Create component mapping between Figma and Shadcn
+- [x] **In-App Notifications System** `M` 🔔 ✅ **COMPLETED**
+  - ✅ Notification bell icon in header with unread count badge
+  - ✅ Slide-out sheet displaying all notifications using Shadcn Sheet
+  - ✅ Three notification types implemented:
+    - **Employees:** "Urlop zaakceptowany", "Urlop odrzucony"
+    - **Managers/Admins:** "Nowy wniosek urlopowy"
+  - ✅ Click notification opens leave request details sheet (smooth transition)
+  - ✅ Automatic mark-as-read functionality
+  - ✅ Database table with RLS policies for multi-tenant isolation
+  - ✅ API endpoints: fetch notifications, mark as read, mark all as read
+  - ✅ Database triggers for automatic notification creation on leave status changes
+  - ✅ Real-time unread count updates (30-second polling)
+  - ✅ Security: Fixed function search_path warnings
+  - ✅ Integration: Uses existing LeaveRequestProvider context
+  - ✅ Spec: `.agent-os/specs/2025-10-28-in-app-notifications/`
+  - ✅ Deployed: 2025-10-28
 
-- [ ] **Complete UI Overhaul (All Pages Simultaneously)** `XL`
-  - Implement all pages with new design at once
-  - Rebuild component library using Shadcn components
-  - Apply consistent design system across entire application
-  - Replace existing UI components with Figma-derived versions
+- [x] **Figma & Shadcn Integration Setup** `M` ✅ **COMPLETED**
+  - ✅ Configured Figma MCP for design-to-code workflow
+  - ✅ Established design token system (colors, borders, backgrounds)
+  - ✅ Updated global color scheme to match Figma (purple gradient, border colors)
+  - ✅ Integrated Figma MCP for extracting exact icons and design specifications
+
+- [ ] **Complete UI Overhaul (All Pages Simultaneously)** `XL` 🎯 **IN PROGRESS**
+  - [x] **Sidebar Navigation** ✅ **COMPLETED**
+    - ✅ Implemented three-tier grouped navigation (Twoje konto, Kierownik, Administrator)
+    - ✅ Updated all menu items with Polish labels matching Figma
+    - ✅ Applied exact icons from Figma design using Lucide React components
+    - ✅ Role-based section visibility (employee, manager, admin)
+    - ✅ Purple gradient background (#1e1b4b to #6d28d9)
+    - ✅ Logo integration from Figma assets
+  - [x] **Global Design Tokens** ✅ **COMPLETED**
+    - ✅ Updated border color: `oklch(0 0 0 / 0.2)` matching Figma card borders
+    - ✅ Added background states for user leave status (default, vacation, sick leave)
+    - ✅ Implemented dynamic background based on active leave requests
+    - ✅ Breadcrumb bar made scrollable with transparent background
+  - [ ] **Main Content Pages** - Dashboard, Calendar, Leave, Team pages
+  - [ ] **Admin Pages** - Settings, Users, Groups
+  - [ ] **Forms & Modals** - Create/Edit components
+  - [ ] **Cards & Components** - Reusable UI elements
 
 - [ ] **Responsive & Accessibility Polish** `M`
   - Verify responsive behavior on mobile, tablet, desktop
