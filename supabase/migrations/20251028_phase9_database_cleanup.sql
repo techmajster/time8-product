@@ -100,12 +100,18 @@ WHERE organization_id NOT IN (
   WHERE name IN ('BB8 Studio', 'Kontury')
 );
 
--- Delete leave_types for non-production orgs
+-- Temporarily disable trigger that prevents deletion of mandatory leave types
+ALTER TABLE public.leave_types DISABLE TRIGGER trg_prevent_mandatory_deletion;
+
+-- Delete leave_types for non-production orgs (including mandatory types)
 DELETE FROM public.leave_types
 WHERE organization_id NOT IN (
   SELECT id FROM public.organizations
   WHERE name IN ('BB8 Studio', 'Kontury')
 );
+
+-- Re-enable the trigger
+ALTER TABLE public.leave_types ENABLE TRIGGER trg_prevent_mandatory_deletion;
 
 -- Delete organization_settings for non-production orgs
 DELETE FROM public.organization_settings
