@@ -52,7 +52,7 @@ END $$;
 
 -- Delete leave_balances for non-production users
 DELETE FROM public.leave_balances
-WHERE profile_id NOT IN (
+WHERE user_id NOT IN (
   SELECT id FROM public.profiles
   WHERE email IN (
     'szymon.rajca@bb8.pl',
@@ -64,7 +64,7 @@ WHERE profile_id NOT IN (
 
 -- Delete leave_requests for non-production users
 DELETE FROM public.leave_requests
-WHERE profile_id NOT IN (
+WHERE user_id NOT IN (
   SELECT id FROM public.profiles
   WHERE email IN (
     'szymon.rajca@bb8.pl',
@@ -76,7 +76,7 @@ WHERE profile_id NOT IN (
 
 -- Delete user_organizations for non-production users
 DELETE FROM public.user_organizations
-WHERE profile_id NOT IN (
+WHERE user_id NOT IN (
   SELECT id FROM public.profiles
   WHERE email IN (
     'szymon.rajca@bb8.pl',
