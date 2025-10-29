@@ -525,14 +525,17 @@
       - Colors verified: Primary (violet-600), Sidebar (indigo-950), Card Violet, Borders, Input, Background, Foreground
       - Files: [app/globals.css](app/globals.css:102)
 
-    - [ ] **Phase 3: Unify Dashboard** `S` 🎯 **NEXT PRIORITY**
-      - Convert inline div-based cards to Shadcn Card components
-      - Maintain current visual design (purple theme, spacing)
-      - Use semantic structure (CardHeader, CardContent)
-      - Replace hardcoded styling with design tokens
+    - [x] **Phase 3: Unify Dashboard** `S` ✅ **COMPLETED**
+      - ✅ Converted 4 inline div cards to Shadcn Card components
+      - ✅ Today card: Card + CardContent (centered layout)
+      - ✅ Weekend card: Card + CardHeader + CardContent
+      - ✅ Birthday card: Card + CardHeader + CardContent
+      - ✅ Leave Requests card: Card + CardContent (flex layout)
+      - ✅ All cards now use design tokens (text-foreground, text-muted-foreground)
+      - ✅ Maintained exact visual design and spacing
       - Files: [app/dashboard/page.tsx](app/dashboard/page.tsx)
 
-    - [ ] **Phase 4: Unify Admin & Settings** `M`
+    - [ ] **Phase 4: Unify Admin & Settings** `M` 🎯 **NEXT PRIORITY**
       - Apply design tokens to admin/settings/team-management/groups pages
       - Same pattern as Dashboard (replace hardcoded values)
       - Convert to Shadcn Card components where applicable
