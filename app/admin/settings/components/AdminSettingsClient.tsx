@@ -444,7 +444,7 @@ export default function AdminSettingsClient({
       case 'past_due':
         return { status: 'past_due', badge: t('subscriptionStatus.pastDue'), color: 'bg-red-100 text-red-800 border-red-200' }
       default:
-        return { status: 'unknown', badge: 'Unknown', color: 'bg-gray-100 text-gray-800 border-gray-200' }
+        return { status: 'unknown', badge: 'Unknown', color: 'bg-muted text-foreground border' }
     }
   }
 
@@ -921,7 +921,7 @@ export default function AdminSettingsClient({
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <Switch disabled className="data-[state=unchecked]:bg-neutral-200" />
+                    <Switch disabled className="data-[state=unchecked]:bg-muted" />
                     <div className="space-y-2">
                       <Label className="text-sm font-medium text-foreground">
                         Wymagaj zatwierdzenia przez menedżera/administratora
@@ -1231,9 +1231,9 @@ export default function AdminSettingsClient({
             <CardContent className="pt-0 pb-6 space-y-6">
               {subscriptionLoading ? (
                 <div className="space-y-4">
-                  <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
-                  <div className="h-20 bg-gray-200 rounded animate-pulse"></div>
-                  <div className="h-16 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="h-8 bg-muted rounded animate-pulse"></div>
+                  <div className="h-20 bg-muted rounded animate-pulse"></div>
+                  <div className="h-16 bg-muted rounded animate-pulse"></div>
                 </div>
               ) : subscriptionError ? (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4">
@@ -1265,7 +1265,7 @@ export default function AdminSettingsClient({
                           <span className="text-muted-foreground">{t('currentUsage')}</span>
                           <span className="font-medium">{t('seatsUsed', {used: getSeatUsage().used, total: getSeatUsage().total})}</span>
                         </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div className="w-full bg-muted rounded-full h-2">
                           <div
                             className="bg-blue-600 h-2 rounded-full transition-all"
                             style={{ width: `${getSeatUsage().percentage}%` }}
@@ -1333,7 +1333,7 @@ export default function AdminSettingsClient({
                     {!subscriptionData ? (
                       <>
                         <Button 
-                          className="bg-foreground hover:bg-neutral-800 text-primary-foreground h-9 px-4 rounded-lg shadow-sm"
+                          className="bg-foreground hover:bg-foreground/90 text-primary-foreground h-9 px-4 rounded-lg shadow-sm"
                           onClick={() => {
                             // Redirect to upgrade flow - start with current team size + 1 buffer
                             const currentTeamSize = users.length || 1
@@ -1363,7 +1363,7 @@ export default function AdminSettingsClient({
                     ) : subscriptionData.status === 'cancelled' ? (
                       <>
                         <Button 
-                          className="bg-foreground hover:bg-neutral-800 text-primary-foreground h-9 px-4 rounded-lg shadow-sm"
+                          className="bg-foreground hover:bg-foreground/90 text-primary-foreground h-9 px-4 rounded-lg shadow-sm"
                           onClick={() => router.push('/onboarding/add-users')}
                         >
                           {t('reactivateSubscription')}
@@ -1396,16 +1396,16 @@ export default function AdminSettingsClient({
                 <div className="space-y-4">
                   <div className="grid grid-cols-3 gap-6">
                     <div className="text-center">
-                      <div className="h-8 bg-gray-200 rounded animate-pulse mb-2"></div>
-                      <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                      <div className="h-8 bg-muted rounded animate-pulse mb-2"></div>
+                      <div className="h-4 bg-muted rounded animate-pulse"></div>
                     </div>
                     <div className="text-center">
-                      <div className="h-8 bg-gray-200 rounded animate-pulse mb-2"></div>
-                      <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                      <div className="h-8 bg-muted rounded animate-pulse mb-2"></div>
+                      <div className="h-4 bg-muted rounded animate-pulse"></div>
                     </div>
                     <div className="text-center">
-                      <div className="h-8 bg-gray-200 rounded animate-pulse mb-2"></div>
-                      <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                      <div className="h-8 bg-muted rounded animate-pulse mb-2"></div>
+                      <div className="h-4 bg-muted rounded animate-pulse"></div>
                     </div>
                   </div>
                 </div>

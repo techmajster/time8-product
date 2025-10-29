@@ -467,7 +467,7 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
             variant="ghost"
             size="icon"
             onClick={handlePreviousMonth}
-            className="h-8 w-8 opacity-50 hover:opacity-100 bg-white"
+            className="h-8 w-8 opacity-50 hover:opacity-100 bg-card"
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
@@ -480,7 +480,7 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
             variant="ghost"
             size="icon"
             onClick={handleNextMonth}
-            className="h-8 w-8 opacity-50 hover:opacity-100 bg-white"
+            className="h-8 w-8 opacity-50 hover:opacity-100 bg-card"
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
@@ -586,7 +586,7 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
           <div className="p-6">
             {/* Header */}
             <div className="mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">
+              <h2 className="text-lg font-semibold text-foreground">
                 Wybrany dzień
               </h2>
             </div>
@@ -596,24 +596,24 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
                 {/* Date Card - Exact Figma layout with separate date box */}
                 <div className="flex items-start gap-6 mb-4">
                   {/* Date Box - Separate contained card */}
-                  <div className="bg-white border border-gray-200 rounded-lg p-4 text-center min-w-[80px]">
-                    <div className="text-4xl font-bold text-gray-900">
+                  <div className="bg-card border border rounded-lg p-4 text-center min-w-[80px]">
+                    <div className="text-4xl font-bold text-foreground">
                       {selectedDay.day}
                     </div>
-                    <div className="text-sm text-gray-600 mt-1">
+                    <div className="text-sm text-muted-foreground mt-1">
                       {selectedDay.month}
                     </div>
                   </div>
                   
                   {/* Date Info - Next to the date box */}
                   <div className="flex-1 pt-2">
-                    <div className="text-lg font-medium text-gray-900">
+                    <div className="text-lg font-medium text-foreground">
                       {selectedDay.day} {selectedDay.month.toLowerCase()}
                     </div>
-                    <div className="text-sm text-gray-600">
+                    <div className="text-sm text-muted-foreground">
                       {selectedDay.dayName.toLowerCase()}
                     </div>
-                    <div className="text-sm text-gray-600">
+                    <div className="text-sm text-muted-foreground">
                       {selectedDay.year}
                     </div>
                   </div>
@@ -621,15 +621,15 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
 
                 {/* Request Leave Section - Only show if you don't already have leave on this day */}
                 {!isFreeDay(selectedDay.day) && (
-                  <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4">
+                  <div className="bg-card border border rounded-lg p-4 mb-4">
                     <div className="flex items-center justify-between mb-3">
-                      <p className="text-sm text-gray-900">
+                      <p className="text-sm text-foreground">
                         Planujesz urlop tego dnia?
                       </p>
-                      <Calendar className="h-4 w-4 text-gray-400" />
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
                     </div>
                     <Button 
-                      className="bg-gray-900 text-white hover:bg-gray-800"
+                      className="bg-foreground text-white hover:bg-foreground/90"
                       onClick={() => {
                         // Create date object from selected day
                         const selectedDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), selectedDay.day)
@@ -653,12 +653,12 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
                 {isFreeDay(selectedDay.day) && (
                   <div className="bg-green-100 rounded-lg p-4 mb-4">
                     <div className="flex items-center justify-between mb-2">
-                      <h3 className="text-sm font-medium text-gray-900">
+                      <h3 className="text-sm font-medium text-foreground">
                         Status dnia
                       </h3>
-                      <Info className="h-4 w-4 text-gray-400" />
+                      <Info className="h-4 w-4 text-muted-foreground" />
                     </div>
-                    <p className="text-base font-semibold text-gray-900">
+                    <p className="text-base font-semibold text-foreground">
                       {selectedDay.holiday 
                         ? `Święto: ${selectedDay.holiday.name}`
                         : (() => {
@@ -682,12 +682,12 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
 
                 {/* Birthday Section - Only show if there are birthdays */}
                 {selectedDay.birthdays && selectedDay.birthdays.length > 0 && (
-                  <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4">
+                  <div className="bg-card border border rounded-lg p-4 mb-4">
                     <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-sm font-medium text-gray-900">
+                      <h3 className="text-sm font-medium text-foreground">
                         Dziś urodziny obchodzi
                       </h3>
-                      <Gift className="h-4 w-4 text-gray-400" />
+                      <Gift className="h-4 w-4 text-muted-foreground" />
                     </div>
                     <div className="space-y-2">
                       {selectedDay.birthdays.map((birthday) => {
@@ -696,8 +696,8 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
                         
                         return (
                           <div key={birthday.id} className="text-sm">
-                            <p className="font-medium text-gray-900">{birthday.full_name}</p>
-                            <p className="text-gray-600">{formattedDate}</p>
+                            <p className="font-medium text-foreground">{birthday.full_name}</p>
+                            <p className="text-muted-foreground">{formattedDate}</p>
                           </div>
                         )
                       })}
@@ -707,7 +707,7 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
 
                 {/* Planned Leaves Section - unified with Figma design */}
                 {selectedDay.plannedLeaves && selectedDay.plannedLeaves.length > 0 && (
-                  <div className="bg-white border border rounded-lg p-4">
+                  <div className="bg-card border border rounded-lg p-4">
                     <div className="flex flex-row gap-3 items-start w-full mb-3">
                       <Info className="w-4 h-4 text-foreground mt-0.5 shrink-0" />
                       <div className="text-sm font-medium leading-5 text-foreground">

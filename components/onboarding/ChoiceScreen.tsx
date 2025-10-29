@@ -81,12 +81,12 @@ export function ChoiceScreen({ userName, invitation }: ChoiceScreenProps) {
           
           {/* Header Section */}
           <div className="content-stretch flex flex-col gap-3 h-[88px] items-start justify-start leading-[0] relative shrink-0 text-center w-full">
-            <div className="content-stretch flex font-semibold gap-3 items-center justify-center relative shrink-0 text-[48px] text-neutral-950 text-nowrap w-full" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 600 }}>
+            <div className="content-stretch flex font-semibold gap-3 items-center justify-center relative shrink-0 text-[48px] text-foreground text-nowrap w-full" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 600 }}>
               <div className="relative shrink-0">
                 <p className="leading-[48px] text-nowrap whitespace-pre">{t('title', { name: userName })}</p>
               </div>
             </div>
-            <div className="font-normal relative shrink-0 text-[18px] text-neutral-500 w-full" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400 }}>
+            <div className="font-normal relative shrink-0 text-[18px] text-muted-foreground w-full" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400 }}>
               <p className="leading-[28px]">{t('subtitle')}</p>
             </div>
           </div>
@@ -101,16 +101,16 @@ export function ChoiceScreen({ userName, invitation }: ChoiceScreenProps) {
           {/* Cards Container */}
           <div className="content-stretch flex gap-5 items-center justify-start relative shrink-0">
             {/* Left Card - Invitation */}
-            <div className="bg-violet-100 box-border content-stretch flex flex-col h-[300px] items-start justify-between max-w-96 p-[32px] relative rounded-[14px] shrink-0 w-96 border border-neutral-200">
+            <div className="bg-violet-100 box-border content-stretch flex flex-col h-[300px] items-start justify-between max-w-96 p-[32px] relative rounded-xl shrink-0 w-96 border border">
               <div className="basis-0 content-stretch flex flex-col gap-8 grow items-start justify-start min-h-px min-w-px relative shrink-0 w-full">
                 <div className="basis-0 content-stretch flex flex-col grow items-start justify-between min-h-px min-w-px relative shrink-0 w-full">
                   <div className="content-stretch flex gap-2 items-start justify-start relative shrink-0 w-full">
-                    <div className="basis-0 font-semibold grow h-14 leading-[28px] min-h-px min-w-px relative shrink-0 text-[18px] text-neutral-900" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 600 }}>
+                    <div className="basis-0 font-semibold grow h-14 leading-[28px] min-h-px min-w-px relative shrink-0 text-[18px] text-foreground" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 600 }}>
                       <p className="mb-0">{t('invitation.title')}</p>
                       <p className="">{t('invitation.subtitle')}</p>
                     </div>
                     <div className="overflow-clip relative shrink-0 size-6">
-                      <svg className="w-full h-full text-neutral-900" fill="none" viewBox="0 0 24 24">
+                      <svg className="w-full h-full text-foreground" fill="none" viewBox="0 0 24 24">
                         <path
                           d="M21 10V3C21 2.46957 20.7893 1.96086 20.4142 1.58579C20.0391 1.21071 19.5304 1 19 1H3C2.46957 1 1.96086 1.21071 1.58579 1.58579C1.21071 1.96086 1 2.46957 1 3V15C1 16.1 1.9 17 3 17H11M21 4L12.03 9.7C11.7213 9.89343 11.3643 9.99601 11 9.99601C10.6357 9.99601 10.2787 9.89343 9.97 9.7L1 4M15 16L17 18L21 14"
                           stroke="currentColor"
@@ -122,7 +122,7 @@ export function ChoiceScreen({ userName, invitation }: ChoiceScreenProps) {
                     </div>
                   </div>
                   <div className="content-stretch flex gap-2.5 items-center justify-center relative shrink-0 w-full">
-                    <div className="basis-0 font-semibold grow leading-[0] min-h-px min-w-px relative shrink-0 text-[30px] text-neutral-950" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 600 }}>
+                    <div className="basis-0 font-semibold grow leading-[0] min-h-px min-w-px relative shrink-0 text-[30px] text-foreground" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 600 }}>
                       <p className="leading-[36px]">{invitation.organizationName}</p>
                     </div>
                   </div>
@@ -131,10 +131,10 @@ export function ChoiceScreen({ userName, invitation }: ChoiceScreenProps) {
                   <button
                     onClick={handleAcceptInvitation}
                     disabled={acceptingInvitation}
-                    className="bg-neutral-900 box-border content-stretch flex gap-2 h-10 items-center justify-center px-8 py-2 relative rounded-lg shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] shrink-0 w-full hover:bg-neutral-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    className="bg-foreground box-border content-stretch flex gap-2 h-10 items-center justify-center px-8 py-2 relative rounded-lg shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] shrink-0 w-full hover:bg-foreground/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
                     <div className="overflow-clip relative shrink-0 size-4">
-                      <svg className="w-full h-full text-neutral-50" fill="none" viewBox="0 0 24 24">
+                      <svg className="w-full h-full text-primary-foreground" fill="none" viewBox="0 0 24 24">
                         <path
                           d="M15 19V17C15 15.9391 14.5786 14.9217 13.8284 14.1716C13.0783 13.4214 12.0609 13 11 13H5C3.93913 13 2.92172 13.4214 2.17157 14.1716C1.42143 14.9217 1 15.9391 1 17V19M21 18.9999V16.9999C20.9993 16.1136 20.7044 15.2527 20.1614 14.5522C19.6184 13.8517 18.8581 13.3515 18 13.1299M15 1.12988C15.8604 1.35018 16.623 1.85058 17.1676 2.55219C17.7122 3.2538 18.0078 4.11671 18.0078 5.00488C18.0078 5.89305 17.7122 6.75596 17.1676 7.45757C16.623 8.15918 15.8604 8.65958 15 8.87988M12 5C12 7.20914 10.2091 9 8 9C5.79086 9 4 7.20914 4 5C4 2.79086 5.79086 1 8 1C10.2091 1 12 2.79086 12 5Z"
                           stroke="currentColor"
@@ -144,7 +144,7 @@ export function ChoiceScreen({ userName, invitation }: ChoiceScreenProps) {
                         />
                       </svg>
                     </div>
-                    <div className="flex flex-col font-medium justify-center leading-[0] relative shrink-0 text-[14px] text-neutral-50 text-nowrap" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500 }}>
+                    <div className="flex flex-col font-medium justify-center leading-[0] relative shrink-0 text-[14px] text-primary-foreground text-nowrap" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500 }}>
                       <p className="leading-[20px] whitespace-pre">
                         {acceptingInvitation ? t('invitation.accepting') : t('invitation.accept')}
                       </p>
@@ -155,16 +155,16 @@ export function ChoiceScreen({ userName, invitation }: ChoiceScreenProps) {
             </div>
 
             {/* Right Card - Create New Workspace */}
-            <div className="bg-white box-border content-stretch flex flex-col h-[300px] items-start justify-between max-w-96 p-[32px] relative rounded-[14px] shrink-0 w-96 border border-neutral-200">
+            <div className="bg-white box-border content-stretch flex flex-col h-[300px] items-start justify-between max-w-96 p-[32px] relative rounded-xl shrink-0 w-96 border border">
               <div className="basis-0 content-stretch flex flex-col gap-8 grow items-start justify-start min-h-px min-w-px relative shrink-0 w-full">
                 <div className="basis-0 content-stretch flex flex-col grow items-start justify-between min-h-px min-w-px relative shrink-0 w-full">
                   <div className="content-stretch flex gap-2 items-start justify-start relative shrink-0 w-full">
-                    <div className="basis-0 font-semibold grow h-14 leading-[28px] min-h-px min-w-px relative shrink-0 text-[18px] text-neutral-900" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 600 }}>
+                    <div className="basis-0 font-semibold grow h-14 leading-[28px] min-h-px min-w-px relative shrink-0 text-[18px] text-foreground" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 600 }}>
                       <p className="mb-0">{t('create.title')}</p>
                       <p className="">{t('create.subtitle')}</p>
                     </div>
                     <div className="overflow-clip relative shrink-0 size-6">
-                      <svg className="w-full h-full text-neutral-900" fill="none" viewBox="0 0 24 24">
+                      <svg className="w-full h-full text-foreground" fill="none" viewBox="0 0 24 24">
                         <path
                           d="M15 19V17C15 15.9391 14.5786 14.9217 13.8284 14.1716C13.0783 13.4214 12.0609 13 11 13H5C3.93913 13 2.92172 13.4214 2.17157 14.1716C1.42143 14.9217 1 15.9391 1 17V19M18 6V12M21 9H15M12 5C12 7.20914 10.2091 9 8 9C5.79086 9 4 7.20914 4 5C4 2.79086 5.79086 1 8 1C10.2091 1 12 2.79086 12 5Z"
                           stroke="currentColor"
@@ -176,10 +176,10 @@ export function ChoiceScreen({ userName, invitation }: ChoiceScreenProps) {
                     </div>
                   </div>
                   <div className="content-stretch flex items-end justify-between leading-[0] relative shrink-0 text-nowrap w-full">
-                    <div className="font-semibold relative shrink-0 text-[30px] text-neutral-950" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 600 }}>
+                    <div className="font-semibold relative shrink-0 text-[30px] text-foreground" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 600 }}>
                       <p className="leading-[36px] text-nowrap whitespace-pre">{t('create.free')}</p>
                     </div>
-                    <div className="font-normal relative shrink-0 text-[14px] text-neutral-500" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400 }}>
+                    <div className="font-normal relative shrink-0 text-[14px] text-muted-foreground" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400 }}>
                       <p className="leading-[20px] text-nowrap whitespace-pre">{t('create.limit')}</p>
                     </div>
                   </div>
@@ -187,9 +187,9 @@ export function ChoiceScreen({ userName, invitation }: ChoiceScreenProps) {
                 <div className="content-stretch flex flex-col gap-2.5 items-start justify-start relative shrink-0 w-full">
                   <button
                     onClick={handleCreateWorkspace}
-                    className="bg-white box-border content-stretch flex gap-2 h-10 items-center justify-center px-8 py-2 relative rounded-lg shrink-0 w-full border border-neutral-200 shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] hover:bg-gray-50 transition-colors cursor-pointer"
+                    className="bg-white box-border content-stretch flex gap-2 h-10 items-center justify-center px-8 py-2 relative rounded-lg shrink-0 w-full border border shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] hover:bg-gray-50 transition-colors cursor-pointer"
                   >
-                    <div className="flex flex-col font-medium justify-center leading-[0] relative shrink-0 text-[14px] text-neutral-950 text-nowrap" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500 }}>
+                    <div className="flex flex-col font-medium justify-center leading-[0] relative shrink-0 text-[14px] text-foreground text-nowrap" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500 }}>
                       <p className="leading-[20px] whitespace-pre">{t('create.cta')}</p>
                     </div>
                   </button>
