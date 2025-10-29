@@ -126,7 +126,7 @@ export function AdminTeamView({ teamMembers, leaveBalances, teams }: AdminTeamVi
             </SelectContent>
           </Select>
           <Link href="/admin/team-management/add-employee">
-            <Button size="sm" className="bg-foreground text-background hover:bg-foreground/90">
+            <Button size="sm">
               <Plus className="h-4 w-4 mr-2" />
               Dodaj pracownika
             </Button>
@@ -135,8 +135,8 @@ export function AdminTeamView({ teamMembers, leaveBalances, teams }: AdminTeamVi
       </div>
 
       {/* Table */}
-      <Card className="py-2">
-        <CardContent className="px-4 py-0">
+      <Card>
+        <CardContent className="py-0">
           <Table>
             <TableHeader>
               <TableRow>

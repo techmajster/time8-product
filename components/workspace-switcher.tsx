@@ -54,7 +54,7 @@ const AvatarGroup = ({ memberAvatars, memberCount }: {
   return (
     <div className="flex items-center -space-x-2">
       {displayAvatars.map((member) => (
-        <Avatar key={member.id} className="w-6 h-6 border-2 border-white">
+        <Avatar key={member.id} className="w-6 h-6 border-2 border-card">
           <AvatarImage 
             src={member.avatar_url || ''} 
             alt={member.full_name}
@@ -66,7 +66,7 @@ const AvatarGroup = ({ memberAvatars, memberCount }: {
         </Avatar>
       ))}
       {remainingCount > 0 && (
-        <div className="flex items-center justify-center w-6 h-6 text-xs font-medium text-neutral-600 bg-neutral-100 border-2 border-white rounded-full">
+        <div className="flex items-center justify-center w-6 h-6 text-xs font-medium text-muted-foreground bg-muted border-2 border-card rounded-full">
           +{remainingCount}
         </div>
       )}
@@ -229,7 +229,7 @@ export function WorkspaceSwitcher({
             <div className="space-y-6">
               {/* Your workspaces section */}
               <div className="space-y-4">
-                <h2 className="text-xl font-semibold text-neutral-950 leading-7">
+                <h2 className="text-xl font-semibold text-foreground leading-7">
                   Your workspaces
                 </h2>
                 
@@ -245,14 +245,14 @@ export function WorkspaceSwitcher({
                       return (
                         <div 
                           key={workspace.id}
-                          className={`w-full max-w-[576px] rounded-[14px] border border-neutral-200 p-6 ${
-                            isCurrent ? 'bg-white' : 'bg-neutral-100'
+                          className={`w-full max-w-[576px] rounded-xl border border p-6 ${
+                            isCurrent ? 'bg-card' : 'bg-muted'
                           }`}
                         >
                           <div className="flex items-end justify-between gap-8">
                             <div className="flex-1 space-y-6">
                               <div className="space-y-2.5">
-                                <h3 className="text-2xl font-semibold text-neutral-950 leading-8">
+                                <h3 className="text-2xl font-semibold text-foreground leading-8">
                                   {workspace.name}
                                 </h3>
                                 <div className="flex items-center -space-x-2">
@@ -273,7 +273,7 @@ export function WorkspaceSwitcher({
                               {isCurrent && (
                                 <Badge 
                                   variant="outline" 
-                                  className="mb-2 text-xs font-semibold text-neutral-950 bg-white border-neutral-200 flex items-center gap-1"
+                                  className="mb-2 text-xs font-semibold text-foreground bg-card border flex items-center gap-1"
                                 >
                                   <Check className="w-3 h-3" />
                                   Current workspace
@@ -281,8 +281,8 @@ export function WorkspaceSwitcher({
                               )}
                               <Button 
                                 className={isCurrent 
-                                  ? "bg-neutral-900 text-neutral-50 hover:bg-neutral-800 h-9" 
-                                  : "bg-white text-neutral-950 border border-neutral-200 hover:bg-neutral-50 h-9"
+                                  ? "bg-foreground text-primary-foreground hover:bg-foreground/90 h-9" 
+                                  : "bg-card text-foreground border border hover:bg-muted h-9"
                                 }
                                 onClick={() => isCurrent ? setIsOpen(false) : handleEnterWorkspace(workspace.id)}
                               >
@@ -300,26 +300,26 @@ export function WorkspaceSwitcher({
               {/* Invitations section */}
               {pendingInvitations.length > 0 && (
                 <div className="space-y-4">
-                  <h2 className="text-xl font-semibold text-neutral-950 leading-7">
+                  <h2 className="text-xl font-semibold text-foreground leading-7">
                     Invitations
                   </h2>
                   <div className="space-y-5">
                     {pendingInvitations.map((invitation) => (
                       <div 
                         key={invitation.id}
-                        className="w-full max-w-[576px] bg-violet-100 rounded-[14px] border border-neutral-200 p-6"
+                        className="w-full max-w-[576px] bg-violet-100 rounded-xl border border p-6"
                       >
                         <div className="flex items-start justify-between gap-8">
                           <div className="flex-1 space-y-6">
                             <div className="flex items-center gap-2.5">
-                              <h3 className="text-2xl font-semibold text-neutral-950 leading-8 flex-1">
+                              <h3 className="text-2xl font-semibold text-foreground leading-8 flex-1">
                                 {invitation.organizationName}
                               </h3>
                             </div>
                           </div>
                           <div className="flex flex-col items-start justify-start">
                             <Button 
-                              className="bg-white text-neutral-950 border border-neutral-200 hover:bg-neutral-50 h-9"
+                              className="bg-card text-foreground border border hover:bg-muted h-9"
                               onClick={() => handleAcceptInvitation(invitation.token)}
                             >
                               <Users className="w-4 h-4 mr-2" />
@@ -340,7 +340,7 @@ export function WorkspaceSwitcher({
               <div className="flex items-center justify-between gap-2">
                 <Button 
                   variant="outline" 
-                  className="bg-white text-neutral-950 border border-neutral-200 hover:bg-neutral-50 h-9"
+                  className="bg-card text-foreground border border hover:bg-muted h-9"
                   onClick={handleCreateNewWorkspace}
                 >
                   <Plus className="w-4 h-4 mr-2" />
@@ -348,7 +348,7 @@ export function WorkspaceSwitcher({
                 </Button>
                 <Button 
                   variant="outline" 
-                  className="bg-white text-neutral-950 border border-neutral-200 hover:bg-neutral-50 h-9"
+                  className="bg-card text-foreground border border hover:bg-muted h-9"
                   onClick={() => setIsOpen(false)}
                 >
                   Close

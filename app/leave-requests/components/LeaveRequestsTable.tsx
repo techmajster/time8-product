@@ -72,10 +72,10 @@ export function LeaveRequestsTable({ requests }: { requests: LeaveRequestWithUse
   }
 
   return (
-    <Card className="rounded-lg bg-white py-1">
+    <Card className="rounded-lg">
       <div className="overflow-hidden">
         <div className="min-w-full">
-          <div className="px-4 py-2">
+          <div className="py-0">
             {/* Table Header */}
             <div className="grid grid-cols-[1fr_229px_288px_162px_110px_216px] items-center min-w-[356px] h-10 border-b border">
               <div className="px-2 py-0">
