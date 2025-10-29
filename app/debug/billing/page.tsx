@@ -227,7 +227,7 @@ export default function BillingDebugPage() {
       }`}>
         <div className="font-medium">
           {result.success ? '✅ Success' : '❌ Failed'}
-          <span className="ml-2 font-normal text-gray-600">
+          <span className="ml-2 font-normal text-muted-foreground">
             {new Date(result.timestamp).toLocaleTimeString()}
           </span>
         </div>
@@ -268,7 +268,7 @@ export default function BillingDebugPage() {
               <div className="flex justify-between items-center">
                 <div>
                   <h3 className="font-medium">Webhook Health Check</h3>
-                  <p className="text-sm text-gray-600">Test if webhook endpoint is responding</p>
+                  <p className="text-sm text-muted-foreground">Test if webhook endpoint is responding</p>
                 </div>
                 <button
                   onClick={testWebhookHealth}
@@ -291,7 +291,7 @@ export default function BillingDebugPage() {
               <div className="flex justify-between items-center">
                 <div>
                   <h3 className="font-medium">Database Tables</h3>
-                  <p className="text-sm text-gray-600">Check if billing tables exist</p>
+                  <p className="text-sm text-muted-foreground">Check if billing tables exist</p>
                 </div>
                 <button
                   onClick={testDatabaseTables}
@@ -314,7 +314,7 @@ export default function BillingDebugPage() {
               <div className="flex justify-between items-center">
                 <div>
                   <h3 className="font-medium">Products Endpoint</h3>
-                  <p className="text-sm text-gray-600">Test product and variant retrieval</p>
+                  <p className="text-sm text-muted-foreground">Test product and variant retrieval</p>
                 </div>
                 <button
                   onClick={testProductsEndpoint}
@@ -331,7 +331,7 @@ export default function BillingDebugPage() {
               <div className="flex justify-between items-center">
                 <div>
                   <h3 className="font-medium">Subscription Endpoint</h3>
-                  <p className="text-sm text-gray-600">Test subscription retrieval (requires org ID)</p>
+                  <p className="text-sm text-muted-foreground">Test subscription retrieval (requires org ID)</p>
                 </div>
                 <button
                   onClick={testSubscriptionEndpoint}
@@ -348,7 +348,7 @@ export default function BillingDebugPage() {
               <div className="flex justify-between items-center">
                 <div>
                   <h3 className="font-medium">Customer Portal</h3>
-                  <p className="text-sm text-gray-600">Test customer portal URL generation</p>
+                  <p className="text-sm text-muted-foreground">Test customer portal URL generation</p>
                 </div>
                 <button
                   onClick={testCustomerPortal}
@@ -365,7 +365,7 @@ export default function BillingDebugPage() {
               <div className="flex justify-between items-center">
                 <div>
                   <h3 className="font-medium">Checkout Creation</h3>
-                  <p className="text-sm text-gray-600">Test checkout session creation (requires org + variant ID)</p>
+                  <p className="text-sm text-muted-foreground">Test checkout session creation (requires org + variant ID)</p>
                 </div>
                 <button
                   onClick={testCheckoutCreation}

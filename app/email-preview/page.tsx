@@ -493,11 +493,11 @@ export default function EmailPreviewPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-muted py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Email Template Preview</h1>
-          <p className="text-gray-600 mt-2">Preview and test your email templates with sample data</p>
+          <h1 className="text-3xl font-bold text-foreground">Email Template Preview</h1>
+          <p className="text-muted-foreground mt-2">Preview and test your email templates with sample data</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -522,7 +522,7 @@ export default function EmailPreviewPage() {
                   </SelectContent>
                 </Select>
 
-                <div className="text-sm text-gray-600">
+                <div className="text-sm text-muted-foreground">
                   {emailTemplates[selectedTemplate].description}
                 </div>
 
@@ -545,7 +545,7 @@ export default function EmailPreviewPage() {
 
                 {/* Template List */}
                 <div className="mt-8">
-                  <h3 className="font-medium text-gray-900 mb-4">All Templates</h3>
+                  <h3 className="font-medium text-foreground mb-4">All Templates</h3>
                   <div className="space-y-2">
                     {Object.entries(emailTemplates).map(([key, template]) => (
                       <button
@@ -554,7 +554,7 @@ export default function EmailPreviewPage() {
                         className={`w-full text-left p-3 rounded-md text-sm transition-colors ${
                           selectedTemplate === key
                             ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                            : 'bg-white hover:bg-gray-50 border border-gray-200'
+                            : 'bg-white hover:bg-muted border border-gray-200'
                         }`}
                       >
                         <div className="font-medium">{template.name}</div>

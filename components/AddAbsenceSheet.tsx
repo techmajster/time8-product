@@ -80,11 +80,11 @@ function EmployeeSelectTrigger({
   if (!employee) {
     return (
       <div className="flex flex-row items-center gap-2 h-12 px-3 py-2 w-full">
-        <div className="bg-neutral-100 rounded-full size-8 flex items-center justify-center">
-          <User className="h-4 w-4 text-neutral-500" />
+        <div className="bg-muted rounded-full size-8 flex items-center justify-center">
+          <User className="h-4 w-4 text-muted-foreground" />
         </div>
         <div className="flex-1 flex flex-col">
-          <span className="text-sm text-neutral-500">{placeholder}</span>
+          <span className="text-sm text-muted-foreground">{placeholder}</span>
         </div>
         <ChevronsUpDown className="h-4 w-4 opacity-50" />
       </div>
@@ -103,7 +103,7 @@ function EmployeeSelectTrigger({
         <div className="font-medium text-sm text-neutral-950 leading-5 truncate w-full">
           {employee.full_name || employee.email}
         </div>
-        <div className="font-normal text-xs text-neutral-500 leading-4 truncate w-full">
+        <div className="font-normal text-xs text-muted-foreground leading-4 truncate w-full">
           {employee.email}
         </div>
       </div>
@@ -126,7 +126,7 @@ function LeaveTypeSelectTrigger({
     return (
       <div className="flex flex-row items-center gap-2 h-12 px-3 py-2 w-full">
         <div className="flex-1 flex flex-col items-start justify-center">
-          <span className="text-sm text-neutral-500">{placeholder}</span>
+          <span className="text-sm text-muted-foreground">{placeholder}</span>
         </div>
         <ChevronsUpDown className="h-4 w-4 opacity-50" />
       </div>
@@ -160,7 +160,7 @@ function OverlapUserItem({ user }: { user: OverlapUser }) {
         <div className="font-medium text-sm text-neutral-950 leading-5 truncate w-full">
           {user.full_name || user.email}
         </div>
-        <div className="font-normal text-sm text-neutral-500 leading-5 truncate w-full">
+        <div className="font-normal text-sm text-muted-foreground leading-5 truncate w-full">
           {user.email}
         </div>
       </div>
@@ -168,7 +168,7 @@ function OverlapUserItem({ user }: { user: OverlapUser }) {
         <div className="font-medium text-neutral-950 leading-5">
           {user.leave_type_name}
         </div>
-        <div className="font-normal text-neutral-500 leading-5">
+        <div className="font-normal text-muted-foreground leading-5">
           do {format(parseISO(user.end_date), 'dd.MM', { locale: pl })}
         </div>
       </div>

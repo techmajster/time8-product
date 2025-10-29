@@ -30,12 +30,12 @@ export function WelcomeScreen({ userName }: WelcomeScreenProps) {
           
           {/* Header Section */}
           <div className="content-stretch flex flex-col gap-3 items-start justify-start leading-[0] relative shrink-0 text-center w-[898px]">
-            <div className="content-stretch flex font-semibold gap-3 items-center justify-center relative shrink-0 text-[48px] text-neutral-950 text-nowrap w-full" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 600 }}>
+            <div className="content-stretch flex font-semibold gap-3 items-center justify-center relative shrink-0 text-[48px] text-foreground text-nowrap w-full" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 600 }}>
               <div className="relative shrink-0">
                 <p className="leading-[48px] text-nowrap whitespace-pre">{t('title', { name: userName })}</p>
               </div>
             </div>
-            <div className="font-normal relative shrink-0 text-[18px] text-neutral-500 w-full" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400 }}>
+            <div className="font-normal relative shrink-0 text-[18px] text-muted-foreground w-full" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400 }}>
               <p className="leading-[28px]">{t('subtitle')}</p>
             </div>
           </div>
@@ -64,10 +64,10 @@ export function WelcomeScreen({ userName }: WelcomeScreenProps) {
                     </div>
                   </div>
                   <div className="content-stretch flex items-end justify-between leading-[0] relative shrink-0 text-nowrap w-full">
-                    <div className="font-semibold relative shrink-0 text-[30px] text-neutral-950" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 600 }}>
+                    <div className="font-semibold relative shrink-0 text-[30px] text-foreground" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 600 }}>
                       <p className="leading-[36px] text-nowrap whitespace-pre">{t('card.free')}</p>
                     </div>
-                    <div className="font-normal relative shrink-0 text-[14px] text-neutral-500" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400 }}>
+                    <div className="font-normal relative shrink-0 text-[14px] text-muted-foreground" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400 }}>
                       <p className="leading-[20px] text-nowrap whitespace-pre">{t('card.limit')}</p>
                     </div>
                   </div>

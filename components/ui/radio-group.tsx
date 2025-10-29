@@ -38,13 +38,13 @@ function RadioGroupItem({
     return (
       <RadioGroupPrimitive.Item
         className={cn(
-          "group relative flex w-full cursor-pointer rounded-lg border border-neutral-200 p-3 text-left shadow-xs transition-colors hover:bg-neutral-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:border-neutral-900 data-[state=checked]:bg-neutral-100",
+          "group relative flex w-full cursor-pointer rounded-lg border border p-3 text-left shadow-xs transition-colors hover:bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:border-neutral-900 data-[state=checked]:bg-neutral-100",
           className
         )}
         {...props}
       >
         <div className="flex items-start gap-3">
-          <div className="aspect-square h-4 w-4 rounded-full border border-neutral-200 text-neutral-900 ring-offset-background focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 group-data-[state=checked]:border-neutral-900 group-data-[state=checked]:bg-neutral-900">
+          <div className="aspect-square h-4 w-4 rounded-full border border text-foreground ring-offset-background focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 group-data-[state=checked]:border-neutral-900 group-data-[state=checked]:bg-neutral-900">
             <RadioGroupPrimitive.Indicator className="flex items-center justify-center h-full w-full">
               <div className="h-2 w-2 rounded-full bg-white" />
             </RadioGroupPrimitive.Indicator>
@@ -58,7 +58,7 @@ function RadioGroupItem({
   return (
     <RadioGroupPrimitive.Item
       className={cn(
-        "aspect-square h-4 w-4 rounded-full border border-neutral-200 text-neutral-900 ring-offset-background focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:border-neutral-900 data-[state=checked]:bg-neutral-900",
+        "aspect-square h-4 w-4 rounded-full border border text-foreground ring-offset-background focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:border-neutral-900 data-[state=checked]:bg-neutral-900",
         className
       )}
       {...props}
@@ -77,7 +77,7 @@ function RadioGroupItemLabel({
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn("text-sm font-medium leading-none text-neutral-900", className)}
+      className={cn("text-sm font-medium leading-none text-foreground", className)}
       {...props}
     >
       {children}
@@ -92,7 +92,7 @@ function RadioGroupItemDescription({
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn("text-sm leading-normal text-neutral-900 mt-1.5 group-data-[state=checked]:text-neutral-800", className)}
+      className={cn("text-sm leading-normal text-foreground mt-1.5 group-data-[state=checked]:text-neutral-800", className)}
       {...props}
     >
       {children}
