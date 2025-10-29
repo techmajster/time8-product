@@ -98,8 +98,8 @@ body {
   --accent-foreground: oklch(0.2050 0 0);
   --destructive: oklch(0.5770 0.2450 27.3250);
   --destructive-foreground: oklch(1 0 0);
-  --border: oklch(0 0 0 / 0.2); /* rgba(2,2,2,0.2) from Figma card */
-  --input: oklch(0 0 0 / 0.2);
+  --border: #CCCCCC; /* Global border color from Figma */
+  --input: #E5E5E5; /* Input border color */
   --ring: oklch(0.7080 0 0);
   --chart-1: oklch(0.8100 0.1000 252);
   --chart-2: oklch(0.6200 0.1900 260);
@@ -149,8 +149,8 @@ body {
   --accent-foreground: oklch(0.9850 0 0);
   --destructive: oklch(0.7040 0.1910 22.2160);
   --destructive-foreground: oklch(0.9850 0 0);
-  --border: oklch(1 0 0 / 0.2); /* Light border for dark mode */
-  --input: oklch(1 0 0 / 0.2);
+  --border: #333333; /* Dark mode border - lighter than #CCCCCC for dark backgrounds */
+  --input: #444444; /* Dark mode input border */
   --ring: oklch(0.5560 0 0);
   --chart-1: oklch(0.8100 0.1000 252);
   --chart-2: oklch(0.6200 0.1900 260);
