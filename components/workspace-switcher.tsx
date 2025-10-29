@@ -279,11 +279,9 @@ export function WorkspaceSwitcher({
                                   Current workspace
                                 </Badge>
                               )}
-                              <Button 
-                                className={isCurrent 
-                                  ? "bg-foreground text-primary-foreground hover:bg-foreground/90 h-9" 
-                                  : "bg-card text-foreground border border hover:bg-muted h-9"
-                                }
+                              <Button
+                                variant={isCurrent ? "default" : "outline"}
+                                className="h-9"
                                 onClick={() => isCurrent ? setIsOpen(false) : handleEnterWorkspace(workspace.id)}
                               >
                                 {isCurrent ? "Back to workspace" : "Enter workspace"}
@@ -318,8 +316,9 @@ export function WorkspaceSwitcher({
                             </div>
                           </div>
                           <div className="flex flex-col items-start justify-start">
-                            <Button 
-                              className="bg-card text-foreground border border hover:bg-muted h-9"
+                            <Button
+                              variant="outline"
+                              className="h-9"
                               onClick={() => handleAcceptInvitation(invitation.token)}
                             >
                               <Users className="w-4 h-4 mr-2" />
@@ -338,17 +337,17 @@ export function WorkspaceSwitcher({
 
               {/* Footer */}
               <div className="flex items-center justify-between gap-2">
-                <Button 
-                  variant="outline" 
-                  className="bg-card text-foreground border border hover:bg-muted h-9"
+                <Button
+                  variant="outline"
+                  className="h-9"
                   onClick={handleCreateNewWorkspace}
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   New workspace
                 </Button>
-                <Button 
-                  variant="outline" 
-                  className="bg-card text-foreground border border hover:bg-muted h-9"
+                <Button
+                  variant="outline"
+                  className="h-9"
                   onClick={() => setIsOpen(false)}
                 >
                   Close
