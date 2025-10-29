@@ -235,7 +235,7 @@ export function WorkspaceSwitcher({
                 
                 {isLoading ? (
                   <div className="flex justify-center py-8">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-neutral-900"></div>
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-foreground"></div>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -243,9 +243,9 @@ export function WorkspaceSwitcher({
                       const isCurrent = workspace.id === currentWorkspaceId
                       
                       return (
-                        <div 
+                        <div
                           key={workspace.id}
-                          className={`w-full max-w-[576px] rounded-xl border border p-6 ${
+                          className={`w-full max-w-[576px] rounded-xl border p-6 ${
                             isCurrent ? 'bg-card' : 'bg-muted'
                           }`}
                         >
@@ -305,9 +305,9 @@ export function WorkspaceSwitcher({
                   </h2>
                   <div className="space-y-5">
                     {pendingInvitations.map((invitation) => (
-                      <div 
+                      <div
                         key={invitation.id}
-                        className="w-full max-w-[576px] bg-violet-100 rounded-xl border border p-6"
+                        className="w-full max-w-[576px] bg-card-violet rounded-xl border p-6"
                       >
                         <div className="flex items-start justify-between gap-8">
                           <div className="flex-1 space-y-6">
@@ -334,7 +334,7 @@ export function WorkspaceSwitcher({
               )}
 
               {/* Separator */}
-              <div className="w-full h-px bg-neutral-200" />
+              <div className="w-full h-px bg-border" />
 
               {/* Footer */}
               <div className="flex items-center justify-between gap-2">
