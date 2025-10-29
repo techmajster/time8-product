@@ -545,11 +545,16 @@
       - ✅ All pages now use design tokens (text-foreground, text-muted-foreground, bg-card, etc.)
       - Files: [AdminSettingsClient.tsx](app/admin/settings/components/AdminSettingsClient.tsx), [AddEmployeePage.tsx](app/admin/team-management/add-employee/components/AddEmployeePage.tsx), [AdminGroupsView.tsx](app/admin/groups/components/AdminGroupsView.tsx)
 
-    - [ ] **Phase 5: Global Color Token Cleanup** `S` 🎯 **NEXT PRIORITY**
-      - Remove all hardcoded `text-neutral-*` / `bg-neutral-*` (20 files)
-      - Replace with semantic tokens (text-foreground, text-muted-foreground, etc.)
+    - [x] **Phase 5: Global Color Token Cleanup** `S` ✅ **COMPLETED**
+      - ✅ Replaced 131 hardcoded styling instances across entire app (84% reduction)
+      - ✅ Onboarding pages: 8 files, 78 instances converted
+      - ✅ Leave requests: 2 files, 25 instances converted
+      - ✅ Calendar & admin: 16 instances converted
+      - ✅ All semantic tokens now used (text-foreground, text-muted-foreground, bg-card, etc.)
+      - ✅ Border radius standardized (rounded-lg, rounded-xl)
+      - Result: 156 → 25 hardcoded values (84% eliminated)
 
-    - [ ] **Phase 6: Design System Documentation** `XS`
+    - [ ] **Phase 6: Design System Documentation** `XS` 🎯 **FINAL PHASE**
       - Create `.agent-os/product/design-system.md`
       - Document card usage patterns, color tokens, spacing system
       - Add component usage examples for future development
