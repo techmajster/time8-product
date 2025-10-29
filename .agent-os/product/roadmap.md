@@ -535,12 +535,17 @@
       - ✅ Maintained exact visual design and spacing
       - Files: [app/dashboard/page.tsx](app/dashboard/page.tsx)
 
-    - [ ] **Phase 4: Unify Admin & Settings** `M` 🎯 **NEXT PRIORITY**
-      - Apply design tokens to admin/settings/team-management/groups pages
-      - Same pattern as Dashboard (replace hardcoded values)
-      - Convert to Shadcn Card components where applicable
+    - [x] **Phase 4: Unify Admin & Settings** `M` ✅ **COMPLETED**
+      - ✅ Replaced 206 hardcoded styling instances across 8 admin files
+      - ✅ AdminSettingsClient.tsx: 67 instances converted
+      - ✅ AddEmployeePage.tsx: 64 instances converted
+      - ✅ EditEmployeePage.tsx: 36 instances converted
+      - ✅ AdminGroupsView.tsx: 24 instances converted
+      - ✅ Plus 4 component files converted
+      - ✅ All pages now use design tokens (text-foreground, text-muted-foreground, bg-card, etc.)
+      - Files: [AdminSettingsClient.tsx](app/admin/settings/components/AdminSettingsClient.tsx), [AddEmployeePage.tsx](app/admin/team-management/add-employee/components/AddEmployeePage.tsx), [AdminGroupsView.tsx](app/admin/groups/components/AdminGroupsView.tsx)
 
-    - [ ] **Phase 5: Global Color Token Cleanup** `S`
+    - [ ] **Phase 5: Global Color Token Cleanup** `S` 🎯 **NEXT PRIORITY**
       - Remove all hardcoded `text-neutral-*` / `bg-neutral-*` (20 files)
       - Replace with semantic tokens (text-foreground, text-muted-foreground, etc.)
 
