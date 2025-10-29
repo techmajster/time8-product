@@ -195,8 +195,8 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
           Brak zespołów
         </div>
       ) : (
-        <Card className="py-2">
-          <CardContent className="px-4 py-0">
+        <Card>
+          <CardContent className="py-0">
             <Table>
               <TableHeader>
                 <TableRow>

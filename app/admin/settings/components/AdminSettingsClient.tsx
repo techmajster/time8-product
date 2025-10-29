@@ -547,7 +547,7 @@ export default function AdminSettingsClient({
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="pt-0 pb-6 px-6 space-y-6">
+            <CardContent className="pt-0 pb-6 space-y-6">
               <div className="space-y-6">
                 <div className="w-[400px] space-y-2">
                   <Label htmlFor="org-name">Nazwa organizacji</Label>
@@ -702,7 +702,7 @@ export default function AdminSettingsClient({
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="pt-0 pb-6 px-6">
+            <CardContent className="pt-0 pb-6">
               <div className="space-y-6">
                 <div className="w-[400px] space-y-2">
                   <Label htmlFor="google-domain">Domena Google Workspace</Label>
@@ -779,7 +779,7 @@ export default function AdminSettingsClient({
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className="pt-0 pb-6 px-6">
+                <CardContent className="pt-0 pb-6">
                   <div className="overflow-hidden">
                     <table className="w-full">
                       {/* Table Header */}
@@ -891,7 +891,7 @@ export default function AdminSettingsClient({
                     </Button>
                   </div>
                 </CardHeader>
-                <CardContent className="pt-0 pb-0 px-6 space-y-6">
+                <CardContent className="pt-0 pb-0 space-y-6">
                   <div className="flex gap-6">
                     <div className="w-[400px] space-y-2">
                       <Label className="text-sm font-medium text-foreground">
@@ -946,7 +946,7 @@ export default function AdminSettingsClient({
                     </Button>
                   </div>
                 </CardHeader>
-                <CardContent className="pt-0 pb-0 px-6 space-y-6">
+                <CardContent className="pt-0 pb-0 space-y-6">
                   <div className="flex gap-6">
                     <div className="w-[400px] space-y-2">
                       <Label className="text-sm font-medium text-foreground">
@@ -998,7 +998,7 @@ export default function AdminSettingsClient({
                     </Button>
                   </div>
                 </CardHeader>
-                <CardContent className="pt-0 pb-0 px-6 space-y-6">
+                <CardContent className="pt-0 pb-0 space-y-6">
                   <div className="flex items-start gap-3">
                     <Switch disabled checked className="data-[state=checked]:bg-foreground" />
                     <div className="space-y-2">
@@ -1043,7 +1043,7 @@ export default function AdminSettingsClient({
                     </Button>
                   </div>
                 </CardHeader>
-                <CardContent className="pt-0 pb-0 px-6 space-y-6">
+                <CardContent className="pt-0 pb-0 space-y-6">
                   <div className="w-[400px] space-y-2">
                     <Label className="text-sm font-medium text-foreground">
                       Polityka liczenia weekendów
@@ -1228,7 +1228,7 @@ export default function AdminSettingsClient({
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="pt-0 pb-6 px-6 space-y-6">
+            <CardContent className="pt-0 pb-6 space-y-6">
               {subscriptionLoading ? (
                 <div className="space-y-4">
                   <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
@@ -1391,7 +1391,7 @@ export default function AdminSettingsClient({
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="pt-0 pb-6 px-6 space-y-6">
+            <CardContent className="pt-0 pb-6 space-y-6">
               {subscriptionLoading ? (
                 <div className="space-y-4">
                   <div className="grid grid-cols-3 gap-6">
@@ -1533,7 +1533,7 @@ export default function AdminSettingsClient({
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="pt-0 pb-6 px-6 space-y-6">
+            <CardContent className="pt-0 pb-6 space-y-6">
               <div className="space-y-6">
                 <div className="w-[400px] space-y-2">
                   <Label htmlFor="workspace-name">Nazwa workspace</Label>

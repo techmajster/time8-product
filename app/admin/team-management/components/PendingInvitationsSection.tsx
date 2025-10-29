@@ -162,8 +162,8 @@ export function PendingInvitationsSection({ invitations }: PendingInvitationsSec
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-medium">Oczekujące zaproszenia</h3>
-      <Card className="py-2">
-        <CardContent className="px-4 py-0">
+      <Card>
+        <CardContent className="py-0">
           <Table>
             <TableHeader>
               <TableRow>
