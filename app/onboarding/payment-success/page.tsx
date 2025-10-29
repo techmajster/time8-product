@@ -139,16 +139,16 @@ function PaymentSuccessPageContent() {
       <div className="bg-white content-stretch flex flex-col gap-2.5 items-center justify-center relative min-h-screen w-full">
         <div className="box-border content-stretch flex flex-col gap-8 items-center justify-start p-16 relative rounded-3xl shrink-0">
           {/* Loading Icon */}
-          <Loader2 className="w-16 h-16 animate-spin text-neutral-600" />
+          <Loader2 className="w-16 h-16 animate-spin text-muted-foreground" />
 
           {/* Text Content */}
           <div className="content-stretch flex flex-col gap-3 items-start justify-start relative shrink-0">
             <div className="content-stretch flex flex-col gap-3 items-center justify-start relative shrink-0 w-full">
-              <div className="font-bold text-[30px] text-center text-neutral-950 leading-9" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 700 }}>
+              <div className="font-bold text-[30px] text-center text-foreground leading-9" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 700 }}>
                 {isCreatingOrganization ? 'Setting up workspace...' : 'Verifying payment...'}
               </div>
             </div>
-            <div className="font-normal text-[14px] text-center text-neutral-500 w-full leading-5" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400 }}>
+            <div className="font-normal text-[14px] text-center text-muted-foreground w-full leading-5" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400 }}>
               Please wait while we process your request
             </div>
           </div>
@@ -181,11 +181,11 @@ function PaymentSuccessPageContent() {
           {/* Text Content */}
           <div className="content-stretch flex flex-col gap-3 items-start justify-start relative shrink-0">
             <div className="content-stretch flex flex-col gap-3 items-center justify-start relative shrink-0 w-full">
-              <div className="font-bold text-[30px] text-center text-neutral-950 leading-9" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 700 }}>
+              <div className="font-bold text-[30px] text-center text-foreground leading-9" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 700 }}>
                 Payment Error
               </div>
             </div>
-            <div className="font-normal text-[14px] text-center text-neutral-500 w-full leading-5" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400 }}>
+            <div className="font-normal text-[14px] text-center text-muted-foreground w-full leading-5" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400 }}>
               {error}
             </div>
           </div>
@@ -193,7 +193,7 @@ function PaymentSuccessPageContent() {
           {/* Button */}
           <Button
             onClick={() => router.push('/dashboard')}
-            className="bg-neutral-900 hover:bg-neutral-800 content-stretch flex gap-2 h-10 items-center justify-center px-8 py-2 relative rounded-lg shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] shrink-0 font-medium text-[14px] text-neutral-50"
+            className="bg-neutral-900 hover:bg-neutral-800 content-stretch flex gap-2 h-10 items-center justify-center px-8 py-2 relative rounded-lg shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] shrink-0 font-medium text-[14px] text-primary-foreground"
             style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500 }}
           >
             Go to Dashboard
@@ -226,11 +226,11 @@ function PaymentSuccessPageContent() {
         {/* Text Content */}
         <div className="content-stretch flex flex-col gap-3 items-start justify-start relative shrink-0">
           <div className="content-stretch flex flex-col gap-3 items-center justify-start relative shrink-0 w-full">
-            <div className="font-bold text-[30px] text-center text-neutral-950 leading-9" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 700 }}>
+            <div className="font-bold text-[30px] text-center text-foreground leading-9" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 700 }}>
               {subscriptionData?.upgraded ? 'Subscription upgraded!' : 'Payment success!'}
             </div>
           </div>
-          <div className="font-normal text-[14px] text-center text-neutral-500 w-full leading-5" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400 }}>
+          <div className="font-normal text-[14px] text-center text-muted-foreground w-full leading-5" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400 }}>
             {subscriptionData?.upgraded 
               ? 'Your subscription has been upgraded. Redirecting to dashboard...' 
               : 'You can now add users to your workspace.'}
@@ -240,7 +240,7 @@ function PaymentSuccessPageContent() {
         {/* Button */}
         <Button
           onClick={handleContinue}
-          className="bg-neutral-900 hover:bg-neutral-800 content-stretch flex gap-2 h-10 items-center justify-center px-8 py-2 relative rounded-lg shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] shrink-0 font-medium text-[14px] text-neutral-50"
+          className="bg-neutral-900 hover:bg-neutral-800 content-stretch flex gap-2 h-10 items-center justify-center px-8 py-2 relative rounded-lg shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] shrink-0 font-medium text-[14px] text-primary-foreground"
           style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500 }}
         >
           Start using time8.io!

@@ -144,10 +144,10 @@ function RegisterPageContent() {
           <div className="flex gap-0.5 items-center justify-start p-0 relative w-full">
             <button
               onClick={handleBack}
-              className="bg-white flex gap-2 items-center justify-center px-4 py-2 relative rounded-lg border border-neutral-200 shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] hover:bg-gray-50 transition-colors"
+              className="bg-white flex gap-2 items-center justify-center px-4 py-2 relative rounded-lg border border shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] hover:bg-gray-50 transition-colors"
             >
-              <ChevronLeft className="w-4 h-4 text-neutral-900" />
-              <div className="font-medium text-[14px] text-neutral-950" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500, lineHeight: '20px' }}>
+              <ChevronLeft className="w-4 h-4 text-foreground" />
+              <div className="font-medium text-[14px] text-foreground" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500, lineHeight: '20px' }}>
                 <p className="block leading-[20px] whitespace-pre">Back</p>
               </div>
             </button>
@@ -157,10 +157,10 @@ function RegisterPageContent() {
           <div className="flex flex-col gap-8 items-start justify-start p-0 relative w-full">
             {/* Header */}
             <div className="flex flex-col gap-2 items-center justify-start p-0 relative w-full">
-              <div className="font-bold relative text-[30px] text-neutral-950 w-full" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 700, lineHeight: '36px' }}>
+              <div className="font-bold relative text-[30px] text-foreground w-full" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 700, lineHeight: '36px' }}>
                 <p className="block leading-[36px]">Register your account</p>
               </div>
-              <div className="font-normal relative text-[14px] text-neutral-500 w-full" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400, lineHeight: '20px' }}>
+              <div className="font-normal relative text-[14px] text-muted-foreground w-full" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400, lineHeight: '20px' }}>
                 <p className="block leading-[20px]">Fill in the details below to create your account.</p>
               </div>
             </div>
@@ -170,13 +170,13 @@ function RegisterPageContent() {
               
               {/* Email Field (Disabled) */}
               <div className="flex flex-col gap-2 items-start justify-start p-0 relative w-full">
-                <div className="font-medium text-[14px] text-neutral-950" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500 }}>
+                <div className="font-medium text-[14px] text-foreground" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500 }}>
                   <p className="block">Email</p>
                 </div>
                 <div className="flex flex-col gap-2 items-start justify-start p-0 relative w-full">
-                  <div className="bg-slate-100 h-9 opacity-50 relative rounded-lg w-full border border-neutral-200 shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]">
+                  <div className="bg-slate-100 h-9 opacity-50 relative rounded-lg w-full border border shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]">
                     <div className="flex gap-1 h-9 items-center justify-start overflow-hidden px-3 py-1 relative w-full">
-                      <div className="flex-1 font-normal text-[14px] text-neutral-500" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400, lineHeight: '20px' }}>
+                      <div className="flex-1 font-normal text-[14px] text-muted-foreground" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400, lineHeight: '20px' }}>
                         <p className="block leading-[20px] overflow-hidden text-ellipsis whitespace-nowrap">{email}</p>
                       </div>
                     </div>
@@ -186,11 +186,11 @@ function RegisterPageContent() {
 
               {/* Password Field */}
               <div className="flex flex-col gap-2 items-start justify-start p-0 relative w-full">
-                <div className="font-medium text-[14px] text-neutral-950" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500 }}>
+                <div className="font-medium text-[14px] text-foreground" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500 }}>
                   <p className="block">Password</p>
                 </div>
                 <div className="flex flex-col gap-2 items-start justify-start p-0 relative w-full">
-                  <div className="bg-white h-9 relative rounded-lg w-full border border-neutral-200 shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]">
+                  <div className="bg-white h-9 relative rounded-lg w-full border border shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]">
                     <div className="flex gap-1 h-9 items-center justify-start overflow-hidden px-3 py-1 relative w-full">
                       <input
                         type={showPassword ? 'text' : 'password'}
@@ -199,7 +199,7 @@ function RegisterPageContent() {
                         onChange={(e) => setPassword(e.target.value)}
                         disabled={loading}
                         required
-                        className="flex-1 font-normal text-[14px] text-neutral-500 bg-transparent border-none outline-none" 
+                        className="flex-1 font-normal text-[14px] text-muted-foreground bg-transparent border-none outline-none" 
                         style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400, lineHeight: '20px' }}
                       />
                       <button
@@ -212,7 +212,7 @@ function RegisterPageContent() {
                       </button>
                     </div>
                   </div>
-                  <div className="font-normal text-[14px] text-neutral-500 w-full" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400, lineHeight: '20px' }}>
+                  <div className="font-normal text-[14px] text-muted-foreground w-full" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400, lineHeight: '20px' }}>
                     <p className="block leading-[20px]">Minimum 8 characters.</p>
                   </div>
                 </div>
@@ -230,7 +230,7 @@ function RegisterPageContent() {
                 <div className="flex-1 flex flex-col gap-1.5 items-start justify-start p-0 relative">
                   <label 
                     htmlFor="terms"
-                    className="font-medium text-[14px] text-neutral-950 w-full cursor-pointer" 
+                    className="font-medium text-[14px] text-foreground w-full cursor-pointer" 
                     style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500 }}
                   >
                     <p className="leading-none">
@@ -258,7 +258,7 @@ function RegisterPageContent() {
               disabled={!password || loading}
               className="bg-neutral-900 flex gap-2 h-10 items-center justify-center px-8 py-2 relative rounded-lg shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] w-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-neutral-800 transition-colors"
             >
-              <div className="font-medium text-[14px] text-neutral-50" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500, lineHeight: '20px' }}>
+              <div className="font-medium text-[14px] text-primary-foreground" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500, lineHeight: '20px' }}>
                 <p className="block leading-[20px] whitespace-pre">
                   {loading ? 'Creating Account...' : 'Register'}
                 </p>

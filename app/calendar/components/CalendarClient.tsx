@@ -537,7 +537,7 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
                   {dayData.birthdays && dayData.birthdays.length > 0 && (
                     <div className="absolute bottom-2 left-2">
                       <div className="w-[21px] h-[21px] rounded-full overflow-hidden">
-                        <Gift className="w-5 h-5 text-neutral-950 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
+                        <Gift className="w-5 h-5 text-foreground absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
                       </div>
                     </div>
                   )}
@@ -559,8 +559,8 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
                         ))}
                         {/* Show count indicator if more than 2 people */}
                         {dayData.leaves.length > 2 && (
-                          <div className="w-8 h-8 mb-[-8px] bg-neutral-100 border-2 border-white rounded-full flex items-center justify-center">
-                            <span className="text-sm font-normal text-neutral-950">
+                          <div className="w-8 h-8 mb-[-8px] bg-muted border-2 border-white rounded-full flex items-center justify-center">
+                            <span className="text-sm font-normal text-foreground">
                               +{dayData.leaves.length - 2}
                             </span>
                           </div>
@@ -707,10 +707,10 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
 
                 {/* Planned Leaves Section - unified with Figma design */}
                 {selectedDay.plannedLeaves && selectedDay.plannedLeaves.length > 0 && (
-                  <div className="bg-white border border-neutral-200 rounded-[10px] p-4">
+                  <div className="bg-white border border rounded-lg p-4">
                     <div className="flex flex-row gap-3 items-start w-full mb-3">
-                      <Info className="w-4 h-4 text-neutral-950 mt-0.5 shrink-0" />
-                      <div className="text-sm font-medium leading-5 text-neutral-950">
+                      <Info className="w-4 h-4 text-foreground mt-0.5 shrink-0" />
+                      <div className="text-sm font-medium leading-5 text-foreground">
                         Zaplanowane urlopy
                       </div>
                     </div>
@@ -722,30 +722,30 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
                         
                         return (
                           <div key={leave.id} className="flex flex-row gap-4 items-center justify-start min-w-[85px] w-full">
-                            <Avatar className="w-10 h-10 rounded-full bg-neutral-100">
+                            <Avatar className="w-10 h-10 rounded-full bg-muted">
                               <AvatarImage src={leave.user_avatar || undefined} />
                               <AvatarFallback className="">
                                 {leave.user_name.split(' ').map(n => n[0]).join('') || leave.user_email[0].toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
                             <div className="basis-0 flex flex-col grow items-start justify-start min-h-px min-w-px">
-                              <div className="font-medium text-sm text-neutral-950 leading-5 w-full overflow-ellipsis overflow-hidden">
+                              <div className="font-medium text-sm text-foreground leading-5 w-full overflow-ellipsis overflow-hidden">
                                 {leave.user_name}
                               </div>
-                              <div className="font-normal text-sm text-neutral-500 leading-5 w-full overflow-ellipsis overflow-hidden">
+                              <div className="font-normal text-sm text-muted-foreground leading-5 w-full overflow-ellipsis overflow-hidden">
                                 {leave.user_email}
                               </div>
                             </div>
                             <div className="flex flex-col items-end justify-center text-sm text-right">
-                              <div className="font-medium text-neutral-950 leading-5">
+                              <div className="font-medium text-foreground leading-5">
                                 {leave.leave_type_name}
                               </div>
-                              <div className="font-normal text-neutral-500 leading-5">
+                              <div className="font-normal text-muted-foreground leading-5">
                                 do {formattedEndDate}
                               </div>
                             </div>
                             <div className="bg-cyan-200 rounded-lg shrink-0 w-10 h-10 flex items-center justify-center">
-                              <TreePalm className="w-6 h-6 text-neutral-950" />
+                              <TreePalm className="w-6 h-6 text-foreground" />
                             </div>
                           </div>
                         )

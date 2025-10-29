@@ -264,8 +264,8 @@ function AddUsersPageContent() {
     return (
       <div className="bg-white relative size-full min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-neutral-900 mx-auto mb-4"></div>
-          <p className="text-neutral-500">Loading pricing information...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading pricing information...</p>
         </div>
       </div>
     )
@@ -292,7 +292,7 @@ function AddUsersPageContent() {
               </div>
             </div>
           </div>
-          <div className="basis-0 font-['Geist'] font-normal grow leading-none min-h-px min-w-px relative shrink-0 text-[18px] text-neutral-500">
+          <div className="basis-0 font-['Geist'] font-normal grow leading-none min-h-px min-w-px relative shrink-0 text-[18px] text-muted-foreground">
             <p className="leading-none">{isUpgradeFlow ? 'Upgrade your subscription' : 'Add users to your workspace'}</p>
           </div>
         </div>
@@ -300,7 +300,7 @@ function AddUsersPageContent() {
         <div className="content-stretch flex flex-col gap-8 items-start justify-start relative shrink-0 w-full">
           <div className="content-stretch flex flex-col gap-8 items-start justify-start relative shrink-0 w-full">
             {/* Main question */}
-            <div className="font-['Geist'] font-bold leading-none min-w-full relative shrink-0 text-[30px] text-neutral-950" style={{ width: "min-content" }}>
+            <div className="font-['Geist'] font-bold leading-none min-w-full relative shrink-0 text-[30px] text-foreground" style={{ width: "min-content" }}>
               <p className="leading-[36px]">{isUpgradeFlow ? 'How many seats do you need?' : 'How many users do you want to add?'}</p>
             </div>
 
@@ -319,13 +319,13 @@ function AddUsersPageContent() {
               </Button>
 
               {/* Number display */}
-              <div className="basis-0 bg-white grow h-16 min-h-px min-w-px relative rounded-[8px] shrink-0">
+              <div className="basis-0 bg-white grow h-16 min-h-px min-w-px relative rounded-lg shrink-0">
                 <div className="box-border content-stretch flex gap-1 h-16 items-center justify-center overflow-clip px-3 py-1 relative w-full">
-                  <div className="basis-0 font-['Geist'] font-semibold grow leading-none min-h-px min-w-px overflow-ellipsis overflow-hidden relative shrink-0 text-[36px] text-center text-neutral-950 text-nowrap">
+                  <div className="basis-0 font-['Geist'] font-semibold grow leading-none min-h-px min-w-px overflow-ellipsis overflow-hidden relative shrink-0 text-[36px] text-center text-foreground text-nowrap">
                     <p className="leading-none overflow-inherit">{userCount}</p>
                   </div>
                 </div>
-                <div className="absolute border border-neutral-200 border-solid inset-0 pointer-events-none rounded-[8px] shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]" />
+                <div className="absolute border border border-solid inset-0 pointer-events-none rounded-lg shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]" />
               </div>
 
               {/* Plus button */}
@@ -348,10 +348,10 @@ function AddUsersPageContent() {
               <>
                 {/* Free card - selected when user count <= 3 */}
                 <div 
-                  className="basis-0 bg-violet-100 box-border content-stretch flex flex-col gap-8 grow items-start justify-start min-h-px min-w-px p-[32px] relative rounded-[14px] shrink-0 cursor-pointer"
+                  className="basis-0 bg-violet-100 box-border content-stretch flex flex-col gap-8 grow items-start justify-start min-h-px min-w-px p-[32px] relative rounded-xl shrink-0 cursor-pointer"
                   onClick={() => setSelectedTier('monthly')}
                 >
-                  <div className="absolute border-2 border-neutral-900 border-solid inset-0 pointer-events-none rounded-[14px]" />
+                  <div className="absolute border-2 border-foreground border-solid inset-0 pointer-events-none rounded-xl" />
                   <div className="content-stretch flex flex-col gap-6 items-start justify-start relative shrink-0 w-full">
                     <div className="content-stretch flex flex-col gap-3 items-start justify-start relative shrink-0 w-full">
                       <div className="content-stretch flex gap-2.5 items-center justify-center relative shrink-0 w-full">
@@ -368,19 +368,19 @@ function AddUsersPageContent() {
                                 </div>
                               </div>
                             </div>
-                            <div className="absolute border border-neutral-200 border-solid inset-0 pointer-events-none rounded-full" />
+                            <div className="absolute border border border-solid inset-0 pointer-events-none rounded-full" />
                           </div>
                         </button>
-                        <div className="basis-0 font-['Geist'] font-semibold grow leading-none min-h-px min-w-px relative shrink-0 text-[18px] text-neutral-900">
+                        <div className="basis-0 font-['Geist'] font-semibold grow leading-none min-h-px min-w-px relative shrink-0 text-[18px] text-foreground">
                           <p className="leading-[28px]">Free</p>
                         </div>
                       </div>
                     </div>
                     <div className="content-stretch flex gap-1.5 items-end justify-start leading-none relative shrink-0 text-nowrap w-full">
-                      <div className="font-['Geist'] font-semibold relative shrink-0 text-[30px] text-neutral-950">
+                      <div className="font-['Geist'] font-semibold relative shrink-0 text-[30px] text-foreground">
                         <p className="leading-[36px] text-nowrap whitespace-pre">Free</p>
                       </div>
-                      <div className="font-['Geist'] font-normal relative shrink-0 text-[14px] text-neutral-500">
+                      <div className="font-['Geist'] font-normal relative shrink-0 text-[14px] text-muted-foreground">
                         <p className="leading-[20px] text-nowrap whitespace-pre">up to 3 users</p>
                       </div>
                     </div>
@@ -388,26 +388,26 @@ function AddUsersPageContent() {
                 </div>
 
                 {/* Annual payment card - disabled when free */}
-                <div className="basis-0 bg-neutral-100 box-border content-stretch flex flex-col gap-8 grow items-start justify-start min-h-px min-w-px p-[32px] relative rounded-[14px] shrink-0 cursor-pointer">
-                  <div className="absolute border border-neutral-200 border-solid inset-0 pointer-events-none rounded-[14px]" />
+                <div className="basis-0 bg-muted box-border content-stretch flex flex-col gap-8 grow items-start justify-start min-h-px min-w-px p-[32px] relative rounded-xl shrink-0 cursor-pointer">
+                  <div className="absolute border border border-solid inset-0 pointer-events-none rounded-xl" />
                   <div className="content-stretch flex flex-col gap-6 items-start justify-start opacity-50 relative shrink-0 w-full">
                     <div className="content-stretch flex flex-col gap-3 items-start justify-start relative shrink-0 w-full">
                       <div className="content-stretch flex gap-2.5 items-center justify-center relative shrink-0 w-full">
                         <button className="box-border content-stretch cursor-pointer flex gap-3 items-center justify-start overflow-visible p-0 relative shrink-0">
                           <div className="bg-white relative rounded-full shrink-0 size-4">
-                            <div className="absolute border border-neutral-200 border-solid inset-0 pointer-events-none rounded-full" />
+                            <div className="absolute border border border-solid inset-0 pointer-events-none rounded-full" />
                           </div>
                         </button>
-                        <div className="basis-0 font-['Geist'] font-semibold grow leading-none min-h-px min-w-px relative shrink-0 text-[18px] text-neutral-900">
+                        <div className="basis-0 font-['Geist'] font-semibold grow leading-none min-h-px min-w-px relative shrink-0 text-[18px] text-foreground">
                           <p className="leading-[28px]">Annual payment</p>
                         </div>
                       </div>
                     </div>
                     <div className="content-stretch flex gap-1.5 items-end justify-start leading-none relative shrink-0 text-nowrap w-full">
-                      <div className="font-['Geist'] font-semibold relative shrink-0 text-[30px] text-neutral-950">
+                      <div className="font-['Geist'] font-semibold relative shrink-0 text-[30px] text-foreground">
                         <p className="leading-[36px] text-nowrap whitespace-pre">{pricing.annualPerSeat.toFixed(2)} {pricing.currency}</p>
                       </div>
-                      <div className="font-['Geist'] font-normal relative shrink-0 text-[14px] text-neutral-500">
+                      <div className="font-['Geist'] font-normal relative shrink-0 text-[14px] text-muted-foreground">
                         <p className="leading-[20px] text-nowrap whitespace-pre">/ month / user</p>
                       </div>
                     </div>
@@ -418,10 +418,10 @@ function AddUsersPageContent() {
               <>
                 {/* Annual payment card - selected by default when > 3 users */}
                 <div 
-                  className={`basis-0 ${selectedTier === 'annual' ? 'bg-violet-100' : 'bg-neutral-100'} box-border content-stretch flex flex-col gap-8 grow items-start justify-start min-h-px min-w-px p-[32px] relative rounded-[14px] shrink-0 cursor-pointer`}
+                  className={`basis-0 ${selectedTier === 'annual' ? 'bg-violet-100' : 'bg-muted'} box-border content-stretch flex flex-col gap-8 grow items-start justify-start min-h-px min-w-px p-[32px] relative rounded-xl shrink-0 cursor-pointer`}
                   onClick={() => setSelectedTier('annual')}
                 >
-                  <div className={`absolute ${selectedTier === 'annual' ? 'border-2 border-neutral-900' : 'border border-neutral-200'} border-solid inset-0 pointer-events-none rounded-[14px]`} />
+                  <div className={`absolute ${selectedTier === 'annual' ? 'border-2 border-foreground' : 'border border'} border-solid inset-0 pointer-events-none rounded-xl`} />
                   <div className={`content-stretch flex flex-col gap-6 items-start justify-start ${selectedTier !== 'annual' ? 'opacity-50' : ''} relative shrink-0 w-full`}>
                     <div className="content-stretch flex flex-col gap-3 items-start justify-start relative shrink-0 w-full">
                       <div className="content-stretch flex gap-2.5 items-center justify-center relative shrink-0 w-full">
@@ -440,19 +440,19 @@ function AddUsersPageContent() {
                                 </div>
                               </div>
                             )}
-                            <div className="absolute border border-neutral-200 border-solid inset-0 pointer-events-none rounded-full" />
+                            <div className="absolute border border border-solid inset-0 pointer-events-none rounded-full" />
                           </div>
                         </button>
-                        <div className="basis-0 font-['Geist'] font-semibold grow leading-none min-h-px min-w-px relative shrink-0 text-[18px] text-neutral-900">
+                        <div className="basis-0 font-['Geist'] font-semibold grow leading-none min-h-px min-w-px relative shrink-0 text-[18px] text-foreground">
                           <p className="leading-[28px]">Annual payment</p>
                         </div>
                       </div>
                     </div>
                     <div className="content-stretch flex gap-1.5 items-end justify-start leading-none relative shrink-0 text-nowrap w-full">
-                      <div className="font-['Geist'] font-semibold relative shrink-0 text-[30px] text-neutral-950">
+                      <div className="font-['Geist'] font-semibold relative shrink-0 text-[30px] text-foreground">
                         <p className="leading-[36px] text-nowrap whitespace-pre">{pricing.annualPerSeat.toFixed(2)} {pricing.currency}</p>
                       </div>
-                      <div className="font-['Geist'] font-normal relative shrink-0 text-[14px] text-neutral-500">
+                      <div className="font-['Geist'] font-normal relative shrink-0 text-[14px] text-muted-foreground">
                         <p className="leading-[20px] text-nowrap whitespace-pre">/ month / user</p>
                       </div>
                     </div>
@@ -461,10 +461,10 @@ function AddUsersPageContent() {
 
                 {/* Monthly payment card with "Most popular" badge */}
                 <div 
-                  className={`basis-0 ${selectedTier === 'monthly' ? 'bg-violet-100' : 'bg-white'} box-border content-stretch flex flex-col gap-8 grow items-start justify-start min-h-px min-w-px p-[32px] relative rounded-[14px] shrink-0 cursor-pointer`}
+                  className={`basis-0 ${selectedTier === 'monthly' ? 'bg-violet-100' : 'bg-white'} box-border content-stretch flex flex-col gap-8 grow items-start justify-start min-h-px min-w-px p-[32px] relative rounded-xl shrink-0 cursor-pointer`}
                   onClick={() => setSelectedTier('monthly')}
                 >
-                  <div className={`absolute ${selectedTier === 'monthly' ? 'border-2 border-neutral-900' : 'border border-neutral-200'} border-solid inset-0 pointer-events-none rounded-[14px]`} />
+                  <div className={`absolute ${selectedTier === 'monthly' ? 'border-2 border-foreground' : 'border border'} border-solid inset-0 pointer-events-none rounded-xl`} />
                   <div className={`content-stretch flex flex-col gap-6 items-start justify-start ${selectedTier !== 'monthly' ? 'opacity-50' : ''} relative shrink-0 w-full`}>
                     <div className="content-stretch flex flex-col gap-3 items-start justify-start relative shrink-0 w-full">
                       <div className="content-stretch flex gap-2.5 items-center justify-center relative shrink-0 w-full">
@@ -483,28 +483,28 @@ function AddUsersPageContent() {
                                 </div>
                               </div>
                             )}
-                            <div className="absolute border border-neutral-200 border-solid inset-0 pointer-events-none rounded-full" />
+                            <div className="absolute border border border-solid inset-0 pointer-events-none rounded-full" />
                           </div>
                         </button>
-                        <div className="basis-0 font-['Geist'] font-semibold grow leading-none min-h-px min-w-px relative shrink-0 text-[18px] text-neutral-900">
+                        <div className="basis-0 font-['Geist'] font-semibold grow leading-none min-h-px min-w-px relative shrink-0 text-[18px] text-foreground">
                           <p className="leading-[28px]">Monthly payment</p>
                         </div>
                       </div>
                       {/* Most popular badge */}
-                      <div className="absolute bg-neutral-900 right-0 rounded-[8px] top-1">
+                      <div className="absolute bg-neutral-900 right-0 rounded-lg top-1">
                         <div className="box-border content-stretch flex gap-1 items-center justify-center overflow-clip px-2.5 py-0.5 relative">
-                          <div className="font-['Geist'] font-semibold leading-none relative shrink-0 text-[12px] text-neutral-50 text-nowrap">
+                          <div className="font-['Geist'] font-semibold leading-none relative shrink-0 text-[12px] text-primary-foreground text-nowrap">
                             <p className="leading-[16px] whitespace-pre">Most popular</p>
                           </div>
                         </div>
-                        <div className="absolute border border-transparent border-solid inset-0 pointer-events-none rounded-[8px] shadow-[0px_1px_3px_0px_rgba(0,0,0,0.1),0px_1px_2px_-1px_rgba(0,0,0,0.1)]" />
+                        <div className="absolute border border-transparent border-solid inset-0 pointer-events-none rounded-lg shadow-[0px_1px_3px_0px_rgba(0,0,0,0.1),0px_1px_2px_-1px_rgba(0,0,0,0.1)]" />
                       </div>
                     </div>
                     <div className="content-stretch flex gap-1.5 items-end justify-start leading-none relative shrink-0 text-nowrap w-full">
-                      <div className="font-['Geist'] font-semibold relative shrink-0 text-[30px] text-neutral-950">
+                      <div className="font-['Geist'] font-semibold relative shrink-0 text-[30px] text-foreground">
                         <p className="leading-[36px] text-nowrap whitespace-pre">{pricing.monthlyPerSeat.toFixed(2)} {pricing.currency}</p>
                       </div>
-                      <div className="font-['Geist'] font-normal relative shrink-0 text-[14px] text-neutral-500">
+                      <div className="font-['Geist'] font-normal relative shrink-0 text-[14px] text-muted-foreground">
                         <p className="leading-[20px] text-nowrap whitespace-pre">/ month / user</p>
                       </div>
                     </div>
@@ -517,7 +517,7 @@ function AddUsersPageContent() {
           {/* Currency info note */}
           {!isFreeSelected && (
             <div className="content-stretch flex items-center justify-center relative shrink-0 w-full">
-              <div className="font-['Geist'] font-normal text-[14px] text-neutral-500 text-center">
+              <div className="font-['Geist'] font-normal text-[14px] text-muted-foreground text-center">
                 <p className="leading-[20px]">
                   Prices shown in PLN. EUR pricing available at checkout for EU customers.
                 </p>

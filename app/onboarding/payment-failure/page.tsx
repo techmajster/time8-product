@@ -76,11 +76,11 @@ function PaymentFailurePageContent() {
         {/* Text Content */}
         <div className="content-stretch flex flex-col gap-3 items-start justify-start relative shrink-0">
           <div className="content-stretch flex flex-col gap-3 items-center justify-start relative shrink-0 w-full">
-            <div className="font-bold text-[30px] text-center text-neutral-950 leading-9" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 700 }}>
+            <div className="font-bold text-[30px] text-center text-foreground leading-9" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 700 }}>
               Payment failed!
             </div>
           </div>
-          <div className="font-normal text-[14px] text-center text-neutral-500 w-full leading-5" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400 }}>
+          <div className="font-normal text-[14px] text-center text-muted-foreground w-full leading-5" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400 }}>
             You can now add users to your workspace. 
           </div>
         </div>
@@ -89,7 +89,7 @@ function PaymentFailurePageContent() {
         <Button
           onClick={handleRetryPayment}
           disabled={isRetrying}
-          className="bg-neutral-900 hover:bg-neutral-800 content-stretch flex gap-2 h-10 items-center justify-center px-8 py-2 relative rounded-lg shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] shrink-0 font-medium text-[14px] text-neutral-50"
+          className="bg-neutral-900 hover:bg-neutral-800 content-stretch flex gap-2 h-10 items-center justify-center px-8 py-2 relative rounded-lg shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] shrink-0 font-medium text-[14px] text-primary-foreground"
           style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500 }}
         >
           {isRetrying && <RefreshCw className="w-4 h-4 animate-spin" />}

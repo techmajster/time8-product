@@ -92,10 +92,10 @@ function CreateWorkspacePageContent() {
         <div className="flex gap-0.5 items-center justify-start relative w-full">
           <button
             onClick={handleBack}
-            className="bg-white flex gap-2 items-center justify-center px-4 py-2 relative rounded-lg border border-neutral-200 shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] hover:bg-gray-50 transition-colors cursor-pointer"
+            className="bg-white flex gap-2 items-center justify-center px-4 py-2 relative rounded-lg border border shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] hover:bg-gray-50 transition-colors cursor-pointer"
           >
-            <ChevronLeft className="w-4 h-4 text-neutral-900" />
-            <div className="font-medium text-[14px] text-neutral-950" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500, lineHeight: '20px' }}>
+            <ChevronLeft className="w-4 h-4 text-foreground" />
+            <div className="font-medium text-[14px] text-foreground" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500, lineHeight: '20px' }}>
               <p className="block leading-[20px] whitespace-pre">{t('back')}</p>
             </div>
           </button>
@@ -105,7 +105,7 @@ function CreateWorkspacePageContent() {
           
           {/* Header */}
           <div className="flex flex-col gap-2 items-center justify-start relative w-full">
-            <div className="font-bold relative text-[30px] text-neutral-950 w-full" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 700, lineHeight: '36px' }}>
+            <div className="font-bold relative text-[30px] text-foreground w-full" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 700, lineHeight: '36px' }}>
               <p className="block leading-[36px]">{t('title')}</p>
             </div>
           </div>
@@ -115,7 +115,7 @@ function CreateWorkspacePageContent() {
             
             {/* Workspace Name Input */}
             <div className="flex flex-col gap-2 items-start justify-start relative w-full">
-              <Label htmlFor="workspace-name" className="font-medium text-[14px] text-neutral-950" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500 }}>
+              <Label htmlFor="workspace-name" className="font-medium text-[14px] text-foreground" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500 }}>
                 {t('form.name.label')}
               </Label>
               <div className="flex flex-col gap-2 items-start justify-start relative w-full">
@@ -125,10 +125,10 @@ function CreateWorkspacePageContent() {
                   value={workspaceName}
                   onChange={(e) => setWorkspaceName(e.target.value)}
                   disabled={isSubmitting}
-                  className="bg-white h-9 rounded-lg w-full border border-neutral-200 shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] px-3 py-1 font-normal text-[14px] text-neutral-500"
+                  className="bg-white h-9 rounded-lg w-full border border shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] px-3 py-1 font-normal text-[14px] text-muted-foreground"
                   style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400, lineHeight: '20px' }}
                 />
-                <div className="font-normal text-[14px] text-neutral-500 w-full" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400, lineHeight: '20px' }}>
+                <div className="font-normal text-[14px] text-muted-foreground w-full" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400, lineHeight: '20px' }}>
                   <p className="block leading-[20px]">Workspace address: time8.io/{workspaceName.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').substring(0, 20) || 'name'}</p>
                 </div>
               </div>
@@ -136,11 +136,11 @@ function CreateWorkspacePageContent() {
 
             {/* Main Language Select */}
             <div className="flex flex-col gap-2 items-start justify-start relative w-full">
-              <Label className="font-medium text-[14px] text-neutral-950" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500 }}>
+              <Label className="font-medium text-[14px] text-foreground" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500 }}>
                 {t('form.language.label')}
               </Label>
               <Select value={language} onValueChange={setLanguage}>
-                <SelectTrigger className="bg-white h-9 rounded-lg w-full border border-neutral-200 shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] px-4 py-2">
+                <SelectTrigger className="bg-white h-9 rounded-lg w-full border border shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] px-4 py-2">
                   <SelectValue placeholder="Select language" />
                 </SelectTrigger>
                 <SelectContent>
@@ -181,18 +181,18 @@ function CreateWorkspacePageContent() {
                   </SelectItem>
                 </SelectContent>
               </Select>
-              <div className="font-normal text-[14px] text-neutral-500 w-full" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400, lineHeight: '20px' }}>
+              <div className="font-normal text-[14px] text-muted-foreground w-full" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400, lineHeight: '20px' }}>
                 <p className="block leading-[20px]">{t('form.language.description')}</p>
               </div>
             </div>
 
             {/* Holiday Calendar Preset Select */}
             <div className="flex flex-col gap-2 items-start justify-start relative w-full">
-              <Label className="font-medium text-[14px] text-neutral-950" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500 }}>
+              <Label className="font-medium text-[14px] text-foreground" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500 }}>
                 {t('form.country.label')}
               </Label>
               <Select value={country} onValueChange={setCountry}>
-                <SelectTrigger className="bg-white h-9 rounded-lg w-full border border-neutral-200 shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] px-4 py-2">
+                <SelectTrigger className="bg-white h-9 rounded-lg w-full border border shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] px-4 py-2">
                   <SelectValue placeholder="Select country" />
                 </SelectTrigger>
                 <SelectContent>
@@ -222,7 +222,7 @@ function CreateWorkspacePageContent() {
                   </SelectItem>
                 </SelectContent>
               </Select>
-              <div className="font-normal text-[14px] text-neutral-500 w-full" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400, lineHeight: '20px' }}>
+              <div className="font-normal text-[14px] text-muted-foreground w-full" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400, lineHeight: '20px' }}>
                 <p className="block leading-[20px]">{t('form.country.description')}</p>
               </div>
             </div>
@@ -244,7 +244,7 @@ function CreateWorkspacePageContent() {
             disabled={isSubmitting || !workspaceName.trim()}
             className="bg-neutral-900 flex gap-2 h-10 items-center justify-center px-8 py-2 relative rounded-lg shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] w-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-neutral-800 transition-colors cursor-pointer"
           >
-            <div className="font-medium text-[14px] text-neutral-50" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500, lineHeight: '20px' }}>
+            <div className="font-medium text-[14px] text-primary-foreground" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500, lineHeight: '20px' }}>
               <p className="block leading-[20px] whitespace-pre">
                 {isSubmitting ? t('form.submitting') : t('form.submit')}
               </p>

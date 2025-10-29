@@ -72,29 +72,29 @@ export function LeaveRequestsTable({ requests }: { requests: LeaveRequestWithUse
   }
 
   return (
-    <Card className="rounded-[10px] bg-white py-1">
+    <Card className="rounded-lg bg-white py-1">
       <div className="overflow-hidden">
         <div className="min-w-full">
           <div className="px-4 py-2">
             {/* Table Header */}
-            <div className="grid grid-cols-[1fr_229px_288px_162px_110px_216px] items-center min-w-[356px] h-10 border-b border-neutral-200">
+            <div className="grid grid-cols-[1fr_229px_288px_162px_110px_216px] items-center min-w-[356px] h-10 border-b border">
               <div className="px-2 py-0">
-                <div className="font-medium text-sm text-neutral-500">Wnioskujący</div>
+                <div className="font-medium text-sm text-muted-foreground">Wnioskujący</div>
               </div>
               <div className="px-2 py-0">
-                <div className="font-medium text-sm text-neutral-500">Data</div>
+                <div className="font-medium text-sm text-muted-foreground">Data</div>
               </div>
               <div className="px-2 py-0">
-                <div className="font-medium text-sm text-neutral-500">Opis</div>
+                <div className="font-medium text-sm text-muted-foreground">Opis</div>
               </div>
               <div className="px-2 py-0">
-                <div className="font-medium text-sm text-neutral-500">Typ</div>
+                <div className="font-medium text-sm text-muted-foreground">Typ</div>
               </div>
               <div className="px-2 py-0 text-right">
-                <div className="font-medium text-sm text-neutral-500">Liczba dni</div>
+                <div className="font-medium text-sm text-muted-foreground">Liczba dni</div>
               </div>
               <div className="px-2 py-0 text-right">
-                <div className="font-medium text-sm text-neutral-500">Akcje</div>
+                <div className="font-medium text-sm text-muted-foreground">Akcje</div>
               </div>
             </div>
 
@@ -103,7 +103,7 @@ export function LeaveRequestsTable({ requests }: { requests: LeaveRequestWithUse
               <div 
                 key={request.id} 
                 onClick={() => handleRowClick(request.id)}
-                className={`grid grid-cols-[1fr_229px_288px_162px_110px_216px] items-center min-w-[356px] h-[72px] border-b border-neutral-200 cursor-pointer hover:bg-neutral-50 transition-colors ${
+                className={`grid grid-cols-[1fr_229px_288px_162px_110px_216px] items-center min-w-[356px] h-[72px] border-b border cursor-pointer hover:bg-muted transition-colors ${
                   index < 4 ? 'bg-zinc-100' : ''
                 }`}
               >
@@ -117,10 +117,10 @@ export function LeaveRequestsTable({ requests }: { requests: LeaveRequestWithUse
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex flex-col">
-                      <div className="font-medium text-sm text-neutral-950 overflow-hidden overflow-ellipsis">
+                      <div className="font-medium text-sm text-foreground overflow-hidden overflow-ellipsis">
                         {request.user_profile.full_name || request.user_profile.email.split('@')[0]}
                       </div>
-                      <div className="font-normal text-sm text-neutral-500 overflow-hidden overflow-ellipsis">
+                      <div className="font-normal text-sm text-muted-foreground overflow-hidden overflow-ellipsis">
                         {request.user_profile.email}
                       </div>
                     </div>
@@ -129,28 +129,28 @@ export function LeaveRequestsTable({ requests }: { requests: LeaveRequestWithUse
 
                 {/* Data */}
                 <div className="p-2">
-                  <div className="font-normal text-sm text-neutral-950 overflow-hidden overflow-ellipsis">
+                  <div className="font-normal text-sm text-foreground overflow-hidden overflow-ellipsis">
                     {formatDateRange(request.start_date, request.end_date)}
                   </div>
                 </div>
 
                 {/* Opis */}
                 <div className="p-2">
-                  <div className="font-medium text-sm text-neutral-950 overflow-hidden overflow-ellipsis">
+                  <div className="font-medium text-sm text-foreground overflow-hidden overflow-ellipsis">
                     {request.reason || 'Brak opisu'}
                   </div>
                 </div>
 
                 {/* Typ */}
                 <div className="p-2">
-                  <div className="font-normal text-sm text-neutral-950 overflow-hidden overflow-ellipsis">
+                  <div className="font-normal text-sm text-foreground overflow-hidden overflow-ellipsis">
                     {request.leave_types?.name || 'Wypoczynkowy'}
                   </div>
                 </div>
 
                 {/* Liczba dni */}
                 <div className="p-2 text-right">
-                  <div className="font-normal text-sm text-neutral-950">
+                  <div className="font-normal text-sm text-foreground">
                     {request.days_requested} {request.days_requested === 1 ? 'dzień' : 'dni'}
                   </div>
                 </div>
@@ -163,7 +163,7 @@ export function LeaveRequestsTable({ requests }: { requests: LeaveRequestWithUse
             ))}
 
             {requests.length === 0 && (
-              <div className="flex items-center justify-center h-32 text-neutral-500">
+              <div className="flex items-center justify-center h-32 text-muted-foreground">
                 Brak wniosków urlopowych w tej kategorii
               </div>
             )}

@@ -1715,7 +1715,7 @@ export default function AdminSettingsClient({
                 checked={formData.requires_balance}
                 onCheckedChange={(checked) => setFormData(prev => ({ ...prev, requires_balance: !!checked }))}
                 disabled={loading}
-                className="mt-0.5 data-[state=checked]:bg-foreground data-[state=checked]:border-neutral-900"
+                className="mt-0.5 data-[state=checked]:bg-foreground data-[state=checked]:border-foreground"
               />
               <div className="grid gap-1.5 leading-none">
                 <Label htmlFor="edit-requires-balance" className="text-sm font-medium text-foreground">

@@ -193,7 +193,7 @@ export function CreateLeaveTypeSheet({
                       checked={formData.requires_balance}
                       onCheckedChange={(checked) => setFormData(prev => ({ ...prev, requires_balance: !!checked }))}
                       disabled={isSubmitting}
-                      className="mt-0.5 data-[state=checked]:bg-foreground data-[state=checked]:border-neutral-900"
+                      className="mt-0.5 data-[state=checked]:bg-foreground data-[state=checked]:border-foreground"
                     />
                     <div className="grid gap-1.5 leading-none">
                       <Label htmlFor="requires-balance" className="text-sm font-medium text-foreground">
@@ -211,7 +211,7 @@ export function CreateLeaveTypeSheet({
                       checked={formData.requires_approval}
                       onCheckedChange={(checked) => setFormData(prev => ({ ...prev, requires_approval: !!checked }))}
                       disabled={isSubmitting}
-                      className="mt-0.5 data-[state=checked]:bg-foreground data-[state=checked]:border-neutral-900"
+                      className="mt-0.5 data-[state=checked]:bg-foreground data-[state=checked]:border-foreground"
                     />
                     <div className="grid gap-1.5 leading-none">
                       <Label htmlFor="requires-approval" className="text-sm font-medium text-foreground">
@@ -229,7 +229,7 @@ export function CreateLeaveTypeSheet({
                       checked={formData.is_paid}
                       onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_paid: !!checked }))}
                       disabled={isSubmitting}
-                      className="mt-0.5 data-[state=checked]:bg-foreground data-[state=checked]:border-neutral-900"
+                      className="mt-0.5 data-[state=checked]:bg-foreground data-[state=checked]:border-foreground"
                     />
                     <div className="grid gap-1.5 leading-none">
                       <Label htmlFor="is-paid" className="text-sm font-medium text-foreground">

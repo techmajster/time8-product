@@ -271,10 +271,10 @@ export default function OnboardingRoutingPage() {
               
               {/* Header Section */}
               <div className="flex flex-col gap-3 items-center justify-start p-0 relative text-center w-full">
-                <div className="font-semibold leading-[48px] relative text-[48px] text-center text-neutral-950" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 600 }}>
+                <div className="font-semibold leading-[48px] relative text-[48px] text-center text-foreground" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 600 }}>
                   <p className="block leading-[48px] whitespace-pre">Welcome to Time8.io</p>
                 </div>
-                <div className="font-normal relative text-[18px] text-center text-neutral-500 w-full" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400, lineHeight: '28px' }}>
+                <div className="font-normal relative text-[18px] text-center text-muted-foreground w-full" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400, lineHeight: '28px' }}>
                   <p className="block leading-[28px]">There was an issue with your invitation link.</p>
                 </div>
               </div>
@@ -285,7 +285,7 @@ export default function OnboardingRoutingPage() {
               </Alert>
 
               {/* Single Card - Error */}
-              <div className="bg-red-50 flex flex-col items-start justify-between p-[32px] relative rounded-[14px] w-96 max-w-sm h-[300px] border border-red-200">
+              <div className="bg-red-50 flex flex-col items-start justify-between p-[32px] relative rounded-xl w-96 max-w-sm h-[300px] border border-red-200">
                 <div className="flex-1 flex flex-col gap-8 items-center justify-center p-0 relative w-full">
                   <div className="overflow-hidden relative w-16 h-16">
                     <svg className="w-full h-full text-red-600" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">

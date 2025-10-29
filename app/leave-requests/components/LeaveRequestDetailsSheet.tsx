@@ -424,40 +424,40 @@ export function LeaveRequestDetailsSheet({ requestId, isOpen, onClose }: LeaveRe
 
                   {/* W tym terminie urlop planują - unified with Figma design */}
                   {conflictingLeaves.length > 0 && (
-                    <div className="bg-white border border-neutral-200 rounded-[10px] p-4 w-full">
+                    <div className="bg-white border border rounded-lg p-4 w-full">
                       <div className="flex flex-row gap-3 items-start w-full mb-3">
-                        <Info className="w-4 h-4 text-neutral-950 mt-0.5 shrink-0" />
-                        <div className="text-sm font-medium leading-5 text-neutral-950">
+                        <Info className="w-4 h-4 text-foreground mt-0.5 shrink-0" />
+                        <div className="text-sm font-medium leading-5 text-foreground">
                           W tym terminie urlop planują
                         </div>
                       </div>
                       <div className="flex flex-col gap-8 w-full">
                         {conflictingLeaves.map((conflict) => (
                           <div key={conflict.id} className="flex flex-row gap-4 items-center justify-start min-w-[85px] w-full">
-                            <Avatar className="w-10 h-10 rounded-full bg-neutral-100">
+                            <Avatar className="w-10 h-10 rounded-full bg-muted">
                               <AvatarImage src={conflict.avatar_url || undefined} />
                               <AvatarFallback className="">
                                 {conflict.full_name?.split(' ').map(n => n[0]).join('') || conflict.email[0].toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
                             <div className="basis-0 flex flex-col grow items-start justify-start min-h-px min-w-px">
-                              <div className="font-medium text-sm text-neutral-950 leading-5 w-full overflow-ellipsis overflow-hidden">
+                              <div className="font-medium text-sm text-foreground leading-5 w-full overflow-ellipsis overflow-hidden">
                                 {conflict.full_name || conflict.email.split('@')[0]}
                               </div>
-                              <div className="font-normal text-sm text-neutral-500 leading-5 w-full overflow-ellipsis overflow-hidden">
+                              <div className="font-normal text-sm text-muted-foreground leading-5 w-full overflow-ellipsis overflow-hidden">
                                 {conflict.email}
                               </div>
                             </div>
                             <div className="flex flex-col items-end justify-center text-sm text-right">
-                              <div className="font-medium text-neutral-950 leading-5">
+                              <div className="font-medium text-foreground leading-5">
                                 {conflict.leave_type}
                               </div>
-                              <div className="font-normal text-neutral-500 leading-5">
+                              <div className="font-normal text-muted-foreground leading-5">
                                 do {conflict.end_date}
                               </div>
                             </div>
                             <div className="bg-cyan-200 rounded-lg shrink-0 w-10 h-10 flex items-center justify-center">
-                              <TreePalm className="w-6 h-6 text-neutral-950" />
+                              <TreePalm className="w-6 h-6 text-foreground" />
                             </div>
                           </div>
                         ))}
