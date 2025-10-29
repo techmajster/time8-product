@@ -507,7 +507,7 @@ export default async function DashboardPage() {
               {/* Right Column - Calendar */}
               <div className="flex-1">
                 <Card className="border border-border">
-                  <CardContent className="p-6 py-0">
+                  <CardContent className="py-0">
                     <div className="flex items-center justify-between mb-6">
                       <h3 className="text-xl font-semibold text-foreground">
                         Kalendarz urlopów
