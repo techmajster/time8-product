@@ -86,7 +86,7 @@ function MyLeavePageContent({ profile, leaveRequests, leaveBalances, leaveTypes 
           <div className="flex items-center justify-between">
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-2.5">
-                <h1 className="text-3xl font-semibold text-neutral-950">Twoje urlopy</h1>
+                <h1 className="text-3xl font-semibold text-foreground">Twoje urlopy</h1>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -99,40 +99,40 @@ function MyLeavePageContent({ profile, leaveRequests, leaveBalances, leaveTypes 
 
           {/* Summary Cards */}
           <div className="flex gap-6">
-            <Card className="flex-1 bg-white border border-neutral-200 rounded-[10px] p-6">
+            <Card className="flex-1">
               <div className="flex items-center justify-between mb-4">
-                <p className="text-sm font-medium text-neutral-950">Łącznie pozostało</p>
-                <TreePine className="w-4 h-4 text-neutral-950" />
+                <p className="text-sm font-medium text-foreground">Łącznie pozostało</p>
+                <TreePine className="w-4 h-4 text-foreground" />
               </div>
               <div className="flex flex-col gap-0.5">
-                <p className="text-xl font-semibold text-neutral-950">
+                <p className="text-xl font-semibold text-foreground">
                   {totalRemainingDays} dni urlopu
                 </p>
-                <p className="text-sm text-neutral-500">
+                <p className="text-sm text-muted-foreground">
                   w tym {carryOverDays} z zeszłego roku
                 </p>
               </div>
             </Card>
 
-            <Card className="flex-1 bg-white border border-neutral-200 rounded-[10px] p-6">
+            <Card className="flex-1">
               <div className="flex items-center justify-between mb-4">
-                <p className="text-sm font-medium text-neutral-950">Najbliższy urlop</p>
-                <Clock className="w-4 h-4 text-neutral-950" />
+                <p className="text-sm font-medium text-foreground">Najbliższy urlop</p>
+                <Clock className="w-4 h-4 text-foreground" />
               </div>
               <div className="flex flex-col gap-0.5">
                 {nextLeave && daysUntilNextLeave !== null ? (
                   <>
-                    <p className="text-xl font-semibold text-neutral-950">
+                    <p className="text-xl font-semibold text-foreground">
                       za {daysUntilNextLeave} {daysUntilNextLeave === 1 ? 'dzień' : 'dni'}
                     </p>
-                    <p className="text-sm text-neutral-500">
+                    <p className="text-sm text-muted-foreground">
                       {nextLeave.days_requested} {nextLeave.days_requested === 1 ? 'dzień' : 'dni'} - {formatDateRange(nextLeave.start_date, nextLeave.end_date)}
                     </p>
                   </>
                 ) : (
                   <>
-                    <p className="text-xl font-semibold text-neutral-950">Brak planów</p>
-                    <p className="text-sm text-neutral-500">Nie masz zaplanowanych urlopów</p>
+                    <p className="text-xl font-semibold text-foreground">Brak planów</p>
+                    <p className="text-sm text-muted-foreground">Nie masz zaplanowanych urlopów</p>
                   </>
                 )}
               </div>
@@ -142,7 +142,7 @@ function MyLeavePageContent({ profile, leaveRequests, leaveBalances, leaveTypes 
           {/* Tabs with Filter */}
           <Tabs defaultValue="all" className="w-full">
             <div className="flex items-center justify-between">
-              <TabsList className="bg-neutral-100 rounded-[10px] p-[3px] w-[218px]">
+              <TabsList className="bg-muted rounded-lg p-[3px] w-[218px]">
                 <TabsTrigger value="all" className="flex-1 text-sm font-medium">
                   Wszystkie
                 </TabsTrigger>

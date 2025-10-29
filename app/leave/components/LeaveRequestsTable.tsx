@@ -39,13 +39,13 @@ function getStatusBadge(status: string) {
   switch (status) {
     case 'approved':
       return (
-        <Badge className="bg-neutral-900 text-neutral-50 text-xs px-2 py-0.5 rounded-lg font-semibold">
+        <Badge className="bg-foreground text-background text-xs px-2 py-0.5 rounded-lg font-semibold">
           Zaakceptowany
         </Badge>
       )
     case 'pending':
       return (
-        <Badge className="bg-neutral-100 text-neutral-900 text-xs px-2 py-0.5 rounded-lg font-semibold border-transparent">
+        <Badge className="bg-muted text-foreground text-xs px-2 py-0.5 rounded-lg font-semibold border-transparent">
           Oczekujący
         </Badge>
       )
@@ -57,13 +57,13 @@ function getStatusBadge(status: string) {
       )
     case 'cancelled':
       return (
-        <Badge className="bg-white text-neutral-950 text-xs px-2 py-0.5 rounded-lg font-semibold border border-neutral-200">
+        <Badge className="bg-card text-foreground text-xs px-2 py-0.5 rounded-lg font-semibold border">
           Anulowany
         </Badge>
       )
     default:
       return (
-        <Badge className="bg-neutral-100 text-neutral-900 text-xs px-2 py-0.5 rounded-lg font-semibold border-transparent">
+        <Badge className="bg-muted text-foreground text-xs px-2 py-0.5 rounded-lg font-semibold border-transparent">
           Zrealizowany
         </Badge>
       )
@@ -79,9 +79,9 @@ export function LeaveRequestsTable({ requests }: LeaveRequestsTableProps) {
 
   if (!requests.length) {
     return (
-      <div className="bg-white border border-neutral-200 rounded-[10px]">
+      <div className="bg-card border rounded-lg">
         <div className="p-8 text-center">
-          <p className="text-neutral-500">Nie masz jeszcze żadnych wniosków urlopowych.</p>
+          <p className="text-muted-foreground">Nie masz jeszcze żadnych wniosków urlopowych.</p>
         </div>
       </div>
     )
@@ -92,46 +92,46 @@ export function LeaveRequestsTable({ requests }: LeaveRequestsTableProps) {
   }
 
   return (
-    <div className="bg-white border border-neutral-200 rounded-[10px] overflow-hidden px-4 py-2">
+    <div className="bg-card border rounded-lg overflow-hidden px-4 py-2">
       <Table>
         <TableHeader>
-          <TableRow className="border-b border-neutral-200 hover:bg-transparent">
-            <TableHead className="h-10 px-2 py-0 text-left font-medium text-sm text-neutral-500 w-[269px]">
+          <TableRow className="border-b hover:bg-transparent">
+            <TableHead className="h-10 px-2 py-0 text-left font-medium text-sm text-muted-foreground w-[269px]">
               Data
             </TableHead>
-            <TableHead className="h-10 px-2 py-0 text-left font-medium text-sm text-neutral-500 w-[419px]">
+            <TableHead className="h-10 px-2 py-0 text-left font-medium text-sm text-muted-foreground w-[419px]">
               Opis
             </TableHead>
-            <TableHead className="h-10 px-2 py-0 text-left font-medium text-sm text-neutral-500 w-[280px]">
+            <TableHead className="h-10 px-2 py-0 text-left font-medium text-sm text-muted-foreground w-[280px]">
               Typ
             </TableHead>
-            <TableHead className="h-10 px-2 py-0 text-left font-medium text-sm text-neutral-500 w-[110px]">
+            <TableHead className="h-10 px-2 py-0 text-left font-medium text-sm text-muted-foreground w-[110px]">
               Liczba dni
             </TableHead>
-            <TableHead className="h-10 px-2 py-0 text-right font-medium text-sm text-neutral-500">
+            <TableHead className="h-10 px-2 py-0 text-right font-medium text-sm text-muted-foreground">
               Status
             </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {requests.map((request) => (
-            <TableRow 
-              key={request.id} 
-              className="border-b border-neutral-200 cursor-pointer"
+            <TableRow
+              key={request.id}
+              className="border-b cursor-pointer"
               onClick={() => handleRowClick(request.id)}
             >
-              <TableCell className="h-[52px] p-2 align-middle font-normal text-sm text-neutral-950">
+              <TableCell className="h-[52px] p-2 align-middle font-normal text-sm text-foreground">
                 {formatDateRange(request.start_date, request.end_date)}
               </TableCell>
               <TableCell className="h-[52px] p-2 align-middle">
-                <div className="font-medium text-sm text-neutral-950">
+                <div className="font-medium text-sm text-foreground">
                   {request.reason || 'Brak opisu'}
                 </div>
               </TableCell>
-              <TableCell className="h-[52px] p-2 align-middle font-normal text-sm text-neutral-950">
+              <TableCell className="h-[52px] p-2 align-middle font-normal text-sm text-foreground">
                 {request.leave_types?.name || 'Nieznany typ'}
               </TableCell>
-              <TableCell className="h-[52px] p-2 align-middle font-normal text-sm text-neutral-950 text-left">
+              <TableCell className="h-[52px] p-2 align-middle font-normal text-sm text-foreground text-left">
                 {request.days_requested} {request.days_requested === 1 ? 'dzień' : 'dni'}
               </TableCell>
               <TableCell className="h-[52px] p-2 align-middle text-right">
