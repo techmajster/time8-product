@@ -99,7 +99,7 @@ body {
   --destructive: oklch(0.5770 0.2450 27.3250);
   --destructive-foreground: oklch(1 0 0);
   --border: rgba(2, 2, 2, 0.20); /* Figma: border-light */
-  --input: #e5e5e5; /* Figma: neutral/200 */
+  --input: #e5e5e7; /* Figma: neutral/200 - exact Tailwind match */
   --ring: oklch(0.7080 0 0);
   --chart-1: oklch(0.8100 0.1000 252);
   --chart-2: oklch(0.6200 0.1900 260);
