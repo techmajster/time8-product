@@ -495,11 +495,57 @@
     - ✅ Role-based section visibility (employee, manager, admin)
     - ✅ Purple gradient background (#1e1b4b to #6d28d9)
     - ✅ Logo integration from Figma assets
-  - [x] **Global Design Tokens** ✅ **COMPLETED**
+  - [x] **Global Design Tokens (Phase 1: Foundation)** ✅ **COMPLETED**
     - ✅ Updated border color: `oklch(0 0 0 / 0.2)` matching Figma card borders
     - ✅ Added background states for user leave status (default, vacation, sick leave)
     - ✅ Implemented dynamic background based on active leave requests
     - ✅ Breadcrumb bar made scrollable with transparent background
+
+  - [ ] **Design System Unification (Phase 2-6)** `XL` 🎯 **IN PROGRESS**
+    - **Problem:** Recent UI redesign updated dashboard with inline styling, but rest of app uses mix of Shadcn Card components with hardcoded values
+    - **Goal:** Complete app-wide styling consistency using Shadcn UI + design tokens
+    - **Affected:** 11 files with custom border-radius, 20 files with hardcoded neutral colors
+    - **Spec:** `.agent-os/specs/2025-10-29-design-system-unification/`
+
+    - [x] **Phase 1: Standardize Card Component** `XS` ✅ **COMPLETED**
+      - ✅ Updated Card component: `rounded-xl` → `rounded-lg` (14px → 8px to match Figma)
+      - ✅ Updated global border-radius: `--radius: 0.625rem` → `0.5rem` (10px → 8px)
+      - ✅ Added `--card-violet: #ede9fe` for dashboard cards (matches Figma violet/100)
+      - ✅ Unified Card padding: `py-6` → `p-6` (24px all sides per Figma specs)
+      - ✅ Removed `px-6` from CardHeader, CardContent, CardFooter (inherited from parent)
+      - ✅ Added comprehensive JSDoc documentation to Card component
+      - Files: [components/ui/card.tsx](components/ui/card.tsx), [app/globals.css](app/globals.css)
+
+    - [x] **Phase 2: Verify Figma Color Alignment** `M` ✅ **COMPLETED**
+      - ✅ Systematically verified ALL 11 Figma theme colors vs globals.css
+      - ✅ Updated input color: `#e5e5e5` → `#e5e5e7` (exact Tailwind neutral-200)
+      - ✅ Verified border colors: `rgba(2,2,2,0.20)` light, `rgba(255,255,255,0.10)` dark
+      - ✅ All design tokens now 100% aligned with Figma
+      - ✅ Created comprehensive verification report: [figma-theme-comparison.md](.agent-os/specs/2025-10-29-design-system-unification/figma-theme-comparison.md)
+      - Colors verified: Primary (violet-600), Sidebar (indigo-950), Card Violet, Borders, Input, Background, Foreground
+      - Files: [app/globals.css](app/globals.css:102)
+
+    - [ ] **Phase 3: Unify Dashboard** `S` 🎯 **NEXT PRIORITY**
+      - Convert inline div-based cards to Shadcn Card components
+      - Maintain current visual design (purple theme, spacing)
+      - Use semantic structure (CardHeader, CardContent)
+      - Replace hardcoded styling with design tokens
+      - Files: [app/dashboard/page.tsx](app/dashboard/page.tsx)
+
+    - [ ] **Phase 4: Unify Admin & Settings** `M`
+      - Apply design tokens to admin/settings/team-management/groups pages
+      - Same pattern as Dashboard (replace hardcoded values)
+      - Convert to Shadcn Card components where applicable
+
+    - [ ] **Phase 5: Global Color Token Cleanup** `S`
+      - Remove all hardcoded `text-neutral-*` / `bg-neutral-*` (20 files)
+      - Replace with semantic tokens (text-foreground, text-muted-foreground, etc.)
+
+    - [ ] **Phase 6: Design System Documentation** `XS`
+      - Create `.agent-os/product/design-system.md`
+      - Document card usage patterns, color tokens, spacing system
+      - Add component usage examples for future development
+
   - [ ] **Main Content Pages** - Dashboard, Calendar, Leave, Team pages
   - [ ] **Admin Pages** - Settings, Users, Groups
   - [ ] **Forms & Modals** - Create/Edit components
