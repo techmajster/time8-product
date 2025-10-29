@@ -401,22 +401,24 @@ export default async function DashboardPage() {
                 {/* Top Cards Row */}
                 <div className="flex gap-4">
                   {/* Today Card */}
-                  <div className="w-32 h-32 border border-border rounded-xl bg-card flex flex-col items-center justify-center mb-1">
-                    <div className="text-sm font-medium text-center text-foreground">Dziś</div>
-                    <div className="text-5xl font-semibold text-center text-foreground leading-none mb-1">
-                      {currentDay}
-                    </div>
-                    <div className="text-sm font-medium text-center text-foreground">{currentMonth}</div>
-                  </div>
+                  <Card className="w-32 h-32 flex flex-col items-center justify-center p-0">
+                    <CardContent className="flex flex-col items-center justify-center text-center p-0">
+                      <div className="text-sm font-medium">Dziś</div>
+                      <div className="text-5xl font-semibold leading-none mb-1">
+                        {currentDay}
+                      </div>
+                      <div className="text-sm font-medium">{currentMonth}</div>
+                    </CardContent>
+                  </Card>
 
                   {/* Weekend Card */}
-                  <div className="flex-1 h-32 border border-border rounded-xl bg-card p-6 flex flex-col justify-between">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-foreground">Weekend</span>
+                  <Card className="flex-1 h-32">
+                    <CardHeader className="flex-row items-center justify-between space-y-0">
+                      <CardTitle className="text-sm font-medium">Weekend</CardTitle>
                       <Clock className="w-4 h-4 text-foreground" />
-                    </div>
-                    <div className="flex flex-col gap-0.5">
-                      <div className="text-xl leading-7 text-foreground">
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-xl leading-7">
                         {isWeekend ? (
                           <span className="font-semibold">Mamy weekend! 🎉</span>
                         ) : daysUntilWeekend === 1 ? (
@@ -431,50 +433,54 @@ export default async function DashboardPage() {
                           </>
                         )}
                       </div>
-                    </div>
-                  </div>
+                    </CardContent>
+                  </Card>
 
                   {/* Birthday Card */}
-                  <div className="flex-1 h-32 border border-border rounded-xl bg-card p-6 flex flex-col justify-between">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-foreground">Najbliższe urodziny</span>
+                  <Card className="flex-1 h-32">
+                    <CardHeader className="flex-row items-center justify-between space-y-0">
+                      <CardTitle className="text-sm font-medium">Najbliższe urodziny</CardTitle>
                       <Gift className="w-4 h-4 text-foreground" />
-                    </div>
-                    <div className="flex flex-col">
+                    </CardHeader>
+                    <CardContent className="flex flex-col">
                       {nearestBirthday ? (
                         <>
-                          <div className="text-sm font-semibold text-foreground">{nearestBirthday.name}</div>
+                          <div className="text-sm font-semibold">{nearestBirthday.name}</div>
                           <div className="text-sm font-normal text-muted-foreground">
-                            {nearestBirthday.date.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long' })}, 
-                            {nearestBirthday.daysUntil === 0 ? ' dziś!' : 
+                            {nearestBirthday.date.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long' })},
+                            {nearestBirthday.daysUntil === 0 ? ' dziś!' :
                              nearestBirthday.daysUntil === 1 ? ' jutro' :
                              ` za ${nearestBirthday.daysUntil} dni`}
                           </div>
                         </>
                       ) : (
                         <>
-                          <div className="text-sm font-semibold text-foreground">Brak urodzin</div>
+                          <div className="text-sm font-semibold">Brak urodzin</div>
                           <div className="text-sm font-normal text-muted-foreground">w najbliższym czasie</div>
                         </>
                       )}
-                    </div>
-                  </div>
+                    </CardContent>
+                  </Card>
                 </div>
 
                 {/* Leave Requests Card */}
-                <div className="border border-border rounded-xl bg-card p-6 flex items-end justify-between">
-                  <div className="flex flex-col gap-2">
-                    <div className="text-sm font-medium text-foreground">Wnioski urlopowe</div>
-                    <div className="text-xl font-semibold text-foreground">
-                      {pendingRequestsCount === 0 ? 'Brak oczekujących' : 
-                       pendingRequestsCount === 1 ? '1 oczekujący' :
-                       `${pendingRequestsCount} oczekujących`}
+                <Card className="flex-row items-end justify-between">
+                  <CardContent className="flex-1">
+                    <div className="flex flex-col gap-2">
+                      <div className="text-sm font-medium">Wnioski urlopowe</div>
+                      <div className="text-xl font-semibold">
+                        {pendingRequestsCount === 0 ? 'Brak oczekujących' :
+                         pendingRequestsCount === 1 ? '1 oczekujący' :
+                         `${pendingRequestsCount} oczekujących`}
+                      </div>
                     </div>
-                  </div>
-                  <Button asChild className="h-8 px-3 text-xs">
-                    <Link href="/leave-requests">Przejdź do wniosków</Link>
-                  </Button>
-                </div>
+                  </CardContent>
+                  <CardContent className="flex-shrink-0">
+                    <Button asChild className="h-8 px-3 text-xs">
+                      <Link href="/leave-requests">Przejdź do wniosków</Link>
+                    </Button>
+                  </CardContent>
+                </Card>
 
                 {/* Team Card */}
                 <TeamCard
