@@ -185,7 +185,7 @@ export function EditEmployeePage({ teams, leaveTypes, organizationId, teamMember
           variant="outline"
           size="sm"
           onClick={() => router.back()}
-          className="bg-neutral-100 h-9 w-9 p-2"
+          className="bg-muted h-9 w-9 p-2"
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>
@@ -200,21 +200,21 @@ export function EditEmployeePage({ teams, leaveTypes, organizationId, teamMember
           <div className="mt-0">
               <div className="flex flex-col gap-6 max-w-[960px] overflow-visible">
                 {/* Personal Data Card */}
-                <Card className="border border-neutral-200 rounded-[10px] shadow-sm py-0 gap-0 overflow-visible">
+                <Card className="border border rounded-lg shadow-sm py-0 gap-0 overflow-visible">
                   <CardHeader className="pb-4 pt-6 px-6">
                     <div className="flex justify-between items-center">
                       <div className="flex flex-col gap-1.5">
                         <div className="flex items-center gap-2">
-                          <h2 className="text-xl font-semibold text-neutral-950">Dane</h2>
+                          <h2 className="text-xl font-semibold text-foreground">Dane</h2>
                         </div>
-                        <p className="text-sm text-neutral-500">Wprowadź podstawowe dane</p>
+                        <p className="text-sm text-muted-foreground">Wprowadź podstawowe dane</p>
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent className="pt-0 pb-6 px-6 overflow-visible">
                     <div className="flex flex-col gap-6">
                       <div className="w-[400px] space-y-2">
-                        <Label htmlFor="full_name" className="text-sm font-medium text-neutral-950">
+                        <Label htmlFor="full_name" className="text-sm font-medium text-foreground">
                           Imię i nazwisko *
                         </Label>
                         <Input
@@ -222,12 +222,12 @@ export function EditEmployeePage({ teams, leaveTypes, organizationId, teamMember
                           placeholder="Wprowadź imię i nazwisko"
                           value={formData.full_name}
                           onChange={(e) => handleInputChange('full_name', e.target.value)}
-                          className="h-9 border-neutral-200 shadow-sm"
+                          className="h-9 border shadow-sm"
                         />
                       </div>
                       
                       <div className="w-[400px] space-y-2">
-                        <Label htmlFor="email" className="text-sm font-medium text-neutral-950">
+                        <Label htmlFor="email" className="text-sm font-medium text-foreground">
                           Adres email *
                         </Label>
                         <Input
@@ -236,12 +236,12 @@ export function EditEmployeePage({ teams, leaveTypes, organizationId, teamMember
                           placeholder="Wprowadź adres email"
                           value={formData.email}
                           onChange={(e) => handleInputChange('email', e.target.value)}
-                          className="h-9 border-neutral-200 shadow-sm"
+                          className="h-9 border shadow-sm"
                         />
                       </div>
                       
                       <div className="w-[400px] space-y-2">
-                        <Label className="text-sm font-medium text-neutral-950">
+                        <Label className="text-sm font-medium text-foreground">
                           Data urodzenia
                         </Label>
                         <DatePickerWithDropdowns
@@ -259,7 +259,7 @@ export function EditEmployeePage({ teams, leaveTypes, organizationId, teamMember
                             handleInputChange('birth_date', localDateString)
                           }}
                           placeholder="Wybierz datę"
-                          className="h-9 border-neutral-200 shadow-sm"
+                          className="h-9 border shadow-sm"
                         />
                       </div>
                     </div>
@@ -267,14 +267,14 @@ export function EditEmployeePage({ teams, leaveTypes, organizationId, teamMember
                 </Card>
 
                 {/* Leave Balances Card */}
-                <Card className="border border-neutral-200 rounded-[10px] shadow-sm py-0 gap-0 overflow-visible">
+                <Card className="border border rounded-lg shadow-sm py-0 gap-0 overflow-visible">
                   <CardHeader className="pb-4 pt-6 px-6">
                     <div className="flex justify-between items-center">
                       <div className="flex flex-col gap-1.5">
                         <div className="flex items-center gap-2">
-                          <h2 className="text-xl font-semibold text-neutral-950">Dostępny urlop rocznie</h2>
+                          <h2 className="text-xl font-semibold text-foreground">Dostępny urlop rocznie</h2>
                         </div>
-                        <p className="text-sm text-neutral-500">Określ dostępność urlopu</p>
+                        <p className="text-sm text-muted-foreground">Określ dostępność urlopu</p>
                       </div>
                     </div>
                   </CardHeader>
@@ -282,14 +282,14 @@ export function EditEmployeePage({ teams, leaveTypes, organizationId, teamMember
                     <div className="w-full">
                       <div className="grid grid-cols-3 gap-0">
                         {/* Table Headers */}
-                        <div className="border-b border-neutral-200 px-2 py-3">
-                          <span className="text-sm font-medium text-neutral-500">Rodzaj urlopu</span>
+                        <div className="border-b border px-2 py-3">
+                          <span className="text-sm font-medium text-muted-foreground">Rodzaj urlopu</span>
                         </div>
-                        <div className="border-b border-neutral-200 px-2 py-3">
-                          <span className="text-sm font-medium text-neutral-500">Dni rocznie</span>
+                        <div className="border-b border px-2 py-3">
+                          <span className="text-sm font-medium text-muted-foreground">Dni rocznie</span>
                         </div>
-                        <div className="border-b border-neutral-200 px-2 py-3">
-                          <span className="text-sm font-medium text-neutral-500">Wykorzystanych</span>
+                        <div className="border-b border px-2 py-3">
+                          <span className="text-sm font-medium text-muted-foreground">Wykorzystanych</span>
                         </div>
 
                         {/* Table Rows */}
@@ -297,23 +297,23 @@ export function EditEmployeePage({ teams, leaveTypes, organizationId, teamMember
                           const balance = leaveBalances.find(b => b.leave_type_id === leaveType.id)
                           return (
                             <div key={leaveType.id} className="contents">
-                              <div className={`px-2 py-4 ${index < displayedLeaveTypes.length - 1 ? 'border-b border-neutral-200' : ''}`}>
-                                <span className="text-sm font-medium text-neutral-950">{leaveType.name}</span>
+                              <div className={`px-2 py-4 ${index < displayedLeaveTypes.length - 1 ? 'border-b border' : ''}`}>
+                                <span className="text-sm font-medium text-foreground">{leaveType.name}</span>
                               </div>
-                              <div className={`px-2 py-2 ${index < displayedLeaveTypes.length - 1 ? 'border-b border-neutral-200' : ''}`}>
+                              <div className={`px-2 py-2 ${index < displayedLeaveTypes.length - 1 ? 'border-b border' : ''}`}>
                                 <Input
                                   type="number"
                                   value={balance?.entitled_days || 0}
                                   onChange={(e) => handleLeaveBalanceChange(leaveType.id, 'entitled_days', parseInt(e.target.value) || 0)}
-                                  className="h-9 border-neutral-200 shadow-sm text-sm"
+                                  className="h-9 border shadow-sm text-sm"
                                 />
                               </div>
-                              <div className={`px-2 py-2 ${index < displayedLeaveTypes.length - 1 ? 'border-b border-neutral-200' : ''}`}>
+                              <div className={`px-2 py-2 ${index < displayedLeaveTypes.length - 1 ? 'border-b border' : ''}`}>
                                 <Input
                                   type="number"
                                   value={balance?.used_days || 0}
                                   onChange={(e) => handleLeaveBalanceChange(leaveType.id, 'used_days', parseInt(e.target.value) || 0)}
-                                  className="h-9 border-neutral-200 shadow-sm text-sm"
+                                  className="h-9 border shadow-sm text-sm"
                                 />
                               </div>
                             </div>
@@ -325,14 +325,14 @@ export function EditEmployeePage({ teams, leaveTypes, organizationId, teamMember
                 </Card>
 
                 {/* Role and Team Card */}
-                <Card className="border border-neutral-200 rounded-[10px] shadow-sm py-0 gap-0 overflow-visible">
+                <Card className="border border rounded-lg shadow-sm py-0 gap-0 overflow-visible">
                   <CardHeader className="pb-4 pt-6 px-6">
                     <div className="flex justify-between items-center">
                       <div className="flex flex-col gap-1.5">
                         <div className="flex items-center gap-2">
-                          <h2 className="text-xl font-semibold text-neutral-950">Rola i grupa</h2>
+                          <h2 className="text-xl font-semibold text-foreground">Rola i grupa</h2>
                         </div>
-                        <p className="text-sm text-neutral-500">
+                        <p className="text-sm text-muted-foreground">
                           Wybierz grupę do której zostanie przypisany nowy pracownik
                         </p>
                       </div>
@@ -344,7 +344,7 @@ export function EditEmployeePage({ teams, leaveTypes, organizationId, teamMember
                           onClick={() => setIsCreateTeamOpen(true)}
                         >
                           <Plus className="h-4 w-4 mr-2" />
-                          <span className="text-sm font-medium text-neutral-900">Dodaj nową grupę</span>
+                          <span className="text-sm font-medium text-foreground">Dodaj nową grupę</span>
                         </Button>
                       </div>
                     </div>
@@ -352,9 +352,9 @@ export function EditEmployeePage({ teams, leaveTypes, organizationId, teamMember
                   <CardContent className="pt-0 pb-6 px-6 overflow-visible">
                     <div className="flex flex-col gap-6">
                       <div className="w-[400px] space-y-2">
-                        <Label className="text-sm font-medium text-neutral-950">Rola</Label>
+                        <Label className="text-sm font-medium text-foreground">Rola</Label>
                         <Select value={formData.role} onValueChange={(value) => handleInputChange('role', value)}>
-                          <SelectTrigger className="h-9 border-neutral-200 shadow-sm">
+                          <SelectTrigger className="h-9 border shadow-sm">
                             <SelectValue placeholder="Pracownik" />
                           </SelectTrigger>
                           <SelectContent className="z-[9999]">
@@ -368,7 +368,7 @@ export function EditEmployeePage({ teams, leaveTypes, organizationId, teamMember
                       <Separator className="w-full" />
 
                       <div className="space-y-2 w-full">
-                        <Label className="text-sm font-medium text-neutral-950">Zespół</Label>
+                        <Label className="text-sm font-medium text-foreground">Zespół</Label>
                         <RadioGroup value={formData.team_id} onValueChange={(value) => handleInputChange('team_id', value)} style="box">
                           <div className="flex flex-col gap-3">
                             <RadioGroupItem value="">
@@ -389,14 +389,14 @@ export function EditEmployeePage({ teams, leaveTypes, organizationId, teamMember
                 </Card>
 
                 {/* Work Schedule Card */}
-                <Card className="border border-neutral-200 rounded-[10px] shadow-sm py-0 gap-0 overflow-visible">
+                <Card className="border border rounded-lg shadow-sm py-0 gap-0 overflow-visible">
                   <CardHeader className="pb-4 pt-6 px-6">
                     <div className="flex justify-between items-center">
                       <div className="flex flex-col gap-1.5">
                         <div className="flex items-center gap-2">
-                          <h2 className="text-xl font-semibold text-neutral-950">Tryb pracy</h2>
+                          <h2 className="text-xl font-semibold text-foreground">Tryb pracy</h2>
                         </div>
-                        <p className="text-sm text-neutral-500">Określ rodzaj trybu pracy pracownika</p>
+                        <p className="text-sm text-muted-foreground">Określ rodzaj trybu pracy pracownika</p>
                       </div>
                     </div>
                   </CardHeader>
@@ -427,19 +427,19 @@ export function EditEmployeePage({ teams, leaveTypes, organizationId, teamMember
                 </Card>
 
                 {/* Actions */}
-                <div className="bg-neutral-100 border border-neutral-200 rounded-[10px] p-6">
+                <div className="bg-muted border border rounded-lg p-6">
                   <div className="flex justify-end gap-2">
                     <Button 
                       variant="outline" 
                       onClick={() => router.back()}
-                      className="h-9 px-4 border-neutral-200 shadow-sm"
+                      className="h-9 px-4 border shadow-sm"
                     >
                       Anuluj
                     </Button>
                     <Button 
                       onClick={handleSubmit}
                       disabled={loading || !isFormValid()}
-                      className="h-9 px-4 bg-neutral-900 hover:bg-neutral-800 shadow-sm disabled:opacity-50"
+                      className="h-9 px-4 bg-foreground hover:bg-neutral-800 shadow-sm disabled:opacity-50"
                     >
                       <CheckCircle className="h-4 w-4 mr-2" />
                       {loading ? 'Aktualizowanie...' : 'Zapisz zmiany'}

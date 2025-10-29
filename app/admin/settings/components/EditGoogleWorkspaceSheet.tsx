@@ -91,8 +91,8 @@ export function EditGoogleWorkspaceSheet({
           <div className="flex flex-col h-full">
             <div className="flex flex-col gap-6 p-6 flex-1 overflow-y-auto">
               <div className="flex flex-col gap-1.5 w-full">
-                <SheetTitle className="text-xl font-semibold text-neutral-950">Edycja integracji z Google Workspace</SheetTitle>
-                <SheetDescription className="text-sm text-neutral-500">
+                <SheetTitle className="text-xl font-semibold text-foreground">Edycja integracji z Google Workspace</SheetTitle>
+                <SheetDescription className="text-sm text-muted-foreground">
                   Zmień ustawienia integracji Google Workspace
                 </SheetDescription>
               </div>

@@ -433,7 +433,7 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
           variant="outline"
           size="sm"
           onClick={() => router.back()}
-          className="bg-neutral-100 h-9 w-9 p-2"
+          className="bg-muted h-9 w-9 p-2"
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>
@@ -465,14 +465,14 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
             <FigmaTabsContent value="pojedynczy" className="mt-0">
               <div className="flex flex-col gap-6 max-w-[960px] overflow-visible">
                 {/* Personal Data Card */}
-                <Card className="border border-neutral-200 rounded-[10px] shadow-sm py-0 gap-0 overflow-visible">
+                <Card className="border border rounded-lg shadow-sm py-0 gap-0 overflow-visible">
                   <CardHeader className="pb-4 pt-6 px-6">
                     <div className="flex justify-between items-center">
                       <div className="flex flex-col gap-1.5">
                         <div className="flex items-center gap-2">
-                          <h2 className="text-xl font-semibold text-neutral-950">Dane</h2>
+                          <h2 className="text-xl font-semibold text-foreground">Dane</h2>
                         </div>
-                        <p className="text-sm text-neutral-500">Wprowadź podstawowe dane</p>
+                        <p className="text-sm text-muted-foreground">Wprowadź podstawowe dane</p>
                       </div>
                     </div>
                   </CardHeader>
@@ -491,7 +491,7 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                   <CardContent className="pt-0 pb-6 px-6 overflow-visible">
                     <div className="flex flex-col gap-6">
                       <div className="w-[400px] space-y-2">
-                        <Label htmlFor="full_name" className="text-sm font-medium text-neutral-950">
+                        <Label htmlFor="full_name" className="text-sm font-medium text-foreground">
                           Imię i nazwisko *
                         </Label>
                         <Input
@@ -499,12 +499,12 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                           placeholder="Wprowadź imię i nazwisko"
                           value={formData.full_name}
                           onChange={(e) => handleInputChange('full_name', e.target.value)}
-                          className="h-9 border-neutral-200 shadow-sm"
+                          className="h-9 border shadow-sm"
                         />
                       </div>
                       
                       <div className="w-[400px] space-y-2">
-                        <Label htmlFor="email" className="text-sm font-medium text-neutral-950">
+                        <Label htmlFor="email" className="text-sm font-medium text-foreground">
                           Adres email *
                         </Label>
                         <Input
@@ -516,7 +516,7 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                           }
                           value={formData.email}
                           onChange={(e) => handleInputChange('email', e.target.value)}
-                          className="h-9 border-neutral-200 shadow-sm"
+                          className="h-9 border shadow-sm"
                         />
                         {organization.require_google_domain && organization.google_domain && (
                           <p className="text-sm text-muted-foreground">
@@ -526,7 +526,7 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                       </div>
                       
                       <div className="w-[400px] space-y-2">
-                        <Label className="text-sm font-medium text-neutral-950">
+                        <Label className="text-sm font-medium text-foreground">
                           Data urodzenia
                         </Label>
                         <DatePickerWithDropdowns
@@ -544,7 +544,7 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                             handleInputChange('birth_date', localDateString)
                           }}
                           placeholder="Wybierz datę"
-                          className="h-9 border-neutral-200 shadow-sm"
+                          className="h-9 border shadow-sm"
                         />
                       </div>
                     </div>
@@ -552,14 +552,14 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                 </Card>
 
                 {/* Leave Balances Card */}
-                <Card className="border border-neutral-200 rounded-[10px] shadow-sm py-0 gap-0 overflow-visible">
+                <Card className="border border rounded-lg shadow-sm py-0 gap-0 overflow-visible">
                   <CardHeader className="pb-4 pt-6 px-6">
                     <div className="flex justify-between items-center">
                       <div className="flex flex-col gap-1.5">
                         <div className="flex items-center gap-2">
-                          <h2 className="text-xl font-semibold text-neutral-950">Dostępny urlop rocznie</h2>
+                          <h2 className="text-xl font-semibold text-foreground">Dostępny urlop rocznie</h2>
                         </div>
-                        <p className="text-sm text-neutral-500">Określ dostępność urlopu</p>
+                        <p className="text-sm text-muted-foreground">Określ dostępność urlopu</p>
                       </div>
                     </div>
                   </CardHeader>
@@ -567,14 +567,14 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                     <div className="w-full">
                       <div className="grid grid-cols-3 gap-0">
                         {/* Table Headers */}
-                        <div className="border-b border-neutral-200 px-2 py-3">
-                          <span className="text-sm font-medium text-neutral-500">Rodzaj urlopu</span>
+                        <div className="border-b border px-2 py-3">
+                          <span className="text-sm font-medium text-muted-foreground">Rodzaj urlopu</span>
                         </div>
-                        <div className="border-b border-neutral-200 px-2 py-3">
-                          <span className="text-sm font-medium text-neutral-500">Dni rocznie</span>
+                        <div className="border-b border px-2 py-3">
+                          <span className="text-sm font-medium text-muted-foreground">Dni rocznie</span>
                         </div>
-                        <div className="border-b border-neutral-200 px-2 py-3">
-                          <span className="text-sm font-medium text-neutral-500">Wykorzystanych</span>
+                        <div className="border-b border px-2 py-3">
+                          <span className="text-sm font-medium text-muted-foreground">Wykorzystanych</span>
                         </div>
 
                         {/* Table Rows */}
@@ -582,23 +582,23 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                           const balance = leaveBalances.find(b => b.leave_type_id === leaveType.id)
                           return (
                             <div key={leaveType.id} className="contents">
-                              <div className={`px-2 py-4 ${index < displayedLeaveTypes.length - 1 ? 'border-b border-neutral-200' : ''}`}>
-                                <span className="text-sm font-medium text-neutral-950">{leaveType.name}</span>
+                              <div className={`px-2 py-4 ${index < displayedLeaveTypes.length - 1 ? 'border-b border' : ''}`}>
+                                <span className="text-sm font-medium text-foreground">{leaveType.name}</span>
                               </div>
-                              <div className={`px-2 py-2 ${index < displayedLeaveTypes.length - 1 ? 'border-b border-neutral-200' : ''}`}>
+                              <div className={`px-2 py-2 ${index < displayedLeaveTypes.length - 1 ? 'border-b border' : ''}`}>
                                 <Input
                                   type="number"
                                   value={balance?.entitled_days || 0}
                                   onChange={(e) => handleLeaveBalanceChange(leaveType.id, 'entitled_days', parseInt(e.target.value) || 0)}
-                                  className="h-9 border-neutral-200 shadow-sm text-sm"
+                                  className="h-9 border shadow-sm text-sm"
                                 />
                               </div>
-                              <div className={`px-2 py-2 ${index < displayedLeaveTypes.length - 1 ? 'border-b border-neutral-200' : ''}`}>
+                              <div className={`px-2 py-2 ${index < displayedLeaveTypes.length - 1 ? 'border-b border' : ''}`}>
                                 <Input
                                   type="number"
                                   value={balance?.used_days || 0}
                                   onChange={(e) => handleLeaveBalanceChange(leaveType.id, 'used_days', parseInt(e.target.value) || 0)}
-                                  className="h-9 border-neutral-200 shadow-sm text-sm"
+                                  className="h-9 border shadow-sm text-sm"
                                 />
                               </div>
                             </div>
@@ -610,14 +610,14 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                 </Card>
 
                 {/* Role and Team Card */}
-                <Card className="border border-neutral-200 rounded-[10px] shadow-sm py-0 gap-0 overflow-visible">
+                <Card className="border border rounded-lg shadow-sm py-0 gap-0 overflow-visible">
                   <CardHeader className="pb-4 pt-6 px-6">
                     <div className="flex justify-between items-center">
                       <div className="flex flex-col gap-1.5">
                         <div className="flex items-center gap-2">
-                          <h2 className="text-xl font-semibold text-neutral-950">Rola i grupa</h2>
+                          <h2 className="text-xl font-semibold text-foreground">Rola i grupa</h2>
                         </div>
-                        <p className="text-sm text-neutral-500">
+                        <p className="text-sm text-muted-foreground">
                           Wybierz grupę do której zostanie przypisany nowy pracownik
                         </p>
                       </div>
@@ -629,7 +629,7 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                           onClick={() => setIsCreateTeamOpen(true)}
                         >
                           <Plus className="h-4 w-4 mr-2" />
-                          <span className="text-sm font-medium text-neutral-900">Dodaj nową grupę</span>
+                          <span className="text-sm font-medium text-foreground">Dodaj nową grupę</span>
                         </Button>
                       </div>
                     </div>
@@ -637,9 +637,9 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                   <CardContent className="pt-0 pb-6 px-6 overflow-visible">
                     <div className="flex flex-col gap-6">
                       <div className="w-[400px] space-y-2">
-                        <Label className="text-sm font-medium text-neutral-950">Rola</Label>
+                        <Label className="text-sm font-medium text-foreground">Rola</Label>
                         <Select value={formData.role} onValueChange={(value) => handleInputChange('role', value)}>
-                          <SelectTrigger className="h-9 border-neutral-200 shadow-sm">
+                          <SelectTrigger className="h-9 border shadow-sm">
                             <SelectValue placeholder="Pracownik" />
                           </SelectTrigger>
                           <SelectContent className="z-[9999]">
@@ -653,7 +653,7 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                       <Separator className="w-full" />
 
                       <div className="space-y-2 w-full">
-                        <Label className="text-sm font-medium text-neutral-950">Zespół</Label>
+                        <Label className="text-sm font-medium text-foreground">Zespół</Label>
                         <RadioGroup value={formData.team_id} onValueChange={(value) => handleInputChange('team_id', value)} style="box">
                           <div className="flex flex-col gap-3">
                             <RadioGroupItem value="">
@@ -674,14 +674,14 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                 </Card>
 
                 {/* Work Schedule Card */}
-                <Card className="border border-neutral-200 rounded-[10px] shadow-sm py-0 gap-0 overflow-visible">
+                <Card className="border border rounded-lg shadow-sm py-0 gap-0 overflow-visible">
                   <CardHeader className="pb-4 pt-6 px-6">
                     <div className="flex justify-between items-center">
                       <div className="flex flex-col gap-1.5">
                         <div className="flex items-center gap-2">
-                          <h2 className="text-xl font-semibold text-neutral-950">Tryb pracy</h2>
+                          <h2 className="text-xl font-semibold text-foreground">Tryb pracy</h2>
                         </div>
-                        <p className="text-sm text-neutral-500">Określ rodzaj trybu pracy pracownika</p>
+                        <p className="text-sm text-muted-foreground">Określ rodzaj trybu pracy pracownika</p>
                       </div>
                     </div>
                   </CardHeader>
@@ -712,19 +712,19 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                 </Card>
 
                 {/* Actions */}
-                <div className="bg-neutral-100 border border-neutral-200 rounded-[10px] p-6">
+                <div className="bg-muted border border rounded-lg p-6">
                   <div className="flex justify-end gap-2">
                     <Button 
                       variant="outline" 
                       onClick={() => router.back()}
-                      className="h-9 px-4 border-neutral-200 shadow-sm"
+                      className="h-9 px-4 border shadow-sm"
                     >
                       Anuluj
                     </Button>
                     <Button 
                       onClick={handleSubmit}
                       disabled={loading || !isFormValid()}
-                      className="h-9 px-4 bg-neutral-900 hover:bg-neutral-800 shadow-sm disabled:opacity-50"
+                      className="h-9 px-4 bg-foreground hover:bg-neutral-800 shadow-sm disabled:opacity-50"
                     >
                       <Plus className="h-4 w-4 mr-2" />
                       {loading ? 'Dodawanie...' : 'Dodaj pracownika'}
@@ -737,10 +737,10 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
             <FigmaTabsContent value="masowy" className="mt-0">
               <div className="flex flex-col gap-6 max-w-[960px] overflow-visible">
                 {/* Default Settings Card */}
-                <Card className="border border-neutral-200 rounded-[10px] shadow-sm py-0 gap-0 overflow-visible">
+                <Card className="border border rounded-lg shadow-sm py-0 gap-0 overflow-visible">
                   <CardHeader className="pb-4 pt-6 px-6">
-                    <CardTitle className="text-xl font-semibold text-neutral-950">Domyślne ustawienia</CardTitle>
-                    <CardDescription className="text-sm text-neutral-500">
+                    <CardTitle className="text-xl font-semibold text-foreground">Domyślne ustawienia</CardTitle>
+                    <CardDescription className="text-sm text-muted-foreground">
                       Te ustawienia będą stosowane do wszystkich nowych pracowników
                     </CardDescription>
                   </CardHeader>
@@ -753,7 +753,7 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                           onValueChange={(value) => setBulkDefaults(prev => ({ ...prev, role: value as any }))}
                           disabled={loading}
                         >
-                          <SelectTrigger className="h-9 border-neutral-200 shadow-sm">
+                          <SelectTrigger className="h-9 border shadow-sm">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="z-[9999]">
@@ -771,7 +771,7 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                           onValueChange={(value) => setBulkDefaults(prev => ({ ...prev, team_id: value }))}
                           disabled={loading}
                         >
-                          <SelectTrigger className="h-9 border-neutral-200 shadow-sm">
+                          <SelectTrigger className="h-9 border shadow-sm">
                             <SelectValue placeholder="Wybierz grupę" />
                           </SelectTrigger>
                           <SelectContent className="z-[9999]">
@@ -794,7 +794,7 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                         onChange={(e) => setBulkDefaults(prev => ({ ...prev, personal_message: e.target.value }))}
                         disabled={loading}
                         rows={2}
-                        className="border-neutral-200 shadow-sm"
+                        className="border shadow-sm"
                       />
                     </div>
 
@@ -813,11 +813,11 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                 </Card>
 
                 {/* Employee List Card */}
-                <Card className="border border-neutral-200 rounded-[10px] shadow-sm py-0 gap-0 overflow-visible">
+                <Card className="border border rounded-lg shadow-sm py-0 gap-0 overflow-visible">
                   <CardHeader className="pb-4 pt-6 px-6">
                     <div className="flex justify-between items-center">
                       <div>
-                        <CardTitle className="text-xl font-semibold text-neutral-950">Pracownicy ({bulkEmployees.length})</CardTitle>
+                        <CardTitle className="text-xl font-semibold text-foreground">Pracownicy ({bulkEmployees.length})</CardTitle>
                       </div>
                       <Button
                         type="button"
@@ -825,7 +825,7 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                         size="sm"
                         onClick={addBulkEmployee}
                         disabled={loading}
-                        className="bg-neutral-100 shadow-sm"
+                        className="bg-muted shadow-sm"
                       >
                         <UserPlus className="h-4 w-4 mr-2" />
                         Dodaj pracownika
@@ -847,7 +847,7 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                   <CardContent className="pt-0 pb-6 px-6 overflow-visible">
                     <div className="space-y-3">
                       {bulkEmployees.map((employee, index) => (
-                        <Card key={index} className="p-4 border border-neutral-200">
+                        <Card key={index} className="p-4 border border">
                           <div className="grid grid-cols-5 gap-3 items-start">
                             <div className="space-y-1">
                               <Label className="text-xs">Email *</Label>
@@ -860,7 +860,7 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                                 value={employee.email}
                                 onChange={(e) => updateBulkEmployee(index, 'email', e.target.value)}
                                 disabled={loading}
-                                className="text-xs h-9 border-neutral-200"
+                                className="text-xs h-9 border"
                               />
                             </div>
                             
@@ -871,7 +871,7 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                                 value={employee.full_name}
                                 onChange={(e) => updateBulkEmployee(index, 'full_name', e.target.value)}
                                 disabled={loading}
-                                className="text-xs h-9 border-neutral-200"
+                                className="text-xs h-9 border"
                               />
                             </div>
                             
@@ -882,7 +882,7 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                                 onValueChange={(value) => updateBulkEmployee(index, 'role', value)}
                                 disabled={loading}
                               >
-                                <SelectTrigger className="text-xs h-9 border-neutral-200">
+                                <SelectTrigger className="text-xs h-9 border">
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -900,7 +900,7 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                                 onValueChange={(value) => updateBulkEmployee(index, 'team_id', value)}
                                 disabled={loading}
                               >
-                                <SelectTrigger className="text-xs h-9 border-neutral-200">
+                                <SelectTrigger className="text-xs h-9 border">
                                   <SelectValue placeholder="Wybierz" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -940,19 +940,19 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                 </Card>
 
                 {/* Actions */}
-                <div className="bg-neutral-100 border border-neutral-200 rounded-[10px] p-6">
+                <div className="bg-muted border border rounded-lg p-6">
                   <div className="flex justify-end gap-2">
                     <Button 
                       variant="outline" 
                       onClick={() => router.back()}
-                      className="h-9 px-4 border-neutral-200 shadow-sm"
+                      className="h-9 px-4 border shadow-sm"
                     >
                       Anuluj
                     </Button>
                     <Button 
                       onClick={() => processEmployees(bulkEmployees)}
                       disabled={loading || bulkEmployees.length === 0 || !bulkEmployees.every(emp => emp.email && emp.full_name)}
-                      className="h-9 px-4 bg-neutral-900 hover:bg-neutral-800 shadow-sm disabled:opacity-50"
+                      className="h-9 px-4 bg-foreground hover:bg-neutral-800 shadow-sm disabled:opacity-50"
                     >
                       <Plus className="h-4 w-4 mr-2" />
                       {loading ? 'Przetwarzanie...' : `Dodaj pracowników (${bulkEmployees.length})`}
@@ -965,12 +965,12 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
             <FigmaTabsContent value="import-csv" className="mt-0">
               <div className="flex flex-col gap-6 max-w-[960px] overflow-visible">
                 {/* CSV Import Card */}
-                <Card className="border border-neutral-200 rounded-[10px] shadow-sm py-0 gap-0 overflow-visible">
+                <Card className="border border rounded-lg shadow-sm py-0 gap-0 overflow-visible">
                   <CardHeader className="pb-4 pt-6 px-6">
                     <div className="flex justify-between items-center">
                       <div>
-                        <CardTitle className="text-xl font-semibold text-neutral-950">Import CSV</CardTitle>
-                        <CardDescription className="text-sm text-neutral-500">
+                        <CardTitle className="text-xl font-semibold text-foreground">Import CSV</CardTitle>
+                        <CardDescription className="text-sm text-muted-foreground">
                           Wklej dane CSV lub skopiuj z arkusza kalkulacyjnego. Format: email,imię_nazwisko,rola,grupa
                         </CardDescription>
                       </div>
@@ -979,7 +979,7 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                         variant="outline"
                         size="sm"
                         onClick={downloadCsvTemplate}
-                        className="bg-neutral-100 shadow-sm"
+                        className="bg-muted shadow-sm"
                       >
                         <Download className="h-4 w-4 mr-2" />
                         Pobierz szablon
@@ -995,7 +995,7 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                           onValueChange={(value) => setBulkDefaults(prev => ({ ...prev, role: value as any }))}
                           disabled={loading}
                         >
-                          <SelectTrigger className="h-9 border-neutral-200 shadow-sm">
+                          <SelectTrigger className="h-9 border shadow-sm">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="z-[9999]">
@@ -1013,7 +1013,7 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                           onValueChange={(value) => setBulkDefaults(prev => ({ ...prev, team_id: value }))}
                           disabled={loading}
                         >
-                          <SelectTrigger className="h-9 border-neutral-200 shadow-sm">
+                          <SelectTrigger className="h-9 border shadow-sm">
                             <SelectValue placeholder="Wybierz grupę" />
                           </SelectTrigger>
                           <SelectContent className="z-[9999]">
@@ -1036,7 +1036,7 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                         onChange={(e) => setCsvContent(e.target.value)}
                         disabled={loading}
                         rows={6}
-                        className="font-mono text-xs border-neutral-200 shadow-sm"
+                        className="font-mono text-xs border shadow-sm"
                       />
                     </div>
 
@@ -1046,7 +1046,7 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                         variant="outline"
                         onClick={parseCsvContent}
                         disabled={loading || !csvContent.trim()}
-                        className="border-neutral-200 shadow-sm"
+                        className="border shadow-sm"
                       >
                         <FileText className="h-4 w-4 mr-2" />
                         Parsuj CSV
@@ -1069,9 +1069,9 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
 
                 {/* Preview Card */}
                 {csvEmployees.length > 0 && (
-                  <Card className="border border-neutral-200 rounded-[10px] shadow-sm py-0 gap-0 overflow-visible">
+                  <Card className="border border rounded-lg shadow-sm py-0 gap-0 overflow-visible">
                     <CardHeader className="pb-4 pt-6 px-6">
-                      <CardTitle className="text-xl font-semibold text-neutral-950">
+                      <CardTitle className="text-xl font-semibold text-foreground">
                         Podgląd importu ({csvEmployees.length} pracowników)
                       </CardTitle>
                     </CardHeader>
@@ -1103,9 +1103,9 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
 
                 {/* Results */}
                 {(success || error || results.length > 0 || errors.length > 0) && (
-                  <Card className="border border-neutral-200 rounded-[10px] shadow-sm py-0 gap-0 overflow-visible">
+                  <Card className="border border rounded-lg shadow-sm py-0 gap-0 overflow-visible">
                     <CardHeader className="pb-4 pt-6 px-6">
-                      <CardTitle className="text-xl font-semibold text-neutral-950">Wyniki przetwarzania</CardTitle>
+                      <CardTitle className="text-xl font-semibold text-foreground">Wyniki przetwarzania</CardTitle>
                     </CardHeader>
                     <CardContent className="pt-0 pb-6 px-6 space-y-4 overflow-visible">
                       {success && (
@@ -1154,19 +1154,19 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                 )}
 
                 {/* Actions */}
-                <div className="bg-neutral-100 border border-neutral-200 rounded-[10px] p-6">
+                <div className="bg-muted border border rounded-lg p-6">
                   <div className="flex justify-end gap-2">
                     <Button 
                       variant="outline" 
                       onClick={() => router.back()}
-                      className="h-9 px-4 border-neutral-200 shadow-sm"
+                      className="h-9 px-4 border shadow-sm"
                     >
                       Anuluj
                     </Button>
                     <Button 
                       onClick={() => processEmployees(csvEmployees)}
                       disabled={loading || csvEmployees.length === 0}
-                      className="h-9 px-4 bg-neutral-900 hover:bg-neutral-800 shadow-sm disabled:opacity-50"
+                      className="h-9 px-4 bg-foreground hover:bg-neutral-800 shadow-sm disabled:opacity-50"
                     >
                       <Plus className="h-4 w-4 mr-2" />
                       {loading ? 'Przetwarzanie...' : `Dodaj pracowników (${csvEmployees.length})`}

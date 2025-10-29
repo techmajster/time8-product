@@ -277,7 +277,7 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
               <div className="flex flex-col gap-6 p-6 flex-1 overflow-y-auto">
                 {/* Dialog Header */}
                 <div className="flex flex-col gap-1.5 w-full">
-                  <SheetTitle className="text-xl font-semibold text-neutral-950">
+                  <SheetTitle className="text-xl font-semibold text-foreground">
                     Edytuj grupę
                   </SheetTitle>
                 </div>
@@ -291,7 +291,7 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
                 <div className="flex-1 flex flex-col gap-6">
                   {/* Nazwa grupy */}
                   <div className="flex flex-col gap-2">
-                    <Label className="text-sm font-medium text-neutral-950">
+                    <Label className="text-sm font-medium text-foreground">
                       Nazwa grupy
                     </Label>
                     <Input
@@ -299,13 +299,13 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
                       value={formData.name}
                       onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                       placeholder="Design team"
-                      className="h-9 border-neutral-200 shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]"
+                      className="h-9 border shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]"
                     />
                   </div>
 
                   {/* Opis grupy */}
                   <div className="flex flex-col gap-2">
-                    <Label className="text-sm font-medium text-neutral-950">
+                    <Label className="text-sm font-medium text-foreground">
                       Opis grupy
                     </Label>
                     <Textarea
@@ -313,20 +313,20 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
                       value={formData.description}
                       onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                       placeholder="Opcjonalny opis grupy"
-                      className="min-h-[60px] border-neutral-200 shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] resize-none"
+                      className="min-h-[60px] border shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] resize-none"
                     />
                   </div>
 
                   {/* Wybierz managera grupy */}
                   <div className="flex flex-col gap-2">
-                    <Label className="text-sm font-medium text-neutral-950">
+                    <Label className="text-sm font-medium text-foreground">
                       Wybierz managera grupy
                     </Label>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
                           variant="outline"
-                          className="w-full justify-between h-12 px-3 py-2 border-neutral-200 shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]"
+                          className="w-full justify-between h-12 px-3 py-2 border shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]"
                         >
                           {formData.manager_id && formData.manager_id !== 'none' ? (
                             (() => {
@@ -340,10 +340,10 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
                                     </AvatarFallback>
                                   </Avatar>
                                   <div className="flex flex-col text-left">
-                                    <div className="text-sm font-medium text-neutral-950 leading-5">
+                                    <div className="text-sm font-medium text-foreground leading-5">
                                       {selectedManager.full_name || selectedManager.email}
                                     </div>
-                                    <div className="text-xs font-normal text-neutral-500 leading-4">
+                                    <div className="text-xs font-normal text-muted-foreground leading-4">
                                       {selectedManager.email}
                                     </div>
                                   </div>
@@ -351,7 +351,7 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
                               ) : null
                             })()
                           ) : (
-                            <span className="text-neutral-500">Wybierz menedżera grupy</span>
+                            <span className="text-muted-foreground">Wybierz menedżera grupy</span>
                           )}
                           <ChevronDownIcon className="size-4 opacity-50" />
                         </Button>
@@ -362,8 +362,8 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
                           className="cursor-pointer"
                         >
                           <div className="flex items-center gap-2">
-                            <div className="size-8 bg-neutral-100 rounded-full flex items-center justify-center">
-                              <span className="text-xs text-neutral-500">—</span>
+                            <div className="size-8 bg-muted rounded-full flex items-center justify-center">
+                              <span className="text-xs text-muted-foreground">—</span>
                             </div>
                             <div className="flex flex-col">
                               <div className="text-sm font-medium">Brak przypisanego menedżera</div>
@@ -385,10 +385,10 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
                                   </AvatarFallback>
                                 </Avatar>
                                 <div className="flex flex-col">
-                                  <div className="text-sm font-medium text-neutral-950">
+                                  <div className="text-sm font-medium text-foreground">
                                     {manager.full_name || manager.email}
                                   </div>
-                                  <div className="text-xs text-neutral-500">
+                                  <div className="text-xs text-muted-foreground">
                                     {manager.email}
                                   </div>
                                 </div>
@@ -461,7 +461,7 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
               <div className="flex flex-col gap-6 p-6 flex-1 overflow-y-auto">
                 {/* Dialog Header */}
                 <div className="flex flex-col gap-1.5 w-full">
-                  <SheetTitle className="text-xl font-semibold text-neutral-950">
+                  <SheetTitle className="text-xl font-semibold text-foreground">
                     Szczegóły grupy
                   </SheetTitle>
                 </div>
@@ -475,27 +475,27 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
                   <div className="flex-1 flex flex-col gap-8">
                     {/* Nazwa grupy */}
                     <div className="flex flex-col gap-2">
-                      <div className="text-sm font-medium text-neutral-950">
+                      <div className="text-sm font-medium text-foreground">
                         Nazwa grupy
                       </div>
-                      <div className="text-xl font-semibold text-neutral-950 leading-7">
+                      <div className="text-xl font-semibold text-foreground leading-7">
                         {selectedTeam.name}
                       </div>
                     </div>
 
                     {/* Opis grupy */}
                     <div className="flex flex-col gap-2">
-                      <div className="text-sm font-medium text-neutral-950">
+                      <div className="text-sm font-medium text-foreground">
                         Opis grupy
                       </div>
-                      <div className="text-base font-normal text-neutral-950 leading-6">
+                      <div className="text-base font-normal text-foreground leading-6">
                         {selectedTeam.description || 'brak'}
                       </div>
                     </div>
 
                     {/* Manager grupy */}
                     <div className="flex flex-col gap-2">
-                      <div className="text-sm font-medium text-neutral-950">
+                      <div className="text-sm font-medium text-foreground">
                         Manager grupy
                       </div>
                       {selectedTeam.manager ? (
@@ -507,16 +507,16 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex flex-col">
-                            <div className="text-sm font-medium text-neutral-950 leading-5">
+                            <div className="text-sm font-medium text-foreground leading-5">
                               {selectedTeam.manager.full_name || selectedTeam.manager.email}
                             </div>
-                            <div className="text-sm font-normal text-neutral-500 leading-5">
+                            <div className="text-sm font-normal text-muted-foreground leading-5">
                               {selectedTeam.manager.email}
                             </div>
                           </div>
                         </div>
                       ) : (
-                        <div className="text-base font-normal text-neutral-950 leading-6">
+                        <div className="text-base font-normal text-foreground leading-6">
                           brak
                         </div>
                       )}
@@ -524,10 +524,10 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
 
                     {/* Członkowie grupy - count only */}
                     <div className="flex flex-col gap-2">
-                      <div className="text-sm font-medium text-neutral-950">
+                      <div className="text-sm font-medium text-foreground">
                         Członkowie grupy
                       </div>
-                      <div className="text-xl font-semibold text-neutral-950 leading-7">
+                      <div className="text-xl font-semibold text-foreground leading-7">
                         {selectedTeam.member_count || 0}
                       </div>
                     </div>

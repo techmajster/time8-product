@@ -738,11 +738,11 @@ export default function AdminSettingsClient({
         <FigmaTabsContent value="leave-types" className="mt-6 space-y-6">
           {/* Nested Tabs for Urlopy */}
           <Tabs defaultValue="rodzaje-urlopow" className="w-full">
-            <TabsList className="bg-neutral-100 p-[3px] h-9 rounded-[10px]">
-              <TabsTrigger value="rodzaje-urlopow" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">
+            <TabsList className="bg-muted p-[3px] h-9 rounded-lg">
+              <TabsTrigger value="rodzaje-urlopow" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">
                 Rodzaje urlopów
               </TabsTrigger>
-              <TabsTrigger value="polityki-urlopowe" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <TabsTrigger value="polityki-urlopowe" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">
                 Polityki urlopowe
               </TabsTrigger>
             </TabsList>
@@ -765,13 +765,13 @@ export default function AdminSettingsClient({
                         variant="outline" 
                         onClick={handleCreateDefaults}
                         disabled={loading}
-                        className="h-9 px-4 rounded-lg border-neutral-200 bg-white text-neutral-900"
+                        className="h-9 px-4 rounded-lg border bg-card text-foreground"
                       >
                         {loading ? 'Tworzenie...' : 'Utwórz domyślne rodzaje urlopów'}
                       </Button>
                       <Button
                         onClick={() => setIsCreateLeaveTypeSheetOpen(true)}
-                        className="bg-neutral-900 text-neutral-50 h-9 px-4 rounded-lg shadow-sm"
+                        className="bg-foreground text-primary-foreground h-9 px-4 rounded-lg shadow-sm"
                       >
                         <Plus className="h-4 w-4 mr-2" />
                         Dodaj rodzaj urlopu
@@ -784,11 +784,11 @@ export default function AdminSettingsClient({
                     <table className="w-full">
                       {/* Table Header */}
                       <thead>
-                        <tr className="border-b border-neutral-200">
-                          <th className="text-left py-2.5 px-2 text-sm font-medium text-neutral-500">
+                        <tr className="border-b border">
+                          <th className="text-left py-2.5 px-2 text-sm font-medium text-muted-foreground">
                             Rodzaj urlopu
                           </th>
-                          <th className="text-left py-2.5 px-2 text-sm font-medium text-neutral-500">
+                          <th className="text-left py-2.5 px-2 text-sm font-medium text-muted-foreground">
                             Dni rocznie
                           </th>
                           <th className="py-2.5 px-2"></th>
@@ -797,14 +797,14 @@ export default function AdminSettingsClient({
                       </thead>
                       <tbody>
                         {leaveTypes.map((leaveType) => (
-                          <tr key={leaveType.id} className="border-b border-neutral-200 last:border-b-0">
+                          <tr key={leaveType.id} className="border-b border last:border-b-0">
                             <td className="py-2 px-2">
                               <div className="flex flex-col gap-0">
                                 <div className="flex items-center gap-2">
                                   {leaveType.is_mandatory && (
-                                    <Lock className="h-4 w-4 text-neutral-500" title="Obowiązkowy typ urlopu - nie można usunąć" />
+                                    <Lock className="h-4 w-4 text-muted-foreground" title="Obowiązkowy typ urlopu - nie można usunąć" />
                                   )}
-                                  <span className="text-sm font-medium text-neutral-950">
+                                  <span className="text-sm font-medium text-foreground">
                                     {leaveType.name}
                                   </span>
                                   {leaveType.is_mandatory && (
@@ -816,7 +816,7 @@ export default function AdminSettingsClient({
                               </div>
                             </td>
                             <td className="py-2 px-2">
-                              <span className="text-sm font-medium text-neutral-950">
+                              <span className="text-sm font-medium text-foreground">
                                 {leaveType.days_per_year === 0
                                   ? "Nielimitowany"
                                   : `${leaveType.days_per_year} dni rocznie`}
@@ -824,7 +824,7 @@ export default function AdminSettingsClient({
                             </td>
                             <td className="py-2 px-2">
                               {leaveType.requires_balance && (
-                                <Badge className="bg-neutral-900 text-neutral-50 text-xs px-2 py-0.5 rounded-lg">
+                                <Badge className="bg-foreground text-primary-foreground text-xs px-2 py-0.5 rounded-lg">
                                   Saldo
                                 </Badge>
                               )}
@@ -832,7 +832,7 @@ export default function AdminSettingsClient({
                             <td className="py-2 px-2 text-right">
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="sm" className="h-9 w-9 p-0 hover:bg-neutral-100">
+                                  <Button variant="ghost" size="sm" className="h-9 w-9 p-0 hover:bg-muted">
                                     <MoreVertical className="h-4 w-4" />
                                   </Button>
                                 </DropdownMenuTrigger>
@@ -843,7 +843,7 @@ export default function AdminSettingsClient({
                                   {leaveType.is_mandatory ? (
                                     <DropdownMenuItem
                                       disabled
-                                      className="text-neutral-400 cursor-not-allowed"
+                                      className="text-muted-foreground cursor-not-allowed"
                                       title="Nie można usunąć obowiązkowego typu urlopu"
                                     >
                                       <Lock className="h-3 w-3 mr-2" />
@@ -894,28 +894,28 @@ export default function AdminSettingsClient({
                 <CardContent className="pt-0 pb-0 px-6 space-y-6">
                   <div className="flex gap-6">
                     <div className="w-[400px] space-y-2">
-                      <Label className="text-sm font-medium text-neutral-950">
+                      <Label className="text-sm font-medium text-foreground">
                         Minimalne wyprzedzenie (dni)
                       </Label>
                       <Input 
                         value="7" 
                         disabled 
-                        className="bg-white opacity-50 border-neutral-200 h-9"
+                        className="bg-card opacity-50 border h-9"
                       />
-                      <p className="text-sm text-neutral-500">
+                      <p className="text-sm text-muted-foreground">
                         Ile dni wcześniej należy złożyć wniosek urlopowy
                       </p>
                     </div>
                     <div className="w-[400px] space-y-2">
-                      <Label className="text-sm font-medium text-neutral-950">
+                      <Label className="text-sm font-medium text-foreground">
                         Zatwierdzenie przez admina wymagane powyżej (dni)
                       </Label>
                       <Input 
                         value="30" 
                         disabled 
-                        className="bg-white opacity-50 border-neutral-200 h-9"
+                        className="bg-card opacity-50 border h-9"
                       />
-                      <p className="text-sm text-neutral-500">
+                      <p className="text-sm text-muted-foreground">
                         Urlopy dłuższe niż x dni wymagają zatwierdzenia przez administratora
                       </p>
                     </div>
@@ -923,7 +923,7 @@ export default function AdminSettingsClient({
                   <div className="flex items-start gap-3">
                     <Switch disabled className="data-[state=unchecked]:bg-neutral-200" />
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium text-neutral-950">
+                      <Label className="text-sm font-medium text-foreground">
                         Wymagaj zatwierdzenia przez menedżera/administratora
                       </Label>
                     </div>
@@ -949,28 +949,28 @@ export default function AdminSettingsClient({
                 <CardContent className="pt-0 pb-0 px-6 space-y-6">
                   <div className="flex gap-6">
                     <div className="w-[400px] space-y-2">
-                      <Label className="text-sm font-medium text-neutral-950">
+                      <Label className="text-sm font-medium text-foreground">
                         Maksymalne kolejne dni
                       </Label>
                       <Input 
                         value="7" 
                         disabled 
-                        className="bg-white opacity-50 border-neutral-200 h-9"
+                        className="bg-card opacity-50 border h-9"
                       />
-                      <p className="text-sm text-neutral-500">
+                      <p className="text-sm text-muted-foreground">
                         Maksymalna liczba kolejnych dni urlopu w jednym wniosku
                       </p>
                     </div>
                     <div className="w-[400px] space-y-2">
-                      <Label className="text-sm font-medium text-neutral-950">
+                      <Label className="text-sm font-medium text-foreground">
                         Minimalne wyprzedzenie dla długich urlopów (dni)
                       </Label>
                       <Input 
                         value="14" 
                         disabled 
-                        className="bg-white opacity-50 border-neutral-200 h-9"
+                        className="bg-card opacity-50 border h-9"
                       />
-                      <p className="text-sm text-neutral-500">
+                      <p className="text-sm text-muted-foreground">
                         Urlopy dłuższe niż x dni wymagają zatwierdzenia przez administratora
                       </p>
                     </div>
@@ -984,7 +984,7 @@ export default function AdminSettingsClient({
                   <div className="flex items-center justify-between">
                     <div>
                       <CardTitle className="text-lg">Przenoszenie urlopów</CardTitle>
-                      <CardDescription className="text-sm text-neutral-600">
+                      <CardDescription className="text-sm text-muted-foreground">
                         Ustawienia dotyczące przenoszenia niewykorzystanych urlopów
                       </CardDescription>
                     </div>
@@ -1000,23 +1000,23 @@ export default function AdminSettingsClient({
                 </CardHeader>
                 <CardContent className="pt-0 pb-0 px-6 space-y-6">
                   <div className="flex items-start gap-3">
-                    <Switch disabled checked className="data-[state=checked]:bg-neutral-900" />
+                    <Switch disabled checked className="data-[state=checked]:bg-foreground" />
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium text-neutral-950">
+                      <Label className="text-sm font-medium text-foreground">
                         Zezwalaj na przenoszenie niewykorzystanych urlopów na kolejny rok
                       </Label>
                     </div>
                   </div>
                   <div className="w-[400px] space-y-2">
-                    <Label className="text-sm font-medium text-neutral-950">
+                    <Label className="text-sm font-medium text-foreground">
                       Maksymalna liczba dni do przeniesienia
                     </Label>
                     <Input 
                       value="5" 
                       disabled 
-                      className="bg-white opacity-50 border-neutral-200 h-9"
+                      className="bg-card opacity-50 border h-9"
                     />
-                    <p className="text-sm text-neutral-500">
+                    <p className="text-sm text-muted-foreground">
                       Ile dni urlopu można przenieść na kolejny rok
                     </p>
                   </div>
@@ -1029,7 +1029,7 @@ export default function AdminSettingsClient({
                   <div className="flex items-center justify-between">
                     <div>
                       <CardTitle className="text-lg">Zasady liczenia dni roboczych</CardTitle>
-                      <CardDescription className="text-sm text-neutral-600">
+                      <CardDescription className="text-sm text-muted-foreground">
                         Zasady dotyczące liczenia weekendów i dni świątecznych
                       </CardDescription>
                     </div>
@@ -1045,28 +1045,28 @@ export default function AdminSettingsClient({
                 </CardHeader>
                 <CardContent className="pt-0 pb-0 px-6 space-y-6">
                   <div className="w-[400px] space-y-2">
-                    <Label className="text-sm font-medium text-neutral-950">
+                    <Label className="text-sm font-medium text-foreground">
                       Polityka liczenia weekendów
                     </Label>
                     <Select disabled>
-                      <SelectTrigger className="bg-white border-neutral-200 h-9">
+                      <SelectTrigger className="bg-card border h-9">
                         <SelectValue placeholder="Nie licz weekendów" />
                       </SelectTrigger>
                     </Select>
-                    <p className="text-sm text-neutral-500">
+                    <p className="text-sm text-muted-foreground">
                       Jak traktować weekendy przy liczeniu dni urlopu
                     </p>
                   </div>
                   <div className="w-[400px] space-y-2">
-                    <Label className="text-sm font-medium text-neutral-950">
+                    <Label className="text-sm font-medium text-foreground">
                       Polityka świąt
                     </Label>
                     <Input 
                       value="Nie licz świąt państwowych" 
                       disabled 
-                      className="bg-white opacity-50 border-neutral-200 h-9"
+                      className="bg-card opacity-50 border h-9"
                     />
-                    <p className="text-sm text-neutral-500">
+                    <p className="text-sm text-muted-foreground">
                       Jak traktować święta państwowe przy liczeniu dni urlopu
                     </p>
                   </div>
@@ -1257,7 +1257,7 @@ export default function AdminSettingsClient({
                   
                   <div className="space-y-4">
                     <div className="w-[400px] space-y-2">
-                      <Label className="text-sm font-medium text-neutral-950">
+                      <Label className="text-sm font-medium text-foreground">
                         {t('seatUsage')}
                       </Label>
                       <div className="space-y-2">
@@ -1287,7 +1287,7 @@ export default function AdminSettingsClient({
                     {subscriptionData ? (
                       <div className="space-y-4">
                         <div className="w-[400px] space-y-2">
-                          <Label className="text-sm font-medium text-neutral-950">
+                          <Label className="text-sm font-medium text-foreground">
                             {t('planDetails')}
                           </Label>
                           <div className="text-sm text-muted-foreground space-y-1">
@@ -1304,7 +1304,7 @@ export default function AdminSettingsClient({
 
                         {subscriptionData.billing_info?.card_brand && (
                           <div className="w-[400px] space-y-2">
-                            <Label className="text-sm font-medium text-neutral-950">
+                            <Label className="text-sm font-medium text-foreground">
                               {t('paymentMethod')}
                             </Label>
                             <div className="text-sm text-muted-foreground">
@@ -1315,7 +1315,7 @@ export default function AdminSettingsClient({
                       </div>
                     ) : (
                       <div className="w-[400px] space-y-2">
-                        <Label className="text-sm font-medium text-neutral-950">
+                        <Label className="text-sm font-medium text-foreground">
                           {t('planDetails')}
                         </Label>
                         <div className="text-sm text-muted-foreground">
@@ -1333,7 +1333,7 @@ export default function AdminSettingsClient({
                     {!subscriptionData ? (
                       <>
                         <Button 
-                          className="bg-neutral-900 hover:bg-neutral-800 text-neutral-50 h-9 px-4 rounded-lg shadow-sm"
+                          className="bg-foreground hover:bg-neutral-800 text-primary-foreground h-9 px-4 rounded-lg shadow-sm"
                           onClick={() => {
                             // Redirect to upgrade flow - start with current team size + 1 buffer
                             const currentTeamSize = users.length || 1
@@ -1363,7 +1363,7 @@ export default function AdminSettingsClient({
                     ) : subscriptionData.status === 'cancelled' ? (
                       <>
                         <Button 
-                          className="bg-neutral-900 hover:bg-neutral-800 text-neutral-50 h-9 px-4 rounded-lg shadow-sm"
+                          className="bg-foreground hover:bg-neutral-800 text-primary-foreground h-9 px-4 rounded-lg shadow-sm"
                           onClick={() => router.push('/onboarding/add-users')}
                         >
                           {t('reactivateSubscription')}
@@ -1421,13 +1421,13 @@ export default function AdminSettingsClient({
                       <div className="text-sm text-muted-foreground">{t('paidSeatsLabel')}</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-neutral-900">{getSeatUsage().total}</div>
+                      <div className="text-2xl font-bold text-foreground">{getSeatUsage().total}</div>
                       <div className="text-sm text-muted-foreground">{t('totalSeatsLabel')}</div>
                     </div>
                   </div>
                   
                   <div className="w-[400px] space-y-2">
-                    <Label className="text-sm font-medium text-neutral-950">
+                    <Label className="text-sm font-medium text-foreground">
                       {t('currentTeamMembers')}
                     </Label>
                     <div className="text-sm text-muted-foreground">
@@ -1483,7 +1483,7 @@ export default function AdminSettingsClient({
               <CardContent className="p-6">
                 <div className="flex items-start gap-4">
                   <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <div className="w-3 h-3 bg-white rounded-full"></div>
+                    <div className="w-3 h-3 bg-card rounded-full"></div>
                   </div>
                   <div className="space-y-2">
                     <div className="font-medium text-blue-900">
@@ -1659,7 +1659,7 @@ export default function AdminSettingsClient({
             <Button
               variant="ghost" 
               size="sm" 
-              className="h-9 w-9 p-0 border border-neutral-200 bg-white shadow-sm"
+              className="h-9 w-9 p-0 border border bg-card shadow-sm"
               onClick={() => setEditDialogOpen(false)}
             >
               <X className="h-4 w-4" />
@@ -1667,31 +1667,31 @@ export default function AdminSettingsClient({
           </div>
           
           <DialogHeader className="space-y-1.5">
-            <DialogTitle className="text-lg font-semibold text-neutral-950">
+            <DialogTitle className="text-lg font-semibold text-foreground">
               Edytuj rodzaj urlopu
             </DialogTitle>
-            <DialogDescription className="text-sm text-neutral-500">
+            <DialogDescription className="text-sm text-muted-foreground">
               Zaktualizuj informacje o rodzaju urlopu
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleSubmitEdit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="edit-name" className="text-sm font-medium text-neutral-950">
+              <Label htmlFor="edit-name" className="text-sm font-medium text-foreground">
                 Nazwa urlopu
               </Label>
               <Input
                 id="edit-name"
                 value={formData.name}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                className="h-9 border-neutral-200 bg-white"
+                className="h-9 border bg-card"
                 required
                 disabled={loading}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit-days" className="text-sm font-medium text-neutral-950">
+              <Label htmlFor="edit-days" className="text-sm font-medium text-foreground">
                 Liczba dni w roku
               </Label>
               <Input
@@ -1699,12 +1699,12 @@ export default function AdminSettingsClient({
                 type="number"
                 value={formData.days_per_year}
                 onChange={(e) => setFormData(prev => ({ ...prev, days_per_year: parseInt(e.target.value) || 0 }))}
-                className="h-9 border-neutral-200 bg-white"
+                className="h-9 border bg-card"
                 required
                 min="0"
                 disabled={loading}
               />
-              <p className="text-sm text-neutral-500">
+              <p className="text-sm text-muted-foreground">
                 Pamiętaj aby nie zmieniać podstawowych dni ustawowych.
               </p>
             </div>
@@ -1715,13 +1715,13 @@ export default function AdminSettingsClient({
                 checked={formData.requires_balance}
                 onCheckedChange={(checked) => setFormData(prev => ({ ...prev, requires_balance: !!checked }))}
                 disabled={loading}
-                className="mt-0.5 data-[state=checked]:bg-neutral-900 data-[state=checked]:border-neutral-900"
+                className="mt-0.5 data-[state=checked]:bg-foreground data-[state=checked]:border-neutral-900"
               />
               <div className="grid gap-1.5 leading-none">
-                <Label htmlFor="edit-requires-balance" className="text-sm font-medium text-neutral-950">
+                <Label htmlFor="edit-requires-balance" className="text-sm font-medium text-foreground">
                   Wymagaj zarządzania saldem urlopowym
                 </Label>
-                <p className="text-sm text-neutral-500">
+                <p className="text-sm text-muted-foreground">
                   Zaznacz jeśli ten typ urlopu wymaga śledzenia i zarządzaniem dni urlopowych
                 </p>
               </div>
@@ -1733,14 +1733,14 @@ export default function AdminSettingsClient({
                 variant="outline"
                 onClick={() => setEditDialogOpen(false)}
                 disabled={loading}
-                className="h-9 px-4 border-neutral-200 bg-white"
+                className="h-9 px-4 border bg-card"
               >
                 Anuluj
               </Button>
               <Button
                 type="submit"
                 disabled={loading}
-                className="h-9 px-4 bg-neutral-900 text-neutral-50"
+                className="h-9 px-4 bg-foreground text-primary-foreground"
               >
                 {loading ? 'Zapisywanie...' : 'Zapisz zmiany'}
               </Button>
@@ -1756,7 +1756,7 @@ export default function AdminSettingsClient({
             <Button
               variant="ghost" 
               size="sm" 
-              className="h-9 w-9 p-0 border border-neutral-200 bg-white shadow-sm"
+              className="h-9 w-9 p-0 border border bg-card shadow-sm"
               onClick={() => setDeleteDialogOpen(false)}
             >
               <X className="h-4 w-4" />
@@ -1764,10 +1764,10 @@ export default function AdminSettingsClient({
           </div>
           
           <DialogHeader className="space-y-1.5">
-            <DialogTitle className="text-lg font-semibold text-neutral-950">
+            <DialogTitle className="text-lg font-semibold text-foreground">
               Usuń rodzaj urlopu
             </DialogTitle>
-            <DialogDescription className="text-sm text-neutral-500">
+            <DialogDescription className="text-sm text-muted-foreground">
               Czy na pewno chcesz usunąć rodzaj urlopu<br />
               "{selectedLeaveType?.name}"? Ta operacja jest nieodwracalna.
             </DialogDescription>
@@ -1779,7 +1779,7 @@ export default function AdminSettingsClient({
               variant="outline"
               onClick={() => setDeleteDialogOpen(false)}
               disabled={loading}
-              className="h-9 px-4 border-neutral-200 bg-white"
+              className="h-9 px-4 border bg-card"
             >
               Anuluj
             </Button>
@@ -1802,7 +1802,7 @@ export default function AdminSettingsClient({
             <Button
               variant="ghost" 
               size="sm" 
-              className="h-9 w-9 p-0 border border-neutral-200 bg-white shadow-sm"
+              className="h-9 w-9 p-0 border border bg-card shadow-sm"
               onClick={() => setDeleteWorkspaceDialogOpen(false)}
             >
               <X className="h-4 w-4" />
@@ -1839,7 +1839,7 @@ export default function AdminSettingsClient({
               variant="outline"
               onClick={() => setDeleteWorkspaceDialogOpen(false)}
               disabled={workspaceDeleteLoading}
-              className="h-9 px-4 border-neutral-200 bg-white"
+              className="h-9 px-4 border bg-card"
             >
               Anuluj
             </Button>
