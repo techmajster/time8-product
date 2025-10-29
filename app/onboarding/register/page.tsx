@@ -256,7 +256,7 @@ function RegisterPageContent() {
             <button
               onClick={handleRegister}
               disabled={!password || loading}
-              className="bg-neutral-900 flex gap-2 h-10 items-center justify-center px-8 py-2 relative rounded-lg shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] w-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-neutral-800 transition-colors"
+              className="bg-foreground flex gap-2 h-10 items-center justify-center px-8 py-2 relative rounded-lg shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] w-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-foreground/90 transition-colors"
             >
               <div className="font-medium text-[14px] text-primary-foreground" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500, lineHeight: '20px' }}>
                 <p className="block leading-[20px] whitespace-pre">

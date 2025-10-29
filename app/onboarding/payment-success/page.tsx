@@ -193,7 +193,7 @@ function PaymentSuccessPageContent() {
           {/* Button */}
           <Button
             onClick={() => router.push('/dashboard')}
-            className="bg-neutral-900 hover:bg-neutral-800 content-stretch flex gap-2 h-10 items-center justify-center px-8 py-2 relative rounded-lg shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] shrink-0 font-medium text-[14px] text-primary-foreground"
+            className="bg-foreground hover:bg-foreground/90 content-stretch flex gap-2 h-10 items-center justify-center px-8 py-2 relative rounded-lg shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] shrink-0 font-medium text-[14px] text-primary-foreground"
             style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500 }}
           >
             Go to Dashboard
@@ -240,7 +240,7 @@ function PaymentSuccessPageContent() {
         {/* Button */}
         <Button
           onClick={handleContinue}
-          className="bg-neutral-900 hover:bg-neutral-800 content-stretch flex gap-2 h-10 items-center justify-center px-8 py-2 relative rounded-lg shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] shrink-0 font-medium text-[14px] text-primary-foreground"
+          className="bg-foreground hover:bg-foreground/90 content-stretch flex gap-2 h-10 items-center justify-center px-8 py-2 relative rounded-lg shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] shrink-0 font-medium text-[14px] text-primary-foreground"
           style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500 }}
         >
           Start using time8.io!

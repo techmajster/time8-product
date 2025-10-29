@@ -491,7 +491,7 @@ function AddUsersPageContent() {
                         </div>
                       </div>
                       {/* Most popular badge */}
-                      <div className="absolute bg-neutral-900 right-0 rounded-lg top-1">
+                      <div className="absolute bg-foreground right-0 rounded-lg top-1">
                         <div className="box-border content-stretch flex gap-1 items-center justify-center overflow-clip px-2.5 py-0.5 relative">
                           <div className="font-['Geist'] font-semibold leading-none relative shrink-0 text-[12px] text-primary-foreground text-nowrap">
                             <p className="leading-[16px] whitespace-pre">Most popular</p>

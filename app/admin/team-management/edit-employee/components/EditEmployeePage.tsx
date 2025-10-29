@@ -439,7 +439,7 @@ export function EditEmployeePage({ teams, leaveTypes, organizationId, teamMember
                     <Button 
                       onClick={handleSubmit}
                       disabled={loading || !isFormValid()}
-                      className="h-9 px-4 bg-foreground hover:bg-foreground/90 shadow-sm disabled:opacity-50"
+                      className="h-9 px-4  shadow-sm disabled:opacity-50"
                     >
                       <CheckCircle className="h-4 w-4 mr-2" />
                       {loading ? 'Aktualizowanie...' : 'Zapisz zmiany'}

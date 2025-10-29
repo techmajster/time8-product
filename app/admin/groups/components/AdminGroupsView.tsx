@@ -177,7 +177,7 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
         <h1 className="text-3xl font-semibold text-foreground">Grupy</h1>
         <Button
           size="sm"
-          className="bg-foreground text-background"
+          className=""
           onClick={() => {
             resetForm()
             setIsCreateDialogOpen(true)

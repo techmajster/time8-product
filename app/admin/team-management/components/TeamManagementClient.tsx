@@ -228,7 +228,7 @@ export function TeamManagementClient({ teamMembers, teams, leaveBalances, invita
                 <Link href="/admin/team-management/add-employee">
                   <Button 
                     size="sm" 
-                    className="bg-foreground text-background"
+                    className=""
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     Dodaj pracownika

@@ -325,7 +325,7 @@ export default function OnboardingRoutingPage() {
             <div className="flex flex-col gap-2">
               <button 
                 onClick={() => router.push('/dashboard')}
-                className="w-full bg-neutral-900 text-white py-2 px-4 rounded-lg hover:bg-neutral-800 transition-colors cursor-pointer"
+                className="w-full bg-foreground text-primary-foreground py-2 px-4 rounded-lg hover:bg-foreground/90 transition-colors cursor-pointer"
               >
                 Go to Dashboard
               </button>
@@ -365,7 +365,7 @@ export default function OnboardingRoutingPage() {
             <div className="flex flex-col gap-2">
               <button 
                 onClick={() => router.push('/dashboard')}
-                className="w-full bg-neutral-900 text-white py-2 px-4 rounded-lg hover:bg-neutral-800 transition-colors cursor-pointer"
+                className="w-full bg-foreground text-primary-foreground py-2 px-4 rounded-lg hover:bg-foreground/90 transition-colors cursor-pointer"
               >
                 Go to Dashboard
               </button>

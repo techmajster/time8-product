@@ -39,7 +39,7 @@ function getStatusBadge(status: string) {
   switch (status) {
     case 'approved':
       return (
-        <Badge className="bg-foreground text-background text-xs px-2 py-0.5 rounded-lg font-semibold">
+        <Badge className=" text-xs px-2 py-0.5 rounded-lg font-semibold">
           Zaakceptowany
         </Badge>
       )

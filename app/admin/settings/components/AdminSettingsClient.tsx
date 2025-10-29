@@ -1333,7 +1333,7 @@ export default function AdminSettingsClient({
                     {!subscriptionData ? (
                       <>
                         <Button 
-                          className="bg-foreground hover:bg-foreground/90 text-primary-foreground h-9 px-4 rounded-lg shadow-sm"
+                          className=" text-primary-foreground h-9 px-4 rounded-lg shadow-sm"
                           onClick={() => {
                             // Redirect to upgrade flow - start with current team size + 1 buffer
                             const currentTeamSize = users.length || 1
@@ -1363,7 +1363,7 @@ export default function AdminSettingsClient({
                     ) : subscriptionData.status === 'cancelled' ? (
                       <>
                         <Button 
-                          className="bg-foreground hover:bg-foreground/90 text-primary-foreground h-9 px-4 rounded-lg shadow-sm"
+                          className=" text-primary-foreground h-9 px-4 rounded-lg shadow-sm"
                           onClick={() => router.push('/onboarding/add-users')}
                         >
                           {t('reactivateSubscription')}

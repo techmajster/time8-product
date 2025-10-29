@@ -252,7 +252,7 @@ export function CreateLeaveTypeSheet({
               <Button
                 type="submit"
                 size="sm"
-                className="bg-foreground hover:bg-foreground/90 text-white"
+                className=""
                 disabled={!formData.name.trim() || isSubmitting}
                 onClick={handleSubmit}
               >

@@ -89,7 +89,7 @@ function PaymentFailurePageContent() {
         <Button
           onClick={handleRetryPayment}
           disabled={isRetrying}
-          className="bg-foreground hover:bg-foreground/90 content-stretch flex gap-2 h-10 items-center justify-center px-8 py-2 relative rounded-lg shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] shrink-0 font-medium text-[14px] text-primary-foreground"
+          className=" content-stretch flex gap-2 h-10 items-center justify-center px-8 py-2 relative rounded-lg shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] shrink-0 font-medium text-[14px] text-primary-foreground"
           style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500 }}
         >
           {isRetrying && <RefreshCw className="w-4 h-4 animate-spin" />}
