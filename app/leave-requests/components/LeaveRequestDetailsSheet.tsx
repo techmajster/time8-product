@@ -424,7 +424,7 @@ export function LeaveRequestDetailsSheet({ requestId, isOpen, onClose }: LeaveRe
 
                   {/* W tym terminie urlop planują - unified with Figma design */}
                   {conflictingLeaves.length > 0 && (
-                    <div className="bg-white border border rounded-lg p-4 w-full">
+                    <div className="bg-card border border rounded-lg p-4 w-full">
                       <div className="flex flex-row gap-3 items-start w-full mb-3">
                         <Info className="w-4 h-4 text-foreground mt-0.5 shrink-0" />
                         <div className="text-sm font-medium leading-5 text-foreground">

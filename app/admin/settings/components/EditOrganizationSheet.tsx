@@ -196,7 +196,7 @@ export function EditOrganizationSheet({
               </div>
 
               {/* Separator */}
-              <div className="w-full h-px bg-neutral-200" />
+              <div className="w-full h-px bg-border" />
 
               {/* Form */}
               <div className="space-y-6 flex-1">

@@ -110,7 +110,7 @@ export function CreateTeamSheet({ open, onOpenChange, teamMembers, onTeamCreated
               </div>
 
               {/* Separator */}
-              <div className="w-full h-px bg-neutral-200" />
+              <div className="w-full h-px bg-border" />
 
               {/* Form */}
               <form onSubmit={(e) => { e.preventDefault(); handleCreateTeam() }} className="space-y-6 flex-1">

@@ -218,7 +218,7 @@ export function AvatarUpload({ userId, currentAvatarUrl, userName }: AvatarUploa
         <button
           onClick={() => fileInputRef.current?.click()}
           disabled={loading}
-          className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full opacity-0 hover:opacity-100 transition-opacity duration-200 text-white"
+          className="absolute inset-0 flex items-center justify-center bg-foreground/50 rounded-full opacity-0 hover:opacity-100 transition-opacity duration-200 text-white"
         >
           {loading ? (
             <Loader2 className="h-6 w-6 animate-spin" />

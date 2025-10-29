@@ -195,7 +195,7 @@ export default async function LeaveRequestsPage({
         <div className="flex items-center justify-between">
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2.5">
-              <h1 className="font-semibold text-3xl leading-9 text-neutral-950">
+              <h1 className="font-semibold text-3xl leading-9 text-foreground">
                 Wnioski urlopowe
               </h1>
             </div>

@@ -248,7 +248,7 @@ export default function OnboardingRoutingPage() {
             role="status"
             aria-label="Loading"
           ></div>
-          <p className="text-sm text-gray-600">Setting up your onboarding experience...</p>
+          <p className="text-sm text-muted-foreground">Setting up your onboarding experience...</p>
         </div>
       </div>
     )
@@ -331,7 +331,7 @@ export default function OnboardingRoutingPage() {
               </button>
               <button 
                 onClick={() => window.location.reload()}
-                className="w-full bg-gray-200 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors cursor-pointer"
+                className="w-full bg-muted text-foreground py-2 px-4 rounded-lg hover:bg-muted transition-colors cursor-pointer"
               >
                 Retry
               </button>
@@ -371,7 +371,7 @@ export default function OnboardingRoutingPage() {
               </button>
               <button 
                 onClick={() => window.location.reload()}
-                className="w-full bg-gray-200 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors cursor-pointer"
+                className="w-full bg-muted text-foreground py-2 px-4 rounded-lg hover:bg-muted transition-colors cursor-pointer"
               >
                 Retry
               </button>

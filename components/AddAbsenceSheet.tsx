@@ -64,7 +64,7 @@ interface AddAbsenceSheetProps {
 function VacationIcon() {
   return (
     <div className="bg-cyan-200 relative rounded-lg size-10 flex items-center justify-center">
-      <TreePalm className="h-6 w-6 text-gray-800" />
+      <TreePalm className="h-6 w-6 text-foreground" />
     </div>
   )
 }

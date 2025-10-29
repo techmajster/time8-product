@@ -554,11 +554,11 @@ export default function EmailPreviewPage() {
                         className={`w-full text-left p-3 rounded-md text-sm transition-colors ${
                           selectedTemplate === key
                             ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                            : 'bg-white hover:bg-muted border border-gray-200'
+                            : 'bg-white hover:bg-muted border border'
                         }`}
                       >
                         <div className="font-medium">{template.name}</div>
-                        <div className="text-gray-500 text-xs mt-1">{template.description}</div>
+                        <div className="text-muted-foreground text-xs mt-1">{template.description}</div>
                       </button>
                     ))}
                   </div>
@@ -584,7 +584,7 @@ export default function EmailPreviewPage() {
                     />
                   </div>
                 ) : (
-                  <div className="text-center py-12 text-gray-500">
+                  <div className="text-center py-12 text-muted-foreground">
                     <p>Click "Generate Preview" to see the email template</p>
                   </div>
                 )}

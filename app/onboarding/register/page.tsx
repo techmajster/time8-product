@@ -206,7 +206,7 @@ function RegisterPageContent() {
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
                         disabled={loading}
-                        className="ml-2 p-1 hover:bg-gray-100 rounded flex-shrink-0"
+                        className="ml-2 p-1 hover:bg-muted rounded flex-shrink-0"
                       >
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>

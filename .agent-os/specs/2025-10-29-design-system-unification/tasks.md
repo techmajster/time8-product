@@ -1,0 +1,116 @@
+# Spec Tasks
+
+## Tasks
+
+- [ ] 1. Phase 1: Standardize Card Component
+  - [ ] 1.1 Review current Card component implementation in `components/ui/card.tsx`
+  - [ ] 1.2 Verify Card uses correct design tokens (border-border, bg-card, rounded-xl)
+  - [ ] 1.3 Add JSDoc comments documenting expected usage patterns
+  - [ ] 1.4 (Optional) Create card variant system for status-based backgrounds
+  - [ ] 1.5 Test Card component renders correctly with all variants
+  - [ ] 1.6 Commit Phase 1 changes
+
+- [ ] 2. Phase 2: Unify Leave Section (HIGH PRIORITY)
+  - [ ] 2.1 Create feature branch `design-system-unification` from main
+  - [ ] 2.2 Take screenshots of current Leave pages (desktop/tablet/mobile) for visual comparison
+  - [ ] 2.3 Update `app/leave/page.tsx`:
+    - [ ] 2.3.1 Replace `border-neutral-200` with `border-border`
+    - [ ] 2.3.2 Replace `bg-white` with `bg-card`
+    - [ ] 2.3.3 Replace `rounded-[10px]` with `rounded-xl` or Card component
+    - [ ] 2.3.4 Convert custom div cards to Shadcn Card components
+  - [ ] 2.4 Update `app/leave/components/LeaveBalanceCard.tsx`:
+    - [ ] 2.4.1 Replace hardcoded values with design tokens
+    - [ ] 2.4.2 Use Shadcn Card component properly
+  - [ ] 2.5 Update `app/leave/components/LeaveRequestsList.tsx`:
+    - [ ] 2.5.1 Replace hardcoded values with design tokens
+  - [ ] 2.6 Test Leave section functionality (create/view/edit leave requests)
+  - [ ] 2.7 Take screenshots after changes for visual comparison
+  - [ ] 2.8 Verify no layout shifts or visual breaks
+  - [ ] 2.9 Commit Phase 2 changes
+
+- [ ] 3. Phase 3: Unify Dashboard
+  - [ ] 3.1 Take screenshots of current Dashboard (desktop/tablet/mobile)
+  - [ ] 3.2 Update `app/dashboard/page.tsx`:
+    - [ ] 3.2.1 Convert inline div cards to Shadcn Card components
+    - [ ] 3.2.2 Preserve all existing layout and spacing (w-32, h-32, flex, etc.)
+    - [ ] 3.2.3 Maintain purple theme and visual design
+    - [ ] 3.2.4 Use semantic Card structure where appropriate (CardContent)
+  - [ ] 3.3 Test Dashboard functionality (stats display, navigation)
+  - [ ] 3.4 Take screenshots after changes for visual comparison
+  - [ ] 3.5 Verify no layout shifts or broken responsive behavior
+  - [ ] 3.6 Commit Phase 3 changes
+
+- [ ] 4. Phase 4: Unify Admin & Settings Pages
+  - [ ] 4.1 Take screenshots of Admin pages (desktop/tablet/mobile)
+  - [ ] 4.2 Update `app/admin/settings/page.tsx`:
+    - [ ] 4.2.1 Replace `border-neutral-200` with `border-border`
+    - [ ] 4.2.2 Replace `bg-white` with `bg-card`
+    - [ ] 4.2.3 Replace `rounded-[10px]` with `rounded-xl`
+    - [ ] 4.2.4 Convert custom divs to Card components where appropriate
+  - [ ] 4.3 Update `app/admin/team-management/page.tsx` (same pattern)
+  - [ ] 4.4 Update `app/admin/groups/page.tsx` (same pattern)
+  - [ ] 4.5 Check and update profile pages if applicable
+  - [ ] 4.6 Test all Admin functionality (settings, team management, groups)
+  - [ ] 4.7 Take screenshots after changes for visual comparison
+  - [ ] 4.8 Verify no layout shifts or broken functionality
+  - [ ] 4.9 Commit Phase 4 changes
+
+- [ ] 5. Phase 5: Global Color Token Cleanup
+  - [ ] 5.1 Search codebase for all `text-neutral-*` usages
+  - [ ] 5.2 Search codebase for all `bg-neutral-*` usages
+  - [ ] 5.3 Create replacement mapping plan (which semantic token for each usage)
+  - [ ] 5.4 Replace text color tokens:
+    - [ ] 5.4.1 `text-neutral-900` → `text-foreground`
+    - [ ] 5.4.2 `text-neutral-700` → `text-foreground`
+    - [ ] 5.4.3 `text-neutral-600` → `text-muted-foreground`
+    - [ ] 5.4.4 `text-neutral-500` → `text-muted-foreground`
+    - [ ] 5.4.5 `text-neutral-400` → `text-muted-foreground`
+  - [ ] 5.5 Replace background color tokens:
+    - [ ] 5.5.1 Remaining `bg-white` → `bg-card` or `bg-background`
+    - [ ] 5.5.2 `bg-neutral-50` → `bg-muted`
+    - [ ] 5.5.3 `bg-neutral-100` → `bg-muted`
+  - [ ] 5.6 Replace remaining border color tokens
+  - [ ] 5.7 Test all affected pages for visual correctness
+  - [ ] 5.8 Verify no instances of hardcoded neutral colors remain
+  - [ ] 5.9 Commit Phase 5 changes
+
+- [ ] 6. Phase 6: Design System Documentation
+  - [ ] 6.1 Create `.agent-os/product/design-system.md`
+  - [ ] 6.2 Document Design Tokens Reference section:
+    - [ ] 6.2.1 All color CSS variables from globals.css
+    - [ ] 6.2.2 Border radius values
+    - [ ] 6.2.3 Spacing scale
+    - [ ] 6.2.4 Typography scale
+  - [ ] 6.3 Document Component Usage Guidelines section:
+    - [ ] 6.3.1 When to use Card vs custom div
+    - [ ] 6.3.2 Shadcn component import patterns
+    - [ ] 6.3.3 Semantic structure (CardHeader, CardContent, CardFooter)
+  - [ ] 6.4 Document Color Token Usage section:
+    - [ ] 6.4.1 Semantic token mapping table
+    - [ ] 6.4.2 Background states (default, vacation, sick)
+    - [ ] 6.4.3 Text color hierarchy
+  - [ ] 6.5 Document Common Patterns section with code examples
+  - [ ] 6.6 Add before/after comparison examples
+  - [ ] 6.7 Review documentation for completeness and clarity
+  - [ ] 6.8 Commit Phase 6 changes
+
+- [ ] 7. Final Verification & Testing
+  - [ ] 7.1 Run visual regression tests on all updated pages
+  - [ ] 7.2 Test functionality across all updated sections
+  - [ ] 7.3 Verify zero instances of hardcoded style values:
+    - [ ] 7.3.1 Search for `border-neutral-` (should be 0 results)
+    - [ ] 7.3.2 Search for `bg-white` in card contexts (should be 0 results)
+    - [ ] 7.3.3 Search for `rounded-[` custom values (should be 0 results)
+  - [ ] 7.4 Cross-browser testing (Chrome, Firefox, Safari)
+  - [ ] 7.5 Responsive testing (desktop/tablet/mobile viewports)
+  - [ ] 7.6 Test all existing functionality works identically
+  - [ ] 7.7 Compare before/after screenshots for each page
+  - [ ] 7.8 Update roadmap.md to mark Phase 1-6 as complete
+
+- [ ] 8. Git Workflow
+  - [ ] 8.1 Review all changes in feature branch
+  - [ ] 8.2 Commit final verification results
+  - [ ] 8.3 Push branch to GitHub
+  - [ ] 8.4 Create Pull Request with detailed description
+  - [ ] 8.5 Add before/after screenshots to PR description
+  - [ ] 8.6 Request review from team

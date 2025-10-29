@@ -61,7 +61,7 @@ export const NotificationItem = memo(({ notification, onRead, onCloseSheet }: No
       className={cn(
         "flex gap-2 items-start p-4 rounded-md border",
         notification.is_read
-          ? "bg-white border-border"  // Read: white background
+          ? "bg-card border-border"  // Read: white background
           : "bg-blue-50 border-border" // Unread: blue-50 background
       )}
     >

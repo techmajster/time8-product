@@ -89,7 +89,7 @@ function JoinPageContent() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
         <div className="text-center space-y-4">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="text-sm text-gray-600">Processing your invitation...</p>
+          <p className="text-sm text-muted-foreground">Processing your invitation...</p>
         </div>
       </div>
     )
@@ -113,7 +113,7 @@ function JoinPageContent() {
 
   // Main invitation screen matching Figma design (24697-216007)
   return (
-    <div className="bg-white min-h-screen relative w-full">
+    <div className="bg-card min-h-screen relative w-full">
       {/* Logo - Time8 */}
       <div className="absolute left-8 top-8">
         <Time8Logo />
@@ -163,7 +163,7 @@ function JoinPageContent() {
               <div className="flex flex-col gap-2.5 items-start justify-start p-0 relative w-full">
                 <button
                   onClick={handleAcceptInvitation}
-                  className="bg-neutral-900 flex flex-row gap-2 h-10 items-center justify-center px-8 py-2 relative rounded-lg w-full shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] hover:bg-neutral-800 transition-colors"
+                  className="bg-foreground flex flex-row gap-2 h-10 items-center justify-center px-8 py-2 relative rounded-lg w-full shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] hover:bg-foreground/90 transition-colors"
                 >
                   <div className="overflow-hidden relative w-4 h-4 flex-shrink-0">
                     <svg className="w-full h-full text-primary-foreground" fill="none" preserveAspectRatio="none" viewBox="0 0 22 20">

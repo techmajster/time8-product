@@ -724,7 +724,7 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                     <Button 
                       onClick={handleSubmit}
                       disabled={loading || !isFormValid()}
-                      className="h-9 px-4 bg-foreground hover:bg-neutral-800 shadow-sm disabled:opacity-50"
+                      className="h-9 px-4 bg-foreground hover:bg-foreground/90 shadow-sm disabled:opacity-50"
                     >
                       <Plus className="h-4 w-4 mr-2" />
                       {loading ? 'Dodawanie...' : 'Dodaj pracownika'}
@@ -952,7 +952,7 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                     <Button 
                       onClick={() => processEmployees(bulkEmployees)}
                       disabled={loading || bulkEmployees.length === 0 || !bulkEmployees.every(emp => emp.email && emp.full_name)}
-                      className="h-9 px-4 bg-foreground hover:bg-neutral-800 shadow-sm disabled:opacity-50"
+                      className="h-9 px-4 bg-foreground hover:bg-foreground/90 shadow-sm disabled:opacity-50"
                     >
                       <Plus className="h-4 w-4 mr-2" />
                       {loading ? 'Przetwarzanie...' : `Dodaj pracowników (${bulkEmployees.length})`}
@@ -1166,7 +1166,7 @@ export function AddEmployeePage({ teams, leaveTypes, organizationId, teamMembers
                     <Button 
                       onClick={() => processEmployees(csvEmployees)}
                       disabled={loading || csvEmployees.length === 0}
-                      className="h-9 px-4 bg-foreground hover:bg-neutral-800 shadow-sm disabled:opacity-50"
+                      className="h-9 px-4 bg-foreground hover:bg-foreground/90 shadow-sm disabled:opacity-50"
                     >
                       <Plus className="h-4 w-4 mr-2" />
                       {loading ? 'Przetwarzanie...' : `Dodaj pracowników (${csvEmployees.length})`}

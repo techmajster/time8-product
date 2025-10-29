@@ -86,7 +86,7 @@ export default function DebugRolePage() {
   return (
     <div className="p-8 space-y-4">
       <h1 className="text-2xl font-bold">Debug Role Page</h1>
-      <div className="p-4 bg-gray-100 rounded">
+      <div className="p-4 bg-muted rounded">
         <p>{message}</p>
       </div>
       {userRole !== 'admin' && (

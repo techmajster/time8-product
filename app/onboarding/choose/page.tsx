@@ -147,10 +147,10 @@ export default function ChoosePage() {
             <Mail className="h-8 w-8 text-green-600" />
           </div>
           <div className="space-y-2">
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-2xl font-bold text-foreground">
               {t('choose.title')}
             </h1>
-            <p className="text-sm text-gray-600 max-w-md mx-auto">
+            <p className="text-sm text-muted-foreground max-w-md mx-auto">
               {t('choose.subtitle')}
             </p>
           </div>
@@ -164,7 +164,7 @@ export default function ChoosePage() {
         )}
 
         {/* Pending Invitations */}
-        <Card className="border-0 shadow-xl bg-white/95 backdrop-blur">
+        <Card className="border-0 shadow-xl bg-card/95 backdrop-blur">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <Mail className="h-5 w-5 text-green-600" />
@@ -179,17 +179,17 @@ export default function ChoosePage() {
             {invitations.map((invitation) => (
               <div
                 key={invitation.id}
-                className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors"
+                className="flex items-center justify-between p-4 border border rounded-lg hover:border transition-colors"
               >
                 <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-                    <Building2 className="h-5 w-5 text-gray-600" />
+                  <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
+                    <Building2 className="h-5 w-5 text-muted-foreground" />
                   </div>
                   <div>
-                    <h3 className="font-medium text-gray-900">
+                    <h3 className="font-medium text-foreground">
                       {invitation.organizations.name}
                     </h3>
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <span>Role: {invitation.role}</span>
                       {invitation.teams?.name && (
                         <>
@@ -207,7 +207,7 @@ export default function ChoosePage() {
                 >
                   {acceptingInvitation === invitation.id ? (
                     <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-card mr-2" />
                       {t('choose.invitations.accepting')}
                     </>
                   ) : (
@@ -225,24 +225,24 @@ export default function ChoosePage() {
         {/* Alternative Option */}
         <div className="text-center space-y-4">
           <div className="flex items-center gap-4">
-            <div className="flex-1 h-px bg-gray-300"></div>
-            <span className="text-sm text-gray-500 bg-white px-4">
+            <div className="flex-1 h-px bg-muted"></div>
+            <span className="text-sm text-muted-foreground bg-card px-4">
               {t('choose.or')}
             </span>
-            <div className="flex-1 h-px bg-gray-300"></div>
+            <div className="flex-1 h-px bg-muted"></div>
           </div>
 
-          <Card className="border-2 border-dashed border-gray-300 hover:border-gray-400 transition-colors">
+          <Card className="border-2 border-dashed border hover:border transition-colors">
             <CardContent className="pt-6">
               <div className="text-center space-y-4">
                 <div className="mx-auto w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
                   <Plus className="h-6 w-6 text-primary" />
                 </div>
                 <div>
-                  <h3 className="font-medium text-gray-900 mb-2">
+                  <h3 className="font-medium text-foreground mb-2">
                     {t('choose.createOwn.title')}
                   </h3>
-                  <p className="text-sm text-gray-600 mb-4">
+                  <p className="text-sm text-muted-foreground mb-4">
                     {t('choose.createOwn.description')}
                   </p>
                   <Button

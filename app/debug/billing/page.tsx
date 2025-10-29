@@ -239,7 +239,7 @@ export default function BillingDebugPage() {
         {result.data && (
           <details className="mt-2">
             <summary className="cursor-pointer font-medium">Response Data</summary>
-            <pre className="mt-1 overflow-x-auto bg-gray-100 p-2 rounded text-xs">
+            <pre className="mt-1 overflow-x-auto bg-muted p-2 rounded text-xs">
               {JSON.stringify(result.data, null, 2)}
             </pre>
           </details>

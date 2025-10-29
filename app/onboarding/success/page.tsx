@@ -93,7 +93,7 @@ function SuccessPageContent() {
 
   // Success screen matching Figma design (24761-15630)
   return (
-    <div className="bg-white min-h-screen relative w-full">
+    <div className="bg-card min-h-screen relative w-full">
       {/* Centered content */}
       <div className="flex-1 flex flex-col items-center justify-center min-h-screen w-full">
         <div className="flex flex-col gap-8 items-center justify-start p-16 relative rounded-3xl">
@@ -135,7 +135,7 @@ function SuccessPageContent() {
           {/* CTA Button */}
           <button
             onClick={handleGoToDashboard}
-            className="bg-neutral-900 flex gap-2 h-10 items-center justify-center px-8 py-2 relative rounded-lg shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] hover:bg-neutral-800 transition-colors"
+            className="bg-foreground flex gap-2 h-10 items-center justify-center px-8 py-2 relative rounded-lg shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] hover:bg-foreground/90 transition-colors"
           >
             <div className="font-medium text-[14px] text-primary-foreground" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500, lineHeight: '20px' }}>
               <p className="block leading-[20px] whitespace-pre">Go to dashboard</p>

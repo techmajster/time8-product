@@ -344,7 +344,7 @@ export function NewLeaveRequestSheet({ leaveTypes, leaveBalances, userProfile, i
                 <Button 
                   type="submit" 
                   size="sm"
-                  className="bg-neutral-900 hover:bg-neutral-800 text-white"
+                  className="bg-foreground hover:bg-foreground/90 text-white"
                   disabled={!formData.leave_type_id || !dateRange?.from || !dateRange?.to || !calculatedDays || calculatedDays <= 0 || isSubmitting}
                   onClick={handleSubmit}
                 >

@@ -284,7 +284,7 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
 
                 {/* Separator */}
                 <div className="w-full">
-                  <div className="h-px bg-neutral-200 w-full" />
+                  <div className="h-px bg-border w-full" />
                 </div>
 
                 {/* Content */}
@@ -468,7 +468,7 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
 
                 {/* Separator */}
                 <div className="w-full">
-                  <div className="h-px bg-neutral-200 w-full" />
+                  <div className="h-px bg-border w-full" />
                 </div>
 
                 {selectedTeam && (

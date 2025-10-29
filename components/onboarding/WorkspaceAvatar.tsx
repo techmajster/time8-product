@@ -64,7 +64,7 @@ export function WorkspaceAvatar({
           {displayAvatars.map((member, index) => (
             <div
               key={member.id}
-              className={`${config.memberAvatar} rounded-full bg-gray-200 border-2 border-white flex items-center justify-center ${
+              className={`${config.memberAvatar} rounded-full bg-muted border-2 border-card flex items-center justify-center ${
                 index > 0 ? config.memberSpacing : ''
               }`}
               style={{ zIndex: displayAvatars.length - index }}
@@ -76,7 +76,7 @@ export function WorkspaceAvatar({
                   className="w-full h-full rounded-full object-cover"
                 />
               ) : (
-                <span className="text-xs font-medium text-gray-600">
+                <span className="text-xs font-medium text-muted-foreground">
                   {member.full_name.charAt(0).toUpperCase()}
                 </span>
               )}
@@ -84,17 +84,17 @@ export function WorkspaceAvatar({
           ))}
           {remainingCount > 0 && (
             <div
-              className={`${config.memberAvatar} rounded-full bg-gray-100 border-2 border-white flex items-center justify-center ${config.memberSpacing}`}
+              className={`${config.memberAvatar} rounded-full bg-muted border-2 border-card flex items-center justify-center ${config.memberSpacing}`}
               style={{ zIndex: 0 }}
             >
-              <span className="text-xs font-medium text-gray-500">
+              <span className="text-xs font-medium text-muted-foreground">
                 +{remainingCount}
               </span>
             </div>
           )}
         </div>
         {showMemberCount && (
-          <span className="ml-2 text-sm text-gray-500">
+          <span className="ml-2 text-sm text-muted-foreground">
             {memberCount} member{memberCount !== 1 ? 's' : ''}
           </span>
         )}
@@ -104,8 +104,8 @@ export function WorkspaceAvatar({
 
   // Default workspace initial avatar
   return (
-    <div className={`${config.container} rounded-full bg-gray-100 flex items-center justify-center`}>
-      <span className={`${config.text} font-semibold text-gray-700`}>
+    <div className={`${config.container} rounded-full bg-muted flex items-center justify-center`}>
+      <span className={`${config.text} font-semibold text-foreground`}>
         {getInitials(workspaceName)}
       </span>
     </div>
