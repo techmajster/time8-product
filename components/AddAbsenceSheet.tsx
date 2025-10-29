@@ -100,7 +100,7 @@ function EmployeeSelectTrigger({
         </AvatarFallback>
       </Avatar>
       <div className="flex-1 flex flex-col items-start justify-center">
-        <div className="font-medium text-sm text-neutral-950 leading-5 truncate w-full">
+        <div className="font-medium text-sm text-foreground leading-5 truncate w-full">
           {employee.full_name || employee.email}
         </div>
         <div className="font-normal text-xs text-muted-foreground leading-4 truncate w-full">
@@ -136,7 +136,7 @@ function LeaveTypeSelectTrigger({
   return (
     <div className="flex flex-row items-center gap-2 h-12 px-3 py-2 w-full">
       <div className="flex-1 flex flex-col items-start justify-center">
-        <div className="font-medium text-sm text-neutral-950 leading-5 truncate w-full">
+        <div className="font-medium text-sm text-foreground leading-5 truncate w-full">
           {leaveType.name}
           {typeof balance === 'number' && ` (${balance} dni dostępne)`}
         </div>
@@ -157,7 +157,7 @@ function OverlapUserItem({ user }: { user: OverlapUser }) {
         </AvatarFallback>
       </Avatar>
       <div className="flex-1 flex flex-col items-start justify-start">
-        <div className="font-medium text-sm text-neutral-950 leading-5 truncate w-full">
+        <div className="font-medium text-sm text-foreground leading-5 truncate w-full">
           {user.full_name || user.email}
         </div>
         <div className="font-normal text-sm text-muted-foreground leading-5 truncate w-full">
@@ -165,7 +165,7 @@ function OverlapUserItem({ user }: { user: OverlapUser }) {
         </div>
       </div>
       <div className="flex flex-col items-end justify-center text-sm">
-        <div className="font-medium text-neutral-950 leading-5">
+        <div className="font-medium text-foreground leading-5">
           {user.leave_type_name}
         </div>
         <div className="font-normal text-muted-foreground leading-5">
