@@ -433,20 +433,38 @@ export default function AdminSettingsClient({
   // Billing helper functions
   const getSubscriptionStatus = () => {
     if (!subscriptionData) return { status: 'free', badge: t('subscriptionStatus.free'), color: 'bg-green-100 text-green-800 border-green-200' }
-    
+
     switch (subscriptionData.status) {
       case 'active':
         return { status: 'active', badge: t('subscriptionStatus.active'), color: 'bg-green-100 text-green-800 border-green-200' }
+      case 'on_trial':
+        return { status: 'on_trial', badge: t('subscriptionStatus.on_trial'), color: 'bg-blue-100 text-blue-800 border-blue-200' }
       case 'paused':
         return { status: 'paused', badge: t('subscriptionStatus.paused'), color: 'bg-yellow-100 text-yellow-800 border-yellow-200' }
       case 'cancelled':
         return { status: 'cancelled', badge: t('subscriptionStatus.cancelled'), color: 'bg-red-100 text-red-800 border-red-200' }
+      case 'expired':
+        return { status: 'expired', badge: t('subscriptionStatus.expired'), color: 'bg-red-100 text-red-800 border-red-200' }
       case 'past_due':
         return { status: 'past_due', badge: t('subscriptionStatus.pastDue'), color: 'bg-red-100 text-red-800 border-red-200' }
       default:
         return { status: 'unknown', badge: 'Unknown', color: 'bg-muted text-foreground border' }
     }
   }
+
+  // Calculate trial days remaining
+  const getTrialDaysRemaining = () => {
+    if (!subscriptionData?.trial_ends_at) return null
+
+    const now = new Date()
+    const trialEnd = new Date(subscriptionData.trial_ends_at)
+    const diffTime = trialEnd.getTime() - now.getTime()
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+    return diffDays > 0 ? diffDays : 0
+  }
+
+  const trialDaysRemaining = getTrialDaysRemaining()
 
   const formatCurrency = (amount: number, currency: string = 'PLN') => {
     return new Intl.NumberFormat('pl-PL', {
@@ -1206,6 +1224,45 @@ export default function AdminSettingsClient({
         </FigmaTabsContent>
 
         <FigmaTabsContent value="billing" className="mt-6 space-y-6">
+          {/* Trial Countdown Banner */}
+          {subscriptionData?.status === 'on_trial' && trialDaysRemaining !== null && (
+            <div className={`rounded-lg border p-4 ${
+              trialDaysRemaining <= 3
+                ? 'bg-red-50 border-red-200'
+                : 'bg-blue-50 border-blue-200'
+            }`}>
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-1">
+                  <h3 className={`font-semibold ${
+                    trialDaysRemaining <= 3 ? 'text-red-900' : 'text-blue-900'
+                  }`}>
+                    {t('trial.bannerTitle')}
+                  </h3>
+                  <p className={`text-sm ${
+                    trialDaysRemaining <= 3 ? 'text-red-700' : 'text-blue-700'
+                  }`}>
+                    {trialDaysRemaining === 0
+                      ? t('trial.hoursRemaining')
+                      : trialDaysRemaining === 1
+                        ? t('trial.dayRemaining')
+                        : t('trial.daysRemaining', { days: trialDaysRemaining })
+                    }
+                  </p>
+                </div>
+                <Button
+                  className={`${
+                    trialDaysRemaining <= 3
+                      ? 'bg-red-600 hover:bg-red-700'
+                      : 'bg-blue-600 hover:bg-blue-700'
+                  } text-white h-9 px-4 rounded-lg shadow-sm whitespace-nowrap`}
+                  onClick={() => router.push('/onboarding/add-users?upgrade=true')}
+                >
+                  {t('trial.upgradeCta')}
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* Current Subscription Card */}
           <Card className="border border-border">
             <CardHeader className="pb-0">
@@ -1360,9 +1417,52 @@ export default function AdminSettingsClient({
                           {t('paymentFailed')}
                         </p>
                       </>
+                    ) : subscriptionData.status === 'on_trial' ? (
+                      <>
+                        <Button
+                          className="bg-blue-600 hover:bg-blue-700 text-white h-9 px-4 rounded-lg shadow-sm"
+                          onClick={() => router.push('/onboarding/add-users?upgrade=true')}
+                        >
+                          {t('trial.upgradeCta')}
+                        </Button>
+                        <p className="text-xs text-blue-600">
+                          {trialDaysRemaining !== null && (
+                            trialDaysRemaining === 0
+                              ? t('trial.hoursRemaining')
+                              : trialDaysRemaining === 1
+                                ? t('trial.dayRemaining')
+                                : t('trial.daysRemaining', { days: trialDaysRemaining })
+                          )}
+                        </p>
+                      </>
+                    ) : subscriptionData.status === 'paused' ? (
+                      <>
+                        <Button
+                          className="bg-orange-600 hover:bg-orange-700 text-white h-9 px-4 rounded-lg shadow-sm"
+                          onClick={handleOpenCustomerPortal}
+                          disabled={portalLoading}
+                        >
+                          {t('paused.resumeCta')}
+                        </Button>
+                        <p className="text-xs text-orange-600">
+                          {t('paused.message')}
+                        </p>
+                      </>
+                    ) : subscriptionData.status === 'expired' ? (
+                      <>
+                        <Button
+                          className="bg-red-600 hover:bg-red-700 text-white h-9 px-4 rounded-lg shadow-sm"
+                          onClick={() => router.push('/onboarding/add-users')}
+                        >
+                          {t('reactivateSubscription')}
+                        </Button>
+                        <p className="text-xs text-red-600">
+                          {t('trial.expiredMessage')}
+                        </p>
+                      </>
                     ) : subscriptionData.status === 'cancelled' ? (
                       <>
-                        <Button 
+                        <Button
                           className=" text-primary-foreground h-9 px-4 rounded-lg shadow-sm"
                           onClick={() => router.push('/onboarding/add-users')}
                         >

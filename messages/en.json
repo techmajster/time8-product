@@ -15,8 +15,18 @@
         "invite": "Invite team members and assign roles",
         "track": "Track leave balances and availability"
       },
-      "cta": "Create New Workspace",
+      "cta": "Create new workspace",
       "footer": "You'll be the admin and can customize everything later."
+    },
+    "invitation": {
+      "title": "You have been invited\nto workspace:",
+      "accept": "Accept invitation",
+      "accepting": "Accepting..."
+    },
+    "workspace": {
+      "title": "Your workspace:",
+      "enter": "Enter workspace",
+      "entering": "Entering..."
     },
     "createWorkspace": {
       "back": "Back",
@@ -26,8 +36,9 @@
         "title": "Organization Details",
         "description": "This information will be visible to your team members.",
         "name": {
-          "label": "Organization Name",
-          "placeholder": "Enter your organization name"
+          "label": "Name your workspace",
+          "placeholder": "Enter the name",
+          "workspaceAddress": "Workspace address: time8.io/{slug}"
         },
         "slug": {
           "label": "Workspace URL",
@@ -39,14 +50,19 @@
         },
         "language": {
           "label": "Main language",
+          "placeholder": "Select language",
           "description": "This is the language that will be used in the dashboard."
         },
         "country": {
           "label": "Holiday Calendar preset",
+          "placeholder": "Select country",
           "description": "Calendar settings will automatically adjusted for selected country"
         },
         "submit": "Create & let's get started",
-        "submitting": "Creating..."
+        "submitting": "Creating...",
+        "error": {
+          "nameRequired": "Please enter a workspace name"
+        }
       },
       "footer": "Your workspace will be ready in just a moment."
     },
@@ -88,6 +104,55 @@
         "limit": "up to 3 users",
         "cta": "Create new workspace"
       }
+    },
+    "addUsers": {
+      "title": "Add users to your workspace",
+      "titleUpgrade": "Upgrade your subscription",
+      "question": "How many users do you want to add?",
+      "questionUpgrade": "How many seats do you need?",
+      "pricing": {
+        "free": "Free",
+        "upTo3Users": "up to 3 users",
+        "monthlyPayment": "Monthly payment",
+        "annualPayment": "Annual payment",
+        "mostPopular": "Most popular",
+        "perMonthPerUser": "/ month / user",
+        "pricesNote": "Prices shown in {currency}. EUR pricing available at checkout for EU customers."
+      },
+      "total": {
+        "label": "Today's total:",
+        "free": "Free",
+        "monthly": "{amount} {currency} / month",
+        "annual": "{amount} {currency} (billed annually)"
+      },
+      "actions": {
+        "continue": "Continue",
+        "processing": "Processing...",
+        "cancel": "Cancel"
+      }
+    },
+    "paymentSuccess": {
+      "loading": {
+        "verifying": "Verifying payment...",
+        "settingUp": "Setting up workspace...",
+        "description": "Please wait while we process your request"
+      },
+      "error": {
+        "title": "Payment Error",
+        "button": "Go to Dashboard"
+      },
+      "success": {
+        "title": "Payment success!",
+        "titleUpgraded": "Subscription upgraded!",
+        "description": "You can now add users to your workspace.",
+        "descriptionUpgraded": "Your subscription has been upgraded. Redirecting to dashboard...",
+        "button": "Start using time8.io!"
+      }
+    },
+    "paymentFailure": {
+      "title": "Payment failed!",
+      "description": "You can now add users to your workspace.",
+      "button": "Back to payment"
     }
   },
   "common": {
@@ -126,8 +191,8 @@
     "login": "Sign In",
     "logout": "Sign Out",
     "signup": "Sign Up",
-    "loginTitle": "Sign In",
-    "signupTitle": "Create Account",
+    "loginTitle": "Login",
+    "signupTitle": "Register",
     "forgotPasswordTitle": "Reset Password",
     "resetPasswordTitle": "Set New Password",
     "email": "Email",
@@ -135,9 +200,12 @@
     "confirmPassword": "Confirm Password",
     "firstName": "First Name",
     "lastName": "Last Name",
-    "forgotPassword": "Forgot Password?",
+    "fullName": "First and last name (or nickname)",
+    "forgotPassword": "Forgot password?",
     "resetPassword": "Reset Password",
     "createAccount": "Create Account",
+    "registerButton": "Register",
+    "loginButton": "Login",
     "haveAccount": "Already have an account?",
     "noAccount": "Don't have an account?",
     "signInWithGoogle": "Sign in with Google",
@@ -148,25 +216,30 @@
     "newPassword": "New Password",
     "confirmNewPassword": "Confirm New Password",
     "updatePassword": "Update Password",
-    "loginDescription": "Enter your email below to login to your account.",
-    "signupDescription": "Enter your details below to create your account",
+    "loginDescription": "Log in to unlock tailored content and stay connected with your community.",
+    "signupDescription": "Fill in the details below to create your account.",
     "forgotPasswordDescription": "Enter your email to receive reset instructions",
     "resetPasswordDescription": "Enter your new password below",
-    "emailPlaceholder": "m@example.com",
-    "fullNamePlaceholder": "John Doe",
+    "emailPlaceholder": "Email",
+    "fullNamePlaceholder": "First and last name",
+    "passwordPlaceholder": "Password",
     "keepSignedIn": "Keep me signed in",
     "signingIn": "Signing in...",
     "creatingAccount": "Creating account...",
     "sendingInstructions": "Sending instructions...",
     "updatingPassword": "Updating password...",
-    "orContinueWith": "Or continue with",
+    "orContinueWith": "OR",
     "passwordUpdated": "Password Updated!",
     "passwordUpdatedDescription": "Your password has been successfully updated. Redirecting to dashboard...",
     "sendResetInstructions": "Send reset instructions",
     "passwordsDoNotMatch": "Passwords do not match",
-    "passwordTooShort": "Password must be at least 6 characters",
-    "minimumCharacters": "Minimum 6 characters",
+    "passwordTooShort": "Password must be at least 8 characters",
+    "minimumCharacters": "Minimum 8 characters.",
+    "termsAndConditions": "I agree to the Terms & Conditions",
     "resetLinkDescription": "We'll send you a link to reset your password",
+    "heroLine1": "With us you",
+    "heroLine2": "don't need",
+    "heroLine3": "an HR department",
     "accountCreated": "Account Created!",
     "accountCreatedDescription": "Your account has been created successfully.",
     "accountCreatedAndVerificationSent": "Account created successfully",
@@ -564,9 +637,27 @@
     "subscriptionStatus": {
       "free": "Free Plan",
       "active": "Active",
+      "on_trial": "Trial",
       "paused": "Paused",
       "cancelled": "Cancelled",
+      "expired": "Expired",
       "pastDue": "Payment Failed"
+    },
+    "trial": {
+      "bannerTitle": "Trial Period",
+      "daysRemaining": "{days} days remaining in your trial",
+      "dayRemaining": "1 day remaining in your trial",
+      "hoursRemaining": "Less than 24 hours remaining",
+      "upgradeCta": "Upgrade to Paid Plan",
+      "expiredMessage": "Your trial has expired"
+    },
+    "payment": {
+      "failedMessage": "Payment failed - please update your payment method",
+      "updatePaymentCta": "Update Payment Method"
+    },
+    "paused": {
+      "message": "Subscription is paused",
+      "resumeCta": "Resume Subscription"
     }
   },
   "date": {

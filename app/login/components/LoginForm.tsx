@@ -93,16 +93,47 @@ export function LoginForm({ onModeChange, className }: LoginFormProps) {
     setError(null)
 
     try {
+      // First, check if user exists and what provider they use
+      const providerCheck = await fetch('/api/auth/check-provider', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      })
+
+      if (providerCheck.ok) {
+        const providerData = await providerCheck.json()
+
+        if (providerData.exists && providerData.provider === 'google') {
+          setError('This account was created with Google. Please use the "Continue with Google" button to log in.')
+          return
+        }
+
+        if (providerData.exists && !providerData.emailConfirmed) {
+          setError('Please verify your email before logging in. Check your inbox for the verification link.')
+          return
+        }
+      }
+
       const supabase = createClient()
-      
-      const { error: authError } = await supabase.auth.signInWithPassword({
+
+      console.log('🔐 Attempting login with email:', email)
+
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
       if (authError) {
+        console.error('❌ Supabase auth error:', {
+          message: authError.message,
+          status: authError.status,
+          name: authError.name,
+          code: (authError as any).code
+        })
         throw authError
       }
+
+      console.log('✅ Login successful:', data.user?.email)
 
       // If invitation token exists, accept the invitation
       if (invitationToken) {
@@ -123,18 +154,20 @@ export function LoginForm({ onModeChange, className }: LoginFormProps) {
           if (acceptResponse.ok) {
             const result = await acceptResponse.json()
             console.log('✅ Invitation accepted successfully:', result)
-            // Redirect to dashboard of the new workspace
-            router.push('/dashboard')
-            router.refresh()
+            // Force a full page navigation to ensure the new workspace context is loaded
+            // The API has already set the active-organization-id cookie
+            window.location.href = '/dashboard'
             return
           } else {
             const errorData = await acceptResponse.json()
             console.error('❌ Failed to accept invitation:', errorData)
             setError(errorData.error || 'Failed to accept invitation. Please try again.')
+            return
           }
         } catch (error) {
           console.error('❌ Error accepting invitation:', error)
           setError('Failed to accept invitation. Please try again.')
+          return
         }
       }
 
@@ -144,10 +177,12 @@ export function LoginForm({ onModeChange, className }: LoginFormProps) {
       router.refresh()
     } catch (error: any) {
       console.error('Login error:', error)
-      
-      // Handle specific error cases
+
+      // Simple, clear error handling based on what actually went wrong
       if (error?.message?.includes('Email not confirmed')) {
-        setError('Please check your email and click the verification link before logging in. Check your spam folder if you don\'t see the email.')
+        setError('Please verify your email before logging in. Check your inbox for the verification link.')
+      } else if (error?.message?.includes('Invalid login credentials')) {
+        setError('Invalid email or password. Please check your credentials and try again.')
       } else {
         setError(error?.message || 'An error occurred during login')
       }
@@ -157,7 +192,7 @@ export function LoginForm({ onModeChange, className }: LoginFormProps) {
   }
 
   return (
-    <form className={cn("flex flex-col gap-6", className)} onSubmit={handleSubmit}>
+    <form className={cn("flex flex-col gap-4 w-full", className)} onSubmit={handleSubmit}>
       {error && (
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
@@ -165,13 +200,13 @@ export function LoginForm({ onModeChange, className }: LoginFormProps) {
       )}
       
       {success && (
-        <Alert variant="default" className="border-green-200 bg-green-50 text-green-800">
+        <Alert variant="default" className="border-primary/20 bg-primary/5 text-foreground">
           <AlertDescription>{success}</AlertDescription>
         </Alert>
       )}
 
-      <div className="grid gap-6">
-        <div className="grid gap-3">
+      <div className="grid gap-4">
+        <div className="grid gap-2">
           <Label htmlFor="email">{t('email')}</Label>
           <Input 
             id="email" 
@@ -181,15 +216,16 @@ export function LoginForm({ onModeChange, className }: LoginFormProps) {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             disabled={loading}
+            className="h-9"
           />
         </div>
-        <div className="grid gap-3">
-          <div className="flex items-center">
+        <div className="grid gap-2">
+          <div className="flex items-center justify-between">
             <Label htmlFor="password">{t('password')}</Label>
             <button
               type="button"
               onClick={() => onModeChange('forgot-password')}
-              className="ml-auto text-sm underline-offset-4 hover:underline"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline cursor-pointer"
             >
               {t('forgotPassword')}
             </button>
@@ -197,28 +233,39 @@ export function LoginForm({ onModeChange, className }: LoginFormProps) {
           <Input 
             id="password" 
             type="password" 
+            placeholder={t('passwordPlaceholder')}
             required 
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             disabled={loading}
+            className="h-9"
           />
         </div>
+      </div>
+      
+      <div className="flex flex-col gap-6 items-center justify-center">
         <Button type="submit" className="w-full" disabled={loading}>
-          {loading ? t('signingIn') : t('login')}
+          {loading ? t('signingIn') : t('loginButton')}
         </Button>
-        <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
-          <span className="bg-background text-muted-foreground relative z-10 px-2">
-            {t('orContinueWith')}
-          </span>
+        <div className="relative w-full py-1">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-border" />
+          </div>
+          <div className="relative flex justify-center">
+            <span className="bg-background px-2 text-xs text-muted-foreground">
+              {t('orContinueWith')}
+            </span>
+          </div>
         </div>
         <GoogleAuthButton mode="signin" />
       </div>
+      
       <div className="text-center text-sm">
         {t('noAccount')}{" "}
         <button
           type="button"
           onClick={() => onModeChange('signup')}
-          className="underline underline-offset-4"
+          className="text-primary underline underline-offset-4 hover:text-primary/80 hover:no-underline transition-colors cursor-pointer"
         >
           {t('signup')}
         </button>

@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { authenticateAndGetProfile } from '@/lib/auth-utils'
+import { cookies } from 'next/headers'
 import { MarkReadResponse } from '@/types/notification'
 
 export async function PATCH(
@@ -8,17 +8,43 @@ export async function PATCH(
 ) {
   try {
     // Authenticate user
-    const authResult = await authenticateAndGetProfile()
+    const supabase = await createClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
 
-    if (!authResult.success || !authResult.user || !authResult.profile) {
+    if (authError || !user) {
       return Response.json(
         { error: 'Unauthorized' },
         { status: 401 }
       )
     }
 
-    const { user, profile } = authResult
-    const organizationId = profile.organization_id
+    // Get active organization from cookie (per-workspace notifications)
+    const cookieStore = await cookies()
+    const activeOrgId = cookieStore.get('active-organization-id')?.value
+
+    // Get user's organization membership
+    let userOrgQuery = supabase
+      .from('user_organizations')
+      .select('organization_id, role')
+      .eq('user_id', user.id)
+      .eq('is_active', true)
+
+    if (activeOrgId) {
+      userOrgQuery = userOrgQuery.eq('organization_id', activeOrgId)
+    } else {
+      userOrgQuery = userOrgQuery.eq('is_default', true)
+    }
+
+    const { data: userOrg, error: orgError } = await userOrgQuery.single()
+
+    if (orgError || !userOrg) {
+      return Response.json(
+        { error: 'Organization not found' },
+        { status: 404 }
+      )
+    }
+
+    const organizationId = userOrg.organization_id
     const notificationId = params.id
 
     // Validate notification ID
@@ -39,9 +65,6 @@ export async function PATCH(
         { status: 400 }
       )
     }
-
-    // Create Supabase client
-    const supabase = await createClient()
 
     // Update notification
     const { data, error } = await supabase

@@ -591,4 +591,261 @@ describe('Webhook Subscription Event Processing', () => {
       expect(result.error).toContain('Invalid subscription status');
     });
   });
+
+  describe('subscription_payment_failed event', () => {
+    const mockPaymentFailedPayload = {
+      meta: {
+        event_name: 'subscription_payment_failed',
+        event_id: 'evt_payment_failed_001'
+      },
+      data: {
+        id: '12345',
+        type: 'subscriptions',
+        attributes: {
+          status: 'past_due',
+          quantity: 5,
+          renews_at: '2024-12-01T00:00:00Z',
+          ends_at: null,
+          trial_ends_at: null,
+          customer_id: 67890,
+          variant_id: 11111
+        }
+      }
+    };
+
+    beforeEach(async () => {
+      organizationId = await createTestOrganization('Test Payment Failed Org');
+    });
+
+    it('should process payment_failed event and update subscription status', async () => {
+      // Mock existing subscription found
+      mockSupabaseSingle.mockResolvedValueOnce({
+        data: {
+          id: 'existing-subscription-id',
+          organization_id: organizationId,
+          lemonsqueezy_subscription_id: '12345'
+        },
+        error: null
+      });
+
+      // Mock successful update
+      mockSupabaseSelect.mockResolvedValueOnce({
+        data: [{
+          id: 'existing-subscription-id',
+          status: 'past_due'
+        }],
+        error: null
+      });
+
+      const { processSubscriptionPaymentFailed } = await import('@/app/api/webhooks/lemonsqueezy/handlers');
+
+      const result = await processSubscriptionPaymentFailed(mockPaymentFailedPayload);
+
+      expect(result.success).toBe(true);
+      expect(mockSupabaseFrom).toHaveBeenCalledWith('subscriptions');
+      expect(mockSupabaseUpdate).toHaveBeenCalledWith({
+        status: 'past_due',
+        updated_at: expect.any(String)
+      });
+    });
+
+    it('should handle subscription not found for payment_failed', async () => {
+      // Mock subscription not found
+      mockSupabaseSingle.mockResolvedValueOnce({
+        data: null,
+        error: null
+      });
+
+      const { processSubscriptionPaymentFailed } = await import('@/app/api/webhooks/lemonsqueezy/handlers');
+
+      const result = await processSubscriptionPaymentFailed(mockPaymentFailedPayload);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Subscription not found');
+    });
+
+    it('should skip if event already processed', async () => {
+      // Mock event already processed
+      const { isEventAlreadyProcessed } = await import('@/app/api/webhooks/lemonsqueezy/handlers');
+      jest.spyOn({ isEventAlreadyProcessed }, 'isEventAlreadyProcessed').mockResolvedValueOnce(true);
+
+      const { processSubscriptionPaymentFailed } = await import('@/app/api/webhooks/lemonsqueezy/handlers');
+
+      const result = await processSubscriptionPaymentFailed(mockPaymentFailedPayload);
+
+      expect(result.success).toBe(true);
+      expect(result.data?.message).toContain('already processed');
+    });
+  });
+
+  describe('subscription_paused event', () => {
+    const mockPausedPayload = {
+      meta: {
+        event_name: 'subscription_paused',
+        event_id: 'evt_paused_001'
+      },
+      data: {
+        id: '12345',
+        type: 'subscriptions',
+        attributes: {
+          status: 'paused',
+          quantity: 5,
+          renews_at: null,
+          ends_at: null,
+          trial_ends_at: null,
+          customer_id: 67890,
+          variant_id: 11111
+        }
+      }
+    };
+
+    beforeEach(async () => {
+      organizationId = await createTestOrganization('Test Paused Org');
+    });
+
+    it('should process paused event and update subscription status', async () => {
+      // Mock existing subscription found
+      mockSupabaseSingle.mockResolvedValueOnce({
+        data: {
+          id: 'existing-subscription-id',
+          organization_id: organizationId,
+          lemonsqueezy_subscription_id: '12345'
+        },
+        error: null
+      });
+
+      // Mock successful update
+      mockSupabaseSelect.mockResolvedValueOnce({
+        data: [{
+          id: 'existing-subscription-id',
+          status: 'paused'
+        }],
+        error: null
+      });
+
+      const { processSubscriptionPaused } = await import('@/app/api/webhooks/lemonsqueezy/handlers');
+
+      const result = await processSubscriptionPaused(mockPausedPayload);
+
+      expect(result.success).toBe(true);
+      expect(mockSupabaseUpdate).toHaveBeenCalledWith({
+        status: 'paused',
+        renews_at: null,
+        updated_at: expect.any(String)
+      });
+    });
+
+    it('should handle subscription not found for paused', async () => {
+      mockSupabaseSingle.mockResolvedValueOnce({
+        data: null,
+        error: null
+      });
+
+      const { processSubscriptionPaused } = await import('@/app/api/webhooks/lemonsqueezy/handlers');
+
+      const result = await processSubscriptionPaused(mockPausedPayload);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Subscription not found');
+    });
+  });
+
+  describe('subscription_resumed event', () => {
+    const mockResumedPayload = {
+      meta: {
+        event_name: 'subscription_resumed',
+        event_id: 'evt_resumed_001'
+      },
+      data: {
+        id: '12345',
+        type: 'subscriptions',
+        attributes: {
+          status: 'active',
+          quantity: 5,
+          renews_at: '2025-01-01T00:00:00Z',
+          ends_at: null,
+          trial_ends_at: null,
+          customer_id: 67890,
+          variant_id: 11111
+        }
+      }
+    };
+
+    beforeEach(async () => {
+      organizationId = await createTestOrganization('Test Resumed Org');
+    });
+
+    it('should process resumed event and reactivate subscription', async () => {
+      // Mock existing subscription found
+      mockSupabaseSingle.mockResolvedValueOnce({
+        data: {
+          id: 'existing-subscription-id',
+          organization_id: organizationId,
+          lemonsqueezy_subscription_id: '12345',
+          quantity: 5
+        },
+        error: null
+      });
+
+      // Mock successful update
+      mockSupabaseSelect.mockResolvedValueOnce({
+        data: [{
+          id: 'existing-subscription-id',
+          status: 'active'
+        }],
+        error: null
+      });
+
+      const { processSubscriptionResumed } = await import('@/app/api/webhooks/lemonsqueezy/handlers');
+
+      const result = await processSubscriptionResumed(mockResumedPayload);
+
+      expect(result.success).toBe(true);
+      expect(mockSupabaseUpdate).toHaveBeenCalledWith({
+        status: 'active',
+        renews_at: '2025-01-01T00:00:00Z',
+        updated_at: expect.any(String)
+      });
+    });
+
+    it('should handle subscription not found for resumed', async () => {
+      mockSupabaseSingle.mockResolvedValueOnce({
+        data: null,
+        error: null
+      });
+
+      const { processSubscriptionResumed } = await import('@/app/api/webhooks/lemonsqueezy/handlers');
+
+      const result = await processSubscriptionResumed(mockResumedPayload);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Subscription not found');
+    });
+
+    it('should update organization paid_seats when subscription resumed', async () => {
+      // Mock existing subscription
+      mockSupabaseSingle.mockResolvedValueOnce({
+        data: {
+          id: 'subscription-id',
+          organization_id: organizationId,
+          quantity: 5
+        },
+        error: null
+      });
+
+      // Mock successful subscription update
+      mockSupabaseSelect.mockResolvedValueOnce({
+        data: [{ id: 'subscription-id', quantity: 5 }],
+        error: null
+      });
+
+      const { processSubscriptionResumed } = await import('@/app/api/webhooks/lemonsqueezy/handlers');
+
+      await processSubscriptionResumed(mockResumedPayload);
+
+      // Should update organization with seats when resumed
+      expect(mockSupabaseFrom).toHaveBeenCalledWith('organizations');
+      expect(mockSupabaseUpdate).toHaveBeenCalledWith({ paid_seats: 5 });
+    });
+  });
 });

@@ -2,12 +2,16 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
-import { Loader2 } from 'lucide-react'
-import { Time8Logo } from '@/components/ui/time8-logo'
+import { Loader2, CircleCheck, XCircle } from 'lucide-react'
+import { DecorativeBackground } from '@/components/auth/DecorativeBackground'
+import { LanguageSwitcher } from '@/components/auth/LanguageSwitcher'
+import Image from 'next/image'
 
 function PaymentSuccessPageContent() {
+  const t = useTranslations('onboarding.paymentSuccess')
   const [isLoading, setIsLoading] = useState(true)
   const [subscriptionData, setSubscriptionData] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
@@ -18,6 +22,8 @@ function PaymentSuccessPageContent() {
   const searchParams = useSearchParams()
 
   useEffect(() => {
+    let isMounted = true // Prevent race conditions from double useEffect calls
+
     const checkPaymentAndSetup = async () => {
       const supabase = createClient()
       const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -84,6 +90,7 @@ function PaymentSuccessPageContent() {
           }
 
           // Organization doesn't exist yet, proceed with creation
+          if (!isMounted) return // Check if component is still mounted
           setIsCreatingOrganization(true)
 
           console.log(isFree ? '🆓 Creating free tier organization' : '💳 Creating paid tier organization after payment')
@@ -101,7 +108,24 @@ function PaymentSuccessPageContent() {
 
           const result = await response.json()
 
+          if (!isMounted) return // Check again after async operation
+
           if (!response.ok) {
+            // If it's a duplicate error and we got an existing org, use it
+            if (result.existing && result.organization) {
+              console.log('✅ Organization already exists (API returned existing)', result.organization)
+              sessionStorage.removeItem('pending_organization')
+              setOrganizationId(result.organization.id)
+              setIsCreatingOrganization(false)
+
+              if (isFree) {
+                setSubscriptionData({ status: 'free', seats: 3 })
+              } else {
+                setSubscriptionData({ status: 'processing' })
+              }
+              setIsLoading(false)
+              return
+            }
             throw new Error(result.error || 'Failed to create organization')
           }
 
@@ -157,6 +181,11 @@ function PaymentSuccessPageContent() {
     }
 
     checkPaymentAndSetup()
+
+    // Cleanup function to prevent state updates after unmount
+    return () => {
+      isMounted = false
+    }
   }, [router, searchParams])
 
   const handleContinue = () => {
@@ -165,20 +194,34 @@ function PaymentSuccessPageContent() {
 
   if (isLoading) {
     return (
-      <div className="bg-white content-stretch flex flex-col gap-2.5 items-center justify-center relative min-h-screen w-full">
-        <div className="box-border content-stretch flex flex-col gap-8 items-center justify-start p-16 relative rounded-3xl shrink-0">
-          {/* Loading Icon */}
-          <Loader2 className="w-16 h-16 animate-spin text-muted-foreground" />
+      <div className="bg-white min-h-screen relative">
+        <DecorativeBackground />
+        
+        {/* Logo */}
+        <div className="absolute left-8 top-8 z-10">
+          <Image
+            alt="time8 logo"
+            className="block h-[30px] w-auto"
+            src="/assets/auth/30f1f246576f6427b3a9b511194297cbba4d7ec6.svg"
+            width={108}
+            height={30}
+            priority
+          />
+        </div>
 
-          {/* Text Content */}
-          <div className="content-stretch flex flex-col gap-3 items-start justify-start relative shrink-0">
-            <div className="content-stretch flex flex-col gap-3 items-center justify-start relative shrink-0 w-full">
-              <div className="font-bold text-[30px] text-center text-foreground leading-9" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 700 }}>
-                {isCreatingOrganization ? 'Setting up workspace...' : 'Verifying payment...'}
-              </div>
-            </div>
-            <div className="font-normal text-[14px] text-center text-muted-foreground w-full leading-5" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400 }}>
-              Please wait while we process your request
+        <LanguageSwitcher />
+
+        {/* Centered content */}
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
+          <div className="flex flex-col gap-8 items-center p-16">
+            <Loader2 className="size-16 animate-spin text-muted-foreground" />
+            <div className="flex flex-col gap-3 items-center">
+              <h1 className="text-3xl font-bold leading-9 text-center text-foreground">
+                {isCreatingOrganization ? t('loading.settingUp') : t('loading.verifying')}
+              </h1>
+              <p className="text-sm text-muted-foreground text-center leading-5">
+                {t('loading.description')}
+              </p>
             </div>
           </div>
         </div>
@@ -188,92 +231,80 @@ function PaymentSuccessPageContent() {
 
   if (error) {
     return (
-      <div className="bg-white content-stretch flex flex-col gap-2.5 items-center justify-center relative min-h-screen w-full">
-        <div className="box-border content-stretch flex flex-col gap-8 items-center justify-start p-16 relative rounded-3xl shrink-0">
-          {/* Error Icon */}
-          <div className="relative shrink-0 size-16">
-            <div className="absolute inset-2">
-              <div className="absolute inset-0" style={{ stroke: '#dc2626' }}>
-                <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 55 55">
-                  <path 
-                    d="M54.3333 27.6667C54.3333 42.3943 42.3943 54.3333 27.6667 54.3333C12.9391 54.3333 1 42.3943 1 27.6667C1 12.9391 12.9391 1 27.6667 1C42.3943 1 54.3333 12.9391 54.3333 27.6667ZM22.3333 22.3333L33 33M33 22.3333L22.3333 33"
-                    stroke="#dc2626" 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                    strokeWidth="1.33" 
-                  />
-                </svg>
-              </div>
-            </div>
-          </div>
+      <div className="bg-white min-h-screen relative">
+        <DecorativeBackground />
+        
+        {/* Logo */}
+        <div className="absolute left-8 top-8 z-10">
+          <Image
+            alt="time8 logo"
+            className="block h-[30px] w-auto"
+            src="/assets/auth/30f1f246576f6427b3a9b511194297cbba4d7ec6.svg"
+            width={108}
+            height={30}
+            priority
+          />
+        </div>
 
-          {/* Text Content */}
-          <div className="content-stretch flex flex-col gap-3 items-start justify-start relative shrink-0">
-            <div className="content-stretch flex flex-col gap-3 items-center justify-start relative shrink-0 w-full">
-              <div className="font-bold text-[30px] text-center text-foreground leading-9" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 700 }}>
-                Payment Error
-              </div>
-            </div>
-            <div className="font-normal text-[14px] text-center text-muted-foreground w-full leading-5" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400 }}>
-              {error}
-            </div>
-          </div>
+        <LanguageSwitcher />
 
-          {/* Button */}
-          <Button
-            onClick={() => router.push('/dashboard')}
-            className="bg-foreground hover:bg-foreground/90 content-stretch flex gap-2 h-10 items-center justify-center px-8 py-2 relative rounded-lg shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] shrink-0 font-medium text-[14px] text-primary-foreground"
-            style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500 }}
-          >
-            Go to Dashboard
-          </Button>
+        {/* Centered content */}
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
+          <div className="flex flex-col gap-8 items-center p-16">
+            <XCircle className="size-16 text-destructive stroke-[1.33]" />
+            <div className="flex flex-col gap-3 items-center">
+              <h1 className="text-3xl font-bold leading-9 text-center text-foreground">
+                {t('error.title')}
+              </h1>
+              <p className="text-sm text-muted-foreground text-center leading-5">
+                {error}
+              </p>
+            </div>
+            <Button onClick={() => router.push('/dashboard')}>
+              {t('error.button')}
+            </Button>
+          </div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="bg-white content-stretch flex flex-col gap-2.5 items-center justify-center relative min-h-screen w-full">
-      <div className="box-border content-stretch flex flex-col gap-8 items-center justify-start p-16 relative rounded-3xl shrink-0">
-        {/* Success Icon */}
-        <div className="relative shrink-0 size-16">
-          <div className="absolute inset-2">
-            <div className="absolute inset-0" style={{ stroke: '#0a0a0a' }}>
-              <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 55 55">
-                <path 
-                  d="M19.6667 27.6667L25 33L35.6667 22.3333M54.3333 27.6667C54.3333 42.3943 42.3943 54.3333 27.6667 54.3333C12.9391 54.3333 1 42.3943 1 27.6667C1 12.9391 12.9391 1 27.6667 1C42.3943 1 54.3333 12.9391 54.3333 27.6667Z"
-                  stroke="#0a0a0a" 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round" 
-                  strokeWidth="1.33" 
-                />
-              </svg>
-            </div>
-          </div>
-        </div>
+    <div className="bg-white min-h-screen relative">
+      <DecorativeBackground />
+      
+      {/* Logo */}
+      <div className="absolute left-8 top-8 z-10">
+        <Image
+          alt="time8 logo"
+          className="block h-[30px] w-auto"
+          src="/assets/auth/30f1f246576f6427b3a9b511194297cbba4d7ec6.svg"
+          width={108}
+          height={30}
+          priority
+        />
+      </div>
 
-        {/* Text Content */}
-        <div className="content-stretch flex flex-col gap-3 items-start justify-start relative shrink-0">
-          <div className="content-stretch flex flex-col gap-3 items-center justify-start relative shrink-0 w-full">
-            <div className="font-bold text-[30px] text-center text-foreground leading-9" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 700 }}>
-              {subscriptionData?.upgraded ? 'Subscription upgraded!' : 'Payment success!'}
-            </div>
-          </div>
-          <div className="font-normal text-[14px] text-center text-muted-foreground w-full leading-5" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400 }}>
-            {subscriptionData?.upgraded 
-              ? 'Your subscription has been upgraded. Redirecting to dashboard...' 
-              : 'You can now add users to your workspace.'}
-          </div>
-        </div>
+      <LanguageSwitcher />
 
-        {/* Button */}
-        <Button
-          onClick={handleContinue}
-          className="bg-foreground hover:bg-foreground/90 content-stretch flex gap-2 h-10 items-center justify-center px-8 py-2 relative rounded-lg shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] shrink-0 font-medium text-[14px] text-primary-foreground"
-          style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500 }}
-        >
-          Start using time8.io!
-        </Button>
+      {/* Centered content */}
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
+        <div className="flex flex-col gap-8 items-center p-16">
+          <CircleCheck className="size-16 text-foreground stroke-[1.33]" />
+          <div className="flex flex-col gap-3 items-center">
+            <h1 className="text-3xl font-bold leading-9 text-center text-foreground">
+              {subscriptionData?.upgraded ? t('success.titleUpgraded') : t('success.title')}
+            </h1>
+            <p className="text-sm text-muted-foreground text-center leading-5">
+              {subscriptionData?.upgraded 
+                ? t('success.descriptionUpgraded')
+                : t('success.description')}
+            </p>
+          </div>
+          <Button onClick={handleContinue}>
+            {t('success.button')}
+          </Button>
+        </div>
       </div>
     </div>
   )

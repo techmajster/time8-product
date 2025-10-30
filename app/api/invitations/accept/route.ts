@@ -262,7 +262,8 @@ export async function POST(request: NextRequest) {
 
     console.log('🎉 Invitation acceptance completed!')
 
-    return NextResponse.json({
+    // Set the active organization cookie to switch to the newly joined workspace
+    const response = NextResponse.json({
       success: true,
       message: `Successfully joined ${organization?.name || 'the organization'}`,
       organization: {
@@ -271,6 +272,19 @@ export async function POST(request: NextRequest) {
         role: invitation.role
       }
     })
+
+    // Set the active-organization-id cookie to switch to the workspace
+    response.cookies.set('active-organization-id', invitation.organization_id, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 365 // 1 year
+    })
+
+    console.log('✅ Active organization cookie set:', invitation.organization_id)
+
+    return response
 
   } catch (error) {
     console.error('❌ Accept invitation error:', error)

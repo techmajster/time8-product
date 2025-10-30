@@ -171,6 +171,21 @@ export async function DELETE(
     console.log('✅ Deleted company holidays')
 
     // 5. Delete leave types (referenced by leave requests and balances)
+    // First, mark all mandatory types as non-mandatory to bypass the deletion trigger
+    const { error: updateMandatoryError } = await supabaseAdmin
+      .from('leave_types')
+      .update({ is_mandatory: false })
+      .eq('organization_id', workspaceId)
+      .eq('is_mandatory', true)
+
+    if (updateMandatoryError) {
+      console.error('⚠️  Warning: Failed to update mandatory flags:', updateMandatoryError)
+      // Continue anyway as this might not be critical
+    } else {
+      console.log('✅ Marked mandatory leave types as non-mandatory for deletion')
+    }
+
+    // Now delete all leave types
     const { error: leaveTypesError } = await supabaseAdmin
       .from('leave_types')
       .delete()

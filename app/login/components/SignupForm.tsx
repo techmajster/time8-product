@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
 import { GoogleAuthButton } from "@/components/google-auth-button"
 import { createClient } from '@/lib/supabase/client'
 import { CheckCircle, Mail, PartyPopper } from 'lucide-react'
@@ -24,6 +25,7 @@ export function SignupForm({ onModeChange, onAccountCreated, className }: Signup
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [fullName, setFullName] = useState('')
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
@@ -94,32 +96,32 @@ export function SignupForm({ onModeChange, onAccountCreated, className }: Signup
     return (
       <div className={cn("flex flex-col gap-6", className)}>
         <div className="text-center space-y-4">
-          <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-            <PartyPopper className="h-8 w-8 text-green-600" />
+          <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
+            <PartyPopper className="h-8 w-8 text-primary" />
           </div>
-          <h2 className="text-2xl font-bold text-green-800">{t('accountCreated') || 'Account Created!'}</h2>
+          <h2 className="text-2xl font-bold text-foreground">{t('accountCreated') || 'Account Created!'}</h2>
           <p className="text-muted-foreground">
             {t('accountCreatedDescription') || 'Your account has been created successfully.'}
           </p>
         </div>
 
-        <Card className="border-green-200 bg-green-50">
+        <Card className="border-primary/20 bg-primary/5">
           <CardContent className="pt-6">
             <div className="space-y-4">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-                  <CheckCircle className="h-5 w-5 text-white" />
+                <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+                  <CheckCircle className="h-5 w-5 text-primary-foreground" />
                 </div>
-                <span className="text-green-800 font-medium">
+                <span className="text-foreground font-medium">
                   {t('accountCreatedAndVerificationSent') || 'Account created successfully'}
                 </span>
               </div>
-              
+
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-                  <CheckCircle className="h-5 w-5 text-white" />
+                <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+                  <CheckCircle className="h-5 w-5 text-primary-foreground" />
                 </div>
-                <span className="text-green-800 font-medium">
+                <span className="text-foreground font-medium">
                   {t('verificationEmailSent') || 'Verification email sent'}
                 </span>
               </div>
@@ -127,9 +129,9 @@ export function SignupForm({ onModeChange, onAccountCreated, className }: Signup
           </CardContent>
         </Card>
 
-        <Alert className="bg-blue-50 border-blue-200">
+        <Alert className="bg-muted border">
           <Mail className="h-4 w-4" />
-          <AlertDescription className="text-blue-800">
+          <AlertDescription className="text-foreground">
             <strong>{t('important') || 'Important'}:</strong> {t('checkEmailForVerification', { email }) || `Please check your email (${email}) for the verification link to activate your account.`}
           </AlertDescription>
         </Alert>
@@ -158,7 +160,7 @@ export function SignupForm({ onModeChange, onAccountCreated, className }: Signup
   }
 
   return (
-    <form className={cn("flex flex-col gap-6", className)} onSubmit={handleSubmit}>
+    <form className={cn("flex flex-col gap-4 w-full", className)} onSubmit={handleSubmit}>
       {error && (
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
@@ -171,9 +173,9 @@ export function SignupForm({ onModeChange, onAccountCreated, className }: Signup
         </Alert>
       )}
 
-      <div className="grid gap-6">
-        <div className="grid gap-3">
-          <Label htmlFor="fullName">{t('firstName')} {t('lastName')}</Label>
+      <div className="grid gap-4">
+        <div className="grid gap-2">
+          <Label htmlFor="fullName">{t('fullName')}</Label>
           <Input 
             id="fullName" 
             type="text" 
@@ -182,9 +184,10 @@ export function SignupForm({ onModeChange, onAccountCreated, className }: Signup
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             disabled={loading}
+            className="h-9"
           />
         </div>
-        <div className="grid gap-3">
+        <div className="grid gap-2">
           <Label htmlFor="email">{t('email')}</Label>
           <Input 
             id="email" 
@@ -194,39 +197,65 @@ export function SignupForm({ onModeChange, onAccountCreated, className }: Signup
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             disabled={loading}
+            className="h-9"
           />
         </div>
-        <div className="grid gap-3">
+        <div className="grid gap-2">
           <Label htmlFor="password">{t('password')}</Label>
           <Input 
             id="password" 
             type="password" 
+            placeholder={t('passwordPlaceholder')}
             required 
-            minLength={6}
+            minLength={8}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             disabled={loading}
+            className="h-9"
           />
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             {t('minimumCharacters')}
           </p>
         </div>
-        <Button type="submit" className="w-full" disabled={loading || !!success}>
-          {loading ? t('creatingAccount') : t('createAccount')}
+        <div className="flex items-start gap-2">
+          <Checkbox 
+            id="terms" 
+            checked={acceptedTerms}
+            onCheckedChange={(checked) => setAcceptedTerms(checked === true)}
+            disabled={loading}
+          />
+          <Label 
+            htmlFor="terms" 
+            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+          >
+            {t('termsAndConditions')}
+          </Label>
+        </div>
+      </div>
+      
+      <div className="flex flex-col gap-6 items-center justify-center">
+        <Button type="submit" className="w-full" disabled={loading || !!success || !acceptedTerms}>
+          {loading ? t('creatingAccount') : t('registerButton')}
         </Button>
-        <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
-          <span className="bg-background text-muted-foreground relative z-10 px-2">
-            {t('orContinueWith')}
-          </span>
+        <div className="relative w-full py-1">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-border" />
+          </div>
+          <div className="relative flex justify-center">
+            <span className="bg-background px-2 text-xs text-muted-foreground">
+              {t('orContinueWith')}
+            </span>
+          </div>
         </div>
         <GoogleAuthButton mode="signup" />
       </div>
+      
       <div className="text-center text-sm">
         {t('haveAccount')}{" "}
         <button
           type="button"
           onClick={() => onModeChange('login')}
-          className="underline underline-offset-4"
+          className="text-primary underline underline-offset-4 hover:text-primary/80 hover:no-underline transition-colors cursor-pointer"
         >
           {t('login')}
         </button>

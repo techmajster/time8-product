@@ -103,6 +103,37 @@ export async function POST(request: NextRequest) {
 
     if (orgError) {
       console.error('API: Organization creation error:', orgError)
+
+      // RACE CONDITION FIX: If duplicate key error, check if user already owns this org
+      if (orgError.code === '23505' && orgError.message?.includes('organizations_slug_key')) {
+        console.log('🔄 Duplicate slug detected, checking if user owns organization...')
+
+        const { data: existingOrgRetry, error: retryCheckError } = await supabaseAdmin
+          .from('organizations')
+          .select('id, name, slug')
+          .eq('slug', slug)
+          .single()
+
+        if (!retryCheckError && existingOrgRetry) {
+          const { data: userOrgRetry, error: userOrgRetryError } = await supabaseAdmin
+            .from('user_organizations')
+            .select('organization_id, role')
+            .eq('organization_id', existingOrgRetry.id)
+            .eq('user_id', user.id)
+            .maybeSingle()
+
+          if (userOrgRetry) {
+            console.log('✅ Organization already exists for this user (race condition handled)')
+            return NextResponse.json({
+              success: true,
+              organization: existingOrgRetry,
+              message: 'Organization already exists',
+              existing: true
+            })
+          }
+        }
+      }
+
       return NextResponse.json({ error: orgError.message }, { status: 400 })
     }
 
@@ -158,20 +189,29 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Create default leave types
+    // Create ONLY the 2 mandatory leave types for new workspaces
+    // (Urlop wypoczynkowy and Urlop bezpłatny)
+    // Other Polish law templates (11 more types) can be added via "Create default leave types" button
     const { DEFAULT_LEAVE_TYPES } = await import('@/types/leave')
-    
-    const { data: createdLeaveTypes, error: leaveTypesError } = await supabase
+
+    // Filter for ONLY the 2 mandatory types based on spec criteria
+    const mandatoryTypes = DEFAULT_LEAVE_TYPES.filter(type =>
+      (type.leave_category === 'annual' && type.name.includes('wypoczynkowy')) ||
+      (type.leave_category === 'unpaid' && type.name.includes('bezpłatny'))
+    )
+
+    const { data: createdLeaveTypes, error: leaveTypesError } = await supabaseAdmin
       .from('leave_types')
       .insert(
-        DEFAULT_LEAVE_TYPES.map(type => ({
+        mandatoryTypes.map(type => ({
           organization_id: org.id,
           name: type.name,
           days_per_year: type.days_per_year,
           color: type.color,
           requires_approval: type.requires_approval,
           requires_balance: type.requires_balance,
-          leave_category: type.leave_category
+          leave_category: type.leave_category,
+          is_mandatory: true  // Mark as mandatory so they cannot be deleted
         }))
       )
       .select()

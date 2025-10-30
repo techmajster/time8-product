@@ -11,6 +11,8 @@
     "lint": "next lint",
     "analyze": "ANALYZE=true npm run build",
     "pre-migration-check": "npx tsx scripts/pre-migration-check.ts",
+    "check-user": "npx tsx scripts/check-user.ts",
+    "verify-email": "npx tsx scripts/verify-email.ts",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:performance": "jest --testNamePattern=\"performance\""
@@ -77,7 +79,7 @@
     "jest": "^30.0.5",
     "jest-environment-jsdom": "^30.0.5",
     "postcss": "^8.5.6",
-    "shadcn": "^3.4.2",
+    "shadcn": "^3.5.0",
     "supabase": "^2.53.6",
     "tailwindcss": "^4.1.11",
     "ts-jest": "^29.4.1",

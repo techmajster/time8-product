@@ -253,11 +253,15 @@ export function NewLeaveRequestSheet({ leaveTypes, leaveBalances, userProfile, i
                           return selectedLeaveType ? (
                             <div className="flex flex-col items-start">
                               <span className="font-medium text-sm">{selectedLeaveType.name}</span>
-                              {balance && (
+                              {!selectedLeaveType.requires_balance ? (
+                                <span className="text-xs text-muted-foreground">
+                                  Bez limitu
+                                </span>
+                              ) : balance ? (
                                 <span className="text-xs text-muted-foreground">
                                   Dostępne {balance.remaining_days} dni
                                 </span>
-                              )}
+                              ) : null}
                             </div>
                           ) : null
                         })()
@@ -281,12 +285,15 @@ export function NewLeaveRequestSheet({ leaveTypes, leaveBalances, userProfile, i
                           >
                             <div className="flex flex-col">
                               <span className="font-medium">{type.name}</span>
-                              {balance && (
+                              {!type.requires_balance ? (
+                                <span className="text-xs text-muted-foreground">
+                                  Bez limitu
+                                </span>
+                              ) : balance ? (
                                 <span className="text-xs text-muted-foreground">
                                   Dostępne {Math.max(0, balance.remaining_days)} dni
                                 </span>
-                              )}
-                              {!balance && (
+                              ) : (
                                 <span className="text-xs text-muted-foreground">
                                   Bez limitu
                                 </span>

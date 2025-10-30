@@ -3,10 +3,12 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { createClient } from '@/lib/supabase/client'
+import Image from 'next/image'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Time8Logo } from '@/components/ui/time8-logo'
-import { LanguageSwitcher } from '@/components/LanguageSwitcher'
+import { LanguageSwitcher } from '@/components/auth/LanguageSwitcher'
+import { DecorativeBackground } from '@/components/auth/DecorativeBackground'
+import { OnboardingCard } from './OnboardingCard'
+import { MailCheckIcon, UserCheckIcon, UserPlusIcon, UsersIcon } from './icons'
 
 interface Workspace {
   id: string
@@ -36,7 +38,10 @@ interface MultiOptionScreenProps {
 }
 
 export function MultiOptionScreen({ userName, userWorkspaces, pendingInvitations }: MultiOptionScreenProps) {
-  const t = useTranslations('onboarding.multi')
+  const t = useTranslations('onboarding')
+  const tInvitation = useTranslations('onboarding.invitation')
+  const tWorkspace = useTranslations('onboarding.workspace')
+  const tWelcome = useTranslations('onboarding.welcome')
   const [accepting, setAccepting] = useState<string | null>(null)
   const [entering, setEntering] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -48,7 +53,6 @@ export function MultiOptionScreen({ userName, userWorkspaces, pendingInvitations
       setError(null)
       console.log('🎫 Accepting invitation via API:', invitation.token)
 
-      // Use the new accept invitation API endpoint
       const response = await fetch('/api/invitations/accept', {
         method: 'POST',
         headers: {
@@ -67,7 +71,6 @@ export function MultiOptionScreen({ userName, userWorkspaces, pendingInvitations
 
       console.log('✅ Invitation accepted successfully:', result)
       
-      // Redirect to dashboard in the new organization
       router.push('/dashboard')
       
     } catch (error: any) {
@@ -85,7 +88,6 @@ export function MultiOptionScreen({ userName, userWorkspaces, pendingInvitations
       
       console.log('Switching to workspace ID from onboarding:', workspaceId)
       
-      // Use the same workspace switch API as the working workspace-switcher
       const response = await fetch('/api/workspace/switch', {
         method: 'POST',
         headers: {
@@ -98,7 +100,6 @@ export function MultiOptionScreen({ userName, userWorkspaces, pendingInvitations
       console.log('Switch workspace response from onboarding:', responseData)
 
       if (response.ok) {
-        // Redirect to dashboard of the new workspace
         window.location.href = '/dashboard'
       } else {
         throw new Error(responseData.error || 'Failed to switch workspace')
@@ -116,439 +117,135 @@ export function MultiOptionScreen({ userName, userWorkspaces, pendingInvitations
     router.push('/onboarding/create-workspace')
   }
 
-  // Create avatar group component for workspace cards - shows ACTUAL workspace members only
-  const AvatarGroup = ({ memberAvatars, memberCount }: { memberAvatars: Workspace['memberAvatars'], memberCount: number }) => {
-    const displayAvatars = memberAvatars?.slice(0, 3) || []
-    const remainingCount = Math.max(0, memberCount - displayAvatars.length)
-    
-
-    return (
-      <div className="box-border content-stretch flex items-center justify-start pl-0 pr-2 py-0 relative shrink-0">
-        {/* Show only ACTUAL workspace members (up to 3) */}
-        {displayAvatars.map((member, index) => (
-          <div
-            key={member.id}
-            className="bg-muted mr-[-8px] relative rounded-full shrink-0 size-12"
-            style={{ zIndex: displayAvatars.length - index }}
-          >
-            <div className="overflow-clip relative size-12">
-              {member.avatar_url ? (
-                <img
-                  src={member.avatar_url}
-                  alt={member.full_name}
-                  className="w-full h-full rounded-full object-cover"
-                />
-              ) : (
-                // Show actual member's initials
-                <div className="absolute flex flex-col font-normal inset-0 justify-center leading-[0] text-[14px] text-center text-foreground" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400 }}>
-                  <p className="leading-[20px]">{member.full_name?.charAt(0)?.toUpperCase() || 'U'}</p>
-                </div>
-              )}
-            </div>
-            <div aria-hidden="true" className="absolute border-2 border-card border-solid inset-[-2px] pointer-events-none rounded-full" />
-          </div>
-        ))}
-        
-        {/* +X indicator when there are more members than shown */}
-        {remainingCount > 0 && (
-          <div className="bg-muted mr-[-8px] relative rounded-full shrink-0 size-12" style={{ zIndex: 0 }}>
-            <div className="overflow-clip relative size-12">
-              <div className="absolute flex flex-col font-normal inset-0 justify-center leading-[0] text-[14px] text-center text-foreground" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400 }}>
-                <p className="leading-[20px]">+{remainingCount}</p>
-              </div>
-            </div>
-            <div aria-hidden="true" className="absolute border-2 border-card border-solid inset-[-2px] pointer-events-none rounded-full" />
-          </div>
-        )}
-      </div>
-    )
-  }
-
-  // Prepare cards for the 6-card grid (max 2 rows, 3 cards each)
+  // Prepare cards array (invitations + workspaces + create card)
   const cards: Array<{
     type: 'invitation' | 'workspace' | 'create'
-    data?: Invitation | Workspace | null
+    data?: Invitation | Workspace
   }> = []
 
   // Add invitation cards
   pendingInvitations?.forEach(invitation => {
-    cards.push({
-      type: 'invitation',
-      data: invitation
-    })
+    cards.push({ type: 'invitation', data: invitation })
   })
 
   // Add workspace cards
   userWorkspaces?.forEach(workspace => {
-    cards.push({
-      type: 'workspace',
-      data: workspace
-    })
+    cards.push({ type: 'workspace', data: workspace })
   })
 
   // Add create workspace card
-  cards.push({
-    type: 'create',
-    data: null
-  })
+  cards.push({ type: 'create' })
 
-  // Ensure we have exactly 6 slots (add empty slots if needed)
-  while (cards.length < 6) {
-    cards.push({
-      type: 'empty',
-      data: null
-    })
+  // Group cards into rows (max 3 per row)
+  const rows: typeof cards[][] = []
+  for (let i = 0; i < cards.length; i += 3) {
+    rows.push(cards.slice(i, i + 3))
   }
 
-  // Take only first 6 cards
-  const displayCards = cards.slice(0, 6)
-
   return (
-    <div className="bg-card content-stretch flex flex-col gap-2.5 items-start justify-start relative size-full min-h-screen">
-      {/* Top header with logo and language selector */}
-      <div className="flex justify-between items-center w-full p-6">
-        <Time8Logo />
-        <LanguageSwitcher />
+    <div className="bg-white flex flex-col gap-[10px] items-start relative size-full min-h-screen">
+      {/* Decorative background */}
+      <DecorativeBackground />
+
+      {/* Language Switcher */}
+      <LanguageSwitcher />
+
+      {/* Top header with logo */}
+      <div className="absolute left-[32px] top-[32px] z-10">
+        <div className="h-[30px] relative w-[108.333px]">
+          <Image
+            alt="time8 logo"
+            className="block h-[30px] w-auto"
+            src="/assets/auth/30f1f246576f6427b3a9b511194297cbba4d7ec6.svg"
+            width={108}
+            height={30}
+            priority
+          />
+        </div>
       </div>
       
-      <div className="basis-0 content-stretch flex flex-col gap-6 grow items-center justify-center min-h-px min-w-px relative rounded-lg shrink-0 w-full">
-        <div className="content-stretch flex flex-col gap-12 items-center justify-start relative shrink-0">
+      {/* Main content */}
+      <div className="flex flex-col gap-[24px] flex-1 items-center justify-center min-h-0 min-w-0 relative rounded-[10px] shrink-0 w-full z-10">
+        <div className="flex flex-col gap-[48px] items-center relative shrink-0">
           
           {/* Header Section */}
-          <div className="content-stretch flex flex-col gap-3 h-[88px] items-start justify-start leading-[0] relative shrink-0 text-center w-[898px]">
-            <div className="content-stretch flex font-semibold gap-3 items-center justify-center relative shrink-0 text-[48px] text-foreground text-nowrap w-full" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 600 }}>
-              <div className="relative shrink-0">
-                <p className="leading-[48px] text-nowrap whitespace-pre">{t('title', { name: userName })}</p>
-              </div>
+          <div className="flex flex-col gap-[12px] h-[88px] items-start relative shrink-0 text-center w-[898px]">
+            <div className="flex font-semibold gap-[12px] items-center justify-center leading-[48px] relative shrink-0 text-[48px] w-full" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 600 }}>
+              <p className="relative shrink-0 text-neutral-950">{tWelcome('title', { name: userName.split(' ')[0] })}</p>
             </div>
-            <div className="font-normal relative shrink-0 text-[18px] text-muted-foreground w-full" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400 }}>
-              <p className="leading-[28px]">{t('subtitle')}</p>
-            </div>
+            <p className="font-normal leading-[28px] relative shrink-0 text-[18px] text-center text-muted-foreground w-full whitespace-pre-wrap" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400 }}>
+              {tWelcome('subtitle')}
+            </p>
           </div>
 
           {/* Error Alert */}
           {error && (
-            <Alert variant="destructive">
+            <Alert variant="destructive" className="max-w-[1192px]">
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
 
           {/* Cards Grid */}
-          <div className="content-stretch flex flex-col gap-6 items-start justify-start relative shrink-0">
-            {/* Row 1 */}
-            <div className="content-center flex flex-wrap gap-5 items-center justify-start relative shrink-0">
-              {displayCards.slice(0, 3).map((card, index) => {
-                if (card.type === 'invitation' && card.data) {
-                  const invitation = card.data as Invitation
-                  return (
-                    <div key={`invitation-${invitation.id}`} className="bg-violet-100 box-border content-stretch flex flex-col h-[300px] items-start justify-between max-w-96 p-[32px] relative rounded-xl shrink-0 w-96 border border">
-                      <div className="basis-0 content-stretch flex flex-col gap-8 grow items-start justify-start min-h-px min-w-px relative shrink-0 w-full">
-                        <div className="basis-0 content-stretch flex flex-col grow items-start justify-between min-h-px min-w-px relative shrink-0 w-full">
-                          <div className="content-stretch flex gap-2 items-start justify-start relative shrink-0 w-full">
-                            <div className="basis-0 font-semibold grow h-14 leading-[28px] min-h-px min-w-px relative shrink-0 text-[18px] text-foreground" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 600 }}>
-                              <p className="mb-0">{t('invitation.title')}</p>
-                              <p className="">{t('invitation.subtitle')}</p>
-                            </div>
-                            <div className="overflow-clip relative shrink-0 size-6">
-                              <svg className="w-full h-full text-foreground" fill="none" viewBox="0 0 24 24">
-                                <path
-                                  d="M21 10V3C21 2.46957 20.7893 1.96086 20.4142 1.58579C20.0391 1.21071 19.5304 1 19 1H3C2.46957 1 1.96086 1.21071 1.58579 1.58579C1.21071 1.96086 1 2.46957 1 3V15C1 16.1 1.9 17 3 17H11M21 4L12.03 9.7C11.7213 9.89343 11.3643 9.99601 11 9.99601C10.6357 9.99601 10.2787 9.89343 9.97 9.7L1 4M15 16L17 18L21 14"
-                                  stroke="currentColor"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth="2"
-                                />
-                              </svg>
-                            </div>
-                          </div>
-                          <div className="content-stretch flex gap-2.5 items-center justify-center relative shrink-0 w-full">
-                            <div className="basis-0 font-semibold grow leading-[0] min-h-px min-w-px relative shrink-0 text-[30px] text-foreground" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 600 }}>
-                              <p className="leading-[36px]">{invitation.organizationName}</p>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="content-stretch flex flex-col gap-2.5 items-start justify-start relative shrink-0 w-full">
-                          <button
-                            onClick={() => handleAcceptInvitation(invitation)}
-                            disabled={accepting === invitation.id}
-                            className="bg-foreground box-border content-stretch flex gap-2 h-10 items-center justify-center px-8 py-2 relative rounded-lg shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] shrink-0 w-full hover:bg-foreground/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                          >
-                            <div className="overflow-clip relative shrink-0 size-4">
-                              <svg className="w-full h-full text-primary-foreground" fill="none" viewBox="0 0 24 24">
-                                <path
-                                  d="M15 19V17C15 15.9391 14.5786 14.9217 13.8284 14.1716C13.0783 13.4214 12.0609 13 11 13H5C3.93913 13 2.92172 13.4214 2.17157 14.1716C1.42143 14.9217 1 15.9391 1 17V19M21 18.9999V16.9999C20.9993 16.1136 20.7044 15.2527 20.1614 14.5522C19.6184 13.8517 18.8581 13.3515 18 13.1299M15 1.12988C15.8604 1.35018 16.623 1.85058 17.1676 2.55219C17.7122 3.2538 18.0078 4.11671 18.0078 5.00488C18.0078 5.89305 17.7122 6.75596 17.1676 7.45757C16.623 8.15918 15.8604 8.65958 15 8.87988M12 5C12 7.20914 10.2091 9 8 9C5.79086 9 4 7.20914 4 5C4 2.79086 5.79086 1 8 1C10.2091 1 12 2.79086 12 5Z"
-                                  stroke="currentColor"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth="2"
-                                />
-                              </svg>
-                            </div>
-                            <div className="flex flex-col font-medium justify-center leading-[0] relative shrink-0 text-[14px] text-primary-foreground text-nowrap" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500 }}>
-                              <p className="leading-[20px] whitespace-pre">
-                                {accepting === invitation.id ? t('invitation.accepting') : t('invitation.accept')}
-                              </p>
-                            </div>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                } else if (card.type === 'workspace' && card.data) {
-                  const workspace = card.data as Workspace
-                  return (
-                    <div key={`workspace-${workspace.id}`} className="bg-muted box-border content-stretch flex flex-col h-[300px] items-start justify-between max-w-96 p-[32px] relative rounded-xl shrink-0 w-96 border border">
-                      <div className="basis-0 content-stretch flex flex-col gap-8 grow items-start justify-start min-h-px min-w-px relative shrink-0 w-full">
-                        <div className="basis-0 content-stretch flex flex-col grow items-start justify-between min-h-px min-w-px relative shrink-0 w-full">
-                          <div className="content-stretch flex gap-2 items-start justify-start relative shrink-0 w-full">
-                            <div className="basis-0 font-semibold grow leading-[0] min-h-px min-w-px relative shrink-0 text-[18px] text-foreground" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 600 }}>
-                              <p className="leading-[28px]">Your workspace:</p>
-                            </div>
-                            <div className="overflow-clip relative shrink-0 size-6">
-                              <svg className="w-full h-full text-foreground" fill="none" viewBox="0 0 24 24">
-                                <path
-                                  d="M15 19V17C15 15.9391 14.5786 14.9217 13.8284 14.1716C13.0783 13.4214 12.0609 13 11 13H5C3.93913 13 2.92172 13.4214 2.17157 14.1716C1.42143 14.9217 1 15.9391 1 17V19M15 9L17 11L21 7M12 5C12 7.20914 10.2091 9 8 9C5.79086 9 4 7.20914 4 5C4 2.79086 5.79086 1 8 1C10.2091 1 12 2.79086 12 5Z"
-                                  stroke="currentColor"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth="2"
-                                />
-                              </svg>
-                            </div>
-                          </div>
-                          <div className="content-stretch flex flex-col gap-2.5 items-start justify-start relative shrink-0 w-full">
-                            <AvatarGroup memberAvatars={workspace.memberAvatars} memberCount={workspace.memberCount} />
-                            <div className="font-semibold leading-[0] min-w-full relative shrink-0 text-[30px] text-foreground" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 600, width: 'min-content' }}>
-                              <p className="leading-[36px]">{workspace.name}</p>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="content-stretch flex flex-col gap-2.5 items-start justify-start relative shrink-0 w-full">
-                          <button
-                            onClick={() => handleEnterWorkspace(workspace.id)}
-                            disabled={entering === workspace.id}
-                            className="bg-foreground box-border content-stretch flex gap-2 h-10 items-center justify-center px-8 py-2 relative rounded-lg shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] shrink-0 w-full hover:bg-foreground/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                          >
-                            <div className="flex flex-col font-medium justify-center leading-[0] relative shrink-0 text-[14px] text-primary-foreground text-nowrap" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500 }}>
-                              <p className="leading-[20px] whitespace-pre">
-                                {entering === workspace.id ? t('workspace.entering') : t('workspace.enter')}
-                              </p>
-                            </div>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                } else if (card.type === 'create') {
-                  return (
-                    <div key="create-workspace" className="bg-card box-border content-stretch flex flex-col h-[300px] items-start justify-between max-w-96 p-[32px] relative rounded-xl shrink-0 w-96 border border">
-                      <div className="basis-0 content-stretch flex flex-col gap-8 grow items-start justify-start min-h-px min-w-px relative shrink-0 w-full">
-                        <div className="basis-0 content-stretch flex flex-col grow items-start justify-between min-h-px min-w-px relative shrink-0 w-full">
-                          <div className="content-stretch flex gap-2 items-start justify-start relative shrink-0 w-full">
-                            <div className="basis-0 font-semibold grow h-14 leading-[28px] min-h-px min-w-px relative shrink-0 text-[18px] text-foreground" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 600 }}>
-                              <p className="mb-0">{t('create.title')}</p>
-                              <p className="">{t('create.subtitle')}</p>
-                            </div>
-                            <div className="overflow-clip relative shrink-0 size-6">
-                              <svg className="w-full h-full text-foreground" fill="none" viewBox="0 0 24 24">
-                                <path
-                                  d="M15 19V17C15 15.9391 14.5786 14.9217 13.8284 14.1716C13.0783 13.4214 12.0609 13 11 13H5C3.93913 13 2.92172 13.4214 2.17157 14.1716C1.42143 14.9217 1 15.9391 1 17V19M18 6V12M21 9H15M12 5C12 7.20914 10.2091 9 8 9C5.79086 9 4 7.20914 4 5C4 2.79086 5.79086 1 8 1C10.2091 1 12 2.79086 12 5Z"
-                                  stroke="currentColor"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth="2"
-                                />
-                              </svg>
-                            </div>
-                          </div>
-                          <div className="content-stretch flex items-end justify-between leading-[0] relative shrink-0 text-nowrap w-full">
-                            <div className="font-semibold relative shrink-0 text-[30px] text-foreground" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 600 }}>
-                              <p className="leading-[36px] text-nowrap whitespace-pre">{t('create.free')}</p>
-                            </div>
-                            <div className="font-normal relative shrink-0 text-[14px] text-muted-foreground" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400 }}>
-                              <p className="leading-[20px] text-nowrap whitespace-pre">{t('create.limit')}</p>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="content-stretch flex flex-col gap-2.5 items-start justify-start relative shrink-0 w-full">
-                          <button
-                            onClick={handleCreateWorkspace}
-                            className="bg-card box-border content-stretch flex gap-2 h-10 items-center justify-center px-8 py-2 relative rounded-lg shrink-0 w-full border border shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] hover:bg-muted/50 transition-colors cursor-pointer"
-                          >
-                            <div className="flex flex-col font-medium justify-center leading-[0] relative shrink-0 text-[14px] text-foreground text-nowrap" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500 }}>
-                              <p className="leading-[20px] whitespace-pre">{t('create.cta')}</p>
-                            </div>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                } else {
-                  // Empty slot
-                  return <div key={`empty-${index}`} className="w-96 h-[300px]"></div>
-                }
-              })}
-            </div>
-
-            {/* Row 2 */}
-            {displayCards.length > 3 && (
-              <div className="content-center flex flex-wrap gap-5 items-center justify-start relative shrink-0">
-                {displayCards.slice(3, 6).map((card, index) => {
+          <div className="flex flex-col gap-[24px] items-start relative shrink-0">
+            {rows.map((row, rowIndex) => (
+              <div key={rowIndex} className="flex flex-wrap gap-[20px] items-center relative shrink-0">
+                {row.map((card, cardIndex) => {
                   if (card.type === 'invitation' && card.data) {
                     const invitation = card.data as Invitation
                     return (
-                      <div key={`invitation-${invitation.id}`} className="bg-violet-100 box-border content-stretch flex flex-col h-[300px] items-start justify-between max-w-96 p-[32px] relative rounded-xl shrink-0 w-96 border border">
-                        <div className="basis-0 content-stretch flex flex-col gap-8 grow items-start justify-start min-h-px min-w-px relative shrink-0 w-full">
-                          <div className="basis-0 content-stretch flex flex-col grow items-start justify-between min-h-px min-w-px relative shrink-0 w-full">
-                            <div className="content-stretch flex gap-2 items-start justify-start relative shrink-0 w-full">
-                              <div className="basis-0 font-semibold grow h-14 leading-[28px] min-h-px min-w-px relative shrink-0 text-[18px] text-foreground" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 600 }}>
-                                <p className="mb-0">You have been invited</p>
-                                <p className="">to workspace:</p>
-                              </div>
-                              <div className="overflow-clip relative shrink-0 size-6">
-                                <svg className="w-full h-full text-foreground" fill="none" viewBox="0 0 24 24">
-                                  <path
-                                    d="M21 10V3C21 2.46957 20.7893 1.96086 20.4142 1.58579C20.0391 1.21071 19.5304 1 19 1H3C2.46957 1 1.96086 1.21071 1.58579 1.58579C1.21071 1.96086 1 2.46957 1 3V15C1 16.1 1.9 17 3 17H11M21 4L12.03 9.7C11.7213 9.89343 11.3643 9.99601 11 9.99601C10.6357 9.99601 10.2787 9.89343 9.97 9.7L1 4M15 16L17 18L21 14"
-                                    stroke="currentColor"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth="2"
-                                  />
-                                </svg>
-                              </div>
-                            </div>
-                            <div className="content-stretch flex gap-2.5 items-center justify-center relative shrink-0 w-full">
-                              <div className="basis-0 font-semibold grow leading-[0] min-h-px min-w-px relative shrink-0 text-[30px] text-foreground" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 600 }}>
-                                <p className="leading-[36px]">{invitation.organizationName}</p>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="content-stretch flex flex-col gap-2.5 items-start justify-start relative shrink-0 w-full">
-                            <button
-                              onClick={() => handleAcceptInvitation(invitation)}
-                              disabled={accepting === invitation.id}
-                              className="bg-foreground box-border content-stretch flex gap-2 h-10 items-center justify-center px-8 py-2 relative rounded-lg shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] shrink-0 w-full hover:bg-foreground/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                            >
-                              <div className="overflow-clip relative shrink-0 size-4">
-                                <svg className="w-full h-full text-primary-foreground" fill="none" viewBox="0 0 24 24">
-                                  <path
-                                    d="M15 19V17C15 15.9391 14.5786 14.9217 13.8284 14.1716C13.0783 13.4214 12.0609 13 11 13H5C3.93913 13 2.92172 13.4214 2.17157 14.1716C1.42143 14.9217 1 15.9391 1 17V19M21 18.9999V16.9999C20.9993 16.1136 20.7044 15.2527 20.1614 14.5522C19.6184 13.8517 18.8581 13.3515 18 13.1299M15 1.12988C15.8604 1.35018 16.623 1.85058 17.1676 2.55219C17.7122 3.2538 18.0078 4.11671 18.0078 5.00488C18.0078 5.89305 17.7122 6.75596 17.1676 7.45757C16.623 8.15918 15.8604 8.65958 15 8.87988M12 5C12 7.20914 10.2091 9 8 9C5.79086 9 4 7.20914 4 5C4 2.79086 5.79086 1 8 1C10.2091 1 12 2.79086 12 5Z"
-                                    stroke="currentColor"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth="2"
-                                  />
-                                </svg>
-                              </div>
-                              <div className="flex flex-col font-medium justify-center leading-[0] relative shrink-0 text-[14px] text-primary-foreground text-nowrap" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500 }}>
-                                <p className="leading-[20px] whitespace-pre">
-                                  {accepting === invitation.id ? 'Accepting...' : 'Accept invitation'}
-                                </p>
-                              </div>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
+                      <OnboardingCard
+                        key={`invitation-${invitation.id}`}
+                        variant="invitation"
+                        icon={<MailCheckIcon className="text-foreground" />}
+                        title={tInvitation('title')}
+                        organizationName={invitation.organizationName}
+                        onAction={() => handleAcceptInvitation(invitation)}
+                        actionLabel={accepting === invitation.id ? tInvitation('accepting') : tInvitation('accept')}
+                        actionIcon={<UsersIcon className="text-white" />}
+                        isLoading={accepting === invitation.id}
+                      />
                     )
                   } else if (card.type === 'workspace' && card.data) {
                     const workspace = card.data as Workspace
                     return (
-                      <div key={`workspace-${workspace.id}`} className="bg-muted box-border content-stretch flex flex-col h-[300px] items-start justify-between max-w-96 p-[32px] relative rounded-xl shrink-0 w-96 border border">
-                        <div className="basis-0 content-stretch flex flex-col gap-8 grow items-start justify-start min-h-px min-w-px relative shrink-0 w-full">
-                          <div className="basis-0 content-stretch flex flex-col grow items-start justify-between min-h-px min-w-px relative shrink-0 w-full">
-                            <div className="content-stretch flex gap-2 items-start justify-start relative shrink-0 w-full">
-                              <div className="basis-0 font-semibold grow leading-[0] min-h-px min-w-px relative shrink-0 text-[18px] text-foreground" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 600 }}>
-                                <p className="leading-[28px]">{t('workspace.title')}</p>
-                              </div>
-                              <div className="overflow-clip relative shrink-0 size-6">
-                                <svg className="w-full h-full text-foreground" fill="none" viewBox="0 0 24 24">
-                                  <path
-                                    d="M15 19V17C15 15.9391 14.5786 14.9217 13.8284 14.1716C13.0783 13.4214 12.0609 13 11 13H5C3.93913 13 2.92172 13.4214 2.17157 14.1716C1.42143 14.9217 1 15.9391 1 17V19M15 9L17 11L21 7M12 5C12 7.20914 10.2091 9 8 9C5.79086 9 4 7.20914 4 5C4 2.79086 5.79086 1 8 1C10.2091 1 12 2.79086 12 5Z"
-                                    stroke="currentColor"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth="2"
-                                  />
-                                </svg>
-                              </div>
-                            </div>
-                            <div className="content-stretch flex flex-col gap-2.5 items-start justify-start relative shrink-0 w-full">
-                              <AvatarGroup memberAvatars={workspace.memberAvatars} memberCount={workspace.memberCount} />
-                              <div className="font-semibold leading-[0] min-w-full relative shrink-0 text-[30px] text-foreground" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 600, width: 'min-content' }}>
-                                <p className="leading-[36px]">{workspace.name}</p>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="content-stretch flex flex-col gap-2.5 items-start justify-start relative shrink-0 w-full">
-                            <button
-                              onClick={() => handleEnterWorkspace(workspace.id)}
-                              disabled={entering === workspace.id}
-                              className="bg-foreground box-border content-stretch flex gap-2 h-10 items-center justify-center px-8 py-2 relative rounded-lg shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] shrink-0 w-full hover:bg-foreground/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                            >
-                              <div className="flex flex-col font-medium justify-center leading-[0] relative shrink-0 text-[14px] text-primary-foreground text-nowrap" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500 }}>
-                                <p className="leading-[20px] whitespace-pre">
-                                  {entering === workspace.id ? 'Entering...' : 'Enter workspace'}
-                                </p>
-                              </div>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
+                      <OnboardingCard
+                        key={`workspace-${workspace.id}`}
+                        variant="workspace"
+                        icon={<UserCheckIcon className="text-foreground" />}
+                        title={tWorkspace('title')}
+                        organizationName={workspace.name}
+                        avatars={workspace.memberAvatars}
+                        memberCount={workspace.memberCount}
+                        onAction={() => handleEnterWorkspace(workspace.id)}
+                        actionLabel={entering === workspace.id ? tWorkspace('entering') : tWorkspace('enter')}
+                        isLoading={entering === workspace.id}
+                      />
                     )
                   } else if (card.type === 'create') {
                     return (
-                      <div key="create-workspace" className="bg-card box-border content-stretch flex flex-col h-[300px] items-start justify-between max-w-96 p-[32px] relative rounded-xl shrink-0 w-96 border border">
-                        <div className="basis-0 content-stretch flex flex-col gap-8 grow items-start justify-start min-h-px min-w-px relative shrink-0 w-full">
-                          <div className="basis-0 content-stretch flex flex-col grow items-start justify-between min-h-px min-w-px relative shrink-0 w-full">
-                            <div className="content-stretch flex gap-2 items-start justify-start relative shrink-0 w-full">
-                              <div className="basis-0 font-semibold grow h-14 leading-[28px] min-h-px min-w-px relative shrink-0 text-[18px] text-foreground" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 600 }}>
-                                <p className="mb-0">Do you want to create</p>
-                                <p className="">a new workspace?</p>
-                              </div>
-                              <div className="overflow-clip relative shrink-0 size-6">
-                                <svg className="w-full h-full text-foreground" fill="none" viewBox="0 0 24 24">
-                                  <path
-                                    d="M15 19V17C15 15.9391 14.5786 14.9217 13.8284 14.1716C13.0783 13.4214 12.0609 13 11 13H5C3.93913 13 2.92172 13.4214 2.17157 14.1716C1.42143 14.9217 1 15.9391 1 17V19M18 6V12M21 9H15M12 5C12 7.20914 10.2091 9 8 9C5.79086 9 4 7.20914 4 5C4 2.79086 5.79086 1 8 1C10.2091 1 12 2.79086 12 5Z"
-                                    stroke="currentColor"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth="2"
-                                  />
-                                </svg>
-                              </div>
-                            </div>
-                            <div className="content-stretch flex items-end justify-between leading-[0] relative shrink-0 text-nowrap w-full">
-                              <div className="font-semibold relative shrink-0 text-[30px] text-foreground" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 600 }}>
-                                <p className="leading-[36px] text-nowrap whitespace-pre">It's free!</p>
-                              </div>
-                              <div className="font-normal relative shrink-0 text-[14px] text-muted-foreground" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400 }}>
-                                <p className="leading-[20px] text-nowrap whitespace-pre">up to 3 users</p>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="content-stretch flex flex-col gap-2.5 items-start justify-start relative shrink-0 w-full">
-                            <button
-                              onClick={handleCreateWorkspace}
-                              className="bg-card box-border content-stretch flex gap-2 h-10 items-center justify-center px-8 py-2 relative rounded-lg shrink-0 w-full border border shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] hover:bg-muted/50 transition-colors cursor-pointer"
-                            >
-                              <div className="flex flex-col font-medium justify-center leading-[0] relative shrink-0 text-[14px] text-foreground text-nowrap" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500 }}>
-                                <p className="leading-[20px] whitespace-pre">Create new workspace</p>
-                              </div>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
+                      <OnboardingCard
+                        key="create-workspace"
+                        variant="create"
+                        icon={<UserPlusIcon className="text-foreground" />}
+                        title={
+                          <>
+                            <p className="mb-0">{tWelcome('card.title')}</p>
+                            <p>{tWelcome('card.subtitle')}</p>
+                          </>
+                        }
+                        onAction={handleCreateWorkspace}
+                        actionLabel={tWelcome('cta')}
+                        freeText={tWelcome('card.free')}
+                        userLimitText={tWelcome('card.limit')}
+                      />
                     )
-                  } else {
-                    // Empty slot
-                    return <div key={`empty-${index + 3}`} className="w-96 h-[300px]"></div>
                   }
+                  return null
                 })}
               </div>
-            )}
+            ))}
           </div>
         </div>
-        
       </div>
     </div>
   )

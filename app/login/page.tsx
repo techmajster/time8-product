@@ -3,12 +3,14 @@
 import { Suspense, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useTranslations, useLocale } from 'next-intl'
-import { GalleryVerticalEnd } from "lucide-react"
+import Image from 'next/image'
 import { LoginForm } from "./components/LoginForm"
 import { SignupForm } from "./components/SignupForm"
 import { ForgotPasswordForm } from "./components/ForgotPasswordForm"
 import { ResetPasswordForm } from "./components/ResetPasswordForm"
-import { LanguageSwitcher } from "@/components/LanguageSwitcher"
+import { DecorativeBackground } from "@/components/auth/DecorativeBackground"
+import { HeroSection } from "@/components/auth/HeroSection"
+import { LanguageSwitcher } from "@/components/auth/LanguageSwitcher"
 
 type AuthMode = 'login' | 'signup' | 'forgot-password' | 'reset-password'
 
@@ -52,40 +54,56 @@ function LoginPageContent() {
   }
 
   return (
-    <div className="grid min-h-svh lg:grid-cols-2">
-      <div className="flex flex-col gap-4 p-6 md:p-10">
-        <div className="flex justify-between items-center">
-          <div className="flex gap-2">
-            <a href="#" className="flex items-center gap-2 font-medium">
-              <div className="bg-primary text-primary-foreground flex size-6 items-center justify-center rounded-md">
-                <GalleryVerticalEnd className="size-4" />
-              </div>
-              Leave System
-            </a>
+    <div className="flex items-stretch relative w-full min-h-screen">
+      {/* Left Container - Form Section */}
+      <div className="bg-background flex flex-col items-center justify-center relative w-full lg:w-1/2 min-h-screen">
+        {/* Decorative Background */}
+        <DecorativeBackground />
+        
+        {/* Language Switcher */}
+        <LanguageSwitcher />
+
+        {/* Content Container */}
+        <div className="flex flex-col gap-6 items-start w-full max-w-[384px] relative z-10">
+          {/* Logo + Title Header */}
+          <div className="flex gap-4 items-end relative w-full">
+            <div className="h-[30px] relative shrink-0 w-[108.333px]">
+              <Image
+                alt="time8 logo"
+                className="block h-[30px] w-auto"
+                src="/assets/auth/30f1f246576f6427b3a9b511194297cbba4d7ec6.svg"
+                width={108}
+                height={30}
+                priority
+              />
+            </div>
+            <p className="flex-1 font-normal leading-none text-muted-foreground text-3xl text-right">
+              {getTitle()}
+            </p>
           </div>
-          <LanguageSwitcher />
-        </div>
-        <div className="flex flex-1 items-center justify-center">
-          <div className="w-full max-w-md">
-            {/* Only show title and description if not in signup success state */}
-            {!isSignupSuccess && (
-              <div className="flex flex-col items-left gap-2 text-left mb-6">
-                <h1 className="text-2xl font-bold">{getTitle()}</h1>
-                <p className="text-muted-foreground text-sm text-balance">
-                  {getDescription()}
-                </p>
-              </div>
-            )}
-            {renderForm()}
+
+          {/* Separator */}
+          <div className="flex flex-col gap-[10px] items-start relative w-full">
+            <div className="h-0 relative w-full border-t border-border" />
           </div>
+
+          {/* Description */}
+          {!isSignupSuccess && (
+            <div className="flex flex-col gap-3 items-start relative w-full">
+              <p className="font-normal leading-5 text-muted-foreground text-sm w-full">
+                {getDescription()}
+              </p>
+            </div>
+          )}
+
+          {/* Form */}
+          {renderForm()}
         </div>
       </div>
-      <div className="bg-muted relative hidden lg:block">
-        <img
-          src="/images/gradient-hero-prerender.avif"
-          alt="Image"
-          className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
-        />
+
+      {/* Right Container - Hero Section */}
+      <div className="hidden lg:flex lg:w-1/2 min-h-screen">
+        <HeroSection />
       </div>
     </div>
   )

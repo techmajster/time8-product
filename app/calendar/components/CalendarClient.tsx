@@ -150,12 +150,18 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
       console.log('🔍 Holidays API response status:', response.status, response.statusText)
       
       if (!response.ok) {
-        const errorText = await response.text()
+        let errorDetails
+        try {
+          errorDetails = await response.json()
+        } catch {
+          errorDetails = await response.text()
+        }
         console.error('❌ Error fetching holidays from API:', {
           status: response.status,
           statusText: response.statusText,
-          error: errorText,
-          url: `/api/calendar/holidays?${params}`
+          errorDetails,
+          url: `/api/calendar/holidays?${params}`,
+          countryCode
         })
         setHolidays([])
         return
@@ -197,9 +203,14 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
       const response = await fetch(`/api/calendar/leave-requests?${params}`)
       
       console.log('🔍 Leave requests API response status:', response.status, response.statusText)
-      
+
       if (!response.ok) {
-        const errorText = await response.text()
+        let errorText
+        try {
+          errorText = await response.text()
+        } catch (e) {
+          errorText = 'Unable to read error response'
+        }
         console.error('❌ Error fetching calendar leave requests:', {
           status: response.status,
           statusText: response.statusText,
@@ -210,7 +221,18 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
         return
       }
 
-      const leaveData = await response.json()
+      let leaveData
+      try {
+        leaveData = await response.json()
+      } catch (jsonError) {
+        console.error('❌ Failed to parse leave requests JSON response:', {
+          error: jsonError instanceof Error ? jsonError.message : 'Unknown parsing error',
+          status: response.status,
+          statusText: response.statusText
+        })
+        setLeaveRequests([])
+        return
+      }
 
       // Process leave requests data (already enriched from API)
       if (leaveData && leaveData.length > 0) {
@@ -241,11 +263,15 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
         setLeaveRequests([])
       }
     } catch (error) {
-      console.error('❌ Error fetching leave requests:', {
+      console.error('❌ Error fetching calendar leave requests:', error)
+      console.error('❌ Error details:', {
         message: error instanceof Error ? error.message : 'Unknown error',
         name: error instanceof Error ? error.name : 'Unknown',
+        type: typeof error,
+        stringified: JSON.stringify(error),
         stack: error instanceof Error ? error.stack : undefined
       })
+      setLeaveRequests([])
     }
   }
 

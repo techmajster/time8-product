@@ -63,7 +63,7 @@ export function ForgotPasswordForm({ onModeChange, className }: ForgotPasswordFo
   }
 
   return (
-    <form className={cn("flex flex-col gap-6", className)} onSubmit={handleSubmit}>
+    <form className={cn("flex flex-col gap-4 w-full", className)} onSubmit={handleSubmit}>
       {error && (
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
@@ -76,8 +76,8 @@ export function ForgotPasswordForm({ onModeChange, className }: ForgotPasswordFo
         </Alert>
       )}
 
-      <div className="grid gap-6">
-        <div className="grid gap-3">
+      <div className="grid gap-4">
+        <div className="grid gap-2">
           <Label htmlFor="email">{t('email')}</Label>
           <Input 
             id="email" 
@@ -87,8 +87,9 @@ export function ForgotPasswordForm({ onModeChange, className }: ForgotPasswordFo
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             disabled={loading}
+            className="h-9"
           />
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             {t('resetLinkDescription')}
           </p>
         </div>

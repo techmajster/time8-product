@@ -62,6 +62,7 @@ export async function middleware(request: NextRequest) {
     '/api/auth/signup', // Custom signup endpoint
     '/api/auth/signup-with-invitation', // Invitation-based signup endpoint
     '/api/auth/verify-email', // Email verification endpoint
+    '/api/auth/check-provider', // Check user's auth provider during login
     '/api/organizations', // Organization creation for authenticated users
     '/api/user/organization-status', // New onboarding scenario detection API
     '/api/test-db', // Database connection test endpoint

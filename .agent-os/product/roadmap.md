@@ -175,6 +175,30 @@
   - Actual effort: 15 minutes
   - Impact: ✅ User invitations work immediately for newly created workspaces
 
+- [x] **Fix Holiday API Error for New Workspaces** `XS` ✅
+  - ✅ Error: `❌ Error fetching holidays from API: {}` - DIAGNOSED
+  - ✅ Root cause: Empty `{}` error object due to insufficient error logging
+  - ✅ Investigation: Verified database has 26 PL and 18 IE national holidays correctly seeded
+  - ✅ Verified: Organization creation saves country_code properly
+  - ✅ Verified: API query logic is correct and returns `[]` for months without holidays (expected behavior)
+  - ✅ Fix implemented: Enhanced error logging in both client and server to diagnose actual issue
+  - ✅ Updated: [app/api/calendar/holidays/route.ts:10-11,31-35,44-64](app/api/calendar/holidays/route.ts#L10-L11)
+  - ✅ Updated: [app/calendar/components/CalendarClient.tsx:152-165](app/calendar/components/CalendarClient.tsx#L152-L165)
+  - ✅ Removed: Unnecessary countryCode safety check (has fallback to 'PL')
+  - Actual effort: 90 minutes
+  - Impact: ✅ Better error diagnostics for calendar issues, confirmed holidays work correctly
+
+- [x] **Fix New Workspaces Creating All 13 Leave Types Instead of 2 Mandatory** `XS` 🚨 CRITICAL ✅
+  - ✅ Error: New workspaces getting all 13 Polish law leave types automatically
+  - ✅ Root cause: Organization creation using `DEFAULT_LEAVE_TYPES` (all 13) instead of filtering for mandatory types
+  - ✅ Expected behavior: Only 2 mandatory types (Urlop wypoczynkowy, Urlop bezpłatny) should be created automatically
+  - ✅ Fix implemented: Added filter to create only mandatory types based on spec criteria
+  - ✅ Updated: [app/api/organizations/route.ts:192-201](app/api/organizations/route.ts#L192-L201)
+  - ✅ Added `is_mandatory: true` flag to newly created mandatory types
+  - ✅ Other 11 Polish law templates available via "Create default leave types" button (as designed)
+  - Actual effort: 15 minutes
+  - Impact: ✅ New workspaces now start clean with only 2 mandatory types, admin can opt-in to Polish law templates
+
 ### Dependencies
 
 - Phase 2.75 (Phase 4.5) partially complete (materialized views exist but need proper null handling) ✅

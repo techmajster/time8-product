@@ -93,8 +93,13 @@ export function isLeaveTypeDisabled(
   leaveBalance: LeaveBalance | undefined,
   requestedDays: number = 1
 ): { disabled: boolean; reason?: string } {
-  // If there's an actual balance for this leave type, always respect it
-  // regardless of the requires_balance flag
+  // FIRST: Check if this leave type requires balance tracking
+  // Unlimited leave types (like Urlop bezpłatny with requires_balance = false) are NEVER disabled
+  if (!leaveType.requires_balance) {
+    return { disabled: false }
+  }
+
+  // For balance-required types, check if there's a balance record
   if (leaveBalance) {
     // If insufficient remaining days, disable it
     if (leaveBalance.remaining_days < requestedDays) {
@@ -115,8 +120,7 @@ export function isLeaveTypeDisabled(
     return { disabled: true, reason: 'Brak przypisanego salda' }
   }
 
-  // If no balance exists and leave type doesn't require balance, never disable
-  // This handles unlimited leave types like "Urlop bezpłatny" (Phase 2)
+  // Fallback: never disable
   return { disabled: false }
 }
 

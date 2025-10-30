@@ -556,3 +556,260 @@ export async function processSubscriptionCancelled(payload: any): Promise<EventR
     return { success: false, error: errorMessage };
   }
 }
+
+/**
+ * Processes subscription_payment_failed event
+ */
+export async function processSubscriptionPaymentFailed(payload: any): Promise<EventResult> {
+  try {
+    // Validate payload structure
+    if (!validateSubscriptionPayload(payload)) {
+      const error = 'Invalid payload structure for subscription_payment_failed event';
+      await logBillingEvent(
+        payload?.meta?.event_name || 'subscription_payment_failed',
+        payload?.meta?.event_id || 'unknown',
+        payload,
+        'failed',
+        error
+      );
+      return { success: false, error };
+    }
+
+    const { meta, data } = payload;
+    const { id: subscriptionId, attributes } = data;
+    const { status } = attributes;
+
+    // Check if event already processed
+    if (await isEventAlreadyProcessed(meta.event_id)) {
+      await logBillingEvent(meta.event_name, meta.event_id, payload, 'skipped', 'Event already processed');
+      return { success: true, data: { message: 'Event already processed' } };
+    }
+
+    const supabase = createClient();
+
+    // Find existing subscription
+    const { data: existingSubscription, error: findError } = await supabase
+      .from('subscriptions')
+      .select('*')
+      .eq('lemonsqueezy_subscription_id', subscriptionId)
+      .single();
+
+    if (findError || !existingSubscription) {
+      const error = 'Subscription not found for payment failure event';
+      await logBillingEvent(meta.event_name, meta.event_id, payload, 'failed', error);
+      return { success: false, error };
+    }
+
+    // Update subscription status to past_due
+    const { data: updatedSubscription, error: updateError } = await supabase
+      .from('subscriptions')
+      .update({
+        status,
+        updated_at: new Date().toISOString()
+      })
+      .eq('lemonsqueezy_subscription_id', subscriptionId)
+      .select();
+
+    if (updateError) {
+      const error = `Subscription payment failure update failed: ${updateError.message}`;
+      await logBillingEvent(meta.event_name, meta.event_id, payload, 'failed', error);
+      return { success: false, error };
+    }
+
+    // Log successful processing
+    await logBillingEvent(meta.event_name, meta.event_id, payload, 'processed');
+
+    return {
+      success: true,
+      data: {
+        subscription: existingSubscription.id,
+        organization: existingSubscription.organization_id,
+        status
+      }
+    };
+
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    await logBillingEvent(
+      payload?.meta?.event_name || 'subscription_payment_failed',
+      payload?.meta?.event_id || 'unknown',
+      payload,
+      'failed',
+      errorMessage
+    );
+    return { success: false, error: errorMessage };
+  }
+}
+
+/**
+ * Processes subscription_paused event
+ */
+export async function processSubscriptionPaused(payload: any): Promise<EventResult> {
+  try {
+    // Validate payload structure
+    if (!validateSubscriptionPayload(payload)) {
+      const error = 'Invalid payload structure for subscription_paused event';
+      await logBillingEvent(
+        payload?.meta?.event_name || 'subscription_paused',
+        payload?.meta?.event_id || 'unknown',
+        payload,
+        'failed',
+        error
+      );
+      return { success: false, error };
+    }
+
+    const { meta, data } = payload;
+    const { id: subscriptionId, attributes } = data;
+    const { status } = attributes;
+
+    // Check if event already processed
+    if (await isEventAlreadyProcessed(meta.event_id)) {
+      await logBillingEvent(meta.event_name, meta.event_id, payload, 'skipped', 'Event already processed');
+      return { success: true, data: { message: 'Event already processed' } };
+    }
+
+    const supabase = createClient();
+
+    // Find existing subscription
+    const { data: existingSubscription, error: findError } = await supabase
+      .from('subscriptions')
+      .select('*')
+      .eq('lemonsqueezy_subscription_id', subscriptionId)
+      .single();
+
+    if (findError || !existingSubscription) {
+      const error = 'Subscription not found for paused event';
+      await logBillingEvent(meta.event_name, meta.event_id, payload, 'failed', error);
+      return { success: false, error };
+    }
+
+    // Update subscription to paused status
+    const { data: updatedSubscription, error: updateError } = await supabase
+      .from('subscriptions')
+      .update({
+        status,
+        renews_at: null, // Paused subscriptions don't renew
+        updated_at: new Date().toISOString()
+      })
+      .eq('lemonsqueezy_subscription_id', subscriptionId)
+      .select();
+
+    if (updateError) {
+      const error = `Subscription pause update failed: ${updateError.message}`;
+      await logBillingEvent(meta.event_name, meta.event_id, payload, 'failed', error);
+      return { success: false, error };
+    }
+
+    // Log successful processing
+    await logBillingEvent(meta.event_name, meta.event_id, payload, 'processed');
+
+    return {
+      success: true,
+      data: {
+        subscription: existingSubscription.id,
+        organization: existingSubscription.organization_id,
+        status
+      }
+    };
+
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    await logBillingEvent(
+      payload?.meta?.event_name || 'subscription_paused',
+      payload?.meta?.event_id || 'unknown',
+      payload,
+      'failed',
+      errorMessage
+    );
+    return { success: false, error: errorMessage };
+  }
+}
+
+/**
+ * Processes subscription_resumed event
+ */
+export async function processSubscriptionResumed(payload: any): Promise<EventResult> {
+  try {
+    // Validate payload structure
+    if (!validateSubscriptionPayload(payload)) {
+      const error = 'Invalid payload structure for subscription_resumed event';
+      await logBillingEvent(
+        payload?.meta?.event_name || 'subscription_resumed',
+        payload?.meta?.event_id || 'unknown',
+        payload,
+        'failed',
+        error
+      );
+      return { success: false, error };
+    }
+
+    const { meta, data } = payload;
+    const { id: subscriptionId, attributes } = data;
+    const { status, renews_at, quantity } = attributes;
+
+    // Check if event already processed
+    if (await isEventAlreadyProcessed(meta.event_id)) {
+      await logBillingEvent(meta.event_name, meta.event_id, payload, 'skipped', 'Event already processed');
+      return { success: true, data: { message: 'Event already processed' } };
+    }
+
+    const supabase = createClient();
+
+    // Find existing subscription
+    const { data: existingSubscription, error: findError } = await supabase
+      .from('subscriptions')
+      .select('*')
+      .eq('lemonsqueezy_subscription_id', subscriptionId)
+      .single();
+
+    if (findError || !existingSubscription) {
+      const error = 'Subscription not found for resumed event';
+      await logBillingEvent(meta.event_name, meta.event_id, payload, 'failed', error);
+      return { success: false, error };
+    }
+
+    // Update subscription to active status
+    const { data: updatedSubscription, error: updateError } = await supabase
+      .from('subscriptions')
+      .update({
+        status,
+        renews_at: renews_at || null,
+        updated_at: new Date().toISOString()
+      })
+      .eq('lemonsqueezy_subscription_id', subscriptionId)
+      .select();
+
+    if (updateError) {
+      const error = `Subscription resume update failed: ${updateError.message}`;
+      await logBillingEvent(meta.event_name, meta.event_id, payload, 'failed', error);
+      return { success: false, error };
+    }
+
+    // Restore organization subscription with seats
+    await updateOrganizationSubscription(supabase, existingSubscription.organization_id, quantity, status);
+
+    // Log successful processing
+    await logBillingEvent(meta.event_name, meta.event_id, payload, 'processed');
+
+    return {
+      success: true,
+      data: {
+        subscription: existingSubscription.id,
+        organization: existingSubscription.organization_id,
+        status
+      }
+    };
+
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    await logBillingEvent(
+      payload?.meta?.event_name || 'subscription_resumed',
+      payload?.meta?.event_id || 'unknown',
+      payload,
+      'failed',
+      errorMessage
+    );
+    return { success: false, error: errorMessage };
+  }
+}

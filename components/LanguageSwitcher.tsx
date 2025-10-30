@@ -63,8 +63,8 @@ export function LanguageSwitcher() {
           const languageName = languages.find(l => l.code === newLocale)?.name;
           toast.success(`Language changed to ${languageName}`);
           
-          // Refresh the current page to apply the new locale without changing URL
-          router.refresh();
+          // Force a full page reload to apply the new locale
+          window.location.reload();
         } else {
           const errorData = await response.json();
           console.error('Language switch failed:', errorData);
@@ -96,7 +96,7 @@ export function LanguageSwitcher() {
         </Button>
       </DropdownMenuTrigger>
       
-      <DropdownMenuContent align="end" className="w-48">
+      <DropdownMenuContent align="end" className="w-48 z-[9999]">
         {languages.map((language, index) => (
           <div key={language.code}>
             <DropdownMenuItem

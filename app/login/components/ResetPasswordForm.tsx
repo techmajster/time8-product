@@ -52,7 +52,7 @@ export function ResetPasswordForm({ onModeChange, className }: ResetPasswordForm
     }
 
     // Validate password length
-    if (password.length < 6) {
+    if (password.length < 8) {
       setError(t('passwordTooShort'))
       return
     }
@@ -101,38 +101,42 @@ export function ResetPasswordForm({ onModeChange, className }: ResetPasswordForm
   }
 
   return (
-    <form className={cn("flex flex-col gap-6", className)} onSubmit={handleSubmit}>
+    <form className={cn("flex flex-col gap-4 w-full", className)} onSubmit={handleSubmit}>
       {error && (
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
-      <div className="grid gap-6">
-        <div className="grid gap-3">
+      <div className="grid gap-4">
+        <div className="grid gap-2">
           <Label htmlFor="password">{t('newPassword')}</Label>
           <Input 
             id="password" 
             type="password" 
+            placeholder={t('passwordPlaceholder')}
             required 
-            minLength={6}
+            minLength={8}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             disabled={loading}
+            className="h-9"
           />
         </div>
-        <div className="grid gap-3">
+        <div className="grid gap-2">
           <Label htmlFor="confirmPassword">{t('confirmNewPassword')}</Label>
           <Input 
             id="confirmPassword" 
             type="password" 
+            placeholder={t('passwordPlaceholder')}
             required 
-            minLength={6}
+            minLength={8}
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             disabled={loading}
+            className="h-9"
           />
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             {t('minimumCharacters')}
           </p>
         </div>

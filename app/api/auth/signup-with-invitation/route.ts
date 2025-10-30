@@ -336,6 +336,17 @@ export async function POST(request: NextRequest) {
       }
     })
 
+    // Set the active-organization-id cookie to switch to the invited workspace
+    response.cookies.set('active-organization-id', invitation.organization_id, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 365 // 1 year
+    })
+
+    console.log('✅ Active organization cookie set:', invitation.organization_id)
+
     return response
 
   } catch (error) {

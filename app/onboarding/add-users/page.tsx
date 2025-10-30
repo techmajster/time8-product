@@ -2,13 +2,22 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
+import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Time8Logo } from '@/components/ui/time8-logo'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
 import { PricingInfo, calculatePricing } from '@/lib/lemon-squeezy/pricing'
+import { DecorativeBackground } from '@/components/auth/DecorativeBackground'
+import { LanguageSwitcher } from '@/components/auth/LanguageSwitcher'
+import { UserPlusIcon } from '@/components/onboarding/icons'
+import { Minus, Plus } from 'lucide-react'
 
 function AddUsersPageContent() {
+  const t = useTranslations('onboarding.addUsers')
   const [userCount, setUserCount] = useState(3)
   const [selectedTier, setSelectedTier] = useState<'monthly' | 'annual'>('annual')
   const [isLoading, setIsLoading] = useState(false)
@@ -263,7 +272,8 @@ function AddUsersPageContent() {
   if (pricingLoading || !pricingInfo) {
     return (
       <div className="bg-white relative size-full min-h-screen flex items-center justify-center">
-        <div className="text-center">
+        <DecorativeBackground />
+        <div className="text-center z-10">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground mx-auto mb-4"></div>
           <p className="text-muted-foreground">Loading pricing information...</p>
         </div>
@@ -273,59 +283,57 @@ function AddUsersPageContent() {
 
   return (
     <div className="bg-white relative size-full min-h-screen">
+      <DecorativeBackground />
+      
       {/* Logo in top-left corner */}
-      <div className="absolute left-8 top-8">
-        <Time8Logo />
+      <div className="absolute left-8 top-8 z-10">
+        <div className="h-[30px] relative w-[108.333px]">
+          <Image
+            alt="time8 logo"
+            className="block h-[30px] w-auto"
+            src="/assets/auth/30f1f246576f6427b3a9b511194297cbba4d7ec6.svg"
+            width={108}
+            height={30}
+            priority
+          />
+        </div>
       </div>
 
+      <LanguageSwitcher />
+
       {/* Main content container with max-width 824px */}
-      <div className="absolute left-1/2 top-1/2 translate-x-[-50%] translate-y-[-50%] w-full max-w-[824px] px-8">
-        <div className="content-stretch flex flex-col gap-10 items-start justify-start relative shrink-0 w-full">
+      <div className="absolute left-1/2 top-1/2 translate-x-[-50%] translate-y-[-50%] w-full max-w-[824px] px-8 z-10">
+        <div className="flex flex-col gap-10 items-start w-full">
         {/* Header with icon and text */}
-        <div className="content-stretch flex gap-3 items-center justify-start relative shrink-0 w-full">
-          <div className="overflow-clip relative shrink-0 size-6">
-            <div className="absolute inset-[12.5%_8.33%]">
-              <div className="absolute inset-[-5.56%_-5%]">
-                <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 22 20">
-                  <path d="M15 19V17C15 15.9391 14.5786 14.9217 13.8284 14.1716C13.0783 13.4214 12.0609 13 11 13H5C3.93913 13 2.92172 13.4214 2.17157 14.1716C1.42143 14.9217 1 15.9391 1 17V19M18 6V12M21 9H15M12 5C12 7.20914 10.2091 9 8 9C5.79086 9 4 7.20914 4 5C4 2.79086 5.79086 1 8 1C10.2091 1 12 2.79086 12 5Z" stroke="#737373" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
-                </svg>
-              </div>
-            </div>
-          </div>
-          <div className="basis-0 font-['Geist'] font-normal grow leading-none min-h-px min-w-px relative shrink-0 text-[18px] text-muted-foreground">
-            <p className="leading-none">{isUpgradeFlow ? 'Upgrade your subscription' : 'Add users to your workspace'}</p>
-          </div>
+        <div className="flex gap-3 items-center w-full">
+          <UserPlusIcon className="size-6 text-muted-foreground" />
+          <p className="flex-1 text-lg text-muted-foreground font-normal">
+            {isUpgradeFlow ? t('titleUpgrade') : t('title')}
+          </p>
         </div>
 
-        <div className="content-stretch flex flex-col gap-8 items-start justify-start relative shrink-0 w-full">
-          <div className="content-stretch flex flex-col gap-8 items-start justify-start relative shrink-0 w-full">
+        <div className="flex flex-col gap-8 items-start w-full">
+          <div className="flex flex-col gap-8 items-start w-full">
             {/* Main question */}
-            <div className="font-['Geist'] font-bold leading-none min-w-full relative shrink-0 text-[30px] text-foreground" style={{ width: "min-content" }}>
-              <p className="leading-[36px]">{isUpgradeFlow ? 'How many seats do you need?' : 'How many users do you want to add?'}</p>
-            </div>
+            <h1 className="text-3xl font-bold leading-9 text-foreground">
+              {isUpgradeFlow ? t('questionUpgrade') : t('question')}
+            </h1>
 
             {/* Counter section */}
-            <div className="content-stretch flex gap-2 items-center justify-start relative shrink-0 w-80">
+            <div className="flex gap-2 items-center w-80">
               {/* Minus button */}
               <Button
                 onClick={() => handleUserCountChange(-1)}
                 disabled={userCount <= 1}
                 variant="outline"
-                className="size-16 p-0"
+                className="size-16 p-0 border-foreground"
               >
-                <svg className="size-6" fill="none" viewBox="0 0 24 24">
-                  <path d="M5 12h14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
+                <Minus className="size-6 text-foreground" />
               </Button>
 
               {/* Number display */}
-              <div className="basis-0 bg-white grow h-16 min-h-px min-w-px relative rounded-lg shrink-0">
-                <div className="box-border content-stretch flex gap-1 h-16 items-center justify-center overflow-clip px-3 py-1 relative w-full">
-                  <div className="basis-0 font-['Geist'] font-semibold grow leading-none min-h-px min-w-px overflow-ellipsis overflow-hidden relative shrink-0 text-[36px] text-center text-foreground text-nowrap">
-                    <p className="leading-none overflow-inherit">{userCount}</p>
-                  </div>
-                </div>
-                <div className="absolute border border border-solid inset-0 pointer-events-none rounded-lg shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]" />
+              <div className="flex-1 h-16 flex items-center justify-center border rounded-lg bg-white shadow-xs">
+                <span className="text-[36px] font-semibold leading-none">{userCount}</span>
               </div>
 
               {/* Plus button */}
@@ -333,181 +341,95 @@ function AddUsersPageContent() {
                 onClick={() => handleUserCountChange(1)}
                 disabled={userCount >= 50}
                 variant="outline"
-                className="size-16 p-0"
+                className="size-16 p-0 border-foreground"
               >
-                <svg className="size-6" fill="none" viewBox="0 0 24 24">
-                  <path d="M12 5v14m-7-7h14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
+                <Plus className="size-6 text-foreground" />
               </Button>
             </div>
           </div>
 
           {/* Pricing cards */}
-          <div className="content-stretch flex gap-5 items-center justify-start relative shrink-0 w-full">
+          <div className="grid grid-cols-2 gap-5 w-full">
             {isFreeSelected ? (
               <>
                 {/* Free card - selected when user count <= 3 */}
                 <div 
-                  className="basis-0 bg-violet-100 box-border content-stretch flex flex-col gap-8 grow items-start justify-start min-h-px min-w-px p-[32px] relative rounded-xl shrink-0 cursor-pointer"
+                  className="bg-violet-100 border-2 border-primary rounded-xl p-8 flex flex-col gap-6 cursor-pointer relative"
                   onClick={() => setSelectedTier('monthly')}
                 >
-                  <div className="absolute border-2 border-foreground border-solid inset-0 pointer-events-none rounded-xl" />
-                  <div className="content-stretch flex flex-col gap-6 items-start justify-start relative shrink-0 w-full">
-                    <div className="content-stretch flex flex-col gap-3 items-start justify-start relative shrink-0 w-full">
-                      <div className="content-stretch flex gap-2.5 items-center justify-center relative shrink-0 w-full">
-                        <button className="box-border content-stretch cursor-pointer flex gap-3 items-center justify-start overflow-visible p-0 relative shrink-0">
-                          <div className="bg-white relative rounded-full shrink-0 size-4">
-                            <div className="overflow-clip relative size-4">
-                              <div className="absolute left-1/2 overflow-clip size-2 top-1/2 translate-x-[-50%] translate-y-[-50%]">
-                                <div className="absolute inset-[8.333%]">
-                                  <div className="absolute inset-[-9.975%]">
-                                    <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 9 9">
-                                      <path d="M4.33333 7.66667C6.17428 7.66667 7.66667 6.17428 7.66667 4.33333C7.66667 2.49238 6.17428 1 4.33333 1C2.49238 1 1 2.49238 1 4.33333C1 6.17428 2.49238 7.66667 4.33333 7.66667Z" fill="#171717" stroke="#171717" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.33" />
-                                    </svg>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="absolute border border border-solid inset-0 pointer-events-none rounded-full" />
-                          </div>
-                        </button>
-                        <div className="basis-0 font-['Geist'] font-semibold grow leading-none min-h-px min-w-px relative shrink-0 text-[18px] text-foreground">
-                          <p className="leading-[28px]">Free</p>
-                        </div>
+                  <div className="flex flex-col gap-3">
+                    <div className="flex gap-2.5 items-center">
+                      <div className="bg-white relative rounded-full size-4 border">
+                        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 size-2 rounded-full bg-primary" />
                       </div>
+                      <span className="flex-1 text-lg font-semibold leading-7">{t('pricing.free')}</span>
                     </div>
-                    <div className="content-stretch flex gap-1.5 items-end justify-start leading-none relative shrink-0 text-nowrap w-full">
-                      <div className="font-['Geist'] font-semibold relative shrink-0 text-[30px] text-foreground">
-                        <p className="leading-[36px] text-nowrap whitespace-pre">Free</p>
-                      </div>
-                      <div className="font-['Geist'] font-normal relative shrink-0 text-[14px] text-muted-foreground">
-                        <p className="leading-[20px] text-nowrap whitespace-pre">up to 3 users</p>
-                      </div>
-                    </div>
+                  </div>
+                  <div className="flex gap-1.5 items-end">
+                    <span className="text-3xl font-semibold leading-9">{t('pricing.free')}</span>
+                    <span className="text-sm text-muted-foreground">{t('pricing.upTo3Users')}</span>
                   </div>
                 </div>
 
                 {/* Annual payment card - disabled when free */}
-                <div className="basis-0 bg-muted box-border content-stretch flex flex-col gap-8 grow items-start justify-start min-h-px min-w-px p-[32px] relative rounded-xl shrink-0 cursor-pointer">
-                  <div className="absolute border border border-solid inset-0 pointer-events-none rounded-xl" />
-                  <div className="content-stretch flex flex-col gap-6 items-start justify-start opacity-50 relative shrink-0 w-full">
-                    <div className="content-stretch flex flex-col gap-3 items-start justify-start relative shrink-0 w-full">
-                      <div className="content-stretch flex gap-2.5 items-center justify-center relative shrink-0 w-full">
-                        <button className="box-border content-stretch cursor-pointer flex gap-3 items-center justify-start overflow-visible p-0 relative shrink-0">
-                          <div className="bg-white relative rounded-full shrink-0 size-4">
-                            <div className="absolute border border border-solid inset-0 pointer-events-none rounded-full" />
-                          </div>
-                        </button>
-                        <div className="basis-0 font-['Geist'] font-semibold grow leading-none min-h-px min-w-px relative shrink-0 text-[18px] text-foreground">
-                          <p className="leading-[28px]">Annual payment</p>
-                        </div>
+                <div className="bg-muted border border-border rounded-xl p-8 flex flex-col gap-6 cursor-not-allowed relative">
+                  <div className="flex flex-col gap-6 opacity-50">
+                    <div className="flex flex-col gap-3">
+                      <div className="flex gap-2.5 items-center">
+                        <div className="bg-white relative rounded-full size-4 border" />
+                        <span className="flex-1 text-lg font-semibold leading-7">{t('pricing.annualPayment')}</span>
                       </div>
                     </div>
-                    <div className="content-stretch flex gap-1.5 items-end justify-start leading-none relative shrink-0 text-nowrap w-full">
-                      <div className="font-['Geist'] font-semibold relative shrink-0 text-[30px] text-foreground">
-                        <p className="leading-[36px] text-nowrap whitespace-pre">{pricing.annualPerSeat.toFixed(2)} {pricing.currency}</p>
-                      </div>
-                      <div className="font-['Geist'] font-normal relative shrink-0 text-[14px] text-muted-foreground">
-                        <p className="leading-[20px] text-nowrap whitespace-pre">/ month / user</p>
-                      </div>
+                    <div className="flex gap-1.5 items-end">
+                      <span className="text-3xl font-semibold leading-9">{pricing.annualPerSeat.toFixed(2)} {pricing.currency}</span>
+                      <span className="text-sm text-muted-foreground">{t('pricing.perMonthPerUser')}</span>
                     </div>
                   </div>
                 </div>
               </>
             ) : (
               <>
-                {/* Annual payment card - selected by default when > 3 users */}
+                {/* Monthly payment card with "Most popular" badge - LEFT SIDE */}
                 <div 
-                  className={`basis-0 ${selectedTier === 'annual' ? 'bg-violet-100' : 'bg-muted'} box-border content-stretch flex flex-col gap-8 grow items-start justify-start min-h-px min-w-px p-[32px] relative rounded-xl shrink-0 cursor-pointer`}
-                  onClick={() => setSelectedTier('annual')}
+                  className={`${selectedTier === 'monthly' ? 'bg-violet-100 border-2 border-primary' : 'bg-card border-2 border-border'} rounded-xl p-8 flex flex-col gap-6 cursor-pointer relative ${selectedTier !== 'monthly' ? 'opacity-50' : ''}`}
+                  onClick={() => setSelectedTier('monthly')}
                 >
-                  <div className={`absolute ${selectedTier === 'annual' ? 'border-2 border-foreground' : 'border border'} border-solid inset-0 pointer-events-none rounded-xl`} />
-                  <div className={`content-stretch flex flex-col gap-6 items-start justify-start ${selectedTier !== 'annual' ? 'opacity-50' : ''} relative shrink-0 w-full`}>
-                    <div className="content-stretch flex flex-col gap-3 items-start justify-start relative shrink-0 w-full">
-                      <div className="content-stretch flex gap-2.5 items-center justify-center relative shrink-0 w-full">
-                        <button className="box-border content-stretch cursor-pointer flex gap-3 items-center justify-start overflow-visible p-0 relative shrink-0">
-                          <div className="bg-white relative rounded-full shrink-0 size-4">
-                            {selectedTier === 'annual' && (
-                              <div className="overflow-clip relative size-4">
-                                <div className="absolute left-1/2 overflow-clip size-2 top-1/2 translate-x-[-50%] translate-y-[-50%]">
-                                  <div className="absolute inset-[8.333%]">
-                                    <div className="absolute inset-[-9.975%]">
-                                      <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 9 9">
-                                        <path d="M4.33333 7.66667C6.17428 7.66667 7.66667 6.17428 7.66667 4.33333C7.66667 2.49238 6.17428 1 4.33333 1C2.49238 1 1 2.49238 1 4.33333C1 6.17428 2.49238 7.66667 4.33333 7.66667Z" fill="#171717" stroke="#171717" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.33" />
-                                      </svg>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                            <div className="absolute border border border-solid inset-0 pointer-events-none rounded-full" />
-                          </div>
-                        </button>
-                        <div className="basis-0 font-['Geist'] font-semibold grow leading-none min-h-px min-w-px relative shrink-0 text-[18px] text-foreground">
-                          <p className="leading-[28px]">Annual payment</p>
-                        </div>
+                  <div className="flex flex-col gap-3">
+                    <div className="flex gap-2.5 items-center">
+                      <div className="bg-white relative rounded-full size-4 border">
+                        {selectedTier === 'monthly' && (
+                          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 size-2 rounded-full bg-foreground" />
+                        )}
                       </div>
+                      <span className="flex-1 text-lg font-semibold leading-7">{t('pricing.monthlyPayment')}</span>
+                      {/* Most popular badge - inline with label */}
+                      <Badge className="ml-auto">{t('pricing.mostPopular')}</Badge>
                     </div>
-                    <div className="content-stretch flex gap-1.5 items-end justify-start leading-none relative shrink-0 text-nowrap w-full">
-                      <div className="font-['Geist'] font-semibold relative shrink-0 text-[30px] text-foreground">
-                        <p className="leading-[36px] text-nowrap whitespace-pre">{pricing.annualPerSeat.toFixed(2)} {pricing.currency}</p>
-                      </div>
-                      <div className="font-['Geist'] font-normal relative shrink-0 text-[14px] text-muted-foreground">
-                        <p className="leading-[20px] text-nowrap whitespace-pre">/ month / user</p>
-                      </div>
-                    </div>
+                  </div>
+                  <div className="flex gap-1.5 items-end">
+                    <span className="text-3xl font-semibold leading-9">{pricing.monthlyPerSeat.toFixed(2)} {pricing.currency}</span>
+                    <span className="text-sm text-muted-foreground">{t('pricing.perMonthPerUser')}</span>
                   </div>
                 </div>
 
-                {/* Monthly payment card with "Most popular" badge */}
+                {/* Annual payment card - RIGHT SIDE */}
                 <div 
-                  className={`basis-0 ${selectedTier === 'monthly' ? 'bg-violet-100' : 'bg-white'} box-border content-stretch flex flex-col gap-8 grow items-start justify-start min-h-px min-w-px p-[32px] relative rounded-xl shrink-0 cursor-pointer`}
-                  onClick={() => setSelectedTier('monthly')}
+                  className={`${selectedTier === 'annual' ? 'bg-violet-100 border-2 border-primary' : 'bg-card border-2 border-border'} rounded-xl p-8 flex flex-col gap-6 cursor-pointer relative ${selectedTier !== 'annual' ? 'opacity-50' : ''}`}
+                  onClick={() => setSelectedTier('annual')}
                 >
-                  <div className={`absolute ${selectedTier === 'monthly' ? 'border-2 border-foreground' : 'border border'} border-solid inset-0 pointer-events-none rounded-xl`} />
-                  <div className={`content-stretch flex flex-col gap-6 items-start justify-start ${selectedTier !== 'monthly' ? 'opacity-50' : ''} relative shrink-0 w-full`}>
-                    <div className="content-stretch flex flex-col gap-3 items-start justify-start relative shrink-0 w-full">
-                      <div className="content-stretch flex gap-2.5 items-center justify-center relative shrink-0 w-full">
-                        <button className="box-border content-stretch cursor-pointer flex gap-3 items-center justify-start overflow-visible p-0 relative shrink-0">
-                          <div className="bg-white relative rounded-full shrink-0 size-4">
-                            {selectedTier === 'monthly' && (
-                              <div className="overflow-clip relative size-4">
-                                <div className="absolute left-1/2 overflow-clip size-2 top-1/2 translate-x-[-50%] translate-y-[-50%]">
-                                  <div className="absolute inset-[8.333%]">
-                                    <div className="absolute inset-[-9.975%]">
-                                      <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 9 9">
-                                        <path d="M4.33333 7.66667C6.17428 7.66667 7.66667 6.17428 7.66667 4.33333C7.66667 2.49238 6.17428 1 4.33333 1C2.49238 1 1 2.49238 1 4.33333C1 6.17428 2.49238 7.66667 4.33333 7.66667Z" fill="#171717" stroke="#171717" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.33" />
-                                      </svg>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                            <div className="absolute border border border-solid inset-0 pointer-events-none rounded-full" />
-                          </div>
-                        </button>
-                        <div className="basis-0 font-['Geist'] font-semibold grow leading-none min-h-px min-w-px relative shrink-0 text-[18px] text-foreground">
-                          <p className="leading-[28px]">Monthly payment</p>
-                        </div>
+                  <div className="flex flex-col gap-3">
+                    <div className="flex gap-2.5 items-center">
+                      <div className="bg-white relative rounded-full size-4 border">
+                        {selectedTier === 'annual' && (
+                          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 size-2 rounded-full bg-foreground" />
+                        )}
                       </div>
-                      {/* Most popular badge */}
-                      <div className="absolute bg-foreground right-0 rounded-lg top-1">
-                        <div className="box-border content-stretch flex gap-1 items-center justify-center overflow-clip px-2.5 py-0.5 relative">
-                          <div className="font-['Geist'] font-semibold leading-none relative shrink-0 text-[12px] text-primary-foreground text-nowrap">
-                            <p className="leading-[16px] whitespace-pre">Most popular</p>
-                          </div>
-                        </div>
-                        <div className="absolute border border-transparent border-solid inset-0 pointer-events-none rounded-lg shadow-[0px_1px_3px_0px_rgba(0,0,0,0.1),0px_1px_2px_-1px_rgba(0,0,0,0.1)]" />
-                      </div>
+                      <span className="flex-1 text-lg font-semibold leading-7">{t('pricing.annualPayment')}</span>
                     </div>
-                    <div className="content-stretch flex gap-1.5 items-end justify-start leading-none relative shrink-0 text-nowrap w-full">
-                      <div className="font-['Geist'] font-semibold relative shrink-0 text-[30px] text-foreground">
-                        <p className="leading-[36px] text-nowrap whitespace-pre">{pricing.monthlyPerSeat.toFixed(2)} {pricing.currency}</p>
-                      </div>
-                      <div className="font-['Geist'] font-normal relative shrink-0 text-[14px] text-muted-foreground">
-                        <p className="leading-[20px] text-nowrap whitespace-pre">/ month / user</p>
-                      </div>
-                    </div>
+                  </div>
+                  <div className="flex gap-1.5 items-end">
+                    <span className="text-3xl font-semibold leading-9">{pricing.annualPerSeat.toFixed(2)} {pricing.currency}</span>
+                    <span className="text-sm text-muted-foreground">{t('pricing.perMonthPerUser')}</span>
                   </div>
                 </div>
               </>
@@ -516,43 +438,28 @@ function AddUsersPageContent() {
           
           {/* Currency info note */}
           {!isFreeSelected && (
-            <div className="content-stretch flex items-center justify-center relative shrink-0 w-full">
-              <div className="font-['Geist'] font-normal text-[14px] text-muted-foreground text-center">
-                <p className="leading-[20px]">
-                  Prices shown in PLN. EUR pricing available at checkout for EU customers.
-                </p>
-              </div>
+            <div className="flex items-center justify-center w-full">
+              <p className="text-sm text-muted-foreground text-center">
+                {t('pricing.pricesNote', { currency: pricing.currency })}
+              </p>
             </div>
           )}
         </div>
 
-        {/* Separator */}
-        <div className="content-stretch flex flex-col gap-2.5 items-start justify-start relative shrink-0 w-full">
-          <div className="h-0 relative shrink-0 w-full">
-            <div className="absolute bottom-0 left-0 right-0 top-[-1px]">
-              <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 824 1">
-                <line stroke="#E5E5E5" x2="824" y1="0.5" y2="0.5" />
-              </svg>
-            </div>
-          </div>
-        </div>
+        <Separator />
 
         {/* Bottom section with total and continue button */}
-        <div className="content-stretch flex gap-5 items-center justify-start relative shrink-0 w-full">
-          <div className="basis-0 content-stretch flex gap-1.5 grow items-center justify-start leading-none min-h-px min-w-px relative shrink-0 text-[18px] text-black text-nowrap">
-            <div className="font-['Geist'] font-normal relative shrink-0">
-              <p className="leading-none text-nowrap whitespace-pre">Today's total:</p>
-            </div>
-            <div className="font-['Geist'] font-semibold relative shrink-0">
-              <p className="leading-none text-nowrap whitespace-pre">
-                {total.monthly > 0 
-                  ? selectedTier === 'annual' 
-                    ? `${total.annual.toFixed(2)} ${total.currency} (billed annually)`
-                    : `${total.monthly.toFixed(2)} ${total.currency} / month`
-                  : 'Free'
-                }
-              </p>
-            </div>
+        <div className="flex gap-5 items-center w-full">
+          <div className="flex-1 flex gap-1.5 items-center text-lg">
+            <span className="font-normal">{t('total.label')}</span>
+            <span className="font-semibold">
+              {total.monthly > 0 
+                ? selectedTier === 'annual' 
+                  ? t('total.annual', { amount: total.annual.toFixed(2), currency: total.currency })
+                  : t('total.monthly', { amount: total.monthly.toFixed(2), currency: total.currency })
+                : t('total.free')
+              }
+            </span>
           </div>
           <div className="flex gap-3">
             {/* Cancel button - only show in upgrade flow */}
@@ -561,17 +468,17 @@ function AddUsersPageContent() {
                 variant="outline"
                 onClick={() => router.push('/admin/settings?tab=billing')}
                 disabled={isLoading}
-                className="h-10"
+                size="lg"
               >
-                Cancel
+                {t('actions.cancel')}
               </Button>
             )}
             <Button
               onClick={handleContinue}
               disabled={isLoading}
-              className="h-10"
+              size="lg"
             >
-              {isLoading ? 'Processing...' : 'Continue'}
+              {isLoading ? t('actions.processing') : t('actions.continue')}
             </Button>
           </div>
         </div>
@@ -590,7 +497,11 @@ function AddUsersPageContent() {
 
 export default function AddUsersPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-muted-foreground">Loading...</div>
+      </div>
+    }>
       <AddUsersPageContent />
     </Suspense>
   )

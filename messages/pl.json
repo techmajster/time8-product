@@ -6,7 +6,7 @@
       "card": {
         "title": "Czy chcesz utworzyć",
         "subtitle": "nowy obszar roboczy?",
-        "free": "To bezpłatne!",
+        "free": "Za darmo!",
         "limit": "do 3 użytkowników",
         "description": "Skonfiguruj swoją organizację i zaproś członków zespołu."
       },
@@ -18,6 +18,16 @@
       "cta": "Utwórz nowy obszar roboczy",
       "footer": "Będziesz administratorem i możesz wszystko dostosować później."
     },
+    "invitation": {
+      "title": "Zostałeś zaproszony\ndo obszaru roboczego:",
+      "accept": "Zaakceptuj zaproszenie",
+      "accepting": "Akceptowanie..."
+    },
+    "workspace": {
+      "title": "Twój obszar roboczy:",
+      "enter": "Wejdź do obszaru roboczego",
+      "entering": "Wchodzenie..."
+    },
     "createWorkspace": {
       "back": "Wstecz",
       "title": "Utwórz nowy obszar roboczy",
@@ -26,8 +36,9 @@
         "title": "Szczegóły Organizacji",
         "description": "Te informacje będą widoczne dla członków Twojego zespołu.",
         "name": {
-          "label": "Nazwa Organizacji",
-          "placeholder": "Wprowadź nazwę organizacji"
+          "label": "Nazwij swój obszar roboczy",
+          "placeholder": "Wprowadź nazwę",
+          "workspaceAddress": "Adres obszaru roboczego: time8.io/{slug}"
         },
         "slug": {
           "label": "URL Obszaru Roboczego",
@@ -39,14 +50,19 @@
         },
         "language": {
           "label": "Główny język",
+          "placeholder": "Wybierz język",
           "description": "To język, który będzie używany w panelu zarządzania."
         },
         "country": {
           "label": "Kalendarz świąt",
+          "placeholder": "Wybierz kraj",
           "description": "Ustawienia kalendarza zostaną automatycznie dostosowane dla wybranego kraju"
         },
         "submit": "Utwórz i zacznijmy",
-        "submitting": "Tworzenie..."
+        "submitting": "Tworzenie...",
+        "error": {
+          "nameRequired": "Proszę wprowadzić nazwę obszaru roboczego"
+        }
       },
       "footer": "Twój obszar roboczy będzie gotowy za chwilę."
     },
@@ -62,7 +78,7 @@
       "create": {
         "title": "Czy chcesz utworzyć",
         "subtitle": "nowy obszar roboczy?",
-        "free": "To bezpłatne!",
+        "free": "Za darmo!",
         "limit": "do 3 użytkowników",
         "cta": "Utwórz nowy obszar roboczy"
       }
@@ -84,10 +100,59 @@
       "create": {
         "title": "Czy chcesz utworzyć",
         "subtitle": "nowy obszar roboczy?",
-        "free": "To bezpłatne!",
+        "free": "Za darmo!",
         "limit": "do 3 użytkowników",
         "cta": "Utwórz nowy obszar roboczy"
       }
+    },
+    "addUsers": {
+      "title": "Dodaj użytkowników do obszaru roboczego",
+      "titleUpgrade": "Uaktualnij subskrypcję",
+      "question": "Ilu użytkowników chcesz dodać?",
+      "questionUpgrade": "Ile miejsc potrzebujesz?",
+      "pricing": {
+        "free": "Darmowy",
+        "upTo3Users": "do 3 użytkowników",
+        "monthlyPayment": "Płatność miesięczna",
+        "annualPayment": "Płatność roczna",
+        "mostPopular": "Najpopularniejszy",
+        "perMonthPerUser": "/ miesiąc / użytkownik",
+        "pricesNote": "Ceny pokazane w {currency}. Ceny w EUR dostępne podczas płatności dla klientów z UE."
+      },
+      "total": {
+        "label": "Dzisiejszy koszt:",
+        "free": "Darmowy",
+        "monthly": "{amount} {currency} / miesiąc",
+        "annual": "{amount} {currency} (rozliczane rocznie)"
+      },
+      "actions": {
+        "continue": "Kontynuuj",
+        "processing": "Przetwarzanie...",
+        "cancel": "Anuluj"
+      }
+    },
+    "paymentSuccess": {
+      "loading": {
+        "verifying": "Weryfikacja płatności...",
+        "settingUp": "Konfiguracja obszaru roboczego...",
+        "description": "Proszę czekać, przetwarzamy Twoje żądanie"
+      },
+      "error": {
+        "title": "Błąd płatności",
+        "button": "Przejdź do panelu"
+      },
+      "success": {
+        "title": "Płatność zakończona sukcesem!",
+        "titleUpgraded": "Subskrypcja zaktualizowana!",
+        "description": "Możesz teraz dodawać użytkowników do obszaru roboczego.",
+        "descriptionUpgraded": "Twoja subskrypcja została zaktualizowana. Przekierowanie do panelu...",
+        "button": "Zacznij korzystać z time8.io!"
+      }
+    },
+    "paymentFailure": {
+      "title": "Płatność nie powiodła się!",
+      "description": "Możesz teraz dodawać użytkowników do obszaru roboczego.",
+      "button": "Powrót do płatności"
     }
   },
   "common": {
@@ -126,18 +191,21 @@
     "login": "Zaloguj się",
     "logout": "Wyloguj się",
     "signup": "Zarejestruj się",
-    "loginTitle": "Zaloguj się",
-    "signupTitle": "Utwórz konto",
+    "loginTitle": "Logowanie",
+    "signupTitle": "Rejestracja",
     "forgotPasswordTitle": "Resetuj hasło",
     "resetPasswordTitle": "Ustaw nowe hasło",
-    "email": "E-mail",
-    "password": "Hasło",
+    "email": "Email",
+    "password": "Password",
     "confirmPassword": "Potwierdź hasło",
     "firstName": "Imię",
     "lastName": "Nazwisko",
+    "fullName": "Imię i nazwisko (lub nick)",
     "forgotPassword": "Zapomniałeś hasła?",
     "resetPassword": "Resetuj hasło",
     "createAccount": "Utwórz konto",
+    "registerButton": "Zarejestruj się",
+    "loginButton": "Zaloguj się",
     "haveAccount": "Masz już konto?",
     "noAccount": "Nie masz konta?",
     "signInWithGoogle": "Zaloguj się przez Google",
@@ -148,25 +216,30 @@
     "newPassword": "Nowe hasło",
     "confirmNewPassword": "Potwierdź nowe hasło",
     "updatePassword": "Zaktualizuj hasło",
-    "loginDescription": "Wprowadź swój e-mail poniżej, aby zalogować się do swojego konta.",
-    "signupDescription": "Wprowadź swoje dane poniżej, aby utworzyć konto",
+    "loginDescription": "Zaloguj się, aby odblokować spersonalizowane treści i pozostać w kontakcie ze swoją społecznością.",
+    "signupDescription": "Wypełnij poniższe dane, aby utworzyć konto.",
     "forgotPasswordDescription": "Wprowadź swój e-mail, aby otrzymać instrukcje resetowania",
     "resetPasswordDescription": "Wprowadź nowe hasło poniżej",
-    "emailPlaceholder": "m@przyklad.com",
-    "fullNamePlaceholder": "Jan Kowalski",
+    "emailPlaceholder": "Email",
+    "fullNamePlaceholder": "Imię i nazwisko",
+    "passwordPlaceholder": "Hasło",
     "keepSignedIn": "Pozostań zalogowany",
     "signingIn": "Logowanie...",
     "creatingAccount": "Tworzenie konta...",
     "sendingInstructions": "Wysyłanie instrukcji...",
     "updatingPassword": "Aktualizacja hasła...",
-    "orContinueWith": "Lub kontynuuj z",
+    "orContinueWith": "LUB",
     "passwordUpdated": "Hasło zaktualizowane!",
     "passwordUpdatedDescription": "Twoje hasło zostało pomyślnie zaktualizowane. Przekierowywanie do dashboardu...",
     "sendResetInstructions": "Wyślij instrukcje resetowania",
     "passwordsDoNotMatch": "Hasła nie pasują do siebie",
-    "passwordTooShort": "Hasło musi mieć co najmniej 6 znaków",
-    "minimumCharacters": "Minimum 6 znaków",
+    "passwordTooShort": "Hasło musi mieć co najmniej 8 znaków",
+    "minimumCharacters": "Minimum 8 znaków.",
+    "termsAndConditions": "Akceptuję Regulamin i Warunki",
     "resetLinkDescription": "Wyślemy Ci link do resetowania hasła",
+    "heroLine1": "Z nami nie",
+    "heroLine2": "potrzebujesz",
+    "heroLine3": "działu HR",
     "accountCreated": "Konto utworzone!",
     "accountCreatedDescription": "Twoje konto zostało pomyślnie utworzone.",
     "accountCreatedAndVerificationSent": "Konto utworzone pomyślnie",
@@ -566,9 +639,27 @@
     "subscriptionStatus": {
       "free": "Plan darmowy",
       "active": "Aktywny",
+      "on_trial": "Okres próbny",
       "paused": "Wstrzymany",
       "cancelled": "Anulowany",
+      "expired": "Wygasł",
       "pastDue": "Płatność nieudana"
+    },
+    "trial": {
+      "bannerTitle": "Okres próbny",
+      "daysRemaining": "Pozostało {days} dni okresu próbnego",
+      "dayRemaining": "Pozostał 1 dzień okresu próbnego",
+      "hoursRemaining": "Pozostało mniej niż 24 godziny",
+      "upgradeCta": "Przejdź na plan płatny",
+      "expiredMessage": "Twój okres próbny wygasł"
+    },
+    "payment": {
+      "failedMessage": "Płatność nie powiodła się - zaktualizuj metodę płatności",
+      "updatePaymentCta": "Zaktualizuj metodę płatności"
+    },
+    "paused": {
+      "message": "Subskrypcja jest wstrzymana",
+      "resumeCta": "Wznów subskrypcję"
     }
   },
   "date": {

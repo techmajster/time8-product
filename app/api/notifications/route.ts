@@ -1,31 +1,54 @@
 import { createClient } from '@/lib/supabase/server'
-import { authenticateAndGetProfile } from '@/lib/auth-utils'
 import { NextRequest } from 'next/server'
+import { cookies } from 'next/headers'
 import { Notification, NotificationsResponse } from '@/types/notification'
 
 export async function GET(request: NextRequest) {
   try {
     // Authenticate user
-    const authResult = await authenticateAndGetProfile()
+    const supabase = await createClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
 
-    if (!authResult.success || !authResult.user || !authResult.profile) {
+    if (authError || !user) {
       return Response.json(
         { error: 'Unauthorized' },
         { status: 401 }
       )
     }
 
-    const { user, profile } = authResult
-    const organizationId = profile.organization_id
+    // Get active organization from cookie (per-workspace notifications)
+    const cookieStore = await cookies()
+    const activeOrgId = cookieStore.get('active-organization-id')?.value
+
+    // Get user's organization membership
+    let userOrgQuery = supabase
+      .from('user_organizations')
+      .select('organization_id, role')
+      .eq('user_id', user.id)
+      .eq('is_active', true)
+
+    if (activeOrgId) {
+      userOrgQuery = userOrgQuery.eq('organization_id', activeOrgId)
+    } else {
+      userOrgQuery = userOrgQuery.eq('is_default', true)
+    }
+
+    const { data: userOrg, error: orgError } = await userOrgQuery.single()
+
+    if (orgError || !userOrg) {
+      return Response.json(
+        { error: 'Organization not found' },
+        { status: 404 }
+      )
+    }
+
+    const organizationId = userOrg.organization_id
 
     // Parse query parameters
     const searchParams = request.nextUrl.searchParams
     const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100)
     const offset = parseInt(searchParams.get('offset') || '0')
     const unreadOnly = searchParams.get('unread_only') === 'true'
-
-    // Create Supabase client (RLS enforced)
-    const supabase = await createClient()
 
     // Build query
     let query = supabase

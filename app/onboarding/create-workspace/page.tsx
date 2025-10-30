@@ -3,14 +3,15 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
+import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ChevronLeft } from 'lucide-react'
-import { Time8Logo } from '@/components/ui/time8-logo'
-import { LanguageSwitcher } from '@/components/LanguageSwitcher'
+import { DecorativeBackground } from '@/components/auth/DecorativeBackground'
+import { LanguageSwitcher } from '@/components/auth/LanguageSwitcher'
 
 function CreateWorkspacePageContent() {
   const t = useTranslations('onboarding.createWorkspace')
@@ -43,7 +44,7 @@ function CreateWorkspacePageContent() {
     e.preventDefault()
     
     if (!workspaceName.trim()) {
-      setError('Please enter a workspace name')
+      setError(t('form.error.nameRequired'))
       return
     }
     
@@ -76,17 +77,31 @@ function CreateWorkspacePageContent() {
   }
 
   return (
-    <div className="bg-white content-stretch flex flex-col gap-2.5 items-start justify-start relative min-h-screen w-full">
-      {/* Top header with logo and language selector */}
-      <div className="flex justify-between items-center w-full p-6">
-        <Time8Logo />
-        <LanguageSwitcher />
-      </div>
-      
-      <div className="flex-1 flex items-center justify-center w-full">
+    <div className="bg-white flex flex-col gap-[10px] items-start relative size-full min-h-screen">
+      {/* Decorative background */}
+      <DecorativeBackground />
 
-      {/* Form Container */}
-      <div className="flex flex-col gap-10 items-center justify-start relative w-[400px]">
+      {/* Language Switcher */}
+      <LanguageSwitcher />
+
+      {/* Top header with logo */}
+      <div className="absolute left-[32px] top-[32px] z-10">
+        <div className="h-[30px] relative w-[108.333px]">
+          <Image
+            alt="time8 logo"
+            className="block h-[30px] w-auto"
+            src="/assets/auth/30f1f246576f6427b3a9b511194297cbba4d7ec6.svg"
+            width={108}
+            height={30}
+            priority
+          />
+        </div>
+      </div>
+
+      {/* Main content */}
+      <div className="flex flex-col gap-[24px] flex-1 items-center justify-center min-h-0 min-w-px relative rounded-[10px] shrink-0 w-full z-10">
+        {/* Form Container */}
+        <div className="flex flex-col gap-[40px] items-center justify-start relative w-[400px]">
         
         {/* Back Button */}
         <div className="flex gap-0.5 items-center justify-start relative w-full">
@@ -121,7 +136,7 @@ function CreateWorkspacePageContent() {
               <div className="flex flex-col gap-2 items-start justify-start relative w-full">
                 <Input
                   id="workspace-name"
-                  placeholder="Enter the name"
+                  placeholder={t('form.name.placeholder')}
                   value={workspaceName}
                   onChange={(e) => setWorkspaceName(e.target.value)}
                   disabled={isSubmitting}
@@ -129,7 +144,7 @@ function CreateWorkspacePageContent() {
                   style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400, lineHeight: '20px' }}
                 />
                 <div className="font-normal text-[14px] text-muted-foreground w-full" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400, lineHeight: '20px' }}>
-                  <p className="block leading-[20px]">Workspace address: time8.io/{workspaceName.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').substring(0, 20) || 'name'}</p>
+                  <p className="block leading-[20px]">{t('form.name.workspaceAddress', { slug: workspaceName.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').substring(0, 20) || 'name' })}</p>
                 </div>
               </div>
             </div>
@@ -141,7 +156,7 @@ function CreateWorkspacePageContent() {
               </Label>
               <Select value={language} onValueChange={setLanguage}>
                 <SelectTrigger className="bg-white h-9 rounded-lg w-full border border shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] px-4 py-2">
-                  <SelectValue placeholder="Select language" />
+                  <SelectValue placeholder={t('form.language.placeholder')} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="english">
@@ -193,7 +208,7 @@ function CreateWorkspacePageContent() {
               </Label>
               <Select value={country} onValueChange={setCountry}>
                 <SelectTrigger className="bg-white h-9 rounded-lg w-full border border shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] px-4 py-2">
-                  <SelectValue placeholder="Select country" />
+                  <SelectValue placeholder={t('form.country.placeholder')} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ireland">
@@ -242,7 +257,7 @@ function CreateWorkspacePageContent() {
           <button
             onClick={handleSubmit}
             disabled={isSubmitting || !workspaceName.trim()}
-            className="bg-foreground flex gap-2 h-10 items-center justify-center px-8 py-2 relative rounded-lg shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] w-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-foreground/90 transition-colors cursor-pointer"
+            className="bg-primary flex gap-2 h-10 items-center justify-center px-8 py-2 relative rounded-lg shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] w-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90 transition-colors cursor-pointer"
           >
             <div className="font-medium text-[14px] text-primary-foreground" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500, lineHeight: '20px' }}>
               <p className="block leading-[20px] whitespace-pre">
@@ -251,7 +266,7 @@ function CreateWorkspacePageContent() {
             </div>
           </button>
         </div>
-      </div>
+        </div>
       </div>
     </div>
   )

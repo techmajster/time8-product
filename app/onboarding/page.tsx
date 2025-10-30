@@ -241,8 +241,8 @@ export default function OnboardingRoutingPage() {
   // Loading state
   if (state.loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="text-center space-y-4">
+      <div className="bg-white min-h-screen flex items-center justify-center relative">
+        <div className="text-center space-y-4 z-10">
           <div 
             className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"
             role="status"
@@ -312,8 +312,8 @@ export default function OnboardingRoutingPage() {
     
     // For other errors, show generic error state with navigation options
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-        <div className="w-full max-w-md space-y-6">
+      <div className="bg-white min-h-screen flex items-center justify-center relative p-4">
+        <div className="w-full max-w-md space-y-6 z-10">
           <Alert variant="destructive">
             <AlertDescription>
               {state.error || 'Unable to load onboarding data. Please try again.'}
@@ -352,8 +352,8 @@ export default function OnboardingRoutingPage() {
   // Missing data state - but allow invitation scenario without user
   if (!state.organizationData || (!state.user && state.organizationData?.scenario !== 'invitation')) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-        <div className="w-full max-w-md space-y-6">
+      <div className="bg-white min-h-screen flex items-center justify-center relative p-4">
+        <div className="w-full max-w-md space-y-6 z-10">
           <Alert variant="destructive">
             <AlertDescription>
               Unable to load onboarding data. Please try again.

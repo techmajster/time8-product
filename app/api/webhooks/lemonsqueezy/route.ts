@@ -11,6 +11,9 @@ import {
   processSubscriptionCreated,
   processSubscriptionUpdated,
   processSubscriptionCancelled,
+  processSubscriptionPaymentFailed,
+  processSubscriptionPaused,
+  processSubscriptionResumed,
   logBillingEvent
 } from './handlers';
 
@@ -71,6 +74,18 @@ export async function POST(request: NextRequest) {
       case 'subscription_expired':
         // Handle expired subscriptions same as cancelled
         result = await processSubscriptionCancelled(payload);
+        break;
+
+      case 'subscription_payment_failed':
+        result = await processSubscriptionPaymentFailed(payload);
+        break;
+
+      case 'subscription_paused':
+        result = await processSubscriptionPaused(payload);
+        break;
+
+      case 'subscription_resumed':
+        result = await processSubscriptionResumed(payload);
         break;
 
       default:

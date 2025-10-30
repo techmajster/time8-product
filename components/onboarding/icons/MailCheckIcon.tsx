@@ -1,0 +1,16 @@
+export function MailCheckIcon({ className }: { className?: string }) {
+  return (
+    <svg 
+      className={className || "w-6 h-6"} 
+      fill="none" 
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M21 10V3C21 2.46957 20.7893 1.96086 20.4142 1.58579C20.0391 1.21071 19.5304 1 19 1H3C2.46957 1 1.96086 1.21071 1.58579 1.58579C1.21071 1.96086 1 2.46957 1 3V15C1 16.1 1.9 17 3 17H11M21 4L12.03 9.7C11.7213 9.89343 11.3643 9.99601 11 9.99601C10.6357 9.99601 10.2787 9.89343 9.97 9.7L1 4M15 16L17 18L21 14" />
+    </svg>
+  )
+}
+
