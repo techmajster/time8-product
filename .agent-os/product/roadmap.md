@@ -146,7 +146,44 @@
 - Page structure outline from user
 - Database schema review for permission tables
 
+## Phase 2.4: Critical Production Bug Fixes 🐛 ✅ COMPLETED
+
+**Goal:** Fix critical errors blocking user onboarding and team invitations
+**Success Criteria:** Free tier users can complete onboarding, admins can invite users to new workspaces
+
+### Features
+
+- [x] **Fix Duplicate Organization Slug Error** `S` 🚨 CRITICAL ✅
+  - ✅ Error: `duplicate key value violates unique constraint "organizations_slug_key"` - FIXED
+  - ✅ Root cause: Race condition in payment-success page allowing multiple org creation attempts
+  - ✅ Fix implemented: Two-layer protection approach
+    - **Layer 1 (Frontend)**: Added pre-check in payment-success page via new `/api/organizations/check` endpoint
+    - **Layer 2 (Backend)**: Made `/api/organizations` POST endpoint idempotent - returns existing org if user is already a member
+  - ✅ Created new endpoint: [app/api/organizations/check/route.ts](app/api/organizations/check/route.ts)
+  - ✅ Updated: [app/onboarding/payment-success/page.tsx:57-84](app/onboarding/payment-success/page.tsx#L57-L84)
+  - ✅ Updated: [app/api/organizations/route.ts:44-84](app/api/organizations/route.ts#L44-L84)
+  - Actual effort: 60 minutes
+  - Impact: ✅ Free tier (3 seats) onboarding flow now works with page refreshes
+
+- [x] **Fix Seat Availability Check Error** `XS` 🚨 CRITICAL ✅
+  - ✅ Error: `Failed to check seat availability` - FIXED
+  - ✅ Root cause: Using `.single()` on materialized view with no data for new organizations
+  - ✅ Fix implemented: Changed `.single()` to `.maybeSingle()` with null fallback
+  - ✅ Updated: [app/api/employees/route.ts:64-84](app/api/employees/route.ts#L64-L84)
+  - ✅ Added fallback: `const currentMembers = seatData?.active_seats ?? 0`
+  - ✅ Added warning log for organizations not in materialized view
+  - Actual effort: 15 minutes
+  - Impact: ✅ User invitations work immediately for newly created workspaces
+
+### Dependencies
+
+- Phase 2.75 (Phase 4.5) partially complete (materialized views exist but need proper null handling) ✅
+
+---
+
 ## Phase 2.5: Subscription System Enhancement 💳
+
+**Prerequisites:** Phase 2.4 must be completed first (critical bugs blocking production)
 
 **Goal:** Complete LemonSqueezy integration with all subscription states, trial periods, and webhook events properly handled
 **Success Criteria:** All subscription statuses display correctly in UI, trial users see conversion prompts, payment failures captured immediately via webhooks
@@ -592,6 +629,41 @@
       - ✅ Quick reference checklist for component development
       - **Stats:** 80% token adoption, 35+ files updated, 184 instances replaced
       - **All 7 phases complete** - Design System Unification finished 🎉
+
+    - [ ] **Phase 8: Authentication Pages Redesign** `L` 🔐 **IN PROGRESS** - Ready for Review
+      - **Goal:** Redesign login and register pages to match Figma designs with decorative backgrounds and purple gradient hero section
+      - **Figma Designs:**
+        - Login: `https://figma.com/design/Xb0VKGqH8b7w6nXW3HoacI/time8.io?node-id=24689-24660`
+        - Register: `https://figma.com/design/Xb0VKGqH8b7w6nXW3HoacI/time8.io?node-id=24689-24688`
+
+      **Key Changes:**
+      - [x] Left container (840px): Add rotated decorative background (270° SVG with orange/purple gradients)
+      - [x] Right hero (840px): Purple gradient (#9650fb → #c592ff) with hero image and Polish marketing copy
+      - [x] Logo + page title layout: Side-by-side presentation (time8 logo + "Login"/"Register" text)
+      - [x] Form styling: Refine to match Figma specs (white inputs, purple primary button)
+      - [x] Asset integration: 13 SVGs + 1 hero image from `/public/assets/auth/` (already extracted)
+
+      **New Components:**
+      - [x] `/components/auth/DecorativeBackground.tsx` - Rotated abstract SVG background for left container
+      - [x] `/components/auth/HeroSection.tsx` - Purple gradient hero with Polish marketing copy ("Z nami nie potrzebujesz działu HR")
+
+      **Files Modified:**
+      - [x] `/app/login/page.tsx` - Main layout restructure (integrated new components)
+      - [x] `/app/login/components/LoginForm.tsx` - Updated success alert styling to use design tokens
+      - [x] `/app/login/components/SignupForm.tsx` - Updated all hardcoded colors to design tokens (primary, foreground, muted)
+
+      **Success Criteria:**
+      - ✅ Left container has decorative background matching Figma
+      - ✅ Right hero has purple gradient with Polish marketing text and hero image
+      - ✅ Logo + title layout matches design (side-by-side)
+      - ✅ All form elements styled using design tokens (no hardcoded colors)
+      - ✅ Responsive design works (mobile hides hero, desktop shows full layout)
+      - ✅ Maintains all existing authentication functionality (Google OAuth, email/password)
+      - ✅ No design system violations (uses proper tokens: primary, foreground, muted)
+      - ✅ Both login and register pages compile and load successfully (HTTP 200)
+
+      **Completed:** 2025-10-30
+      **Actual Effort:** 2 hours (under estimate)
 
   - [ ] **Main Content Pages** - Dashboard, Calendar, Leave, Team pages
   - [ ] **Admin Pages** - Settings, Users, Groups

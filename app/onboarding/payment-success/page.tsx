@@ -48,17 +48,46 @@ function PaymentSuccessPageContent() {
 
       // Check if we have organization data in session storage (new workspace flow)
       const storedOrgData = sessionStorage?.getItem('pending_organization')
-      
+
       if (storedOrgData) {
         try {
           const orgData = JSON.parse(storedOrgData)
           setOrganizationData(orgData)
-          
-          // Create organization after successful payment OR free tier confirmation
+
+          // First, check if organization already exists (prevents duplicate creation on page refresh)
+          console.log('🔍 Checking if organization already exists with slug:', orgData.slug)
+          const checkResponse = await fetch(`/api/organizations/check?slug=${encodeURIComponent(orgData.slug)}`)
+          const checkResult = await checkResponse.json()
+
+          if (checkResult.exists && checkResult.belongsToUser) {
+            console.log('✅ Organization already exists, using existing:', checkResult.organization)
+
+            // Clear session storage immediately to prevent future attempts
+            sessionStorage.removeItem('pending_organization')
+
+            // Set the existing organization as active
+            setOrganizationId(checkResult.organization.id)
+            setIsCreatingOrganization(false)
+
+            // For free tier, set status as 'free', for paid tier set as 'processing'
+            if (isFree) {
+              setSubscriptionData({ status: 'free', seats: 3 })
+            } else {
+              setSubscriptionData({ status: 'processing' })
+            }
+
+            setIsLoading(false)
+            return
+          } else if (checkResult.exists && !checkResult.belongsToUser) {
+            // Slug is taken by another user - this shouldn't happen but handle it
+            throw new Error('Organization slug is already taken. Please contact support.')
+          }
+
+          // Organization doesn't exist yet, proceed with creation
           setIsCreatingOrganization(true)
-          
+
           console.log(isFree ? '🆓 Creating free tier organization' : '💳 Creating paid tier organization after payment')
-          
+
           const response = await fetch('/api/organizations', {
             method: 'POST',
             headers: {
@@ -80,7 +109,7 @@ function PaymentSuccessPageContent() {
           sessionStorage.removeItem('pending_organization')
           setOrganizationId(result.organization.id)
           setIsCreatingOrganization(false)
-          
+
           console.log('✅ Organization created:', result.organization)
           
           // For free tier, set status as 'free', for paid tier set as 'processing'

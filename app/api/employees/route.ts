@@ -61,11 +61,12 @@ export async function POST(request: NextRequest) {
     console.log('🪑 Checking seat availability...')
 
     // Get current active members count using materialized view for 90% faster performance
+    // Using maybeSingle() to handle new organizations that may not be in the view yet
     const { data: seatData, error: memberCountError } = await supabaseAdmin
       .from('mv_organization_seat_usage')
       .select('active_seats')
       .eq('organization_id', organizationId)
-      .single()
+      .maybeSingle()
 
     if (memberCountError) {
       console.error('❌ Failed to get seat usage:', memberCountError)
@@ -75,8 +76,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const currentMembers = seatData?.active_seats || 0
+    // Handle null case for new organizations not yet in materialized view
+    const currentMembers = seatData?.active_seats ?? 0
     console.log(`👥 Current active members: ${currentMembers}`)
+    if (!seatData) {
+      console.warn('⚠️ Organization not found in materialized view, using fallback count of 0')
+    }
 
     // Count pending invitations that would consume seats
     const { count: pendingInvitationsCount, error: pendingCountError } = await supabaseAdmin

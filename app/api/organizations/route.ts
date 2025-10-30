@@ -42,17 +42,45 @@ export async function POST(request: NextRequest) {
     console.log('API: User profile found:', profile.full_name, profile.role)
 
     // SECURITY: Validate slug is unique (prevent conflicts)
+    // Check if organization with this slug already exists
     const { data: existingOrg, error: slugCheckError } = await supabaseAdmin
       .from('organizations')
-      .select('id')
+      .select('id, name, slug')
       .eq('slug', slug)
-      .single()
+      .maybeSingle()
+
+    if (slugCheckError) {
+      console.error('API: Error checking slug:', slugCheckError)
+      return NextResponse.json({
+        error: 'Failed to validate organization slug'
+      }, { status: 500 })
+    }
 
     if (existingOrg) {
-      console.error('API: Slug already taken:', slug)
-      return NextResponse.json({
-        error: 'Organization slug is already taken. Please choose a different slug.'
-      }, { status: 409 })
+      // Check if this user is already a member of this organization
+      const { data: userOrg, error: userOrgCheckError } = await supabaseAdmin
+        .from('user_organizations')
+        .select('organization_id, role')
+        .eq('organization_id', existingOrg.id)
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+      if (userOrg) {
+        // Organization exists and user is already a member - return existing org (idempotent)
+        console.log('✅ Organization already exists for this user, returning existing org')
+        return NextResponse.json({
+          success: true,
+          organization: existingOrg,
+          message: 'Organization already exists',
+          existing: true
+        })
+      } else {
+        // Organization exists but user is not a member - slug is taken
+        console.error('API: Slug already taken by another user:', slug)
+        return NextResponse.json({
+          error: 'Organization slug is already taken. Please choose a different slug.'
+        }, { status: 409 })
+      }
     }
 
     // Create organization with admin client (bypasses RLS)
