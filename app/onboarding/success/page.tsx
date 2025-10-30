@@ -2,8 +2,14 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
+import Image from 'next/image'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
+import { CircleCheck } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { DecorativeBackground } from '@/components/auth/DecorativeBackground'
+import { LanguageSwitcher } from '@/components/auth/LanguageSwitcher'
 
 interface CompanyMember {
   id: string
@@ -13,6 +19,7 @@ interface CompanyMember {
 }
 
 function SuccessPageContent() {
+  const t = useTranslations('onboarding.success')
   const router = useRouter()
   const searchParams = useSearchParams()
   const orgName = searchParams.get('org') || 'BB8 Team'
@@ -60,12 +67,11 @@ function SuccessPageContent() {
     const remainingCount = companyMembers.length - maxVisible
 
     return (
-      <div className="inline-flex items-center" style={{ marginLeft: '-8px' }}>
+      <div className="flex items-center pr-2">
         {visibleMembers.map((member, index) => (
           <Avatar 
             key={member.id} 
-            className="bg-muted size-6 border-2 border-white"
-            style={{ marginLeft: '8px' }}
+            className="bg-muted h-6 w-6 border-2 border-white mr-[-8px]"
           >
             {member.avatar_url && (
               <AvatarImage 
@@ -73,7 +79,7 @@ function SuccessPageContent() {
                 alt={member.full_name}
               />
             )}
-            <AvatarFallback className="font-normal text-[12px]" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400, lineHeight: '20px' }}>
+            <AvatarFallback className="text-xs">
               {getInitials(member.full_name || member.email)}
             </AvatarFallback>
           </Avatar>
@@ -81,8 +87,8 @@ function SuccessPageContent() {
         
         {/* Only show +X if there are MORE than 3 members total */}
         {companyMembers.length > maxVisible && (
-          <Avatar className="bg-muted size-6 border-2 border-white" style={{ marginLeft: '8px' }}>
-            <AvatarFallback className="font-normal text-[12px]" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400, lineHeight: '20px' }}>
+          <Avatar className="bg-muted h-6 w-6 border-2 border-white mr-[-8px]">
+            <AvatarFallback className="text-xs">
               +{remainingCount}
             </AvatarFallback>
           </Avatar>
@@ -93,54 +99,58 @@ function SuccessPageContent() {
 
   // Success screen matching Figma design (24761-15630)
   return (
-    <div className="bg-card min-h-screen relative w-full">
+    <div className="bg-white flex flex-col gap-[10px] items-start relative size-full min-h-screen">
+      {/* Decorative background */}
+      <DecorativeBackground />
+
+      {/* Language Switcher */}
+      <LanguageSwitcher />
+
+      {/* Logo - Time8 */}
+      <div className="absolute left-[32px] top-[32px] z-10">
+        <div className="h-[30px] relative w-[108.333px]">
+          <Image
+            alt="time8 logo"
+            className="block h-[30px] w-auto"
+            src="/assets/auth/30f1f246576f6427b3a9b511194297cbba4d7ec6.svg"
+            width={108}
+            height={30}
+            priority
+          />
+        </div>
+      </div>
+
       {/* Centered content */}
-      <div className="flex-1 flex flex-col items-center justify-center min-h-screen w-full">
+      <div className="flex-1 flex flex-col items-center justify-center min-h-screen w-full z-10">
         <div className="flex flex-col gap-8 items-center justify-start p-16 relative rounded-3xl">
           
           {/* Success Icon */}
-          <div className="overflow-hidden relative size-16">
-            <div className="absolute inset-[8.333%]">
-              <svg className="w-full h-full text-foreground" fill="none" preserveAspectRatio="none" viewBox="0 0 55 55">
-                <path
-                  d="M19.6667 27.6667L25 33L35.6667 22.3333M54.3333 27.6667C54.3333 42.3943 42.3943 54.3333 27.6667 54.3333C12.9391 54.3333 1 42.3943 1 27.6667C1 12.9391 12.9391 1 27.6667 1C42.3943 1 54.3333 12.9391 54.3333 27.6667Z"
-                  stroke="currentColor"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="1.33"
-                />
-              </svg>
-            </div>
-          </div>
+          <CircleCheck className="size-16 text-foreground" strokeWidth={1.33} />
 
           {/* Content */}
-          <div className="flex flex-col gap-3 items-start justify-start p-0 relative">
-            <div className="flex flex-col gap-3 items-center justify-start p-0 relative w-full">
-              <div className="font-bold leading-[36px] relative text-[30px] text-center text-foreground" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 700 }}>
-                <p className="block leading-[36px] whitespace-pre">You have joined workspace</p>
-              </div>
-              <div className="flex gap-2.5 items-center justify-center p-0 relative w-full">
-                <div className="font-bold relative text-[30px] text-center text-foreground" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 700, lineHeight: '36px' }}>
-                  <p className="block leading-[36px] whitespace-pre">{orgName}</p>
-                </div>
-                {/* Avatar Group - Real Company Members */}
-                {renderAvatars()}
-              </div>
+          <div className="flex flex-col gap-3 items-center text-center">
+            <h1 className="text-3xl font-bold leading-9">
+              {t('title') || 'You have joined workspace'}
+            </h1>
+            <div className="flex gap-2.5 items-center justify-center">
+              <p className="text-3xl font-semibold leading-9">
+                {orgName}
+              </p>
+              {/* Avatar Group - Real Company Members */}
+              {renderAvatars()}
             </div>
-            <div className="font-normal relative text-[14px] text-center text-muted-foreground w-full" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400, lineHeight: '20px' }}>
-              <p className="block leading-[20px]">Now you can start using Time8.io</p>
-            </div>
+            <p className="text-sm text-muted-foreground">
+              {t('subtitle') || 'Now you can start using Time8.io'}
+            </p>
           </div>
 
           {/* CTA Button */}
-          <button
+          <Button
+            size="lg"
             onClick={handleGoToDashboard}
-            className="bg-foreground flex gap-2 h-10 items-center justify-center px-8 py-2 relative rounded-lg shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] hover:bg-foreground/90 transition-colors"
           >
-            <div className="font-medium text-[14px] text-primary-foreground" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500, lineHeight: '20px' }}>
-              <p className="block leading-[20px] whitespace-pre">Go to dashboard</p>
-            </div>
-          </button>
+            {t('cta') || 'Go to dashboard'}
+          </Button>
         </div>
       </div>
     </div>

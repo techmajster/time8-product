@@ -18,6 +18,11 @@
       "cta": "Create new workspace",
       "footer": "You'll be the admin and can customize everything later."
     },
+    "success": {
+      "title": "You have joined workspace",
+      "subtitle": "Now you can start using Time8.io",
+      "cta": "Go to dashboard"
+    },
     "invitation": {
       "title": "You have been invited\nto workspace:",
       "accept": "Accept invitation",
@@ -237,6 +242,13 @@
     "minimumCharacters": "Minimum 8 characters.",
     "termsAndConditions": "I agree to the Terms & Conditions",
     "resetLinkDescription": "We'll send you a link to reset your password",
+    "registerYourAccount": "Register your account",
+    "back": "Back",
+    "missingInvitationInfo": "Missing required invitation information. Please use the invitation link from your email.",
+    "fullNameRequired": "Full name is required",
+    "termsRequired": "You must agree to the Terms & Conditions to proceed.",
+    "signInFailed": "Account created but sign-in failed. Please try logging in manually.",
+    "accountCreationFailed": "Failed to create account. Please try again.",
     "heroLine1": "With us you",
     "heroLine2": "don't need",
     "heroLine3": "an HR department",

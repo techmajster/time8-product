@@ -247,15 +247,12 @@ export function LoginForm({ onModeChange, className }: LoginFormProps) {
         <Button type="submit" className="w-full" disabled={loading}>
           {loading ? t('signingIn') : t('loginButton')}
         </Button>
-        <div className="relative w-full py-1">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-border" />
-          </div>
-          <div className="relative flex justify-center">
-            <span className="bg-background px-2 text-xs text-muted-foreground">
-              {t('orContinueWith')}
-            </span>
-          </div>
+        <div className="flex gap-[10px] items-center justify-center w-full">
+          <div className="flex-1 h-0 border-t border-border" />
+          <span className="text-xs text-muted-foreground leading-4">
+            {t('orContinueWith')}
+          </span>
+          <div className="flex-1 h-0 border-t border-border" />
         </div>
         <GoogleAuthButton mode="signin" />
       </div>

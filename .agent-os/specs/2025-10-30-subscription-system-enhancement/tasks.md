@@ -23,14 +23,14 @@
   - [x] 2.6 Add trial period translations to messages/pl.json
   - [x] 2.7 Add payment failure translations to messages/pl.json
   - [x] 2.8 Add pause/resume translations to messages/pl.json
-  - [ ] 2.9 Verify translations render correctly in UI
+  - [x] 2.9 Verify translations render correctly in UI
 
 - [x] 3. Implement UI Status Displays
-  - [ ] 3.1 Write tests for on_trial status badge rendering
+  - [x] 3.1 Write tests for on_trial status badge rendering
   - [x] 3.2 Add on_trial status badge to AdminSettingsClient.tsx
-  - [ ] 3.3 Write tests for expired status badge rendering
+  - [x] 3.3 Write tests for expired status badge rendering
   - [x] 3.4 Add expired status badge to AdminSettingsClient.tsx
-  - [ ] 3.5 Write tests for trial countdown banner logic
+  - [x] 3.5 Write tests for trial countdown banner logic
   - [x] 3.6 Implement trial countdown banner component
   - [x] 3.7 Add trial countdown banner to AdminSettingsClient.tsx
   - [ ] 3.8 Verify status displays work in browser

@@ -18,6 +18,11 @@
       "cta": "Utwórz nowy obszar roboczy",
       "footer": "Będziesz administratorem i możesz wszystko dostosować później."
     },
+    "success": {
+      "title": "Dołączyłeś do obszaru roboczego",
+      "subtitle": "Teraz możesz zacząć korzystać z Time8.io",
+      "cta": "Przejdź do panelu"
+    },
     "invitation": {
       "title": "Zostałeś zaproszony\ndo obszaru roboczego:",
       "accept": "Zaakceptuj zaproszenie",
@@ -237,6 +242,13 @@
     "minimumCharacters": "Minimum 8 znaków.",
     "termsAndConditions": "Akceptuję Regulamin i Warunki",
     "resetLinkDescription": "Wyślemy Ci link do resetowania hasła",
+    "registerYourAccount": "Zarejestruj swoje konto",
+    "back": "Wstecz",
+    "missingInvitationInfo": "Brak wymaganych informacji o zaproszeniu. Użyj linku z zaproszenia z e-maila.",
+    "fullNameRequired": "Imię i nazwisko jest wymagane",
+    "termsRequired": "Musisz zaakceptować Regulamin i Warunki, aby kontynuować.",
+    "signInFailed": "Konto utworzone, ale logowanie nie powiodło się. Spróbuj zalogować się ręcznie.",
+    "accountCreationFailed": "Nie udało się utworzyć konta. Spróbuj ponownie.",
     "heroLine1": "Z nami nie",
     "heroLine2": "potrzebujesz",
     "heroLine3": "działu HR",

@@ -2,32 +2,46 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
+import Image from 'next/image'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Time8Logo } from '@/components/ui/time8-logo'
-import { Eye, EyeOff, ChevronLeft } from 'lucide-react'
+import { ChevronLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { DecorativeBackground } from '@/components/auth/DecorativeBackground'
+import { LanguageSwitcher } from '@/components/auth/LanguageSwitcher'
 
 function RegisterPageContent() {
+  const t = useTranslations('auth')
   const router = useRouter()
   const searchParams = useSearchParams()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [fullName, setFullName] = useState('')
   const [password, setPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
   const [termsAccepted, setTermsAccepted] = useState(true)
   
   // Get params from URL
   const token = searchParams.get('token')
   const email = searchParams.get('email')
-  const name = searchParams.get('name') 
+  const nameFromUrl = searchParams.get('name') 
   const orgName = searchParams.get('org')
+  
+  // Initialize fullName from URL param
+  useEffect(() => {
+    if (nameFromUrl) {
+      setFullName(nameFromUrl)
+    }
+  }, [nameFromUrl])
 
   useEffect(() => {
-    if (!token || !email || !name) {
-      setError('Missing required invitation information')
+    if (!token || !email) {
+      setError(t('missingInvitationInfo') || 'Missing required invitation information')
     }
-  }, [token, email, name])
+  }, [token, email, t])
 
   const handleBack = () => {
     router.back()
@@ -36,20 +50,25 @@ function RegisterPageContent() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    console.log('🔍 Registration debug:', { token, email, name, password: password.length, termsAccepted })
+    console.log('🔍 Registration debug:', { token, email, fullName, password: password.length, termsAccepted })
     
-    if (!token || !email || !name) {
-      setError('Missing required invitation information')
+    if (!token || !email) {
+      setError(t('missingInvitationInfo') || 'Missing required invitation information')
+      return
+    }
+    
+    if (!fullName || fullName.trim().length === 0) {
+      setError(t('fullNameRequired') || 'Full name is required')
       return
     }
     
     if (password.length < 8) {
-      setError('Password must be at least 8 characters long.')
+      setError(t('passwordTooShort'))
       return
     }
     
     if (!termsAccepted) {
-      setError('You must agree to the Terms & Conditions to proceed.')
+      setError(t('termsRequired') || 'You must agree to the Terms & Conditions to proceed.')
       return
     }
     
@@ -74,7 +93,7 @@ function RegisterPageContent() {
         body: JSON.stringify({
           email: email,
           password: password,
-          full_name: name,
+          full_name: fullName,
           invitation_id: invitation.id,
           organization_id: invitation.organization_id,
           role: invitation.role
@@ -98,7 +117,7 @@ function RegisterPageContent() {
       
       if (signInError) {
         console.error('❌ Auto sign-in failed:', signInError)
-        setError('Account created but sign-in failed. Please try logging in manually.')
+        setError(t('signInFailed') || 'Account created but sign-in failed. Please try logging in manually.')
         return
       }
       
@@ -110,18 +129,18 @@ function RegisterPageContent() {
       
     } catch (error: any) {
       console.error('❌ Account creation error:', error)
-      setError(error.message || 'Failed to create account. Please try again.')
+      setError(error.message || t('accountCreationFailed') || 'Failed to create account. Please try again.')
     } finally {
       setLoading(false)
     }
   }
 
-  if (!token || !email || !name) {
+  if (!token || !email) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="w-full max-w-md space-y-6">
           <Alert variant="destructive">
-            <AlertDescription>Missing required invitation information. Please use the invitation link from your email.</AlertDescription>
+            <AlertDescription>{t('missingInvitationInfo') || 'Missing required invitation information. Please use the invitation link from your email.'}</AlertDescription>
           </Alert>
         </div>
       </div>
@@ -130,115 +149,120 @@ function RegisterPageContent() {
 
   // Registration form matching Figma design (24761-15558)
   return (
-    <div className="bg-white min-h-screen relative w-full">
+    <div className="bg-white flex flex-col gap-[10px] items-start relative size-full min-h-screen">
+      {/* Decorative background */}
+      <DecorativeBackground />
+
+      {/* Language Switcher */}
+      <LanguageSwitcher />
+
       {/* Logo - Time8 */}
-      <div className="absolute left-8 top-8">
-        <Time8Logo />
+      <div className="absolute left-[32px] top-[32px] z-10">
+        <div className="h-[30px] relative w-[108.333px]">
+          <Image
+            alt="time8 logo"
+            className="block h-[30px] w-auto"
+            src="/assets/auth/30f1f246576f6427b3a9b511194297cbba4d7ec6.svg"
+            width={108}
+            height={30}
+            priority
+          />
+        </div>
       </div>
 
       {/* Centered content */}
-      <div className="flex-1 flex items-center justify-center min-h-screen w-full p-4">
+      <div className="flex-1 flex items-center justify-center min-h-screen w-full p-4 z-10">
         <div className="flex flex-col gap-10 items-center justify-start p-0 relative w-[400px]">
           
           {/* Back Button */}
-          <div className="flex gap-0.5 items-center justify-start p-0 relative w-full">
-            <button
+          <div className="flex items-start w-full">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
               onClick={handleBack}
-              className="bg-white flex gap-2 items-center justify-center px-4 py-2 relative rounded-lg border border shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] hover:bg-gray-50 transition-colors"
+              className="gap-2"
             >
-              <ChevronLeft className="w-4 h-4 text-foreground" />
-              <div className="font-medium text-[14px] text-foreground" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500, lineHeight: '20px' }}>
-                <p className="block leading-[20px] whitespace-pre">Back</p>
-              </div>
-            </button>
+              <ChevronLeft className="w-4 h-4" />
+              {t('back') || 'Back'}
+            </Button>
           </div>
 
           {/* Form Section */}
-          <div className="flex flex-col gap-8 items-start justify-start p-0 relative w-full">
+          <div className="flex flex-col gap-8 w-full">
             {/* Header */}
-            <div className="flex flex-col gap-2 items-center justify-start p-0 relative w-full">
-              <div className="font-bold relative text-[30px] text-foreground w-full" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 700, lineHeight: '36px' }}>
-                <p className="block leading-[36px]">Register your account</p>
-              </div>
-              <div className="font-normal relative text-[14px] text-muted-foreground w-full" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400, lineHeight: '20px' }}>
-                <p className="block leading-[20px]">Fill in the details below to create your account.</p>
-              </div>
+            <div className="flex flex-col gap-2">
+              <h1 className="text-3xl font-bold leading-9">
+                {t('registerYourAccount') || 'Register your account'}
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                {t('signupDescription')}
+              </p>
             </div>
 
             {/* Form Fields */}
-            <div className="flex flex-col gap-5 items-center justify-start p-0 relative w-full">
+            <div className="flex flex-col gap-5 w-full">
               
+              {/* Full Name Field */}
+              <div className="flex flex-col gap-2 w-full">
+                <Label htmlFor="fullName">{t('fullName')}</Label>
+                <Input
+                  id="fullName"
+                  type="text"
+                  placeholder={t('fullNamePlaceholder')}
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  disabled={loading}
+                  required
+                  className="h-9"
+                />
+              </div>
+
               {/* Email Field (Disabled) */}
-              <div className="flex flex-col gap-2 items-start justify-start p-0 relative w-full">
-                <div className="font-medium text-[14px] text-foreground" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500 }}>
-                  <p className="block">Email</p>
-                </div>
-                <div className="flex flex-col gap-2 items-start justify-start p-0 relative w-full">
-                  <div className="bg-slate-100 h-9 opacity-50 relative rounded-lg w-full border border shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]">
-                    <div className="flex gap-1 h-9 items-center justify-start overflow-hidden px-3 py-1 relative w-full">
-                      <div className="flex-1 font-normal text-[14px] text-muted-foreground" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400, lineHeight: '20px' }}>
-                        <p className="block leading-[20px] overflow-hidden text-ellipsis whitespace-nowrap">{email}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+              <div className="flex flex-col gap-2 w-full">
+                <Label htmlFor="email">{t('email')}</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email || ''}
+                  disabled
+                  className="h-9 bg-slate-100 opacity-50"
+                />
               </div>
 
               {/* Password Field */}
-              <div className="flex flex-col gap-2 items-start justify-start p-0 relative w-full">
-                <div className="font-medium text-[14px] text-foreground" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500 }}>
-                  <p className="block">Password</p>
-                </div>
-                <div className="flex flex-col gap-2 items-start justify-start p-0 relative w-full">
-                  <div className="bg-white h-9 relative rounded-lg w-full border border shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]">
-                    <div className="flex gap-1 h-9 items-center justify-start overflow-hidden px-3 py-1 relative w-full">
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        placeholder="Password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        disabled={loading}
-                        required
-                        className="flex-1 font-normal text-[14px] text-muted-foreground bg-transparent border-none outline-none" 
-                        style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400, lineHeight: '20px' }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        disabled={loading}
-                        className="ml-2 p-1 hover:bg-muted rounded flex-shrink-0"
-                      >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
-                    </div>
-                  </div>
-                  <div className="font-normal text-[14px] text-muted-foreground w-full" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400, lineHeight: '20px' }}>
-                    <p className="block leading-[20px]">Minimum 8 characters.</p>
-                  </div>
-                </div>
+              <div className="flex flex-col gap-2 w-full">
+                <Label htmlFor="password">{t('password')}</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder={t('passwordPlaceholder')}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={loading}
+                  required
+                  minLength={8}
+                  className="h-9"
+                />
+                <p className="text-sm text-muted-foreground">
+                  {t('minimumCharacters')}
+                </p>
               </div>
 
               {/* Terms Checkbox */}
-              <div className="flex gap-2 items-start justify-start p-0 relative w-full">
+              <div className="flex items-start gap-2 w-full">
                 <Checkbox
                   id="terms"
                   checked={termsAccepted}
                   onCheckedChange={(checked) => setTermsAccepted(!!checked)}
                   disabled={loading}
-                  className="mt-0.5"
                 />
-                <div className="flex-1 flex flex-col gap-1.5 items-start justify-start p-0 relative">
-                  <label 
-                    htmlFor="terms"
-                    className="font-medium text-[14px] text-foreground w-full cursor-pointer" 
-                    style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500 }}
-                  >
-                    <p className="leading-none">
-                      <span>I agree to the </span>
-                      <span>Terms & Conditions</span>
-                    </p>
-                  </label>
-                </div>
+                <Label 
+                  htmlFor="terms"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                >
+                  {t('termsAndConditions')}
+                </Label>
               </div>
 
             </div>
@@ -252,18 +276,16 @@ function RegisterPageContent() {
           )}
 
           {/* Submit Button */}
-          <div className="flex flex-col gap-6 items-center justify-center p-0 relative w-full">
-            <button
+          <div className="flex flex-col gap-6 items-center justify-center w-full">
+            <Button
+              type="button"
+              size="lg"
               onClick={handleRegister}
-              disabled={!password || loading}
-              className="bg-foreground flex gap-2 h-10 items-center justify-center px-8 py-2 relative rounded-lg shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] w-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-foreground/90 transition-colors"
+              disabled={!password || !fullName || loading || !termsAccepted}
+              className="w-full"
             >
-              <div className="font-medium text-[14px] text-primary-foreground" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500, lineHeight: '20px' }}>
-                <p className="block leading-[20px] whitespace-pre">
-                  {loading ? 'Creating Account...' : 'Register'}
-                </p>
-              </div>
-            </button>
+              {loading ? t('creatingAccount') : t('registerButton')}
+            </Button>
           </div>
         </div>
       </div>

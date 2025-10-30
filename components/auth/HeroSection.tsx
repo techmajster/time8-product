@@ -84,16 +84,22 @@ export function HeroSection() {
         </div>
       </div>
 
-      {/* Decorative rounded badge */}
-      <div className="absolute flex items-center justify-center left-[89.3px] top-[260.98px]" style={{ transform: 'rotate(357.68deg)', width: '311.6px', height: '75.86px' }}>
-        <div className="h-full w-full rounded-[16.8px]" style={{ backgroundImage: 'linear-gradient(90deg, rgb(171, 123, 245) 0%, rgb(171, 123, 245) 100%), linear-gradient(90deg, rgb(64, 34, 169) 0%, rgb(64, 34, 169) 100%)' }} />
-      </div>
-
       {/* Marketing text */}
-      <div className="absolute font-bold leading-[1.05] left-[100px] text-[70px] text-white top-[120px] tracking-[-2.1px] w-[728px]" style={{ fontFamily: "'Figtree', sans-serif" }}>
+      <div className="absolute font-bold leading-[1.05] left-[100px] text-[70px] text-white top-[120px] tracking-[-2.1px] w-[728px] z-10" style={{ fontFamily: "'Figtree', sans-serif" }}>
         <p className="mb-0">{t('heroLine1')}</p>
         <p className="mb-0">{t('heroLine2')}</p>
-        <p>{t('heroLine3')}</p>
+        <div className="relative inline-block">
+          <p className="mb-0">{t('heroLine3')}</p>
+          {/* Decorative rounded badge - responsive to text width */}
+          <div 
+            className="absolute left-[-11px] bottom-[-3px] h-[75.86px] rounded-[16.8px] -z-10"
+            style={{ 
+              transform: 'rotate(357.68deg)',
+              width: 'calc(100% + 22px)',
+              background: '#AB7BF5'
+            }} 
+          />
+        </div>
       </div>
     </div>
   )
