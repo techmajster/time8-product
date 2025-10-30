@@ -238,9 +238,10 @@ export async function POST(request: NextRequest) {
     console.log('💰 Creating leave balances for new user...')
     try {
       if (organizationLeaveTypes.length > 0) {
-        // Filter leave types that require balance tracking (including mandatory types) and aren't child-specific
+        // Filter leave types that require balance tracking
+        // NOTE: is_mandatory does NOT mean requires_balance (e.g., Urlop bezpłatny is mandatory but unlimited)
         const balanceRequiredTypes = organizationLeaveTypes.filter(lt =>
-          (lt.requires_balance || lt.is_mandatory) &&
+          lt.requires_balance &&
           lt.days_per_year > 0 &&
           !['maternity', 'paternity', 'childcare'].includes(lt.leave_category)
         )

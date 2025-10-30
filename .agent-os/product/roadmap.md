@@ -199,6 +199,25 @@
   - Actual effort: 15 minutes
   - Impact: ✅ New workspaces now start clean with only 2 mandatory types, admin can opt-in to Polish law templates
 
+- [x] **Fix Urlop bezpłatny Showing Inconsistent Balance Values** `S` 🚨 CRITICAL ✅
+  - ✅ Error: Some users seeing "0 dni dostępne" / "Niewystarczające saldo", others seeing "Bez limitu" for same leave type
+  - ✅ Root cause: Multiple issues in balance creation and display logic:
+    1. Invitation signup creating balances for `is_mandatory` types regardless of `requires_balance`
+    2. UI displaying balance numbers without checking `requires_balance` flag first
+    3. Validation disabling unlimited types when balance records existed
+    4. Existing incorrect balance records in database for 2 users
+  - ✅ Fixes implemented:
+    - Fixed invitation signup to ONLY create balances for `requires_balance = true` types
+    - Updated UI to check `requires_balance` before showing balance (shows "Bez limitu" for unlimited)
+    - Fixed validation to never disable unlimited types regardless of balance records
+    - Deleted 2 incorrect balance records from database (Paweł, Szymon)
+  - ✅ Updated: [app/api/auth/signup-with-invitation/route.ts:241-247](app/api/auth/signup-with-invitation/route.ts#L241-L247)
+  - ✅ Updated: [app/leave/components/NewLeaveRequestSheet.tsx:256-296](app/leave/components/NewLeaveRequestSheet.tsx#L256-L296)
+  - ✅ Updated: [lib/leave-validation.ts:96-100](lib/leave-validation.ts#L96-L100)
+  - ✅ Verified: Organization creation ✅, Default leave types button ✅ (both already correct)
+  - Actual effort: 45 minutes
+  - Impact: ✅ ALL users now see consistent "Bez limitu" for unlimited leave types across all scenarios
+
 ### Dependencies
 
 - Phase 2.75 (Phase 4.5) partially complete (materialized views exist but need proper null handling) ✅
