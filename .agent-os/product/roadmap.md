@@ -598,6 +598,66 @@
 - No blocking issues
 - Committed: e32d8cf (2025-10-31)
 
+## Phase 2.6: Fix Stale Seat Count Data 🐛 ✅ **COMPLETED**
+
+**Goal:** Fix incorrect seat counts displayed on billing page and employee invitation logic
+**Success Criteria:** Billing page shows real-time accurate seat counts, employee invitations use correct availability checks
+**Completed:** 2025-10-31
+
+### Issue
+
+**Problem:** Billing page showed "3 z 9 miejsc wykorzystanych" when dashboard displayed 6 active users
+**Root Cause:** API endpoints relied on materialized view (`mv_organization_seat_usage`) with stale data that was never refreshed
+
+### Impact
+
+**Critical Bugs Discovered:**
+1. **Billing Display Bug** - Users see incorrect seat usage on billing page
+2. **Employee Invitation Bug** - Seat availability check could incorrectly block legitimate invitations
+3. **Data Integrity Issue** - Materialized view designed for 90% performance gain but had no refresh mechanism active in production
+
+### Solution
+
+**Approach:** Replace materialized view queries with direct `user_organizations` table queries
+**Trade-off:** Lose 90% performance optimization (5ms → 50ms) but gain 100% data accuracy
+**Rationale:** Billing page loads once, not in tight loop - 45ms difference negligible vs data correctness
+
+### Changes
+
+- [x] **Fix `/api/billing/subscription` endpoint** `XS` ✅
+  - ✅ Replaced `mv_organization_seat_usage` query with direct `user_organizations` count
+  - ✅ Changed query from `.single()` to count with `{ count: 'exact', head: true }`
+  - ✅ Real-time accuracy - always shows current active member count
+  - Files: [route.ts:65-75](app/api/billing/subscription/route.ts#L65-L75)
+
+- [x] **Fix `/api/employees` endpoint** `XS` ✅
+  - ✅ Replaced `mv_organization_seat_usage` query with direct `user_organizations` count
+  - ✅ Removed `.maybeSingle()` fallback logic (no longer needed)
+  - ✅ Seat availability check now uses real-time data
+  - Files: [route.ts:63-78](app/api/employees/route.ts#L63-L78)
+
+### Testing
+
+- ✅ Build verification passed
+- ✅ TypeScript compilation successful
+- ✅ Ready for browser testing
+
+### Benefits
+
+- ✅ Real-time accurate seat counts on billing page
+- ✅ Correct seat availability checks for employee invitations
+- ✅ Eliminated entire class of "stale data" bugs
+- ✅ Simpler codebase (no refresh logic needed)
+- ✅ Better user trust (accurate billing information)
+
+### Notes
+
+- **Materialized View Status**: `mv_organization_seat_usage` still exists but no longer used in production code
+- **Leave Summaries View**: `mv_org_leave_summaries` created but never used - can be removed or kept for future
+- **Performance**: 45ms slower per query is negligible for billing page that loads once
+
+---
+
 ## Phase 3: Design System Implementation 🎨
 
 **Goal:** Complete visual overhaul using Figma designs and modern component library

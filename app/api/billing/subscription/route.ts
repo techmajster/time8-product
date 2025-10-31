@@ -56,23 +56,23 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Count active members using materialized view for 90% faster performance
+    // Count active members using direct query for real-time accuracy
     const serviceClient = createServiceClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    const { data: seatData, error: memberError } = await serviceClient
-      .from('mv_organization_seat_usage')
-      .select('active_seats')
+    const { count: activeMembersCount, error: memberError } = await serviceClient
+      .from('user_organizations')
+      .select('*', { count: 'exact', head: true })
       .eq('organization_id', organizationId)
-      .single();
+      .eq('is_active', true);
 
     if (memberError) {
-      console.error('❌ Seat usage query failed:', memberError);
+      console.error('❌ Active members count query failed:', memberError);
     }
 
-    const currentMembers = seatData?.active_seats || 1; // Default to 1 if query fails
+    const currentMembers = activeMembersCount || 0;
 
     // Count pending invitations that will consume seats when accepted
     const { count: pendingInvitationsCount, error: pendingCountError } = await serviceClient
@@ -92,7 +92,7 @@ export async function GET(request: NextRequest) {
       // Return free tier with comprehensive seat calculation
       const seatInfo = calculateComprehensiveSeatInfo(
         0, // 0 paid seats
-        currentMembers,
+        currentMembersCount,
         pendingInvitations
       );
 
