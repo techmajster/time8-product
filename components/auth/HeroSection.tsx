@@ -71,14 +71,14 @@ export function HeroSection() {
       </div>
 
       {/* Hero image */}
-      <div className="absolute bottom-[-74px] h-[880px] right-[-177.6px] w-[706px]">
+      <div className="absolute bottom-[-74px] h-[806px] right-[0px] w-[528px] z-[5]">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <Image
             alt="Smiling woman"
-            className="absolute h-[106.31%] left-[-74.23%] max-w-none top-[-6.29%] w-[198.97%]"
+            className="absolute max-w-none"
             src="/assets/auth/3cffeb594b7dc8e3c17becdd9922d223f819e507.png"
-            width={1404}
-            height={935}
+            width={528}
+            height={806}
             priority
           />
         </div>
