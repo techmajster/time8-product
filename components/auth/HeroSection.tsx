@@ -80,6 +80,7 @@ export function HeroSection() {
             width={528}
             height={806}
             priority
+            unoptimized
           />
         </div>
       </div>
