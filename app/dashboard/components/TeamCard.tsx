@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
 import { TreePalm, UserCheck, Users } from 'lucide-react'
 
 interface TeamMember {
@@ -123,27 +122,37 @@ export function TeamCard({ allTeamMembers, absentMembers, teams, defaultTeamId, 
                   const initials = member.full_name?.split(' ').map((n: string) => n[0]).join('') || member.email?.charAt(0) || '?'
                   const leaveTypeColor = request.leaveType?.color || '#gray-500'
                   const leaveTypeName = request.leaveType?.name || 'Urlop'
-                  const endDate = new Date(request.endDate).toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit' })
+                  const endDate = new Date(request.endDate).toLocaleDateString(undefined, { day: '2-digit', month: '2-digit' })
                   
                   return (
-                    <div key={index} className="flex items-center gap-4">
-                      <Avatar className="w-10 h-10">
+                    <div key={index} className="flex items-center gap-4 w-full">
+                      <Avatar className="size-10 rounded-full shrink-0">
                         <AvatarImage src={member.avatar_url || undefined} />
                         <AvatarFallback>{initials}</AvatarFallback>
                       </Avatar>
-                      <div className="flex-1">
-                        <div className="text-sm font-medium text-foreground">{member.full_name}</div>
-                        <div className="text-sm text-muted-foreground">{member.email}</div>
+                      <div className="flex-1 flex flex-col text-sm whitespace-nowrap">
+                        <div className="flex flex-col font-medium justify-center overflow-hidden text-foreground w-full">
+                          <p className="overflow-hidden text-ellipsis whitespace-nowrap">
+                            {member.full_name}
+                          </p>
+                        </div>
+                        <div className="flex flex-col font-normal justify-center overflow-hidden text-muted-foreground w-full">
+                          <p className="overflow-hidden text-ellipsis whitespace-nowrap">
+                            {member.email}
+                          </p>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <div className="text-sm font-medium text-foreground">{leaveTypeName}</div>
-                        <div className="text-sm text-muted-foreground">do {endDate}</div>
-                      </div>
-                      <div 
-                        className="w-10 h-10 rounded-lg flex items-center justify-center"
-                        style={{ backgroundColor: `${leaveTypeColor}33` }}
-                      >
-                        <TreePalm className="w-6 h-6 text-foreground" />
+                      <div className="flex flex-col items-end justify-center text-sm text-right whitespace-nowrap shrink-0">
+                        <div className="flex flex-col font-medium justify-center overflow-hidden text-foreground">
+                          <p className="overflow-hidden text-ellipsis whitespace-nowrap">
+                            {leaveTypeName}
+                          </p>
+                        </div>
+                        <div className="flex flex-col font-normal justify-center overflow-hidden text-muted-foreground">
+                          <p className="overflow-hidden text-ellipsis whitespace-nowrap">
+                            do {endDate}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   )
@@ -159,28 +168,26 @@ export function TeamCard({ allTeamMembers, absentMembers, teams, defaultTeamId, 
             </h4>
             <div className="space-y-4">
               {workingMembers.length > 0 ? (
-                workingMembers.slice(0, 5).map((member, index) => {
+                workingMembers.map((member, index) => {
                   const initials = member.full_name?.split(' ').map((n: string) => n[0]).join('') || member.email?.charAt(0) || '?'
                   
                   return (
-                    <div key={index} className="flex items-center gap-4">
-                      <Avatar className="w-10 h-10">
+                    <div key={index} className="flex items-center gap-4 w-full">
+                      <Avatar className="size-10 rounded-full shrink-0">
                         <AvatarImage src={member.avatar_url || undefined} />
                         <AvatarFallback>{initials}</AvatarFallback>
                       </Avatar>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <div className="text-sm font-medium text-foreground">{member.full_name}</div>
-                          {member.teams && (
-                            <Badge variant="outline" className="text-xs">
-                              {member.teams.name}
-                            </Badge>
-                          )}
+                      <div className="flex-1 flex flex-col text-sm whitespace-nowrap">
+                        <div className="flex flex-col font-medium justify-center overflow-hidden text-foreground w-full">
+                          <p className="overflow-hidden text-ellipsis whitespace-nowrap">
+                            {member.full_name}
+                          </p>
                         </div>
-                        <div className="text-sm text-muted-foreground">{member.email}</div>
-                      </div>
-                      <div className="w-10 h-10 rounded-lg flex items-center justify-center">
-                        <UserCheck className="w-6 h-6 text-foreground" />
+                        <div className="flex flex-col font-normal justify-center overflow-hidden text-muted-foreground w-full">
+                          <p className="overflow-hidden text-ellipsis whitespace-nowrap">
+                            {member.email}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   )
@@ -188,13 +195,6 @@ export function TeamCard({ allTeamMembers, absentMembers, teams, defaultTeamId, 
               ) : (
                 <div className="text-center py-4">
                   <div className="text-sm text-muted-foreground">Brak pracowników w pracy</div>
-                </div>
-              )}
-              {workingMembers.length > 5 && (
-                <div className="text-center py-2">
-                  <div className="text-sm text-muted-foreground">
-                    i jeszcze {workingMembers.length - 5} osób...
-                  </div>
                 </div>
               )}
             </div>

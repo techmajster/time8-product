@@ -3,16 +3,14 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { CalendarDays, Clock, Gift, Users, Plus, HelpCircle, Briefcase, TreePalm, UserCheck } from 'lucide-react'
 import { LeaveRequestButton } from './components/LeaveRequestButton'
 import { NewLeaveRequestSheet } from '@/app/leave/components/NewLeaveRequestSheet'
 import { TeamCard } from './components/TeamCard'
-import { CurrentDayCard } from './components/CurrentDayCard'
-import { BirthdayCard } from './components/BirthdayCard'
-import { DashboardCalendar } from './components/DashboardCalendar'
-import { getTranslations } from 'next-intl/server'
+import CalendarClient from '@/app/calendar/components/CalendarClient'
 
 interface NearestBirthday {
   name: string
@@ -21,7 +19,6 @@ interface NearestBirthday {
 }
 
 export default async function DashboardPage() {
-  const t = await getTranslations('dashboard')
   const supabase = await createClient()
   
   const { data: { user } } = await supabase.auth.getUser()
@@ -61,8 +58,10 @@ export default async function DashboardPage() {
   // If we have an active org cookie, use that specific org, otherwise use default
   if (activeOrgId) {
     userOrgQuery = userOrgQuery.eq('organization_id', activeOrgId)
+    console.log('🍪 Dashboard: Using active organization from cookie:', activeOrgId)
   } else {
     userOrgQuery = userOrgQuery.eq('is_default', true)
+    console.log('🏠 Dashboard: Using default organization (no active cookie)')
   }
   
   const { data: userOrg } = await userOrgQuery.single()
@@ -83,14 +82,11 @@ export default async function DashboardPage() {
   const today = new Date()
   const currentDay = today.getDate()
   const currentMonth = today.toLocaleDateString('pl-PL', { month: 'long' })
-  const currentDayName = today.toLocaleDateString('pl-PL', { weekday: 'long' })
-  const currentYear = today.getFullYear()
 
-  // Polish month names for display
-  const monthNames = [
-    'Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec',
-    'Lipiec', 'Sierpień', 'Wrzesień', 'Październik', 'Listopad', 'Grudzień'
-  ]
+  // Calculate days until weekend (Saturday)
+  const currentDayOfWeek = today.getDay() // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  const daysUntilWeekend = currentDayOfWeek === 0 ? 6 : (6 - currentDayOfWeek) // If Sunday, 6 days to Saturday, otherwise calculate
+  const isWeekend = currentDayOfWeek === 0 || currentDayOfWeek === 6 // Sunday or Saturday
 
   // Get leave balances for current user (only for leave types that require balances)
   const { data: leaveBalances } = await supabaseAdmin
@@ -190,6 +186,16 @@ export default async function DashboardPage() {
     teamMemberIds = allOrgMembers?.map(m => m.user_id) || []
   }
 
+  console.log('🏠 Dashboard - team scope and member IDs:', {
+    count: teamMemberIds.length,
+    teamScope,
+    organizationId: profile.organization_id,
+    userRole: profile.role,
+    userTeamId: userOrg.team_id,
+    restrictByGroup,
+    memberIds: teamMemberIds
+  })
+
   // Get team members based on user's team scope via user_organizations (multi-org approach)
   const { data: rawTeamMembers } = await supabaseAdmin
     .from('user_organizations')
@@ -226,6 +232,11 @@ export default async function DashboardPage() {
       teams: Array.isArray(userOrg.teams) ? userOrg.teams[0] : userOrg.teams
     }
   }) || []
+
+  console.log('🏠 Dashboard - transformed team members:', { 
+    count: allTeamMembers.length,
+    members: allTeamMembers.map(m => ({ id: m.id, email: m.email, team_id: m.team_id }))
+  })
 
   // Get all teams for filtering option (only if admin or no team assigned)
   let teams: any[] = []
@@ -337,141 +348,188 @@ export default async function DashboardPage() {
 
   // Split team members into absent and working
   const absentMemberIds = new Set(currentLeaveRequests?.map(req => req.user_id) || [])
+  const absentMembers = currentLeaveRequests?.map(req => ({
+    ...req.profiles,
+    leaveType: req.leave_types,
+    endDate: req.end_date
+  })) || []
+  
   const workingMembers = allTeamMembers?.filter(member => !absentMemberIds.has(member.id)) || []
 
-  return (
-    <AppLayout>
-      {/* NewLeaveRequestSheet component for dashboard functionality */}
-      <NewLeaveRequestSheet 
-        leaveTypes={leaveTypes || []} 
-        leaveBalances={leaveBalances || []} 
-        userProfile={profile} 
-      />
-      
-      <div className="p-8">
-        <div className="flex flex-col gap-6">
-          {/* Greeting Section */}
-          <div className="flex items-center justify-between py-2">
-            <div className="flex items-center gap-3">
-              <span className="text-5xl font-light text-foreground">{t('greeting')}</span>
-              <Avatar className="w-12 h-12">
-                <AvatarImage src={profile.avatar_url || ''} />
-                <AvatarFallback>
-                  {profile.full_name?.split(' ').map((n: string) => n[0]).join('') || 'U'}
-                </AvatarFallback>
-              </Avatar>
-              <span className="text-5xl font-semibold text-foreground">
-                {profile.full_name?.split(' ')[0] || 'User'}!
-              </span>
-            </div>
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-3 text-xl text-foreground">
-                <span className="font-normal">{t('vacationBalance', { days: remainingVacationDays })}</span>
-                {isVacationOverride && (
-                  <span 
-                    className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full" 
-                    title={t('customBalanceTooltip', { default: workspaceDefault })}
-                  >
-                    {t('customBalance')}
-                  </span>
-                )}
+      return (
+      <AppLayout>
+        {/* NewLeaveRequestSheet component for dashboard functionality */}
+        <NewLeaveRequestSheet 
+          leaveTypes={leaveTypes || []} 
+          leaveBalances={leaveBalances || []} 
+          userProfile={profile} 
+        />
+        
+        <div className="p-8">
+          <div className="flex flex-col gap-6">
+                        {/* Greeting Section */}
+            <div className="flex items-center justify-between py-2">
+              <div className="flex items-center gap-3">
+                <span className="text-5xl font-light text-foreground">Cześć</span>
+                <Avatar className="w-12 h-12">
+                  <AvatarImage src="" />
+                  <AvatarFallback>
+                    {profile.full_name?.split(' ').map((n: string) => n[0]).join('') || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-5xl font-semibold text-foreground">
+                  {profile.full_name?.split(' ')[0] || 'Bartek'}!
+                </span>
               </div>
-              <LeaveRequestButton />
+              <div className="flex items-center gap-6">
+                <div className="flex items-center gap-3 text-xl text-foreground">
+                  <span className="font-normal">Masz jeszcze</span>
+                  <span className="font-semibold">{remainingVacationDays} dni urlopu</span>
+                  {isVacationOverride && (
+                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full" title={`Niestandardowe saldo (domyślnie: ${workspaceDefault} dni)`}>
+                      Niestandardowe
+                    </span>
+                  )}
+                </div>
+                <LeaveRequestButton />
+              </div>
             </div>
-          </div>
 
-          <div className="flex gap-4">
-            {/* Left Column */}
-            <div className="flex-1 flex flex-col gap-4">
-              {/* Current Day Card */}
-              <CurrentDayCard
-                todayText={t('today', { dayName: currentDayName })}
-                day={currentDay}
-                dateText={`${currentDay} ${monthNames[today.getMonth()].toLowerCase()}`}
-                year={currentYear}
-                workStatus={t('workingToday')}
-                workHours="9:00 - 15:00"
-              />
+            <div className="flex gap-4">
+              {/* Left Column */}
+              <div className="flex-1 flex flex-col gap-4">
+                {/* Top Cards Row */}
+                <div className="flex gap-4">
+                  {/* Today Card */}
+                  <Card className="w-32 h-32 flex flex-col items-center justify-center p-0">
+                    <CardContent className="flex flex-col items-center justify-center text-center p-0">
+                      <div className="text-sm font-medium">Dziś</div>
+                      <div className="text-5xl font-semibold leading-none mb-1">
+                        {currentDay}
+                      </div>
+                      <div className="text-sm font-medium">{currentMonth}</div>
+                    </CardContent>
+                  </Card>
 
-              {/* Birthday Card */}
-              <BirthdayCard
-                title={t('nearestBirthday')}
-                noBirthdaysText={t('noBirthdays')}
-                name={nearestBirthday?.name}
-                daysText={nearestBirthday ? (
-                  nearestBirthday.daysUntil === 0 
-                    ? t('birthdayToday', { date: `${nearestBirthday.date.getDate()} ${monthNames[nearestBirthday.date.getMonth()].toLowerCase()}` })
-                    : nearestBirthday.daysUntil === 1
-                    ? t('birthdayTomorrow', { date: `${nearestBirthday.date.getDate()} ${monthNames[nearestBirthday.date.getMonth()].toLowerCase()}` })
-                    : t('birthdayIn', { 
-                        date: `${nearestBirthday.date.getDate()} ${monthNames[nearestBirthday.date.getMonth()].toLowerCase()}`,
-                        days: nearestBirthday.daysUntil 
-                      })
-                ) : undefined}
-                initials={nearestBirthday?.name.split(' ').map((n) => n[0]).join('').toUpperCase()}
-              />
+                  {/* Weekend Card */}
+                  <Card className="flex-1 h-32">
+                    <CardHeader className="flex-row items-center justify-between space-y-0">
+                      <CardTitle className="text-sm font-medium">Weekend</CardTitle>
+                      <Clock className="w-4 h-4 text-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-xl leading-7">
+                        {isWeekend ? (
+                          <span className="font-semibold">Mamy weekend! 🎉</span>
+                        ) : daysUntilWeekend === 1 ? (
+                          <>
+                            <span className="font-normal">już </span>
+                            <span className="font-semibold">jutro!</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="font-normal">już za </span>
+                            <span className="font-semibold">{daysUntilWeekend} dni!</span>
+                          </>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
 
-              {/* Leave Requests Card */}
-              <Card className="flex-row items-end justify-between">
-                <CardContent className="flex-1">
-                  <div className="flex flex-col gap-2">
-                    <div className="text-sm font-medium">{t('leaveRequests')}</div>
-                    <div className="text-xl font-semibold">
-                      {pendingRequestsCount === 0 ? t('noPending') :
-                       pendingRequestsCount === 1 ? t('pendingOne') :
-                       t('pendingCount', { count: pendingRequestsCount })}
+                  {/* Birthday Card */}
+                  <Card className="flex-1 h-32">
+                    <CardHeader className="flex-row items-center justify-between space-y-0">
+                      <CardTitle className="text-sm font-medium">Najbliższe urodziny</CardTitle>
+                      <Gift className="w-4 h-4 text-foreground" />
+                    </CardHeader>
+                    <CardContent className="flex flex-col">
+                      {nearestBirthday ? (
+                        <>
+                          <div className="text-sm font-semibold">{nearestBirthday.name}</div>
+                          <div className="text-sm font-normal text-muted-foreground">
+                            {nearestBirthday.date.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long' })},
+                            {nearestBirthday.daysUntil === 0 ? ' dziś!' :
+                             nearestBirthday.daysUntil === 1 ? ' jutro' :
+                             ` za ${nearestBirthday.daysUntil} dni`}
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="text-sm font-semibold">Brak urodzin</div>
+                          <div className="text-sm font-normal text-muted-foreground">w najbliższym czasie</div>
+                        </>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Leave Requests Card */}
+                <Card className="flex-row items-end justify-between">
+                  <CardContent className="flex-1">
+                    <div className="flex flex-col gap-2">
+                      <div className="text-sm font-medium">Wnioski urlopowe</div>
+                      <div className="text-xl font-semibold">
+                        {pendingRequestsCount === 0 ? 'Brak oczekujących' :
+                         pendingRequestsCount === 1 ? '1 oczekujący' :
+                         `${pendingRequestsCount} oczekujących`}
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-                <CardContent className="flex-shrink-0">
-                  <Button asChild className="h-8 px-3 text-xs">
-                    <Link href="/leave-requests">{t('goToRequests')}</Link>
-                  </Button>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                  <CardContent className="flex-shrink-0">
+                    <Button asChild className="h-8 px-3 text-xs">
+                      <Link href="/leave-requests">Przejdź do wniosków</Link>
+                    </Button>
+                  </CardContent>
+                </Card>
 
-              {/* Team Card */}
-              <TeamCard
-                allTeamMembers={(allTeamMembers || []).map((member: any) => ({
-                  ...member,
-                  teams: Array.isArray(member.teams) ? member.teams[0] : member.teams
-                }))}
-                absentMembers={currentLeaveRequests?.map((req: any) => ({
-                  user_id: req.user_id,
-                  profiles: {
-                    ...req.profiles,
-                    teams: null,
-                    team_id: null
-                  },
-                  leaveType: req.leave_types,
-                  endDate: req.end_date
-                })) || []}
-                teams={teams || []}
-                defaultTeamId={managedTeam?.id}
-                userRole={profile.role}
-              />
-            </div>
+                {/* Team Card */}
+                <TeamCard
+                  allTeamMembers={(allTeamMembers || []).map((member: any) => ({
+                    ...member,
+                    teams: Array.isArray(member.teams) ? member.teams[0] : member.teams
+                  }))}
+                  absentMembers={currentLeaveRequests?.map((req: any) => ({
+                    user_id: req.user_id,
+                    profiles: {
+                      ...req.profiles,
+                      teams: null,
+                      team_id: null
+                    },
+                    leaveType: req.leave_types,
+                    endDate: req.end_date
+                  })) || []}
+                  teams={teams || []}
+                  defaultTeamId={managedTeam?.id}
+                  userRole={profile.role}
+                />
+              </div>
 
-            {/* Right Column - Calendar */}
-            <div className="flex-1">
-              <DashboardCalendar
-                organizationId={profile.organization_id}
-                countryCode={profile.organizations?.country_code || 'PL'}
-                userId={user.id}
-                colleagues={teamMembersWithBirthdays || []}
-                teamMemberIds={teamMemberIds}
-                teamScope={teamScope}
-                calendarTitle={t('calendarTitle')}
-                badgeText={t('calendarBadge')}
-                lastUpdateLabel={t('lastUpdate')}
-                lastUpdateUser="Paweł Chróściak"
-                lastUpdateDate="28.06.2025"
-              />
+              {/* Right Column - Calendar */}
+              <div className="flex-1">
+                <Card className="border border-border">
+                  <CardContent className="py-0">
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className="text-xl font-semibold text-foreground">
+                        Kalendarz urlopów
+                      </h3>
+                    </div>
+                    
+                    <CalendarClient 
+                      organizationId={profile.organization_id}
+                      countryCode={profile.organizations?.country_code || 'PL'}
+                      userId={user.id}
+                      colleagues={teamMembersWithBirthdays || []}
+                      teamMemberIds={teamMemberIds}
+                      teamScope={teamScope}
+                      showHeader={false}
+                      showPadding={false}
+                    />
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           </div>
         </div>
-      </div>
     </AppLayout>
   )
 }
-

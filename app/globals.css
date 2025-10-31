@@ -96,6 +96,8 @@ body {
   --muted-foreground: oklch(0.5560 0 0);
   --accent: oklch(0.9700 0 0);
   --accent-foreground: oklch(0.2050 0 0);
+  --avatar-fallback: #C8BBFD; /* Purple avatar background */
+  --avatar-fallback-foreground: #1e1b4b; /* Dark purple text */
   --destructive: oklch(0.5770 0.2450 27.3250);
   --destructive-foreground: oklch(1 0 0);
   --border: rgba(2, 2, 2, 0.20); /* Figma: border-light */
@@ -147,6 +149,8 @@ body {
   --muted-foreground: oklch(0.7080 0 0);
   --accent: oklch(0.3710 0 0);
   --accent-foreground: oklch(0.9850 0 0);
+  --avatar-fallback: #C8BBFD; /* Purple avatar background - same in dark mode */
+  --avatar-fallback-foreground: #1e1b4b; /* Dark purple text - same in dark mode */
   --destructive: oklch(0.7040 0.1910 22.2160);
   --destructive-foreground: oklch(0.9850 0 0);
   --border: rgba(255, 255, 255, 0.10); /* Figma: border-dark */

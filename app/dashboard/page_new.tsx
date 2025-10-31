@@ -399,13 +399,13 @@ export default async function DashboardPage() {
                 noBirthdaysText={t('noBirthdays')}
                 name={nearestBirthday?.name}
                 daysText={nearestBirthday ? (
-                  nearestBirthday.daysUntil === 0 
+                  nearestBirthday.daysUntil === 0
                     ? t('birthdayToday', { date: `${nearestBirthday.date.getDate()} ${monthNames[nearestBirthday.date.getMonth()].toLowerCase()}` })
                     : nearestBirthday.daysUntil === 1
                     ? t('birthdayTomorrow', { date: `${nearestBirthday.date.getDate()} ${monthNames[nearestBirthday.date.getMonth()].toLowerCase()}` })
-                    : t('birthdayIn', { 
+                    : t('birthdayIn', {
                         date: `${nearestBirthday.date.getDate()} ${monthNames[nearestBirthday.date.getMonth()].toLowerCase()}`,
-                        days: nearestBirthday.daysUntil 
+                        days: nearestBirthday.daysUntil
                       })
                 ) : undefined}
                 initials={nearestBirthday?.name.split(' ').map((n) => n[0]).join('').toUpperCase()}

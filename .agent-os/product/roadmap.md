@@ -477,65 +477,126 @@
 
 ---
 
-## Phase 2.5 (continued): Subscription System Enhancement 💳
+## Phase 2.5: Subscription System Enhancement 💳 ✅ **COMPLETED**
+
+**Goal:** Complete LemonSqueezy integration with all subscription states, trial periods, and webhook events properly handled
+**Success Criteria:** All subscription statuses display correctly in UI, trial users see conversion prompts, payment failures captured immediately via webhooks
+**Completed:** 2025-10-31
+**Spec:** `.agent-os/specs/2025-10-30-subscription-system-enhancement/`
 
 ### Features
 
-- [ ] **Missing Subscription Status UI** `S`
-  - Add `on_trial` status badge and UI (currently shows "Unknown")
-  - Add `expired` status badge and UI (currently shows "Unknown")
-  - Update English and Polish translations for new statuses
-  - Files: `AdminSettingsClient.tsx`, `messages/en.json`, `messages/pl.json`
+- [x] **Missing Subscription Status UI** `S` ✅
+  - ✅ Added `on_trial` status badge with blue styling
+  - ✅ Added `expired` status badge with red styling
+  - ✅ Updated English and Polish translations (14 new keys each)
+  - ✅ All 7 subscription statuses now display correctly
+  - Files: [AdminSettingsClient.tsx:437-453](app/admin/settings/components/AdminSettingsClient.tsx#L437-L453)
 
-- [ ] **Trial Period Display & Conversion** `M`
-  - Show trial countdown banner when `trial_ends_at` exists
-  - Display "X days remaining in trial" messaging
-  - Add upgrade CTA for trial users approaching expiration
-  - Special UI treatment for `on_trial` status
-  - Files: `AdminSettingsClient.tsx`, translations
+- [x] **Trial Period Display & Conversion** `M` ✅
+  - ✅ Implemented trial countdown banner with urgency styling (blue >3 days, red ≤3 days)
+  - ✅ Dynamic messaging: "X days remaining" / "1 day remaining" / "Less than 24 hours"
+  - ✅ Upgrade CTA button with urgent red styling when ≤3 days remaining
+  - ✅ Trial banner displays at top of Billing tab
+  - ✅ Browser verified: 7 days (blue), 2 days (red), all working correctly
+  - Files: [AdminSettingsClient.tsx:1227-1264](app/admin/settings/components/AdminSettingsClient.tsx#L1227-L1264)
 
-- [ ] **Payment Failure Webhook Handler** `S` ⚡ **High Priority**
-  - Add `subscription_payment_failed` handler for immediate payment alerts
-  - Log payment failures to `billing_events` table
-  - Send email notification to organization admin (future enhancement)
-  - Files: `app/api/webhooks/lemonsqueezy/handlers.ts`, `route.ts`
+- [x] **Payment Failure Webhook Handler** `S` ✅
+  - ✅ Added `subscription_payment_failed` handler
+  - ✅ Updates status to `past_due` in database
+  - ✅ Logs events to `billing_events` table
+  - ✅ Idempotency checks prevent duplicate processing
+  - ✅ 3 comprehensive unit tests passing
+  - Files: [handlers.ts:560-650](app/api/webhooks/lemonsqueezy/handlers.ts#L560-L650), [route.ts:76-79](app/api/webhooks/lemonsqueezy/route.ts#L76-L79)
 
-- [ ] **Pause/Resume Webhook Handlers** `S`
-  - Add `subscription_paused` handler to update status when paused via portal
-  - Add `subscription_resumed` handler to reactivate paused subscriptions
-  - Ensure database stays in sync with LemonSqueezy portal actions
-  - Files: `app/api/webhooks/lemonsqueezy/handlers.ts`, `route.ts`
+- [x] **Pause/Resume Webhook Handlers** `S` ✅
+  - ✅ Added `subscription_paused` handler (updates to paused, clears renews_at)
+  - ✅ Added `subscription_resumed` handler (updates to active, restores renews_at)
+  - ✅ Database stays in sync with LemonSqueezy portal actions
+  - ✅ 6 comprehensive unit tests passing
+  - Files: [handlers.ts:652-815](app/api/webhooks/lemonsqueezy/handlers.ts#L652-L815), [route.ts:80-85](app/api/webhooks/lemonsqueezy/route.ts#L80-L85)
 
-- [ ] **Enhanced Status-Specific Actions** `S`
-  - Update customer portal access logic for new statuses
-  - Add context-aware CTAs (upgrade for trial, fix payment for past_due, etc.)
-  - Improve messaging for each subscription state
-  - Files: `AdminSettingsClient.tsx`
+- [x] **Enhanced Status-Specific Actions** `S` ✅
+  - ✅ Context-aware CTAs for all subscription statuses:
+    - `on_trial`: "Upgrade to Paid Plan" (blue/red based on urgency)
+    - `past_due`: "Update Payment Method" (red, opens customer portal)
+    - `paused`: "Resume Subscription" (orange, opens customer portal)
+    - `expired`: "Reactivate Subscription" (red, routes to onboarding)
+    - `cancelled`: "Reactivate Subscription" (gray, routes to onboarding)
+    - `free`: "Upgrade to paid plan" (primary color)
+  - ✅ All CTAs browser verified and working correctly
+  - Files: [AdminSettingsClient.tsx:1390-1475](app/admin/settings/components/AdminSettingsClient.tsx#L1390-L1475)
 
-- [ ] **Webhook Event Tests** `M`
-  - Test new webhook handlers (`payment_failed`, `paused`, `resumed`)
-  - Test idempotency for new event types
-  - Test error handling and logging
-  - Files: `__tests__/billing/webhook-subscription-events.test.ts`
+- [x] **Webhook Event Tests** `M` ✅
+  - ✅ 9 comprehensive tests for new webhook handlers
+  - ✅ Tests cover: payment_failed (3 tests), paused (3 tests), resumed (3 tests)
+  - ✅ Idempotency, error handling, and database updates verified
+  - ✅ All tests passing
+  - Files: [webhook-subscription-events.test.ts:595-850](/__tests__/billing/webhook-subscription-events.test.ts#L595-L850)
 
-- [ ] **UI Status Display Tests** `S`
-  - Test rendering for all 7 subscription statuses (including `on_trial`, `expired`)
-  - Test trial countdown logic and display
-  - Test status badge colors and translations
-  - Files: `__tests__/billing/subscription-display-logic.test.ts`
+- [x] **UI Status Display Tests** `S` ✅
+  - ✅ Created 27 tests for UI status displays and trial countdown
+  - ✅ Created 35 tests for context-aware CTA logic
+  - ✅ Total: 62 new tests, all passing
+  - ✅ Browser verification completed for all 7 statuses
+  - Files: [subscription-status-ui.test.ts](/__tests__/billing/subscription-status-ui.test.ts) (27 tests), [context-aware-cta.test.ts](/__tests__/billing/context-aware-cta.test.ts) (35 tests)
+
+### Bugs Fixed
+
+1. **API Status Filter Bug** - API only queried `status='active'`, excluding other statuses
+   - Fixed in [app/api/billing/subscription/route.ts:123](app/api/billing/subscription/route.ts#L123)
+   - Now includes all 7 statuses in query
+
+2. **Status Source Priority** - API used LemonSqueezy status instead of database
+   - Fixed in [app/api/billing/subscription/route.ts:182](app/api/billing/subscription/route.ts#L182)
+   - Prefer database status for testing flexibility
+
+3. **CTA Button Urgency** - Trial CTA button hardcoded blue, didn't match banner urgency
+   - Fixed in [AdminSettingsClient.tsx:1423](app/admin/settings/components/AdminSettingsClient.tsx#L1423)
+   - Dynamic styling based on days remaining
+
+### Helper Tools Created
+
+- **scripts/test-subscription-status.ts** - CLI tool for testing different subscription statuses
+- **scripts/create-test-user.ts** - Helper to create test users for organizations
+
+### Documentation
+
+- **browser-verification-checklist.md** - Manual testing checklist (50+ verification points)
+- **integration-testing-summary.md** - Comprehensive integration test report
+- **tasks.md** - All 46 subtasks marked complete (100%)
+
+### Task Completion
+
+✅ Task 1: Add Missing Webhook Handlers (10/10 subtasks)
+✅ Task 2: Add Translation Keys (9/9 subtasks)
+✅ Task 3: Implement UI Status Displays (8/8 subtasks)
+✅ Task 4: Add Context-Aware CTAs (6/6 subtasks)
+✅ Task 5: Integration Testing (6/6 subtasks)
+
+**Total:** 46/46 subtasks complete (100%)
+
+### Test Coverage
+
+- 62 tests passing (27 UI + 35 CTA tests)
+- Browser verification: All 7 statuses tested
+- Language switching (EN/PL) verified
+- All webhook handlers tested
 
 ### Dependencies
 
 - Phase 2 complete ✅
-- LemonSqueezy already integrated ✅ (basic functionality working)
+- LemonSqueezy already integrated ✅
 - Webhook infrastructure in place ✅
+- Phase 2.4 bug fixes complete ✅
 
-### Technical Notes
+### Deployment Status
 
-- Currently collecting `trial_ends_at` from LemonSqueezy but not displaying it
-- Webhook handlers recognize all 7 statuses but only handle 4 event types
-- UI status switch only handles 4 of 7 possible statuses
-- Missing handlers: `subscription_payment_failed`, `subscription_paused`, `subscription_resumed`
+✅ **READY FOR PRODUCTION**
+- All code implemented and tested
+- Browser verification complete
+- No blocking issues
+- Committed: e32d8cf (2025-10-31)
 
 ## Phase 3: Design System Implementation 🎨
 
