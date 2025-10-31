@@ -1420,12 +1420,20 @@ export default function AdminSettingsClient({
                     ) : subscriptionData.status === 'on_trial' ? (
                       <>
                         <Button
-                          className="bg-blue-600 hover:bg-blue-700 text-white h-9 px-4 rounded-lg shadow-sm"
+                          className={`${
+                            trialDaysRemaining !== null && trialDaysRemaining <= 3
+                              ? 'bg-red-600 hover:bg-red-700'
+                              : 'bg-blue-600 hover:bg-blue-700'
+                          } text-white h-9 px-4 rounded-lg shadow-sm`}
                           onClick={() => router.push('/onboarding/add-users?upgrade=true')}
                         >
                           {t('trial.upgradeCta')}
                         </Button>
-                        <p className="text-xs text-blue-600">
+                        <p className={`text-xs ${
+                          trialDaysRemaining !== null && trialDaysRemaining <= 3
+                            ? 'text-red-600'
+                            : 'text-blue-600'
+                        }`}>
                           {trialDaysRemaining !== null && (
                             trialDaysRemaining === 0
                               ? t('trial.hoursRemaining')

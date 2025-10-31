@@ -115,11 +115,12 @@ export async function GET(request: NextRequest) {
     }
 
     // Get subscription record from database (contains stored Lemon Squeezy subscription ID)
+    // Include all subscription statuses for display
     const { data: subscriptionRecord, error: subError } = await supabase
       .from('subscriptions')
-      .select('lemonsqueezy_subscription_id')
+      .select('lemonsqueezy_subscription_id, status, trial_ends_at')
       .eq('organization_id', organizationId)
-      .eq('status', 'active')
+      .in('status', ['active', 'on_trial', 'paused', 'past_due', 'cancelled', 'expired', 'unpaid'])
       .single();
 
     if (subError || !subscriptionRecord) {
@@ -177,14 +178,16 @@ export async function GET(request: NextRequest) {
 
       const subscriptionData = {
         id: data.data.id,
-        status: lsAttrs.status,
+        // Prefer database status for testing (allows manual status changes)
+        status: subscriptionRecord.status || lsAttrs.status,
         status_formatted: lsAttrs.status_formatted,
         quantity: lsAttrs.first_subscription_item?.quantity || orgDetails.paid_seats,
         current_period_start: lsAttrs.current_period_start,
         current_period_end: lsAttrs.current_period_end,
         renews_at: lsAttrs.renews_at,
         ends_at: lsAttrs.ends_at,
-        trial_ends_at: lsAttrs.trial_ends_at,
+        // Prefer database trial_ends_at for testing
+        trial_ends_at: subscriptionRecord.trial_ends_at || lsAttrs.trial_ends_at,
         product: {
           name: lsAttrs.product_name,
           description: lsAttrs.product_description

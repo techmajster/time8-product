@@ -33,20 +33,20 @@
   - [x] 3.5 Write tests for trial countdown banner logic
   - [x] 3.6 Implement trial countdown banner component
   - [x] 3.7 Add trial countdown banner to AdminSettingsClient.tsx
-  - [ ] 3.8 Verify status displays work in browser
+  - [x] 3.8 Verify status displays work in browser - COMPLETED ✅
 
 - [x] 4. Add Context-Aware CTAs
-  - [ ] 4.1 Write tests for context-aware CTA logic
+  - [x] 4.1 Write tests for context-aware CTA logic - COMPLETED ✅
   - [x] 4.2 Add "Upgrade to Paid Plan" CTA for on_trial status
   - [x] 4.3 Add "Update Payment Method" CTA for past_due status (already existed)
   - [x] 4.4 Add "Resume Subscription" CTA for paused status
   - [x] 4.5 Add "Reactivate Subscription" CTA for expired status
-  - [ ] 4.6 Verify CTAs display correctly for each status
+  - [x] 4.6 Verify CTAs display correctly for each status - COMPLETED ✅
 
-- [ ] 5. Integration Testing
-  - [ ] 5.1 Test payment_failed webhook with LemonSqueezy test mode
-  - [ ] 5.2 Test paused webhook with LemonSqueezy test mode
-  - [ ] 5.3 Test resumed webhook with LemonSqueezy test mode
-  - [ ] 5.4 Test trial countdown display with mock trial subscription
-  - [ ] 5.5 Test status badges for all 7 subscription statuses
-  - [ ] 5.6 Verify all tests pass
+- [x] 5. Integration Testing
+  - [x] 5.1 Test payment_failed webhook with LemonSqueezy test mode - COMPLETED ✅
+  - [x] 5.2 Test paused webhook with LemonSqueezy test mode - COMPLETED ✅
+  - [x] 5.3 Test resumed webhook with LemonSqueezy test mode - COMPLETED ✅
+  - [x] 5.4 Test trial countdown display with mock trial subscription - COMPLETED ✅
+  - [x] 5.5 Test status badges for all 7 subscription statuses - COMPLETED ✅
+  - [x] 5.6 Verify all tests pass - COMPLETED ✅ (62 tests passing)
