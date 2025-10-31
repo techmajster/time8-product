@@ -23,7 +23,7 @@ export function HeroSection() {
                 <Image
                   alt=""
                   className="block max-w-none size-full"
-                  src="/assets/auth/b9a853cee9d0402653214ed8a439cf017d1acb9f.svg"
+                  src="/auth-assets/b9a853cee9d0402653214ed8a439cf017d1acb9f.svg"
                   width={1500}
                   height={1500}
                   priority
@@ -37,7 +37,7 @@ export function HeroSection() {
                 <Image
                   alt=""
                   className="block max-w-none size-full"
-                  src="/assets/auth/498600296d006a3d5b35e0018b1b6dfe0841f228.svg"
+                  src="/auth-assets/498600296d006a3d5b35e0018b1b6dfe0841f228.svg"
                   width={1000}
                   height={1000}
                   priority
@@ -51,7 +51,7 @@ export function HeroSection() {
                 <Image
                   alt=""
                   className="block max-w-none size-full"
-                  src="/assets/auth/5cfca2605fed82d4415eee187761a1b7ae59e233.svg"
+                  src="/auth-assets/5cfca2605fed82d4415eee187761a1b7ae59e233.svg"
                   width={1000}
                   height={1000}
                   priority
@@ -63,7 +63,7 @@ export function HeroSection() {
             <div
               className="absolute bg-repeat bg-[length:233.333px_233.333px] bg-[position:0_0] bottom-[-50%] left-0 mix-blend-color-burn opacity-50 right-[-50%] top-0"
               style={{
-                backgroundImage: "url('/assets/auth/a8f3fbe5b79280c3b93294ff3d6f0599355a660a.png')"
+                backgroundImage: "url('/auth-assets/a8f3fbe5b79280c3b93294ff3d6f0599355a660a.png')"
               }}
             />
           </div>
@@ -76,7 +76,7 @@ export function HeroSection() {
           <Image
             alt="Smiling woman"
             className="absolute max-w-none"
-            src="/assets/auth/3cffeb594b7dc8e3c17becdd9922d223f819e507.png"
+            src="/auth-assets/3cffeb594b7dc8e3c17becdd9922d223f819e507.png"
             width={528}
             height={806}
             priority
