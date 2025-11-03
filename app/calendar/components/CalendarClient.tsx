@@ -2,21 +2,21 @@
 
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { useQuery } from '@tanstack/react-query'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
-import { 
-  Sheet, 
-  SheetContent, 
-  SheetHeader, 
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
   SheetTitle,
-  SheetFooter 
+  SheetFooter
 } from '@/components/ui/sheet'
 import { ChevronLeft, ChevronRight, Plus, TreePalm, Gift, BriefcaseMedical, Calendar, Info, User, Plane, Briefcase } from 'lucide-react'
 import { LeaveRequestButton } from '@/app/dashboard/components/LeaveRequestButton'
 import { TeamScope } from '@/lib/team-utils'
+import { useCalendarLeaveRequests } from '@/hooks/useLeaveRequests'
 
 interface CalendarClientProps {
   organizationId: string
@@ -139,63 +139,12 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
   const lastDayOfMonth = new Date(year, month, 0).getDate()
   const endOfMonth = `${year}-${month.toString().padStart(2, '0')}-${lastDayOfMonth.toString().padStart(2, '0')}`
 
-  // Use React Query for leave requests with automatic cache invalidation
-  const { data: leaveRequestsData = [], isLoading: isLoadingLeaveRequests } = useQuery({
-    queryKey: ['calendar-leave-requests', startOfMonth, endOfMonth, teamMemberIds.join(',')],
-    queryFn: async () => {
-      const params = new URLSearchParams({
-        start_date: startOfMonth,
-        end_date: endOfMonth,
-        team_member_ids: teamMemberIds.join(',')
-      })
-
-      console.log('🔍 Fetching leave requests via React Query:', { startOfMonth, endOfMonth, teamMemberIds })
-
-      const response = await fetch(`/api/calendar/leave-requests?${params}`)
-
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => 'Unable to read error response')
-        console.error('❌ Error fetching calendar leave requests:', {
-          status: response.status,
-          statusText: response.statusText,
-          error: errorText
-        })
-        throw new Error(`Failed to fetch leave requests: ${response.statusText}`)
-      }
-
-      const leaveData = await response.json()
-
-      // Transform to match expected calendar format
-      if (leaveData && leaveData.length > 0) {
-        console.log('📝 Calendar leave requests from API (React Query):', leaveData)
-
-        const transformedData = leaveData.map((leave: any) => ({
-          ...leave,
-          profiles: {
-            id: leave.profiles?.id || leave.user_id,
-            first_name: leave.profiles?.full_name?.split(' ')[0] || 'Unknown',
-            last_name: leave.profiles?.full_name?.split(' ').slice(1).join(' ') || 'User',
-            full_name: leave.profiles?.full_name || 'Unknown User',
-            email: leave.profiles?.email || '',
-            avatar_url: leave.profiles?.avatar_url || null
-          },
-          leave_types: {
-            id: leave.leave_types?.id || leave.leave_type_id,
-            name: leave.leave_types?.name || 'Unknown Type',
-            color: leave.leave_types?.color || '#6b7280'
-          }
-        }))
-
-        console.log('✅ Transformed calendar leave requests (React Query):', transformedData)
-        return transformedData
-      }
-
-      console.log('📝 No leave requests found for calendar (React Query)')
-      return []
-    },
-    staleTime: 1000 * 30, // 30 seconds - refetch if data is older
-    enabled: !!organizationId && teamMemberIds.length > 0, // Only fetch if we have required data
-  })
+  // Use shared calendar leave requests hook with automatic cache invalidation
+  const { data: leaveRequestsData = [], isLoading: isLoadingLeaveRequests } = useCalendarLeaveRequests(
+    startOfMonth,
+    endOfMonth,
+    teamMemberIds
+  )
 
   // Use transformed data
   const leaveRequests = leaveRequestsData

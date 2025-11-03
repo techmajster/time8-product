@@ -1,11 +1,11 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { LeaveRequestsTable } from './LeaveRequestsTable'
 import { useTranslations } from 'next-intl'
 import { Loader2 } from 'lucide-react'
+import { useLeaveRequests } from '@/hooks/useLeaveRequests'
 
 interface LeaveRequest {
   id: string
@@ -36,33 +36,12 @@ export function LeaveRequestsListClient({
 }: LeaveRequestsListClientProps) {
   const t = useTranslations()
 
-  // Use React Query to fetch leave requests with automatic cache invalidation
-  const { data: leaveRequests = initialRequests, isLoading } = useQuery({
-    queryKey: ['leaveRequests', userId, organizationId],
-    queryFn: async () => {
-      console.log('🔍 Fetching leave requests via React Query:', { userId, organizationId })
-
-      const response = await fetch(`/api/leave-requests?userId=${userId}&organizationId=${organizationId}`)
-
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => 'Unable to read error response')
-        console.error('❌ Error fetching leave requests:', {
-          status: response.status,
-          statusText: response.statusText,
-          error: errorText
-        })
-        throw new Error(`Failed to fetch leave requests: ${response.statusText}`)
-      }
-
-      const data = await response.json()
-      console.log('✅ Leave requests fetched via React Query:', { count: data?.length || 0 })
-
-      return data || []
-    },
-    staleTime: 1000 * 30, // 30 seconds - refetch if data is older
-    initialData: initialRequests, // Use server-side data as initial data
-    enabled: !!userId && !!organizationId, // Only fetch if we have required data
-  })
+  // Use shared leave requests hook with automatic cache invalidation
+  const { data: leaveRequests = initialRequests, isLoading } = useLeaveRequests(
+    organizationId,
+    userId,
+    initialRequests
+  )
 
   if (isLoading) {
     return (

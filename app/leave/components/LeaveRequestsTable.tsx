@@ -124,7 +124,7 @@ export function LeaveRequestsTable({ requests }: LeaveRequestsTableProps) {
               key={request.id}
               className={cn(
                 "border-b cursor-pointer",
-                index === 0 && "bg-violet-100"
+                request.status === 'pending' && "bg-violet-100"
               )}
               onClick={() => handleRowClick(request.id)}
             >
@@ -134,7 +134,7 @@ export function LeaveRequestsTable({ requests }: LeaveRequestsTableProps) {
               <TableCell className="h-[52px] p-2 align-middle">
                 <div className={cn(
                   "text-sm text-foreground",
-                  index === 0 ? "font-medium" : "font-normal"
+                  request.status === 'pending' ? "font-medium" : "font-normal"
                 )}>
                   {request.reason || t('leave.page.table.noDescription')}
                 </div>

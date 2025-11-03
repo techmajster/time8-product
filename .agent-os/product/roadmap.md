@@ -803,54 +803,74 @@
 
 ---
 
-## Phase 2.9: React Query Migration - Shared Data Optimization 🎯
+## Phase 2.9: React Query Migration - Shared Data Optimization 🎯 ✅ **COMPLETED**
 
 **Goal:** Create reusable React Query hooks for shared data access patterns
 **Success Criteria:** DRY data fetching with consistent query keys, centralized cache management, reduced code duplication
+**Completed:** 2025-11-03
 
 ### Features
 
-- [ ] **Create Shared Query Hooks** `M`
-  - `useLeaveRequests(userId, organizationId)` - Centralized leave requests hook
-  - `useLeaveBalances(userId, year)` - Reusable leave balances hook
-  - `useTeamMembers(organizationId, teamId?)` - Team members data hook
-  - `useOrganizationSettings(organizationId)` - Organization config hook
-  - `useHolidays(startDate, endDate, countryCode)` - Holiday data hook
-  - Files: Create [hooks/queries/useLeaveRequests.ts](hooks/queries/useLeaveRequests.ts), etc.
+- [x] **Create Shared Query Hooks** `M` ✅
+  - ✅ `useLeaveRequests(organizationId, userId?, initialData?)` - Centralized leave requests hook with optional user filtering
+  - ✅ `useCalendarLeaveRequests(startDate, endDate, teamMemberIds)` - Calendar-specific leave requests hook
+  - ✅ `useLeaveBalances(userId, year)` - Reusable leave balances hook (in use-dashboard-queries.ts)
+  - ✅ `useTeamMembers()` - Team members data hook (in use-team-queries.ts)
+  - ✅ `useOrganization(organizationId)` - Organization config hook (hooks/useOrganization.ts)
+  - ✅ `useHolidays(options)` - Holiday data hook with date range support
+  - Files: [hooks/useLeaveRequests.ts](hooks/useLeaveRequests.ts), [hooks/useHolidays.ts](hooks/useHolidays.ts), [hooks/use-dashboard-queries.ts](hooks/use-dashboard-queries.ts), [hooks/use-team-queries.ts](hooks/use-team-queries.ts), [hooks/useOrganization.ts](hooks/useOrganization.ts)
 
-- [ ] **Standardize Query Keys** `S`
-  - Create query key factory in [lib/query-keys.ts](lib/query-keys.ts)
-  - Consistent naming: `['leaveRequests', userId, orgId]`
-  - Type-safe query key generation
-  - Document query key patterns
-  - Update all existing useQuery calls to use factory
+- [x] **Standardize Query Keys** `S` ✅
+  - ✅ Created centralized query key registry in [lib/query-keys.ts](lib/query-keys.ts)
+  - ✅ Each hook has its own query key factory (distributed pattern)
+  - ✅ Consistent hierarchical naming: `['leaveRequests', 'list', { filters }]`
+  - ✅ Comprehensive documentation of all query key patterns
+  - ✅ All existing useQuery calls use standardized keys
 
-- [ ] **Centralized Query Configuration** `S`
-  - Create default query options in [lib/react-query-config.ts](lib/react-query-config.ts)
-  - Set global staleTime, cacheTime, retry logic
-  - Configure refetchOnWindowFocus behavior
-  - Apply to QueryClientProvider
+- [x] **Centralized Query Configuration** `S` ✅
+  - ✅ QueryClient configuration in [components/providers/query-provider.tsx](components/providers/query-provider.tsx)
+  - ✅ Global defaults: staleTime (5 min), gcTime (10 min), retry (1)
+  - ✅ refetchOnWindowFocus disabled globally (enabled per-hook where needed)
+  - ✅ React Query DevTools enabled in development
+  - ✅ Configuration already applied to QueryClientProvider
 
-- [ ] **Refactor Existing Components** `L`
-  - Replace inline useQuery with shared hooks
-  - Update CalendarClient to use `useLeaveRequests` hook
-  - Update LeaveRequestsListClient to use shared hook
-  - Update Dashboard to use `useLeaveBalances` hook
-  - Verify all query keys match across components
+- [x] **Refactor Existing Components** `L` ✅
+  - ✅ Removed inline useQuery from [CalendarClient.tsx](app/calendar/components/CalendarClient.tsx) - now uses `useCalendarLeaveRequests()`
+  - ✅ Removed inline useQuery from [LeaveRequestsListClient.tsx](app/leave/components/LeaveRequestsListClient.tsx) - now uses `useLeaveRequests()`
+  - ✅ Dashboard already using `useLeaveBalances()` from Phase 2.8
+  - ✅ All query keys consistent across components
+  - ✅ All inline useQuery calls eliminated
+
+### Code Changes
+
+**New Hooks Created:**
+- `useCalendarLeaveRequests()` in [hooks/useLeaveRequests.ts](hooks/useLeaveRequests.ts) - Calendar date range queries with data transformation
+
+**Hooks Enhanced:**
+- `useLeaveRequests()` - Added optional `userId` filter and `initialData` support for SSR
+
+**New Files:**
+- [lib/query-keys.ts](lib/query-keys.ts) - Centralized query key registry with comprehensive documentation
+
+**Components Refactored:**
+- [CalendarClient.tsx](app/calendar/components/CalendarClient.tsx) - 55 lines removed (inline useQuery replaced with hook)
+- [LeaveRequestsListClient.tsx](app/leave/components/LeaveRequestsListClient.tsx) - 27 lines removed (inline useQuery replaced with hook)
 
 ### Dependencies
 
-- Phase 2.7 & 2.8 complete (mutations and queries established)
-- Query patterns identified across codebase
-- React Query best practices documented
+- Phase 2.7 & 2.8 complete (mutations and queries established) ✅
+- Query patterns identified across codebase ✅
+- React Query best practices documented ✅
 
 ### Impact
 
-- Reduced code duplication (eliminate 200+ lines)
-- Consistent data fetching behavior
-- Easier maintenance and debugging
-- Type-safe query key management
-- Better cache utilization across components
+- ✅ Reduced code duplication (~80 lines eliminated)
+- ✅ Consistent data fetching behavior across all components
+- ✅ Centralized query key management for easier cache invalidation
+- ✅ Better code maintainability with reusable hooks
+- ✅ Improved type safety with standardized patterns
+- ✅ Zero inline useQuery calls remaining in components
+- ✅ Better cache utilization through shared query keys
 
 ---
 
