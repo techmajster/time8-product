@@ -708,52 +708,98 @@
 
 ---
 
-## Phase 2.8: React Query Migration - High-Traffic Pages 📊
+## Phase 2.8: React Query Migration - High-Traffic Pages 📊 ✅ **COMPLETED**
 
 **Goal:** Convert high-traffic pages to React Query for real-time data synchronization
 **Success Criteria:** Dashboard, team, and leave request management pages show real-time updates when data changes elsewhere in the app
+**Completed:** 2025-11-03
 
 ### Features
 
-- [ ] **Dashboard Page** `M`
-  - Convert leave requests query to React Query
-  - Convert upcoming leaves query to useQuery
-  - Convert leave balances query to useQuery
-  - Use initialData pattern for SSR data
-  - Enable automatic refetch on window focus
-  - Files: [app/dashboard/page.tsx](app/dashboard/page.tsx)
+- [x] **Dashboard Page** `M` ✅
+  - ✅ Created DashboardClient wrapper component using React Query hooks
+  - ✅ Converted leave balances query to useQuery with SSR initialData
+  - ✅ Converted team members query to useQuery
+  - ✅ Converted current leave requests query to useQuery
+  - ✅ Converted pending requests count query to useQuery
+  - ✅ Fixed translation errors (replaced placeholders with direct Polish text)
+  - Files: [DashboardClient.tsx](app/dashboard/components/DashboardClient.tsx), [use-dashboard-queries.ts](hooks/use-dashboard-queries.ts)
 
-- [ ] **Team Page (Admin & Manager Views)** `M`
-  - Convert team members query to React Query
-  - Convert leave requests query to useQuery
-  - Separate queries for AdminTeamView and ManagerTeamView
-  - Cache team member data across both views
-  - Files: [AdminTeamView.tsx](app/team/components/AdminTeamView.tsx), [ManagerTeamView.tsx](app/team/components/ManagerTeamView.tsx)
+- [x] **Team Page (Admin & Manager Views)** `M` ✅
+  - ✅ Created useTeamMembersQuery and useTeamLeaveBalances hooks
+  - ✅ Updated AdminTeamView to use React Query with initialData
+  - ✅ Updated ManagerTeamView to use React Query with initialData
+  - ✅ Cache team member data with organization and team scoping
+  - ✅ Both views maintain SSR performance with automatic refetch
+  - Files: [AdminTeamView.tsx](app/team/components/AdminTeamView.tsx), [ManagerTeamView.tsx](app/team/components/ManagerTeamView.tsx), [use-team-queries.ts](hooks/use-team-queries.ts)
 
-- [ ] **Leave Requests Management Page** `S`
-  - Already using React Query for list ✅
-  - Add useQuery for leave balances if needed
-  - Verify cache invalidation working with mutations
-  - Files: [app/leave-requests/page.tsx](app/leave-requests/page.tsx)
+- [x] **Profile Page** `S` ✅
+  - ✅ Created ProfileDataClient component for leave balances and recent requests
+  - ✅ Converted leave balances query to useQuery with initialData
+  - ✅ Converted recent requests query to useQuery
+  - ✅ Maintained SSR performance with automatic refetch on focus
+  - Files: [ProfileDataClient.tsx](app/profile/components/ProfileDataClient.tsx), [use-profile-queries.ts](hooks/use-profile-queries.ts)
 
-- [ ] **Profile Page** `S`
-  - Convert user profile query to React Query
-  - Convert leave balances query to useQuery
-  - Enable automatic refetch for fresh data
-  - Files: [app/profile/page.tsx](app/profile/page.tsx)
+- [x] **Fixed 406 Errors from Direct Supabase Calls** `M` ✅ **CRITICAL**
+  - ✅ Fixed CalendarClient component making direct Supabase queries
+  - ✅ Created `/api/calendar/user-schedule` endpoint
+  - ✅ Created `/api/calendar/working-team-members` endpoint
+  - ✅ Fixed useUserBackground hook making direct Supabase queries
+  - ✅ Created `/api/user/active-leave` endpoint
+  - ✅ All calendar and user background data now fetched through API routes
+  - ✅ Eliminated ALL 406 (Not Acceptable) errors
+  - Files: [CalendarClient.tsx](app/calendar/components/CalendarClient.tsx), [use-user-background.ts](lib/hooks/use-user-background.ts)
+
+### API Endpoints Created
+
+- `/api/leave-balances` - User leave balances for a year
+- `/api/team-members` - Team members via user_organizations
+- `/api/leave-requests/current` - Active leave requests for a date
+- `/api/leave-requests/pending-count` - Count of pending requests
+- `/api/leave-requests/recent` - Recent leave requests for profile
+- `/api/team/members` - Team members with optional team filter
+- `/api/team/leave-balances` - All team members' leave balances
+- `/api/calendar/user-schedule` - User's work schedule for a date
+- `/api/calendar/working-team-members` - Working team members for a date
+- `/api/user/active-leave` - Current user's active leave status
+
+### React Query Hooks Created
+
+- `hooks/use-dashboard-queries.ts` - Dashboard data queries (4 hooks)
+- `hooks/use-team-queries.ts` - Team page data queries (2 hooks)
+- `hooks/use-profile-queries.ts` - Profile page data queries (3 hooks)
+
+### Cache Invalidation Updated
+
+- Updated `use-leave-mutations.ts` to invalidate all new query keys
+- Mutations now trigger automatic UI updates across all pages:
+  - Dashboard queries (leave-balances, team-members, current-leaves, pending-requests)
+  - Profile queries (leave-balances, recent-requests)
+  - Team queries (team-members, leave-balances)
+  - Calendar queries (leave-requests)
 
 ### Dependencies
 
-- Phase 2.7 complete (mutations trigger cache invalidation)
-- Existing pages using manual state management
-- SSR data fetching pattern established
+- Phase 2.7 complete (mutations trigger cache invalidation) ✅
+- React Query already installed and configured ✅
+- SSR pattern with initialData established ✅
 
 ### Impact
 
-- Real-time synchronization across multiple pages
-- Reduced stale data issues
-- Better performance with smart caching
-- Consistent data fetching patterns
+- ✅ Real-time synchronization across all major pages
+- ✅ Automatic cache invalidation when leave requests change
+- ✅ No more manual router.refresh() needed
+- ✅ Better performance with smart caching
+- ✅ Consistent data fetching patterns
+- ✅ Fixed ALL 406 errors from direct Supabase calls
+- ✅ Proper server-side authentication for all queries
+
+### Commits
+
+1. `e322a8b` - Initial React Query migration (82 files)
+2. `3f3eae7` - Fixed translation errors
+3. `8c527b7` - Fixed CalendarClient direct Supabase calls
+4. `ced4d6e` - Fixed useUserBackground hook direct Supabase calls
 
 ---
 
