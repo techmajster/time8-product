@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { useQuery } from '@tanstack/react-query'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
@@ -100,6 +99,14 @@ interface SelectedDayData {
     teamName?: string
   }>
   userLeaveStatus?: 'default' | 'vacation' | 'sick-leave'
+  dayStatus?: {
+    type: 'working' | 'leave' | 'weekend' | 'holiday'
+    message: string
+    workHours?: string
+    leaveTypeName?: string
+    holidayName?: string
+    holidayType?: 'national' | 'company'
+  }
 }
 
 export default function CalendarClient({ organizationId, countryCode, userId, colleagues, teamMemberIds, teamScope, showHeader = true, showPadding = true, workingDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] }: CalendarClientProps) {
@@ -107,7 +114,6 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
   const [holidays, setHolidays] = useState<Holiday[]>([])
   const [selectedDay, setSelectedDay] = useState<SelectedDayData | null>(null)
   const [isSheetOpen, setIsSheetOpen] = useState(false)
-  const supabase = createClient()
 
   console.log('📅 CalendarClient rendering with props:', {
     organizationId,
@@ -249,37 +255,23 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
     }
   }
 
-  // Helper function to format time from HH:MM:SS to HH:MM
-  const formatTime = (timeString: string | null): string => {
-    if (!timeString) return ''
-    // Extract HH:MM from HH:MM:SS or return as-is if already HH:MM
-    return timeString.substring(0, 5)
-  }
-
   // Fetch user's schedule for a specific date
   const fetchUserSchedule = async (dateStr: string): Promise<{ start: string, end: string, isReady: boolean } | null> => {
     try {
-      const { data, error } = await supabase
-        .from('employee_schedules')
-        .select('shift_start_time, shift_end_time, is_working_day')
-        .eq('user_id', userId)
-        .eq('organization_id', organizationId)
-        .eq('date', dateStr)
-        .single()
+      const params = new URLSearchParams({
+        userId,
+        organizationId,
+        date: dateStr
+      })
 
-      if (error || !data) {
+      const response = await fetch(`/api/calendar/user-schedule?${params}`)
+
+      if (!response.ok) {
         return null
       }
 
-      if (!data.is_working_day || !data.shift_start_time || !data.shift_end_time) {
-        return null
-      }
-
-      return {
-        start: formatTime(data.shift_start_time),
-        end: formatTime(data.shift_end_time),
-        isReady: true
-      }
+      const data = await response.json()
+      return data
     } catch (error) {
       console.error('Error fetching user schedule:', error)
       return null
@@ -289,74 +281,21 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
   // Fetch working team members for a specific date
   const fetchWorkingTeamMembers = async (dateStr: string): Promise<Array<{ id: string, name: string, avatar?: string, teamName?: string }>> => {
     try {
-      // Get users who are working on this day
-      const { data: schedules, error: schedulesError } = await supabase
-        .from('employee_schedules')
-        .select('user_id')
-        .eq('organization_id', organizationId)
-        .eq('date', dateStr)
-        .eq('is_working_day', true)
-        .in('user_id', teamMemberIds)
-
-      if (schedulesError || !schedules || schedules.length === 0) {
-        return []
-      }
-
-      const workingUserIds = schedules.map(s => s.user_id)
-
-      // Get user IDs who are on approved leave (to exclude them)
-      const { data: leaveRequests } = await supabase
-        .from('leave_requests')
-        .select('user_id')
-        .eq('organization_id', organizationId)
-        .eq('status', 'approved')
-        .lte('start_date', dateStr)
-        .gte('end_date', dateStr)
-        .in('user_id', workingUserIds)
-
-      const absentUserIds = new Set(leaveRequests?.map(req => req.user_id) || [])
-      const availableUserIds = workingUserIds.filter(id => !absentUserIds.has(id) && id !== userId)
-
-      if (availableUserIds.length === 0) {
-        return []
-      }
-
-      // Get profiles and team info for working users
-      const { data: userOrgs, error: userOrgsError } = await supabase
-        .from('user_organizations')
-        .select(`
-          user_id,
-          profiles!user_organizations_user_id_fkey (
-            id,
-            full_name,
-            avatar_url
-          ),
-          teams!user_organizations_team_id_fkey (
-            name
-          )
-        `)
-        .eq('organization_id', organizationId)
-        .in('user_id', availableUserIds)
-        .eq('is_active', true)
-
-      if (userOrgsError || !userOrgs) {
-        return []
-      }
-
-      // Transform to working members array
-      const workingMembers = userOrgs.map((userOrg: any) => {
-        const profile = Array.isArray(userOrg.profiles) ? userOrg.profiles[0] : userOrg.profiles
-        const team = Array.isArray(userOrg.teams) ? userOrg.teams[0] : userOrg.teams
-
-        return {
-          id: profile?.id || userOrg.user_id,
-          name: profile?.full_name || 'Unknown User',
-          avatar: profile?.avatar_url || undefined,
-          teamName: team?.name || undefined
-        }
+      const params = new URLSearchParams({
+        organizationId,
+        date: dateStr,
+        userId,
+        teamMemberIds: teamMemberIds.join(',')
       })
 
-      return workingMembers
+      const response = await fetch(`/api/calendar/working-team-members?${params}`)
+
+      if (!response.ok) {
+        return []
+      }
+
+      const data = await response.json()
+      return data
     } catch (error) {
       console.error('Error fetching working team members:', error)
       return []
@@ -515,6 +454,58 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
       }
     }
 
+    // Determine day status for dynamic message
+    const dayOfWeek = selectedDate.getDay() // 0 = Sunday, 6 = Saturday
+    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+    const dayNameLower = dayNames[dayOfWeek]
+    const isWeekend = !workingDays.includes(dayNameLower)
+    
+    let dayStatus: SelectedDayData['dayStatus']
+    
+    if (userLeave && userLeave.leave_types) {
+      // User has approved leave on this day
+      dayStatus = {
+        type: 'leave',
+        message: userLeave.leave_types.name || 'Urlop',
+        leaveTypeName: userLeave.leave_types.name || 'Urlop'
+      }
+    } else if (isWeekend && holiday) {
+      // Weekend with holiday - show weekend as header, holiday name below
+      dayStatus = {
+        type: 'weekend',
+        message: holiday.name,
+        holidayName: holiday.name,
+        holidayType: holiday.type as 'national' | 'company'
+      }
+    } else if (isWeekend) {
+      // Weekend without holiday - single text only
+      dayStatus = {
+        type: 'weekend',
+        message: 'Weekend'
+      }
+    } else if (holiday) {
+      // It's a holiday (not weekend)
+      dayStatus = {
+        type: 'holiday',
+        message: holiday.name,
+        holidayName: holiday.name,
+        holidayType: holiday.type as 'national' | 'company'
+      }
+    } else if (workSchedule) {
+      // It's a working day with schedule
+      dayStatus = {
+        type: 'working',
+        message: `${workSchedule.start} - ${workSchedule.end}`,
+        workHours: `${workSchedule.start} - ${workSchedule.end}`
+      }
+    } else {
+      // It's a working day without schedule
+      dayStatus = {
+        type: 'working',
+        message: 'Dzień roboczy'
+      }
+    }
+
     setSelectedDay({
       day,
       month: monthNames[currentDate.getMonth()],
@@ -526,7 +517,8 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
       plannedLeaves: dayPlannedLeaves,
       workSchedule: workSchedule || undefined,
       workingTeamMembers: workingTeamMembers.length > 0 ? workingTeamMembers : undefined,
-      userLeaveStatus
+      userLeaveStatus,
+      dayStatus
     })
     setIsSheetOpen(true)
   }
@@ -777,13 +769,36 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
                       </div>
                       <Separator />
                       <div className="flex flex-col gap-1">
-                        <p className="text-xl font-semibold text-foreground">
-                          Tego dnia pracujesz
-                        </p>
-                        {selectedDay.workSchedule && (
-                          <p className="text-xl font-normal text-muted-foreground">
-                            {selectedDay.workSchedule.start} - {selectedDay.workSchedule.end}
-                          </p>
+                        {selectedDay.dayStatus && (
+                          <>
+                            {(selectedDay.dayStatus.type === 'weekend' && !selectedDay.dayStatus.holidayName) || selectedDay.dayStatus.type === 'working' ? (
+                              // Weekend without holiday or working day - single text only
+                              <p className="text-xl font-semibold text-foreground">
+                                {selectedDay.dayStatus.type === 'working'
+                                  ? selectedDay.dayStatus.workHours 
+                                    ? `Tego dnia pracujesz ${selectedDay.dayStatus.workHours}`
+                                    : 'Tego dnia pracujesz'
+                                  : selectedDay.dayStatus.message}
+                              </p>
+                            ) : (
+                              // All other cases - header + message
+                              <>
+                                <p className="text-xl font-semibold text-foreground">
+                                  {selectedDay.dayStatus.type === 'leave' 
+                                    ? 'Masz urlop' 
+                                    : selectedDay.dayStatus.type === 'weekend' && selectedDay.dayStatus.holidayName
+                                    ? `Weekend, ${selectedDay.dayStatus.holidayType === 'national' ? 'Święto narodowe' : 'Święto firmowe'}`
+                                    : selectedDay.dayStatus.holidayType === 'national'
+                                      ? 'Święto narodowe'
+                                      : 'Święto firmowe'
+                                  }
+                                </p>
+                                <p className="text-xl font-normal text-muted-foreground">
+                                  {selectedDay.dayStatus.message}
+                                </p>
+                              </>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>
