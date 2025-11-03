@@ -26,27 +26,6 @@ interface DashboardClientProps {
   initialLeaveBalances: any[]
   initialCurrentLeaves: any[]
   initialPendingCount: number
-  translations: {
-    greeting: string
-    vacationBalance: string
-    customBalance: string
-    customBalanceTooltip: string
-    today: string
-    workingToday: string
-    nearestBirthday: string
-    noBirthdays: string
-    birthdayToday: string
-    birthdayTomorrow: string
-    birthdayIn: string
-    leaveRequests: string
-    noPending: string
-    pendingOne: string
-    pendingCount: string
-    goToRequests: string
-    calendarTitle: string
-    calendarBadge: string
-    lastUpdate: string
-  }
   nearestBirthday: {
     name: string
     date: Date
@@ -74,7 +53,6 @@ export function DashboardClient({
   initialLeaveBalances,
   initialCurrentLeaves,
   initialPendingCount,
-  translations: t,
   nearestBirthday,
   currentDay,
   currentMonth,
@@ -109,7 +87,7 @@ export function DashboardClient({
       {/* Greeting Section */}
       <div className="flex items-center justify-between py-2">
         <div className="flex items-center gap-3">
-          <span className="text-5xl font-light text-foreground">{t.greeting}</span>
+          <span className="text-5xl font-light text-foreground">Cześć</span>
           <Avatar className="w-12 h-12">
             <AvatarImage src={profile.avatar_url || ''} />
             <AvatarFallback>
@@ -122,13 +100,15 @@ export function DashboardClient({
         </div>
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-3 text-xl text-foreground">
-            <span className="font-normal">{t.vacationBalance.replace('{days}', remainingVacationDays.toString())}</span>
+            <span className="font-normal">
+              Masz jeszcze {remainingVacationDays} {remainingVacationDays === 1 ? 'dzień' : 'dni'} urlopu
+            </span>
             {isVacationOverride && (
               <span
                 className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full"
-                title={t.customBalanceTooltip.replace('{default}', workspaceDefault.toString())}
+                title={`Domyślna wartość dla workspace: ${workspaceDefault} dni`}
               >
-                {t.customBalance}
+                Niestandardowe saldo
               </span>
             )}
           </div>
@@ -141,37 +121,26 @@ export function DashboardClient({
         <div className="flex-1 flex flex-col gap-4">
           {/* Current Day Card */}
           <CurrentDayCard
-            todayText={t.today.replace('{dayName}', currentDayName)}
+            todayText={`Dzisiaj jest ${currentDayName}`}
             day={currentDay}
             dateText={`${currentDay} ${monthNames[new Date().getMonth()].toLowerCase()}`}
             year={currentYear}
-            workStatus={t.workingToday}
+            workStatus="Pracujesz dzisiaj"
             workHours="9:00 - 15:00"
           />
 
           {/* Birthday Card */}
           <BirthdayCard
-            title={t.nearestBirthday}
-            noBirthdaysText={t.noBirthdays}
+            title="Najbliższe urodziny"
+            noBirthdaysText="Brak urodzin w tym miesiącu"
             name={nearestBirthday?.name}
             daysText={
               nearestBirthday
                 ? nearestBirthday.daysUntil === 0
-                  ? t.birthdayToday.replace(
-                      '{date}',
-                      `${nearestBirthday.date.getDate()} ${monthNames[nearestBirthday.date.getMonth()].toLowerCase()}`
-                    )
+                  ? `Dzisiaj (${nearestBirthday.date.getDate()} ${monthNames[nearestBirthday.date.getMonth()].toLowerCase()})`
                   : nearestBirthday.daysUntil === 1
-                  ? t.birthdayTomorrow.replace(
-                      '{date}',
-                      `${nearestBirthday.date.getDate()} ${monthNames[nearestBirthday.date.getMonth()].toLowerCase()}`
-                    )
-                  : t.birthdayIn
-                      .replace(
-                        '{date}',
-                        `${nearestBirthday.date.getDate()} ${monthNames[nearestBirthday.date.getMonth()].toLowerCase()}`
-                      )
-                      .replace('{days}', nearestBirthday.daysUntil.toString())
+                  ? `Jutro (${nearestBirthday.date.getDate()} ${monthNames[nearestBirthday.date.getMonth()].toLowerCase()})`
+                  : `Za ${nearestBirthday.daysUntil} dni (${nearestBirthday.date.getDate()} ${monthNames[nearestBirthday.date.getMonth()].toLowerCase()})`
                 : undefined
             }
             initials={nearestBirthday?.name.split(' ').map((n) => n[0]).join('').toUpperCase()}
@@ -181,19 +150,19 @@ export function DashboardClient({
           <Card className="flex-row items-end justify-between">
             <CardContent className="flex-1">
               <div className="flex flex-col gap-2">
-                <div className="text-sm font-medium">{t.leaveRequests}</div>
+                <div className="text-sm font-medium">Wnioski urlopowe</div>
                 <div className="text-xl font-semibold">
                   {pendingRequestsCount === 0
-                    ? t.noPending
+                    ? 'Brak oczekujących'
                     : pendingRequestsCount === 1
-                    ? t.pendingOne
-                    : t.pendingCount.replace('{count}', pendingRequestsCount.toString())}
+                    ? '1 oczekujący'
+                    : `${pendingRequestsCount} oczekujących`}
                 </div>
               </div>
             </CardContent>
             <CardContent className="flex-shrink-0">
               <Button asChild className="h-8 px-3 text-xs">
-                <Link href="/leave-requests">{t.goToRequests}</Link>
+                <Link href="/leave-requests">Przejdź do wniosków</Link>
               </Button>
             </CardContent>
           </Card>
@@ -231,9 +200,9 @@ export function DashboardClient({
             colleagues={colleagues || []}
             teamMemberIds={teamMemberIds}
             teamScope={teamScope}
-            calendarTitle={t.calendarTitle}
-            badgeText={t.calendarBadge}
-            lastUpdateLabel={t.lastUpdate}
+            calendarTitle="Kalendarz urlopów"
+            badgeText="Twój kalendarz"
+            lastUpdateLabel="Ostatnia aktualizacja"
             lastUpdateUser="Paweł Chróściak"
             lastUpdateDate="28.06.2025"
           />

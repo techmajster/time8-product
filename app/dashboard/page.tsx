@@ -331,29 +331,6 @@ export default async function DashboardPage() {
   const absentMemberIds = new Set(currentLeaveRequests?.map(req => req.user_id) || [])
   const workingMembers = allTeamMembers?.filter(member => !absentMemberIds.has(member.id)) || []
 
-  // Prepare translations for client component
-  const translations = {
-    greeting: t('greeting'),
-    vacationBalance: t('vacationBalance'),
-    customBalance: t('customBalance'),
-    customBalanceTooltip: t('customBalanceTooltip'),
-    today: t('today'),
-    workingToday: t('workingToday'),
-    nearestBirthday: t('nearestBirthday'),
-    noBirthdays: t('noBirthdays'),
-    birthdayToday: t('birthdayToday'),
-    birthdayTomorrow: t('birthdayTomorrow'),
-    birthdayIn: t('birthdayIn'),
-    leaveRequests: t('leaveRequests'),
-    noPending: t('noPending'),
-    pendingOne: t('pendingOne'),
-    pendingCount: t('pendingCount'),
-    goToRequests: t('goToRequests'),
-    calendarTitle: t('calendarTitle'),
-    calendarBadge: t('calendarBadge'),
-    lastUpdate: t('lastUpdate'),
-  }
-
   return (
     <AppLayout>
       {/* NewLeaveRequestSheet component for dashboard functionality */}
@@ -379,7 +356,6 @@ export default async function DashboardPage() {
           initialLeaveBalances={leaveBalances || []}
           initialCurrentLeaves={currentLeaveRequests || []}
           initialPendingCount={pendingCount}
-          translations={translations}
           nearestBirthday={nearestBirthday}
           currentDay={currentDay}
           currentMonth={currentMonth}
