@@ -365,7 +365,7 @@ export default async function DashboardPage() {
           userProfile={profile} 
         />
         
-        <div className="p-8">
+        <div className="py-11">
           <div className="flex flex-col gap-6">
                         {/* Greeting Section */}
             <div className="flex items-center justify-between py-2">

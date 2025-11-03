@@ -658,6 +658,156 @@
 
 ---
 
+## Phase 2.7: React Query Migration - Critical Mutations 🔄 ✅
+
+**Goal:** Migrate critical leave request mutations to React Query for real-time cache invalidation
+**Success Criteria:** All leave request creation, editing, and cancellation operations automatically trigger UI updates without manual page refresh
+
+### Features
+
+- [x] **NewLeaveRequestSheet Mutation** `S` ✅
+  - Convert form submission to React Query useMutation
+  - Invalidate calendar and leave request queries on success
+  - Remove router.refresh() calls (replaced by cache invalidation)
+  - Show optimistic updates during submission
+  - Handle error states with proper toast messages
+  - Files: [NewLeaveRequestSheet.tsx](app/leave/components/NewLeaveRequestSheet.tsx)
+
+- [x] **EditLeaveRequestSheet Mutations** `S` ✅
+  - Convert edit form submission to React Query useMutation
+  - Convert cancellation logic to useMutation
+  - Invalidate both calendar and leave request queries
+  - Already has query invalidation for calendar - extend to all pages
+  - Files: [EditLeaveRequestSheet.tsx](components/EditLeaveRequestSheet.tsx)
+
+- [x] **LeaveRequestActions Mutations** `S` ✅
+  - Convert approval/rejection actions to React Query mutations
+  - Invalidate dashboard, calendar, team, and leave request queries
+  - Remove manual router.refresh() calls
+  - Show optimistic UI updates during approval/rejection
+  - Files: [LeaveRequestActions.tsx](app/leave/components/LeaveRequestActions.tsx)
+
+- [x] **Admin Settings Mutations** `S` ✅
+  - Convert work mode update to useMutation
+  - Invalidate organization and calendar queries
+  - Files: [WorkModeSettings.tsx](app/admin/settings/components/WorkModeSettings.tsx)
+
+### Dependencies
+
+- Phase 2.6 complete (stale data issues identified) ✅
+- Phase 2.7 complete (mutations trigger cache invalidation) ✅
+- React Query already installed and configured ✅
+- Calendar and /leave pages already using useQuery ✅
+
+### Impact
+
+- Eliminates need for manual page refresh after mutations
+- Consistent auto-refresh behavior across all pages
+- Better user experience with optimistic updates
+- Cleaner code without router.refresh() calls
+
+---
+
+## Phase 2.8: React Query Migration - High-Traffic Pages 📊
+
+**Goal:** Convert high-traffic pages to React Query for real-time data synchronization
+**Success Criteria:** Dashboard, team, and leave request management pages show real-time updates when data changes elsewhere in the app
+
+### Features
+
+- [ ] **Dashboard Page** `M`
+  - Convert leave requests query to React Query
+  - Convert upcoming leaves query to useQuery
+  - Convert leave balances query to useQuery
+  - Use initialData pattern for SSR data
+  - Enable automatic refetch on window focus
+  - Files: [app/dashboard/page.tsx](app/dashboard/page.tsx)
+
+- [ ] **Team Page (Admin & Manager Views)** `M`
+  - Convert team members query to React Query
+  - Convert leave requests query to useQuery
+  - Separate queries for AdminTeamView and ManagerTeamView
+  - Cache team member data across both views
+  - Files: [AdminTeamView.tsx](app/team/components/AdminTeamView.tsx), [ManagerTeamView.tsx](app/team/components/ManagerTeamView.tsx)
+
+- [ ] **Leave Requests Management Page** `S`
+  - Already using React Query for list ✅
+  - Add useQuery for leave balances if needed
+  - Verify cache invalidation working with mutations
+  - Files: [app/leave-requests/page.tsx](app/leave-requests/page.tsx)
+
+- [ ] **Profile Page** `S`
+  - Convert user profile query to React Query
+  - Convert leave balances query to useQuery
+  - Enable automatic refetch for fresh data
+  - Files: [app/profile/page.tsx](app/profile/page.tsx)
+
+### Dependencies
+
+- Phase 2.7 complete (mutations trigger cache invalidation)
+- Existing pages using manual state management
+- SSR data fetching pattern established
+
+### Impact
+
+- Real-time synchronization across multiple pages
+- Reduced stale data issues
+- Better performance with smart caching
+- Consistent data fetching patterns
+
+---
+
+## Phase 2.9: React Query Migration - Shared Data Optimization 🎯
+
+**Goal:** Create reusable React Query hooks for shared data access patterns
+**Success Criteria:** DRY data fetching with consistent query keys, centralized cache management, reduced code duplication
+
+### Features
+
+- [ ] **Create Shared Query Hooks** `M`
+  - `useLeaveRequests(userId, organizationId)` - Centralized leave requests hook
+  - `useLeaveBalances(userId, year)` - Reusable leave balances hook
+  - `useTeamMembers(organizationId, teamId?)` - Team members data hook
+  - `useOrganizationSettings(organizationId)` - Organization config hook
+  - `useHolidays(startDate, endDate, countryCode)` - Holiday data hook
+  - Files: Create [hooks/queries/useLeaveRequests.ts](hooks/queries/useLeaveRequests.ts), etc.
+
+- [ ] **Standardize Query Keys** `S`
+  - Create query key factory in [lib/query-keys.ts](lib/query-keys.ts)
+  - Consistent naming: `['leaveRequests', userId, orgId]`
+  - Type-safe query key generation
+  - Document query key patterns
+  - Update all existing useQuery calls to use factory
+
+- [ ] **Centralized Query Configuration** `S`
+  - Create default query options in [lib/react-query-config.ts](lib/react-query-config.ts)
+  - Set global staleTime, cacheTime, retry logic
+  - Configure refetchOnWindowFocus behavior
+  - Apply to QueryClientProvider
+
+- [ ] **Refactor Existing Components** `L`
+  - Replace inline useQuery with shared hooks
+  - Update CalendarClient to use `useLeaveRequests` hook
+  - Update LeaveRequestsListClient to use shared hook
+  - Update Dashboard to use `useLeaveBalances` hook
+  - Verify all query keys match across components
+
+### Dependencies
+
+- Phase 2.7 & 2.8 complete (mutations and queries established)
+- Query patterns identified across codebase
+- React Query best practices documented
+
+### Impact
+
+- Reduced code duplication (eliminate 200+ lines)
+- Consistent data fetching behavior
+- Easier maintenance and debugging
+- Type-safe query key management
+- Better cache utilization across components
+
+---
+
 ## Phase 3: Design System Implementation 🎨
 
 **Goal:** Complete visual overhaul using Figma designs and modern component library
@@ -828,6 +978,39 @@
 
       **Completed:** 2025-10-30
       **Actual Effort:** 2 hours (under estimate)
+
+  - [ ] **Leave Request Sheet Redesign** `M` 🎯 **READY TO START**
+    - **Goal:** Update NewLeaveRequestSheet to match new Figma design with enhanced UX
+    - **Figma Design:** `https://figma.com/design/Xb0VKGqH8b7w6nXW3HoacI/time8.io?node-id=25630-166742`
+    - **Spec:** Analysis complete, ready for implementation
+
+    **Quick Wins (30 min):**
+    - [ ] Fix date picker placeholder: "Wybierz typ urlopu" → "Wybierz daty urlopu"
+    - [ ] Remove unused imports (date-fns functions, unused createClient)
+    - [ ] Add form reset on close (clear all state including overlaps)
+    - [ ] Update header: "Nowy wniosek urlopowy" → "Wniosek o urlop"
+    - [ ] Add separator line below header
+    - [ ] Update footer button: "Złóż wniosek urlopowy" → "Wyślij wniosek"
+
+    **New Features (2-3 hours):**
+    - [ ] Extract OverlapUserItem component from AddAbsenceSheet (reusable)
+    - [ ] Add 3 info cards (Dostępny/Wnioskowany/Pozostanie) using Card component
+    - [ ] Add overlap detection with amber warning card
+      - API endpoint exists: `/api/leave-requests/overlapping`
+      - Show overlapping users with avatars, names, dates
+      - Trigger check when dates change
+    - [ ] Hide "Dni roboczych" text (keep calculation for cards)
+
+    **Files to Modify:**
+    - `app/leave/components/NewLeaveRequestSheet.tsx` (~150 lines changed)
+    - `components/OverlapUserItem.tsx` (new file, ~30 lines)
+    - `app/leave/components/NewLeaveRequestButton.tsx` (verify event dispatch)
+
+    **Benefits:**
+    - Better visual hierarchy with info cards
+    - Proactive overlap warnings reduce scheduling conflicts
+    - Cleaner, more modern UI matching design system
+    - Reusable components for other sheets
 
   - [ ] **Main Content Pages** - Dashboard, Calendar, Leave, Team pages
   - [ ] **Admin Pages** - Settings, Users, Groups

@@ -13,9 +13,12 @@ export const BILLING_CONSTANTS = {
 
 /**
  * Calculate required paid seats based on employee count
+ * Business logic: Up to 3 users are free. 4+ users pay for ALL seats.
  */
 export function calculateRequiredPaidSeats(currentEmployees: number): number {
-  return Math.max(0, currentEmployees - BILLING_CONSTANTS.FREE_SEATS);
+  const FREE_TIER_LIMIT = BILLING_CONSTANTS.FREE_SEATS; // 3
+  // If 4+ users, pay for ALL seats. If 1-3 users, free tier (0 paid seats).
+  return currentEmployees > FREE_TIER_LIMIT ? currentEmployees : 0;
 }
 
 /**

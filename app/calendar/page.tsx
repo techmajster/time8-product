@@ -36,7 +36,9 @@ export default async function CalendarPage() {
       organizations (
         id,
         name,
-        country_code
+        country_code,
+        work_mode,
+        working_days
       )
     `)
     .eq('user_id', user.id)
@@ -88,6 +90,21 @@ export default async function CalendarPage() {
     .eq('user_id', user.id)
     .eq('year', new Date().getFullYear())
     .eq('leave_types.requires_balance', true)
+
+  // Get pending leave requests for balance calculation
+  const { data: leaveRequests } = await supabase
+    .from('leave_requests')
+    .select(`
+      *,
+      leave_types (
+        id,
+        name,
+        color
+      )
+    `)
+    .eq('user_id', user.id)
+    .eq('organization_id', profile.organization_id)
+    .eq('status', 'pending')
 
   // Get organization's calendar restriction setting
   const { data: orgSettings } = await supabaseAdmin
@@ -187,19 +204,27 @@ export default async function CalendarPage() {
   return (
     <AppLayout>
       {/* NewLeaveRequestSheet component for calendar functionality */}
-      <NewLeaveRequestSheet 
-        leaveTypes={leaveTypes || []} 
-        leaveBalances={leaveBalances || []} 
-        userProfile={profile} 
+      <NewLeaveRequestSheet
+        leaveTypes={leaveTypes || []}
+        leaveBalances={leaveBalances || []}
+        userProfile={profile}
+        pendingRequests={(leaveRequests || [])
+          .filter(req => req.status === 'pending')
+          .map(req => ({
+            leave_type_id: req.leave_types?.id || '',
+            days_requested: req.days_requested
+          }))
+        }
       />
       
-      <CalendarClient 
+      <CalendarClient
         organizationId={profile.organization_id}
         countryCode={profile.organizations?.country_code || 'PL'}
         userId={user.id}
         colleagues={colleagues || []}
         teamMemberIds={teamMemberIds}
         teamScope={teamScope}
+        workingDays={profile.organizations?.working_days || ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']}
       />
     </AppLayout>
   )

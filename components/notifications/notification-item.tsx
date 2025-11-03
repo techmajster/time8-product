@@ -2,6 +2,7 @@
 
 import { memo } from 'react'
 import { Check, X, Info } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { Notification, NotificationType } from '@/types/notification'
 import { cn } from '@/lib/utils'
@@ -25,6 +26,7 @@ const getNotificationIcon = (type: NotificationType) => {
 }
 
 export const NotificationItem = memo(({ notification, onRead, onCloseSheet }: NotificationItemProps) => {
+  const t = useTranslations('notificationSheet')
   const { openLeaveRequestDetails } = useLeaveRequest()
 
   const handleDetailsClick = async () => {
@@ -61,7 +63,7 @@ export const NotificationItem = memo(({ notification, onRead, onCloseSheet }: No
       className={cn(
         "flex gap-2 items-start p-4 rounded-md border",
         notification.is_read
-          ? "bg-card border-border"  // Read: white background
+          ? "bg-popover border-border"  // Read: white background
           : "bg-blue-50 border-border" // Unread: blue-50 background
       )}
     >
@@ -71,12 +73,12 @@ export const NotificationItem = memo(({ notification, onRead, onCloseSheet }: No
       </div>
 
       {/* Content */}
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 flex flex-col gap-[2px]">
         <p className="font-medium text-sm text-popover-foreground">
           {notification.title}
         </p>
         {notification.message && (
-          <p className="text-sm text-muted-foreground mt-0.5">
+          <p className="font-normal text-sm text-muted-foreground">
             {notification.message}
           </p>
         )}
@@ -89,7 +91,7 @@ export const NotificationItem = memo(({ notification, onRead, onCloseSheet }: No
         className="shrink-0 h-8 px-3 text-xs font-medium"
         onClick={handleDetailsClick}
       >
-        Szczegóły
+        {t('details')}
       </Button>
     </div>
   )

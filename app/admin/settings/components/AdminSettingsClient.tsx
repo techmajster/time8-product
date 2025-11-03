@@ -18,6 +18,7 @@ import { EditLeaveTypesSheet } from './EditLeaveTypesSheet'
 import { EditLeavePoliciesSheet } from './EditLeavePoliciesSheet'
 import { EditGoogleWorkspaceSheet } from './EditGoogleWorkspaceSheet'
 import { CreateLeaveTypeSheet } from './CreateLeaveTypeSheet'
+import { WorkModeSettings } from './WorkModeSettings'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { getCountryFlag, getLanguageFlag } from '@/lib/flag-utils'
 import { Plus, MoreVertical, X, Lock } from 'lucide-react'
@@ -524,7 +525,7 @@ export default function AdminSettingsClient({
   }
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="py-11 space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-semibold text-foreground">Ustawienia administracyjne</h1>
@@ -1487,104 +1488,6 @@ export default function AdminSettingsClient({
             </CardContent>
           </Card>
 
-          {/* Seat Management Card */}
-          <Card className="border border-border">
-            <CardHeader className="pb-0">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1.5">
-                  <CardTitle className="text-xl font-semibold">{t('seatManagement')}</CardTitle>
-                  <CardDescription>
-                    {t('seatManagementDescription')}
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0 pb-6 space-y-6">
-              {subscriptionLoading ? (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-3 gap-6">
-                    <div className="text-center">
-                      <div className="h-8 bg-muted rounded animate-pulse mb-2"></div>
-                      <div className="h-4 bg-muted rounded animate-pulse"></div>
-                    </div>
-                    <div className="text-center">
-                      <div className="h-8 bg-muted rounded animate-pulse mb-2"></div>
-                      <div className="h-4 bg-muted rounded animate-pulse"></div>
-                    </div>
-                    <div className="text-center">
-                      <div className="h-8 bg-muted rounded animate-pulse mb-2"></div>
-                      <div className="h-4 bg-muted rounded animate-pulse"></div>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-3 gap-6">
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-green-600">{getSeatUsage().freeSeats}</div>
-                      <div className="text-sm text-muted-foreground">{t('freeSeatsLabel')}</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-blue-600">{getSeatUsage().paidSeats}</div>
-                      <div className="text-sm text-muted-foreground">{t('paidSeatsLabel')}</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-foreground">{getSeatUsage().total}</div>
-                      <div className="text-sm text-muted-foreground">{t('totalSeatsLabel')}</div>
-                    </div>
-                  </div>
-                  
-                  <div className="w-[400px] space-y-2">
-                    <Label className="text-sm font-medium text-foreground">
-                      {t('currentTeamMembers')}
-                    </Label>
-                    <div className="text-sm text-muted-foreground">
-                      {t('activeTeamMembers', {count: getSeatUsage().used, plural: getSeatUsage().used !== 1 ? 's' : ''})}
-                    </div>
-                  </div>
-                  
-                  {!subscriptionData ? (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                      <div className="space-y-2">
-                        <div className="font-medium text-blue-900 text-sm">
-                          {t('readyToGrow')}
-                        </div>
-                        <div className="text-blue-700 text-sm">
-                          {t('growDescription')}
-                        </div>
-                      </div>
-                    </div>
-                  ) : getSeatUsage().remaining <= 1 ? (
-                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                      <div className="space-y-2">
-                        <div className="font-medium text-amber-900 text-sm">
-                          {getSeatUsage().remaining === 0 ? t('allSeatsInUse') : 'Almost out of seats'}
-                        </div>
-                        <div className="text-amber-700 text-sm">
-                          {getSeatUsage().remaining === 0 
-                            ? t('allSeatsInUse')
-                            : t('almostOutOfSeats', {remaining: getSeatUsage().remaining})
-                          }
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                      <div className="space-y-2">
-                        <div className="font-medium text-green-900 text-sm">
-                          {t('seatsAvailable', {remaining: getSeatUsage().remaining})}
-                        </div>
-                        <div className="text-green-700 text-sm">
-                          {t('inviteMoreMembers')}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
           {/* Billing Override Banner */}
           {currentOrganization?.billing_override_reason && (
             <Card className="border border-blue-200 bg-blue-50">
@@ -1732,17 +1635,7 @@ export default function AdminSettingsClient({
         </FigmaTabsContent>
 
         <FigmaTabsContent value="work-modes" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Dostępne tryby pracy</CardTitle>
-              <CardDescription>
-                Konfiguracja trybów pracy dostępnych w organizacji
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">Ta sekcja będzie wkrótce dostępna.</p>
-            </CardContent>
-          </Card>
+          <WorkModeSettings currentOrganization={currentOrganization} />
         </FigmaTabsContent>
 
         <FigmaTabsContent value="additional-rules" className="mt-6">

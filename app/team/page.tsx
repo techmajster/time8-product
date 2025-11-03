@@ -148,9 +148,10 @@ export default async function TeamPage() {
 
     return (
       <AppLayout>
-        <AdminTeamView 
-          teamMembers={teamMembers}
-          leaveBalances={leaveBalances || []}
+        <AdminTeamView
+          organizationId={profile.organization_id}
+          initialTeamMembers={teamMembers}
+          initialLeaveBalances={leaveBalances || []}
           teams={teams || []}
           currentUser={profile}
         />
@@ -249,9 +250,11 @@ export default async function TeamPage() {
 
   return (
     <AppLayout>
-      <ManagerTeamView 
-        teamMembers={teamMembers}
-        leaveBalances={leaveBalances || []}
+      <ManagerTeamView
+        organizationId={profile.organization_id}
+        teamId={userOrg.team_id || ''}
+        initialTeamMembers={teamMembers}
+        initialLeaveBalances={leaveBalances || []}
         leaveRequests={leaveRequests}
         managerName={profile.full_name || 'Manager'}
       />

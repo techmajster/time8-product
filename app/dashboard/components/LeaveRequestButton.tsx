@@ -2,8 +2,11 @@
 
 import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 export function LeaveRequestButton() {
+  const t = useTranslations()
+  
   const handleClick = () => {
     // Trigger the existing NewLeaveRequestSheet in the header
     // We'll dispatch a custom event that the header component can listen to
@@ -18,7 +21,7 @@ export function LeaveRequestButton() {
       onClick={handleClick}
     >
       <Plus className="w-4 h-4" />
-      Złóż wniosek o urlop
+      {t('leave.page.button.requestLeave')}
     </Button>
   )
 } 

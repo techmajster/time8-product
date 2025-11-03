@@ -4,11 +4,12 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { PageHeader } from '@/components/ui/page-header'
-import { User, Calendar, Settings } from 'lucide-react'
+import { User, Settings } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { ProfileForm } from './components/ProfileForm'
 import { PersonalSettingsForm } from './components/PersonalSettingsForm'
 import { AvatarUpload } from './components/AvatarUpload'
+import { ProfileDataClient } from './components/ProfileDataClient'
 
 export default async function ProfilePage() {
   const supabase = await createClient()
@@ -117,7 +118,7 @@ export default async function ProfilePage() {
   return (
     <AppLayout>
       <div className="min-h-screen bg-background">
-        <div className="p-6 lg:p-8">
+        <div className="py-11">
           <div className="max-w-7xl mx-auto">
             {/* Header */}
             <PageHeader
@@ -189,91 +190,13 @@ export default async function ProfilePage() {
                   </CardContent>
                 </Card>
 
-                {/* Leave Balance Summary */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Calendar className="h-5 w-5" />
-                      Saldo urlopowe
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {leaveBalances && leaveBalances.length > 0 ? (
-                      <div className="space-y-3">
-                        {leaveBalances.map((balance) => (
-                          <div key={balance.id} className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <div
-                                className="w-3 h-3 rounded-full"
-                                style={{ backgroundColor: balance.leave_types?.color }}
-                              />
-                              <span className="text-sm text-foreground">{balance.leave_types?.name}</span>
-                            </div>
-                            <span className="font-medium text-foreground">
-                              {balance.remaining_days} dni
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">
-                        Brak przydzielonych urlopów
-                      </p>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* Recent Requests */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Calendar className="h-5 w-5" />
-                      Ostatnie wnioski
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {recentRequests && recentRequests.length > 0 ? (
-                      <div className="space-y-3">
-                        {recentRequests.map((request: {
-                          id: string
-                          start_date: string
-                          end_date: string
-                          status: string
-                          leave_types: { name: string; color: string }[]
-                        }) => (
-                          <div key={request.id} className="flex items-center justify-between text-sm">
-                            <div className="flex items-center gap-2">
-                              <div
-                                className="w-2 h-2 rounded-full"
-                                style={{ backgroundColor: request.leave_types?.[0]?.color }}
-                              />
-                              <span>{request.leave_types?.[0]?.name}</span>
-                            </div>
-                            <div className="text-right">
-                              <div className="text-xs text-muted-foreground">
-                                {new Date(request.start_date).toLocaleDateString('pl-PL')} -
-                                {new Date(request.end_date).toLocaleDateString('pl-PL')}
-                              </div>
-                              <Badge 
-                                variant={request.status === 'approved' ? 'default' : 
-                                        request.status === 'pending' ? 'secondary' : 'destructive'}
-                                className="text-xs"
-                              >
-                                {request.status === 'approved' ? 'Zatwierdzony' :
-                                 request.status === 'pending' ? 'Oczekujący' :
-                                 request.status === 'rejected' ? 'Odrzucony' : 'Anulowany'}
-                              </Badge>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">
-                        Brak wniosków urlopowych
-                      </p>
-                    )}
-                  </CardContent>
-                </Card>
+                {/* Leave Balance and Recent Requests - Using React Query */}
+                <ProfileDataClient
+                  userId={user.id}
+                  initialLeaveBalances={leaveBalances || []}
+                  initialRecentRequests={recentRequests || []}
+                  monthNames={[]}
+                />
               </div>
 
               {/* Right Column - Settings Forms */}

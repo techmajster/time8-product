@@ -45,11 +45,13 @@ interface CheckoutRequest {
 }
 
 /**
- * Calculate required paid seats (3 free + paid seats)
+ * Calculate required paid seats
+ * Business logic: Up to 3 users are free. 4+ users pay for ALL seats.
  */
 function calculateRequiredPaidSeats(totalUsers: number): number {
-  const FREE_SEATS = 3;
-  return Math.max(0, totalUsers - FREE_SEATS);
+  const FREE_TIER_LIMIT = 3;
+  // If 4+ users, pay for ALL seats. If 1-3 users, free tier (0 paid seats).
+  return totalUsers > FREE_TIER_LIMIT ? totalUsers : 0;
 }
 
 /**

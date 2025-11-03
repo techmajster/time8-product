@@ -4,7 +4,9 @@ import { Button } from '@/components/ui/button'
 
 export function NewLeaveRequestButton() {
   const handleClick = () => {
-    window.dispatchEvent(new Event('openLeaveRequest'))
+    window.dispatchEvent(new CustomEvent('openLeaveRequest', {
+      detail: { date: undefined }
+    }))
   }
 
   return (

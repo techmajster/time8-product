@@ -1,0 +1,244 @@
+'use client'
+
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Card, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import Link from 'next/link'
+import { LeaveRequestButton } from './LeaveRequestButton'
+import { TeamCard } from './TeamCard'
+import { CurrentDayCard } from './CurrentDayCard'
+import { BirthdayCard } from './BirthdayCard'
+import { DashboardCalendar } from './DashboardCalendar'
+import { useLeaveBalances, useTeamMembers, useCurrentLeaveRequests, usePendingRequestsCount } from '@/hooks/use-dashboard-queries'
+
+interface DashboardClientProps {
+  profile: any
+  organizationId: string
+  countryCode: string
+  userId: string
+  userOrg: any
+  teamMemberIds: string[]
+  teamScope: any
+  teams: any[]
+  managedTeam: any
+  colleagues: any[]
+  initialTeamMembers: any[]
+  initialLeaveBalances: any[]
+  initialCurrentLeaves: any[]
+  initialPendingCount: number
+  translations: {
+    greeting: string
+    vacationBalance: string
+    customBalance: string
+    customBalanceTooltip: string
+    today: string
+    workingToday: string
+    nearestBirthday: string
+    noBirthdays: string
+    birthdayToday: string
+    birthdayTomorrow: string
+    birthdayIn: string
+    leaveRequests: string
+    noPending: string
+    pendingOne: string
+    pendingCount: string
+    goToRequests: string
+    calendarTitle: string
+    calendarBadge: string
+    lastUpdate: string
+  }
+  nearestBirthday: {
+    name: string
+    date: Date
+    daysUntil: number
+  } | null
+  currentDay: number
+  currentMonth: string
+  currentDayName: string
+  currentYear: number
+  monthNames: string[]
+}
+
+export function DashboardClient({
+  profile,
+  organizationId,
+  countryCode,
+  userId,
+  userOrg,
+  teamMemberIds,
+  teamScope,
+  teams,
+  managedTeam,
+  colleagues,
+  initialTeamMembers,
+  initialLeaveBalances,
+  initialCurrentLeaves,
+  initialPendingCount,
+  translations: t,
+  nearestBirthday,
+  currentDay,
+  currentMonth,
+  currentDayName,
+  currentYear,
+  monthNames,
+}: DashboardClientProps) {
+  // Use React Query hooks with initial SSR data
+  const { data: leaveBalances = initialLeaveBalances } = useLeaveBalances(userId)
+  const { data: allTeamMembers = initialTeamMembers } = useTeamMembers(
+    organizationId,
+    teamMemberIds,
+    initialTeamMembers
+  )
+  const { data: currentLeaveRequests = initialCurrentLeaves } = useCurrentLeaveRequests(teamMemberIds)
+  const { data: pendingRequestsCount = initialPendingCount } = usePendingRequestsCount(teamMemberIds)
+
+  // Find vacation leave balance
+  const vacationBalance = leaveBalances?.find((b: any) => b.leave_types?.name === 'Urlop wypoczynkowy')
+  const remainingVacationDays = vacationBalance?.remaining_days || 0
+
+  // Check if vacation balance is an override (custom entitled_days)
+  const workspaceDefault = vacationBalance?.leave_types?.days_per_year || 0
+  const actualEntitled = vacationBalance?.entitled_days || 0
+  const isVacationOverride = actualEntitled !== workspaceDefault
+
+  // Split team members into absent and working
+  const absentMemberIds = new Set(currentLeaveRequests?.map((req: any) => req.user_id) || [])
+
+  return (
+    <>
+      {/* Greeting Section */}
+      <div className="flex items-center justify-between py-2">
+        <div className="flex items-center gap-3">
+          <span className="text-5xl font-light text-foreground">{t.greeting}</span>
+          <Avatar className="w-12 h-12">
+            <AvatarImage src={profile.avatar_url || ''} />
+            <AvatarFallback>
+              {profile.full_name?.split(' ').map((n: string) => n[0]).join('') || 'U'}
+            </AvatarFallback>
+          </Avatar>
+          <span className="text-5xl font-semibold text-foreground">
+            {profile.full_name?.split(' ')[0] || 'User'}!
+          </span>
+        </div>
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3 text-xl text-foreground">
+            <span className="font-normal">{t.vacationBalance.replace('{days}', remainingVacationDays.toString())}</span>
+            {isVacationOverride && (
+              <span
+                className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full"
+                title={t.customBalanceTooltip.replace('{default}', workspaceDefault.toString())}
+              >
+                {t.customBalance}
+              </span>
+            )}
+          </div>
+          <LeaveRequestButton />
+        </div>
+      </div>
+
+      <div className="flex gap-4">
+        {/* Left Column */}
+        <div className="flex-1 flex flex-col gap-4">
+          {/* Current Day Card */}
+          <CurrentDayCard
+            todayText={t.today.replace('{dayName}', currentDayName)}
+            day={currentDay}
+            dateText={`${currentDay} ${monthNames[new Date().getMonth()].toLowerCase()}`}
+            year={currentYear}
+            workStatus={t.workingToday}
+            workHours="9:00 - 15:00"
+          />
+
+          {/* Birthday Card */}
+          <BirthdayCard
+            title={t.nearestBirthday}
+            noBirthdaysText={t.noBirthdays}
+            name={nearestBirthday?.name}
+            daysText={
+              nearestBirthday
+                ? nearestBirthday.daysUntil === 0
+                  ? t.birthdayToday.replace(
+                      '{date}',
+                      `${nearestBirthday.date.getDate()} ${monthNames[nearestBirthday.date.getMonth()].toLowerCase()}`
+                    )
+                  : nearestBirthday.daysUntil === 1
+                  ? t.birthdayTomorrow.replace(
+                      '{date}',
+                      `${nearestBirthday.date.getDate()} ${monthNames[nearestBirthday.date.getMonth()].toLowerCase()}`
+                    )
+                  : t.birthdayIn
+                      .replace(
+                        '{date}',
+                        `${nearestBirthday.date.getDate()} ${monthNames[nearestBirthday.date.getMonth()].toLowerCase()}`
+                      )
+                      .replace('{days}', nearestBirthday.daysUntil.toString())
+                : undefined
+            }
+            initials={nearestBirthday?.name.split(' ').map((n) => n[0]).join('').toUpperCase()}
+          />
+
+          {/* Leave Requests Card */}
+          <Card className="flex-row items-end justify-between">
+            <CardContent className="flex-1">
+              <div className="flex flex-col gap-2">
+                <div className="text-sm font-medium">{t.leaveRequests}</div>
+                <div className="text-xl font-semibold">
+                  {pendingRequestsCount === 0
+                    ? t.noPending
+                    : pendingRequestsCount === 1
+                    ? t.pendingOne
+                    : t.pendingCount.replace('{count}', pendingRequestsCount.toString())}
+                </div>
+              </div>
+            </CardContent>
+            <CardContent className="flex-shrink-0">
+              <Button asChild className="h-8 px-3 text-xs">
+                <Link href="/leave-requests">{t.goToRequests}</Link>
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Team Card */}
+          <TeamCard
+            allTeamMembers={(allTeamMembers || []).map((member: any) => ({
+              ...member,
+              teams: Array.isArray(member.teams) ? member.teams[0] : member.teams,
+            }))}
+            absentMembers={
+              currentLeaveRequests?.map((req: any) => ({
+                user_id: req.user_id,
+                profiles: {
+                  ...req.profiles,
+                  teams: null,
+                  team_id: null,
+                },
+                leaveType: req.leave_types,
+                endDate: req.end_date,
+              })) || []
+            }
+            teams={teams || []}
+            defaultTeamId={managedTeam?.id}
+            userRole={profile.role}
+          />
+        </div>
+
+        {/* Right Column - Calendar */}
+        <div className="flex-1">
+          <DashboardCalendar
+            organizationId={organizationId}
+            countryCode={countryCode}
+            userId={userId}
+            colleagues={colleagues || []}
+            teamMemberIds={teamMemberIds}
+            teamScope={teamScope}
+            calendarTitle={t.calendarTitle}
+            badgeText={t.calendarBadge}
+            lastUpdateLabel={t.lastUpdate}
+            lastUpdateUser="Paweł Chróściak"
+            lastUpdateDate="28.06.2025"
+          />
+        </div>
+      </div>
+    </>
+  )
+}

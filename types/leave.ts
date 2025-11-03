@@ -281,6 +281,8 @@ export interface Organization {
   created_at: string
   updated_at: string
   google_domain?: string
+  work_mode?: 'monday_to_friday' | 'multi_shift'
+  working_days?: string[]
 }
 
 export interface Profile {

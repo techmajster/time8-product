@@ -13,6 +13,7 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Info } from 'lucide-react'
 import { useTranslations } from 'next-intl'
+import { useTeamMembersQuery, useTeamLeaveBalances } from '@/hooks/use-team-queries'
 
 interface TeamMember {
   id: string
@@ -42,14 +43,33 @@ interface LeaveBalance {
 }
 
 interface ManagerTeamViewProps {
-  teamMembers: TeamMember[]
-  leaveBalances: LeaveBalance[]
+  organizationId: string
+  teamId: string
+  initialTeamMembers: TeamMember[]
+  initialLeaveBalances: LeaveBalance[]
   leaveRequests: any[]
   managerName: string
 }
 
-export function ManagerTeamView({ teamMembers, leaveBalances }: ManagerTeamViewProps) {
+export function ManagerTeamView({
+  organizationId,
+  teamId,
+  initialTeamMembers,
+  initialLeaveBalances
+}: ManagerTeamViewProps) {
   const t = useTranslations('permissions')
+
+  // Use React Query hooks with initial SSR data
+  const { data: teamMembers = initialTeamMembers } = useTeamMembersQuery(
+    organizationId,
+    teamId,
+    initialTeamMembers
+  )
+  const { data: leaveBalances = initialLeaveBalances } = useTeamLeaveBalances(
+    organizationId,
+    new Date().getFullYear(),
+    initialLeaveBalances
+  )
 
   // Get leave balance for a specific user and leave type
   const getLeaveBalance = (userId: string, leaveTypeName: string): number => {
@@ -68,7 +88,7 @@ export function ManagerTeamView({ teamMembers, leaveBalances }: ManagerTeamViewP
   }
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="py-11 space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-semibold text-foreground">Mój zespół</h1>

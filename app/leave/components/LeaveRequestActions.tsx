@@ -16,6 +16,7 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { CheckCircle, XCircle } from 'lucide-react'
+import { useApproveRejectLeaveRequest } from '@/hooks/use-leave-mutations'
 
 interface LeaveRequestActionsProps {
   requestId: string
@@ -25,58 +26,48 @@ interface LeaveRequestActionsProps {
   dateRange: string
 }
 
-export function LeaveRequestActions({ 
-  requestId, 
-  requestStatus, 
-  employeeName, 
-  leaveType, 
-  dateRange 
+export function LeaveRequestActions({
+  requestId,
+  requestStatus,
+  employeeName,
+  leaveType,
+  dateRange
 }: LeaveRequestActionsProps) {
-  const [loading, setLoading] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [comment, setComment] = useState('')
   const [isApproveDialogOpen, setIsApproveDialogOpen] = useState(false)
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false)
-  
+
   const router = useRouter()
+
+  // React Query mutation
+  const approveMutation = useApproveRejectLeaveRequest(requestId)
 
   if (requestStatus !== 'pending') {
     return null
   }
 
   const handleAction = async (action: 'approve' | 'reject') => {
-    setLoading(action)
     setError(null)
     setSuccess(null)
 
-    try {
-      const response = await fetch(`/api/leave-requests/${requestId}/approve`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, comment: comment.trim() || null })
-      })
-
-      const result = await response.json()
-
-      if (response.ok) {
+    // Use React Query mutation
+    approveMutation.mutate({
+      action,
+      comment: comment.trim() || null
+    }, {
+      onSuccess: () => {
         const actionText = action === 'approve' ? 'zatwierdzony' : 'odrzucony'
         setSuccess(`Wniosek został ${actionText}`)
         setIsApproveDialogOpen(false)
         setIsRejectDialogOpen(false)
         setComment('')
-        
-        // Refresh the page to update the request status
-        router.refresh()
-      } else {
-        setError(result.error || `Nie udało się ${action === 'approve' ? 'zatwierdzić' : 'odrzucić'} wniosku`)
+      },
+      onError: (error) => {
+        setError(error.message || `Nie udało się ${action === 'approve' ? 'zatwierdzić' : 'odrzucić'} wniosku`)
       }
-    } catch (err) {
-      console.error('Error updating leave request:', err)
-      setError('Wystąpił błąd podczas przetwarzania wniosku')
-    } finally {
-      setLoading(null)
-    }
+    })
   }
 
   const resetState = () => {
@@ -84,8 +75,6 @@ export function LeaveRequestActions({
     setError(null)
     setSuccess(null)
   }
-
-  const isLoading = loading !== null
 
   return (
     <div className="space-y-2">
@@ -108,11 +97,11 @@ export function LeaveRequestActions({
           if (!open) resetState()
         }}>
           <DialogTrigger asChild>
-            <Button 
-              size="sm" 
-              variant="outline" 
+            <Button
+              size="sm"
+              variant="outline"
               className="text-success hover:bg-success/5"
-              disabled={isLoading}
+              disabled={approveMutation.isPending}
             >
               <CheckCircle className="h-3 w-3 mr-1" />
               Zatwierdź
@@ -152,19 +141,19 @@ export function LeaveRequestActions({
             </div>
 
             <DialogFooter className="flex gap-2">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => setIsApproveDialogOpen(false)}
-                disabled={isLoading}
+                disabled={approveMutation.isPending}
               >
                 Anuluj
               </Button>
-              <Button 
+              <Button
                 onClick={() => handleAction('approve')}
-                disabled={isLoading}
+                disabled={approveMutation.isPending}
                 className="bg-success hover:bg-success/90"
               >
-                {loading === 'approve' ? 'Zatwierdzanie...' : 'Zatwierdź'}
+                {approveMutation.isPending ? 'Zatwierdzanie...' : 'Zatwierdź'}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -176,11 +165,11 @@ export function LeaveRequestActions({
           if (!open) resetState()
         }}>
           <DialogTrigger asChild>
-            <Button 
-              size="sm" 
-              variant="outline" 
+            <Button
+              size="sm"
+              variant="outline"
               className="text-destructive hover:bg-destructive/5"
-              disabled={isLoading}
+              disabled={approveMutation.isPending}
             >
               <XCircle className="h-3 w-3 mr-1" />
               Odrzuć
@@ -221,19 +210,19 @@ export function LeaveRequestActions({
             </div>
 
             <DialogFooter className="flex gap-2">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => setIsRejectDialogOpen(false)}
-                disabled={isLoading}
+                disabled={approveMutation.isPending}
               >
                 Anuluj
               </Button>
-              <Button 
+              <Button
                 onClick={() => handleAction('reject')}
-                disabled={isLoading || !comment.trim()}
+                disabled={approveMutation.isPending || !comment.trim()}
                 className="bg-destructive hover:bg-destructive/90"
               >
-                {loading === 'reject' ? 'Odrzucanie...' : 'Odrzuć'}
+                {approveMutation.isPending ? 'Odrzucanie...' : 'Odrzuć'}
               </Button>
             </DialogFooter>
           </DialogContent>

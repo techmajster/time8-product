@@ -38,7 +38,7 @@ export default async function HelpPage() {
   return (
     <AppLayout>
       <div className="min-h-screen bg-background">
-        <div className="p-6 lg:p-8">
+        <div className="py-11">
           <div className="max-w-4xl mx-auto space-y-8">
             <PageHeader
               title={t('navigation.help')}

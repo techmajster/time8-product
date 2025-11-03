@@ -260,6 +260,8 @@ body {
 
   /* Background colors for different user states */
   --bg-default: #EDE9FE; /* Light purple - default working day */
-  --bg-vacation: #C7F4D4; /* Light green/mint - vacation (urlop) */
-  --bg-sick-leave: #FECACA; /* Light peach/coral - sick leave (zwolnienie lekarskie) */
+  /* Vacation gradient: green-100 to green-200 */
+  --bg-vacation: linear-gradient(212.91deg, #dcfce7 0%, #bbf7d0 100%); /* Green gradient for vacation (urlop) */
+  /* Sick leave gradient: amber-100 to red-200 */
+  --bg-sick-leave: linear-gradient(212.91deg, #fef3c7 0%, #fecaca 100%); /* Orange/peach gradient for sick leave (zwolnienie lekarskie) */
 }

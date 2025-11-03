@@ -189,7 +189,9 @@
       "pickDate": "Wybierz datę",
       "pickDateRange": "Wybierz zakres dat",
       "from": "Od",
-      "to": "Do"
+      "to": "Do",
+      "publicHoliday": "Święto państwowe",
+      "loadingHolidays": "Ładowanie świąt..."
     }
   },
   "auth": {
@@ -372,6 +374,85 @@
       "requestApproved": "Wniosek urlopowy został zatwierdzony",
       "requestRejected": "Wniosek urlopowy został odrzucony",
       "requestCancelled": "Wniosek urlopowy został anulowany"
+    },
+    "requestSheet": {
+      "title": "Wniosek o urlop",
+      "leaveTypeLabel": "Jaki urlop chcesz wykorzystać",
+      "leaveTypePlaceholder": "Wybierz typ urlopu",
+      "dateRangeLabel": "Termin urlopu",
+      "dateRangePlaceholder": "Wybierz daty urlopu",
+      "available": "Dostępny",
+      "requested": "Wnioskowany",
+      "remaining": "Pozostanie",
+      "days": "dni",
+      "overlappingTitle": "W tym terminie również planują urlop:",
+      "reasonLabel": "Chcesz coś dodać?",
+      "reasonPlaceholder": "Dodatkowe informacje",
+      "cancel": "Anuluj",
+      "submit": "Wyślij wniosek",
+      "submitting": "Składanie wniosku...",
+      "unlimited": "Bez limitu",
+      "availableDays": "Dostępne {days} dni",
+      "noOverlapping": "Brak konfliktów",
+      "errors": {
+        "missingInfo": "Brak wymaganych informacji",
+        "invalidDateRange": "Nieprawidłowy zakres dat - brak dni roboczych",
+        "submissionFailed": "Wystąpił błąd podczas składania wniosku",
+        "fallbackWarning": "Obliczanie podstawowe - święta nie są wykluczone"
+      }
+    },
+    "page": {
+      "title": "Twoje urlopy",
+      "breadcrumb": {
+        "dashboard": "Dashboard",
+        "leave": "Twoje urlopy"
+      },
+      "button": {
+        "requestLeave": "Złóż wniosek o urlop",
+        "filters": "Filtry",
+        "export": "Export",
+        "details": "Szczegóły"
+      },
+      "tabs": {
+        "all": "Wszystkie",
+        "year2025": "2025",
+        "year2024": "2024"
+      },
+      "cards": {
+        "nextLeave": {
+          "title": "Najbliższy urlop",
+          "inDays": "za {days} {daysText}",
+          "daysCount": "{count} {daysText} - {dateRange}",
+          "noPlans": "Brak planów",
+          "noPlansDesc": "Nie masz zaplanowanych urlopów"
+        },
+        "totalRemaining": {
+          "title": "Łącznie pozostało",
+          "days": "{count} dni urlopu wypoczynkowego",
+          "carryOver": "w tym {count} z zeszłego roku"
+        }
+      },
+      "table": {
+        "headers": {
+          "date": "Data",
+          "description": "Opis",
+          "type": "Typ",
+          "days": "Liczba dni",
+          "status": "Status",
+          "actions": "Akcje"
+        },
+        "empty": "Nie masz jeszcze żadnych wniosków urlopowych.",
+        "noDescription": "Brak opisu",
+        "unknownType": "Nieznany typ",
+        "daysFormat": "{count} {daysText}"
+      },
+      "status": {
+        "pending": "Oczekuje",
+        "approved": "Zaakceptowany",
+        "rejected": "Odrzucony",
+        "cancelled": "Anulowany",
+        "completed": "Zrealizowany"
+      }
     }
   },
   "calendar": {
@@ -383,7 +464,14 @@
     "upcomingLeaves": "Nadchodzące urlopy",
     "capacityOverview": "Przegląd obsady",
     "noLeaves": "Brak urlopów w tym okresie",
-    "teamCapacity": "Obsada zespołu"
+    "teamCapacity": "Obsada zespołu",
+    "selectedDay": "Wybrany dzień",
+    "scheduleReady": "Grafik gotowy",
+    "youWorkThisDay": "Tego dnia pracujesz",
+    "onShift": "Na zmianie będą",
+    "planLeave": "Planujesz urlop tego dnia?",
+    "submitLeaveRequest": "Złóż wniosek o urlop",
+    "close": "Zamknij"
   },
   "team": {
     "title": "Zarządzanie zespołem",
@@ -635,6 +723,13 @@
     "invitationSent": "Zaproszenie zostało wysłane",
     "profileUpdated": "Profil został zaktualizowany",
     "settingsSaved": "Ustawienia zostały zapisane"
+  },
+  "notificationSheet": {
+    "title": "Powiadomienia",
+    "emptyState": "Brak powiadomień",
+    "loadMore": "Więcej powiadomień dostępnych...",
+    "close": "Zamknij",
+    "details": "Szczegóły"
   },
   "billing": {
     "currentSubscription": "Aktualna subskrypcja",

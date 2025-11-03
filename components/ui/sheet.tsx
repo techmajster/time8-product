@@ -44,16 +44,13 @@ function SheetOverlay({
   )
 }
 
-function SheetContent({
-  className,
-  children,
-  side = "right",
-  size = "default",
-  ...props
-}: React.ComponentProps<typeof SheetPrimitive.Content> & {
-  side?: "top" | "right" | "bottom" | "left"
-  size?: "default" | "sm" | "lg" | "xl" | "content"
-}) {
+const SheetContent = React.forwardRef<
+  React.ElementRef<typeof SheetPrimitive.Content>,
+  React.ComponentProps<typeof SheetPrimitive.Content> & {
+    side?: "top" | "right" | "bottom" | "left"
+    size?: "default" | "sm" | "lg" | "xl" | "content"
+  }
+>(({ className, children, side = "right", size = "default", ...props }, ref) => {
   const getSizeClasses = () => {
     if (side === "top" || side === "bottom") {
       return "h-auto"
@@ -63,7 +60,7 @@ function SheetContent({
     switch (size) {
       case "sm":
         return "w-3/4 sm:max-w-sm" // ~384px max
-      case "lg": 
+      case "lg":
         return "w-3/4 sm:max-w-2xl" // ~672px max
       case "xl":
         return "w-3/4 sm:max-w-4xl" // ~896px max
@@ -78,6 +75,7 @@ function SheetContent({
     <SheetPortal>
       <SheetOverlay />
       <SheetPrimitive.Content
+        ref={ref}
         data-slot="sheet-content"
         className={cn(
           "bg-background border border-border rounded-lg shadow-lg data-[state=open]:animate-in data-[state=closed]:animate-out fixed z-50 flex flex-col gap-4 transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500",
@@ -101,7 +99,8 @@ function SheetContent({
       </SheetPrimitive.Content>
     </SheetPortal>
   )
-}
+})
+SheetContent.displayName = SheetPrimitive.Content.displayName
 
 function SheetHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (

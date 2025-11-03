@@ -13,6 +13,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { calculateComprehensiveSeatInfo } from '@/lib/billing/seat-calculation';
 import { authenticateAndGetOrgContext } from '@/lib/auth-utils-v2';
+import { getVariantPrice } from '@/lib/lemon-squeezy/pricing';
 
 /**
  * GET handler for retrieving subscription information
@@ -167,7 +168,7 @@ export async function GET(request: NextRequest) {
 
       const data = await response.json();
       const lsAttrs = data.data.attributes;
-      
+
       console.log(`✅ Found subscription: ${lsAttrs.variant_name} (${lsAttrs.first_subscription_item?.quantity || 'N/A'} seats)`);
 
       const seatInfo = calculateComprehensiveSeatInfo(
@@ -175,6 +176,18 @@ export async function GET(request: NextRequest) {
         currentMembers,
         pendingInvitations
       );
+
+      // Fetch real pricing from variant API using variant_id
+      const variantId = lsAttrs.variant_id?.toString();
+      let variantPrice = null;
+      if (variantId) {
+        try {
+          variantPrice = await getVariantPrice(variantId);
+          console.log(`💰 Fetched variant price: ${variantPrice?.price} ${variantPrice?.currency} (${variantPrice?.interval})`);
+        } catch (error) {
+          console.error('❌ Failed to fetch variant price:', error);
+        }
+      }
 
       const subscriptionData = {
         id: data.data.id,
@@ -194,7 +207,11 @@ export async function GET(request: NextRequest) {
         },
         variant: {
           name: lsAttrs.variant_name,
-          price: lsAttrs.first_subscription_item?.price_id || 0, // Real price from Lemon Squeezy
+          // Price must be in cents for frontend formatCurrency() which divides by 100
+          // getVariantPrice() returns PLN (10.00), so multiply by 100 to get cents (1000)
+          price: variantPrice ? Math.round(variantPrice.price * 100) : 1000, // Price per seat in cents
+          currency: variantPrice?.currency || 'PLN',
+          interval: variantPrice?.interval || 'month',
           quantity: lsAttrs.first_subscription_item?.quantity || orgDetails.paid_seats
         },
         billing_info: {

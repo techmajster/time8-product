@@ -113,7 +113,7 @@ export default async function SchedulePage() {
   return (
     <AppLayout>
       <div className="min-h-screen bg-background">
-        <div className="p-6 lg:p-8">
+        <div className="py-11">
           <div className="max-w-7xl mx-auto">
             {/* Header */}
             <PageHeader

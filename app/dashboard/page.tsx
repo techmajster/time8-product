@@ -2,16 +2,8 @@ import { AppLayout } from '@/components/app-layout'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import Link from 'next/link'
-import { Card, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { LeaveRequestButton } from './components/LeaveRequestButton'
 import { NewLeaveRequestSheet } from '@/app/leave/components/NewLeaveRequestSheet'
-import { TeamCard } from './components/TeamCard'
-import { CurrentDayCard } from './components/CurrentDayCard'
-import { BirthdayCard } from './components/BirthdayCard'
-import { DashboardCalendar } from './components/DashboardCalendar'
+import { DashboardClient } from './components/DashboardClient'
 import { getTranslations } from 'next-intl/server'
 
 interface NearestBirthday {
@@ -339,137 +331,62 @@ export default async function DashboardPage() {
   const absentMemberIds = new Set(currentLeaveRequests?.map(req => req.user_id) || [])
   const workingMembers = allTeamMembers?.filter(member => !absentMemberIds.has(member.id)) || []
 
+  // Prepare translations for client component
+  const translations = {
+    greeting: t('greeting'),
+    vacationBalance: t('vacationBalance'),
+    customBalance: t('customBalance'),
+    customBalanceTooltip: t('customBalanceTooltip'),
+    today: t('today'),
+    workingToday: t('workingToday'),
+    nearestBirthday: t('nearestBirthday'),
+    noBirthdays: t('noBirthdays'),
+    birthdayToday: t('birthdayToday'),
+    birthdayTomorrow: t('birthdayTomorrow'),
+    birthdayIn: t('birthdayIn'),
+    leaveRequests: t('leaveRequests'),
+    noPending: t('noPending'),
+    pendingOne: t('pendingOne'),
+    pendingCount: t('pendingCount'),
+    goToRequests: t('goToRequests'),
+    calendarTitle: t('calendarTitle'),
+    calendarBadge: t('calendarBadge'),
+    lastUpdate: t('lastUpdate'),
+  }
+
   return (
     <AppLayout>
       {/* NewLeaveRequestSheet component for dashboard functionality */}
-      <NewLeaveRequestSheet 
-        leaveTypes={leaveTypes || []} 
-        leaveBalances={leaveBalances || []} 
-        userProfile={profile} 
+      <NewLeaveRequestSheet
+        leaveTypes={leaveTypes || []}
+        leaveBalances={leaveBalances || []}
+        userProfile={profile}
       />
-      
-      <div className="p-8">
-        <div className="flex flex-col gap-6">
-          {/* Greeting Section */}
-          <div className="flex items-center justify-between py-2">
-            <div className="flex items-center gap-3">
-              <span className="text-5xl font-light text-foreground">{t('greeting')}</span>
-              <Avatar className="w-12 h-12">
-                <AvatarImage src={profile.avatar_url || ''} />
-                <AvatarFallback>
-                  {profile.full_name?.split(' ').map((n: string) => n[0]).join('') || 'U'}
-                </AvatarFallback>
-              </Avatar>
-              <span className="text-5xl font-semibold text-foreground">
-                {profile.full_name?.split(' ')[0] || 'User'}!
-              </span>
-            </div>
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-3 text-xl text-foreground">
-                <span className="font-normal">{t('vacationBalance', { days: remainingVacationDays })}</span>
-                {isVacationOverride && (
-                  <span 
-                    className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full" 
-                    title={t('customBalanceTooltip', { default: workspaceDefault })}
-                  >
-                    {t('customBalance')}
-                  </span>
-                )}
-              </div>
-              <LeaveRequestButton />
-            </div>
-          </div>
 
-          <div className="flex gap-4">
-            {/* Left Column */}
-            <div className="flex-1 flex flex-col gap-4">
-              {/* Current Day Card */}
-              <CurrentDayCard
-                todayText={t('today', { dayName: currentDayName })}
-                day={currentDay}
-                dateText={`${currentDay} ${monthNames[today.getMonth()].toLowerCase()}`}
-                year={currentYear}
-                workStatus={t('workingToday')}
-                workHours="9:00 - 15:00"
-              />
-
-              {/* Birthday Card */}
-              <BirthdayCard
-                title={t('nearestBirthday')}
-                noBirthdaysText={t('noBirthdays')}
-                name={nearestBirthday?.name}
-                daysText={nearestBirthday ? (
-                  nearestBirthday.daysUntil === 0 
-                    ? t('birthdayToday', { date: `${nearestBirthday.date.getDate()} ${monthNames[nearestBirthday.date.getMonth()].toLowerCase()}` })
-                    : nearestBirthday.daysUntil === 1
-                    ? t('birthdayTomorrow', { date: `${nearestBirthday.date.getDate()} ${monthNames[nearestBirthday.date.getMonth()].toLowerCase()}` })
-                    : t('birthdayIn', { 
-                        date: `${nearestBirthday.date.getDate()} ${monthNames[nearestBirthday.date.getMonth()].toLowerCase()}`,
-                        days: nearestBirthday.daysUntil 
-                      })
-                ) : undefined}
-                initials={nearestBirthday?.name.split(' ').map((n) => n[0]).join('').toUpperCase()}
-              />
-
-              {/* Leave Requests Card */}
-              <Card className="flex-row items-end justify-between">
-                <CardContent className="flex-1">
-                  <div className="flex flex-col gap-2">
-                    <div className="text-sm font-medium">{t('leaveRequests')}</div>
-                    <div className="text-xl font-semibold">
-                      {pendingRequestsCount === 0 ? t('noPending') :
-                       pendingRequestsCount === 1 ? t('pendingOne') :
-                       t('pendingCount', { count: pendingRequestsCount })}
-                    </div>
-                  </div>
-                </CardContent>
-                <CardContent className="flex-shrink-0">
-                  <Button asChild className="h-8 px-3 text-xs">
-                    <Link href="/leave-requests">{t('goToRequests')}</Link>
-                  </Button>
-                </CardContent>
-              </Card>
-
-              {/* Team Card */}
-              <TeamCard
-                allTeamMembers={(allTeamMembers || []).map((member: any) => ({
-                  ...member,
-                  teams: Array.isArray(member.teams) ? member.teams[0] : member.teams
-                }))}
-                absentMembers={currentLeaveRequests?.map((req: any) => ({
-                  user_id: req.user_id,
-                  profiles: {
-                    ...req.profiles,
-                    teams: null,
-                    team_id: null
-                  },
-                  leaveType: req.leave_types,
-                  endDate: req.end_date
-                })) || []}
-                teams={teams || []}
-                defaultTeamId={managedTeam?.id}
-                userRole={profile.role}
-              />
-            </div>
-
-            {/* Right Column - Calendar */}
-            <div className="flex-1">
-              <DashboardCalendar
-                organizationId={profile.organization_id}
-                countryCode={profile.organizations?.country_code || 'PL'}
-                userId={user.id}
-                colleagues={teamMembersWithBirthdays || []}
-                teamMemberIds={teamMemberIds}
-                teamScope={teamScope}
-                calendarTitle={t('calendarTitle')}
-                badgeText={t('calendarBadge')}
-                lastUpdateLabel={t('lastUpdate')}
-                lastUpdateUser="Paweł Chróściak"
-                lastUpdateDate="28.06.2025"
-              />
-            </div>
-          </div>
-        </div>
+      <div className="flex flex-col gap-6 py-11">
+        <DashboardClient
+          profile={profile}
+          organizationId={profile.organization_id}
+          countryCode={profile.organizations?.country_code || 'PL'}
+          userId={user.id}
+          userOrg={userOrg}
+          teamMemberIds={teamMemberIds}
+          teamScope={teamScope}
+          teams={teams}
+          managedTeam={managedTeam}
+          colleagues={teamMembersWithBirthdays || []}
+          initialTeamMembers={allTeamMembers}
+          initialLeaveBalances={leaveBalances || []}
+          initialCurrentLeaves={currentLeaveRequests || []}
+          initialPendingCount={pendingCount}
+          translations={translations}
+          nearestBirthday={nearestBirthday}
+          currentDay={currentDay}
+          currentMonth={currentMonth}
+          currentDayName={currentDayName}
+          currentYear={currentYear}
+          monthNames={monthNames}
+        />
       </div>
     </AppLayout>
   )

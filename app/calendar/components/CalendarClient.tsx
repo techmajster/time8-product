@@ -3,8 +3,11 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
+import { useQuery } from '@tanstack/react-query'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { Separator } from '@/components/ui/separator'
 import { 
   Sheet, 
   SheetContent, 
@@ -30,6 +33,7 @@ interface CalendarClientProps {
   teamScope: TeamScope
   showHeader?: boolean
   showPadding?: boolean
+  workingDays?: string[]
 }
 
 interface Holiday {
@@ -84,12 +88,23 @@ interface SelectedDayData {
     leave_type_color: string
     end_date: string
   }>
+  workSchedule?: {
+    start: string
+    end: string
+    isReady: boolean
+  }
+  workingTeamMembers?: Array<{
+    id: string
+    name: string
+    avatar?: string
+    teamName?: string
+  }>
+  userLeaveStatus?: 'default' | 'vacation' | 'sick-leave'
 }
 
-export default function CalendarClient({ organizationId, countryCode, userId, colleagues, teamMemberIds, teamScope, showHeader = true, showPadding = true }: CalendarClientProps) {
+export default function CalendarClient({ organizationId, countryCode, userId, colleagues, teamMemberIds, teamScope, showHeader = true, showPadding = true, workingDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] }: CalendarClientProps) {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [holidays, setHolidays] = useState<Holiday[]>([])
-  const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([])
   const [selectedDay, setSelectedDay] = useState<SelectedDayData | null>(null)
   const [isSheetOpen, setIsSheetOpen] = useState(false)
   const supabase = createClient()
@@ -111,24 +126,78 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
   // Polish day names
   const dayNames = ['Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota', 'Niedziela']
 
-  // Fetch data when component mounts or month changes
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        console.log('📅 Starting calendar data fetch...')
-        await Promise.allSettled([
-          fetchHolidays(),
-          fetchLeaveRequests()
-        ])
-        console.log('📅 Calendar data fetch completed')
-      } catch (error) {
-        console.error('❌ Error in calendar data fetching useEffect:', error)
-        // Don't let data fetching errors break the calendar
+  // Calculate date range for current month
+  const year = currentDate.getFullYear()
+  const month = currentDate.getMonth() + 1
+  const startOfMonth = `${year}-${month.toString().padStart(2, '0')}-01`
+  const lastDayOfMonth = new Date(year, month, 0).getDate()
+  const endOfMonth = `${year}-${month.toString().padStart(2, '0')}-${lastDayOfMonth.toString().padStart(2, '0')}`
+
+  // Use React Query for leave requests with automatic cache invalidation
+  const { data: leaveRequestsData = [], isLoading: isLoadingLeaveRequests } = useQuery({
+    queryKey: ['calendar-leave-requests', startOfMonth, endOfMonth, teamMemberIds.join(',')],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        start_date: startOfMonth,
+        end_date: endOfMonth,
+        team_member_ids: teamMemberIds.join(',')
+      })
+
+      console.log('🔍 Fetching leave requests via React Query:', { startOfMonth, endOfMonth, teamMemberIds })
+
+      const response = await fetch(`/api/calendar/leave-requests?${params}`)
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => 'Unable to read error response')
+        console.error('❌ Error fetching calendar leave requests:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorText
+        })
+        throw new Error(`Failed to fetch leave requests: ${response.statusText}`)
       }
-    }
-    
-    fetchData()
-  }, [currentDate, organizationId, countryCode, teamMemberIds])
+
+      const leaveData = await response.json()
+
+      // Transform to match expected calendar format
+      if (leaveData && leaveData.length > 0) {
+        console.log('📝 Calendar leave requests from API (React Query):', leaveData)
+
+        const transformedData = leaveData.map((leave: any) => ({
+          ...leave,
+          profiles: {
+            id: leave.profiles?.id || leave.user_id,
+            first_name: leave.profiles?.full_name?.split(' ')[0] || 'Unknown',
+            last_name: leave.profiles?.full_name?.split(' ').slice(1).join(' ') || 'User',
+            full_name: leave.profiles?.full_name || 'Unknown User',
+            email: leave.profiles?.email || '',
+            avatar_url: leave.profiles?.avatar_url || null
+          },
+          leave_types: {
+            id: leave.leave_types?.id || leave.leave_type_id,
+            name: leave.leave_types?.name || 'Unknown Type',
+            color: leave.leave_types?.color || '#6b7280'
+          }
+        }))
+
+        console.log('✅ Transformed calendar leave requests (React Query):', transformedData)
+        return transformedData
+      }
+
+      console.log('📝 No leave requests found for calendar (React Query)')
+      return []
+    },
+    staleTime: 1000 * 30, // 30 seconds - refetch if data is older
+    enabled: !!organizationId && teamMemberIds.length > 0, // Only fetch if we have required data
+  })
+
+  // Use transformed data
+  const leaveRequests = leaveRequestsData
+
+  // Fetch holidays when component mounts or month changes
+  useEffect(() => {
+    fetchHolidays()
+  }, [currentDate, organizationId, countryCode])
 
   const fetchHolidays = async () => {
     try {
@@ -180,100 +249,120 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
     }
   }
 
-  const fetchLeaveRequests = async () => {
+  // Helper function to format time from HH:MM:SS to HH:MM
+  const formatTime = (timeString: string | null): string => {
+    if (!timeString) return ''
+    // Extract HH:MM from HH:MM:SS or return as-is if already HH:MM
+    return timeString.substring(0, 5)
+  }
+
+  // Fetch user's schedule for a specific date
+  const fetchUserSchedule = async (dateStr: string): Promise<{ start: string, end: string, isReady: boolean } | null> => {
     try {
-      const year = currentDate.getFullYear()
-      const month = currentDate.getMonth() + 1
-      const startOfMonth = `${year}-${month.toString().padStart(2, '0')}-01`
-      // Get the last day of the month properly
-      const lastDayOfMonth = new Date(year, month, 0).getDate()
-      const endOfMonth = `${year}-${month.toString().padStart(2, '0')}-${lastDayOfMonth.toString().padStart(2, '0')}`
+      const { data, error } = await supabase
+        .from('employee_schedules')
+        .select('shift_start_time, shift_end_time, is_working_day')
+        .eq('user_id', userId)
+        .eq('organization_id', organizationId)
+        .eq('date', dateStr)
+        .single()
 
-      console.log('🔍 Fetching leave requests:', { year, month, startOfMonth, endOfMonth, organizationId, userId, teamScope: teamScope.type })
-
-      // Use calendar-specific API endpoint with filtering parameters
-      const params = new URLSearchParams({
-        start_date: startOfMonth,
-        end_date: endOfMonth,
-        team_member_ids: teamMemberIds.join(',')
-      })
-      
-      console.log('🔍 Making leave requests API request to:', `/api/calendar/leave-requests?${params}`)
-      
-      const response = await fetch(`/api/calendar/leave-requests?${params}`)
-      
-      console.log('🔍 Leave requests API response status:', response.status, response.statusText)
-
-      if (!response.ok) {
-        let errorText
-        try {
-          errorText = await response.text()
-        } catch (e) {
-          errorText = 'Unable to read error response'
-        }
-        console.error('❌ Error fetching calendar leave requests:', {
-          status: response.status,
-          statusText: response.statusText,
-          error: errorText,
-          url: `/api/calendar/leave-requests?${params}`
-        })
-        setLeaveRequests([])
-        return
+      if (error || !data) {
+        return null
       }
 
-      let leaveData
-      try {
-        leaveData = await response.json()
-      } catch (jsonError) {
-        console.error('❌ Failed to parse leave requests JSON response:', {
-          error: jsonError instanceof Error ? jsonError.message : 'Unknown parsing error',
-          status: response.status,
-          statusText: response.statusText
-        })
-        setLeaveRequests([])
-        return
+      if (!data.is_working_day || !data.shift_start_time || !data.shift_end_time) {
+        return null
       }
 
-      // Process leave requests data (already enriched from API)
-      if (leaveData && leaveData.length > 0) {
-        console.log('📝 Calendar leave requests from API:', leaveData)
-        
-        // Transform to match expected calendar format
-        const transformedData = leaveData.map((leave: any) => ({
-          ...leave,
-          profiles: {
-            id: leave.profiles?.id || leave.user_id,
-            first_name: leave.profiles?.full_name?.split(' ')[0] || 'Unknown',
-            last_name: leave.profiles?.full_name?.split(' ').slice(1).join(' ') || 'User',
-            full_name: leave.profiles?.full_name || 'Unknown User',
-            email: leave.profiles?.email || '',
-            avatar_url: leave.profiles?.avatar_url || null
-          },
-          leave_types: {
-            id: leave.leave_types?.id || leave.leave_type_id,
-            name: leave.leave_types?.name || 'Unknown Type',
-            color: leave.leave_types?.color || '#6b7280'
-          }
-        }))
-
-        console.log('✅ Transformed calendar leave requests:', transformedData)
-        setLeaveRequests(transformedData)
-      } else {
-        console.log('📝 No leave requests found for calendar')
-        setLeaveRequests([])
+      return {
+        start: formatTime(data.shift_start_time),
+        end: formatTime(data.shift_end_time),
+        isReady: true
       }
     } catch (error) {
-      console.error('❌ Error fetching calendar leave requests:', error)
-      console.error('❌ Error details:', {
-        message: error instanceof Error ? error.message : 'Unknown error',
-        name: error instanceof Error ? error.name : 'Unknown',
-        type: typeof error,
-        stringified: JSON.stringify(error),
-        stack: error instanceof Error ? error.stack : undefined
-      })
-      setLeaveRequests([])
+      console.error('Error fetching user schedule:', error)
+      return null
     }
   }
+
+  // Fetch working team members for a specific date
+  const fetchWorkingTeamMembers = async (dateStr: string): Promise<Array<{ id: string, name: string, avatar?: string, teamName?: string }>> => {
+    try {
+      // Get users who are working on this day
+      const { data: schedules, error: schedulesError } = await supabase
+        .from('employee_schedules')
+        .select('user_id')
+        .eq('organization_id', organizationId)
+        .eq('date', dateStr)
+        .eq('is_working_day', true)
+        .in('user_id', teamMemberIds)
+
+      if (schedulesError || !schedules || schedules.length === 0) {
+        return []
+      }
+
+      const workingUserIds = schedules.map(s => s.user_id)
+
+      // Get user IDs who are on approved leave (to exclude them)
+      const { data: leaveRequests } = await supabase
+        .from('leave_requests')
+        .select('user_id')
+        .eq('organization_id', organizationId)
+        .eq('status', 'approved')
+        .lte('start_date', dateStr)
+        .gte('end_date', dateStr)
+        .in('user_id', workingUserIds)
+
+      const absentUserIds = new Set(leaveRequests?.map(req => req.user_id) || [])
+      const availableUserIds = workingUserIds.filter(id => !absentUserIds.has(id) && id !== userId)
+
+      if (availableUserIds.length === 0) {
+        return []
+      }
+
+      // Get profiles and team info for working users
+      const { data: userOrgs, error: userOrgsError } = await supabase
+        .from('user_organizations')
+        .select(`
+          user_id,
+          profiles!user_organizations_user_id_fkey (
+            id,
+            full_name,
+            avatar_url
+          ),
+          teams!user_organizations_team_id_fkey (
+            name
+          )
+        `)
+        .eq('organization_id', organizationId)
+        .in('user_id', availableUserIds)
+        .eq('is_active', true)
+
+      if (userOrgsError || !userOrgs) {
+        return []
+      }
+
+      // Transform to working members array
+      const workingMembers = userOrgs.map((userOrg: any) => {
+        const profile = Array.isArray(userOrg.profiles) ? userOrg.profiles[0] : userOrg.profiles
+        const team = Array.isArray(userOrg.teams) ? userOrg.teams[0] : userOrg.teams
+
+        return {
+          id: profile?.id || userOrg.user_id,
+          name: profile?.full_name || 'Unknown User',
+          avatar: profile?.avatar_url || undefined,
+          teamName: team?.name || undefined
+        }
+      })
+
+      return workingMembers
+    } catch (error) {
+      console.error('Error fetching working team members:', error)
+      return []
+    }
+  }
+
 
   const getLeaveRequestsForDay = (day: number) => {
     const dateStr = `${currentDate.getFullYear()}-${(currentDate.getMonth() + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`
@@ -301,9 +390,11 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
     const selectedDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day)
     const dayOfWeek = selectedDate.getDay() // 0 = Sunday, 6 = Saturday
     const holiday = getHolidayForDay(day)
-    
-    // Check if it's a weekend (Saturday or Sunday)
-    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
+
+    // Check if it's a weekend based on organization's working days
+    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+    const dayName = dayNames[dayOfWeek]
+    const isWeekend = !workingDays.includes(dayName)
     
     // Check if it's a holiday
     const isHoliday = !!holiday
@@ -352,7 +443,7 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))
   }
 
-  const handleDayClick = (day: number) => {
+  const handleDayClick = async (day: number) => {
     const selectedDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day)
     const dayName = selectedDate.toLocaleDateString('pl-PL', { weekday: 'long' })
     
@@ -398,6 +489,32 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
         end_date: leave.end_date
       }))
 
+    // Fetch schedule data for the selected day
+    const workSchedule = await fetchUserSchedule(selectedDateStr)
+    const workingTeamMembers = await fetchWorkingTeamMembers(selectedDateStr)
+
+    // Check if user has approved leave on this day to determine background color
+    let userLeaveStatus: 'default' | 'vacation' | 'sick-leave' = 'default'
+    const userLeave = leaveRequests.find(leave => 
+      leave.user_id === userId && 
+      leave.status === 'approved' &&
+      selectedDateStr >= leave.start_date && 
+      selectedDateStr <= leave.end_date
+    )
+
+    if (userLeave && userLeave.leave_types) {
+      const leaveTypeName = userLeave.leave_types.name || ''
+      // Determine background based on leave type name (same logic as useUserBackground hook)
+      if (leaveTypeName === 'Urlop wypoczynkowy' || leaveTypeName.toLowerCase().includes('urlop')) {
+        userLeaveStatus = 'vacation'
+      } else if (leaveTypeName === 'Zwolnienie lekarskie' || leaveTypeName.toLowerCase().includes('zwolnienie')) {
+        userLeaveStatus = 'sick-leave'
+      } else {
+        // For other leave types, default to vacation background
+        userLeaveStatus = 'vacation'
+      }
+    }
+
     setSelectedDay({
       day,
       month: monthNames[currentDate.getMonth()],
@@ -406,7 +523,10 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
       leaves: mappedLeaves,
       holiday: holiday ? { name: holiday.name, type: holiday.type } : undefined,
       birthdays: dayBirthdays,
-      plannedLeaves: dayPlannedLeaves
+      plannedLeaves: dayPlannedLeaves,
+      workSchedule: workSchedule || undefined,
+      workingTeamMembers: workingTeamMembers.length > 0 ? workingTeamMembers : undefined,
+      userLeaveStatus
     })
     setIsSheetOpen(true)
   }
@@ -472,7 +592,7 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
   }
 
   return (
-    <div className={showPadding ? "p-8" : ""}>
+    <div className={showPadding ? "py-11" : ""}>
       {/* Page Header */}
       {showHeader && (
         <div className="flex justify-between items-center mb-6">
@@ -609,182 +729,187 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
             Szczegóły wybranego dnia
           </SheetTitle>
           
-          <div className="p-6">
+          <div className="flex flex-col gap-4 p-6">
             {/* Header */}
-            <div className="mb-4">
-              <h2 className="text-lg font-semibold text-foreground">
+            <div className="flex flex-col gap-1.5">
+              <h2 className="text-xl font-semibold text-foreground">
                 Wybrany dzień
               </h2>
             </div>
 
             {selectedDay && (
               <>
-                {/* Date Card - Exact Figma layout with separate date box */}
-                <div className="flex items-start gap-6 mb-4">
-                  {/* Date Box - Separate contained card */}
-                  <div className="bg-card border border rounded-lg p-4 text-center min-w-[80px]">
-                    <div className="text-4xl font-bold text-foreground">
-                      {selectedDay.day}
+                {/* Date Card - Dynamic background based on user leave status (matches dashboard background logic) */}
+                <Card 
+                  className="border border-border" 
+                  style={{ 
+                    backgroundImage: selectedDay.userLeaveStatus === 'vacation' 
+                      ? 'var(--bg-vacation)' 
+                      : selectedDay.userLeaveStatus === 'sick-leave'
+                      ? 'var(--bg-sick-leave)'
+                      : undefined,
+                    backgroundColor: selectedDay.userLeaveStatus === 'vacation' || selectedDay.userLeaveStatus === 'sick-leave'
+                      ? undefined
+                      : 'var(--bg-default, var(--card-violet))'
+                  }}
+                >
+                  <CardContent className="flex gap-6 items-start">
+                    <div className="flex flex-1 flex-col gap-4">
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center justify-between">
+                          <p className="text-xl font-normal text-foreground">
+                            {selectedDay.dayName}
+                          </p>
+                          <p className="text-xl font-normal text-muted-foreground">
+                            {selectedDay.year}
+                          </p>
+                        </div>
+                        <div className="flex items-end justify-between">
+                          <p className="text-5xl font-semibold text-foreground">
+                            {selectedDay.day} {selectedDay.month.toLowerCase()}
+                          </p>
+                          {selectedDay.workSchedule?.isReady && (
+                            <Badge variant="default" className="bg-primary text-primary-foreground">
+                              Grafik gotowy
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      <Separator />
+                      <div className="flex flex-col gap-1">
+                        <p className="text-xl font-semibold text-foreground">
+                          Tego dnia pracujesz
+                        </p>
+                        {selectedDay.workSchedule && (
+                          <p className="text-xl font-normal text-muted-foreground">
+                            {selectedDay.workSchedule.start} - {selectedDay.workSchedule.end}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-sm text-muted-foreground mt-1">
-                      {selectedDay.month}
-                    </div>
-                  </div>
-                  
-                  {/* Date Info - Next to the date box */}
-                  <div className="flex-1 pt-2">
-                    <div className="text-lg font-medium text-foreground">
-                      {selectedDay.day} {selectedDay.month.toLowerCase()}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      {selectedDay.dayName.toLowerCase()}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      {selectedDay.year}
-                    </div>
-                  </div>
-                </div>
+                  </CardContent>
+                </Card>
 
                 {/* Request Leave Section - Only show if you don't already have leave on this day */}
                 {!isFreeDay(selectedDay.day) && (
-                  <div className="bg-card border border rounded-lg p-4 mb-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <p className="text-sm text-foreground">
-                        Planujesz urlop tego dnia?
-                      </p>
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                    <Button 
-                      className="bg-foreground text-white hover:bg-foreground/90"
-                      onClick={() => {
-                        // Create date object from selected day
-                        const selectedDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), selectedDay.day)
-                        
-                        // Dispatch custom event with the selected date
-                        const event = new CustomEvent('openLeaveRequest', {
-                          detail: { date: selectedDate }
-                        })
-                        window.dispatchEvent(event)
-                        
-                        // Close the current day details sheet
-                        setSelectedDay(null)
-                      }}
-                    >
-                      Złóż wniosek o urlop
-                    </Button>
-                  </div>
-                )}
-
-                {/* Day Status - Only show if it's a free day */}
-                {isFreeDay(selectedDay.day) && (
-                  <div className="bg-green-100 rounded-lg p-4 mb-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="text-sm font-medium text-foreground">
-                        Status dnia
-                      </h3>
-                      <Info className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                    <p className="text-base font-semibold text-foreground">
-                      {selectedDay.holiday 
-                        ? `Święto: ${selectedDay.holiday.name}`
-                        : (() => {
-                            // Check if you have leave on this day
-                            const selectedDateStr = `${currentDate.getFullYear()}-${(currentDate.getMonth() + 1).toString().padStart(2, '0')}-${selectedDay.day.toString().padStart(2, '0')}`
-                            const personalLeave = leaveRequests.find(leave => 
-                              leave.user_id === userId && 
-                              leave.status === 'approved' &&
-                              selectedDateStr >= leave.start_date && 
-                              selectedDateStr <= leave.end_date
-                            )
+                  <Card>
+                    <CardContent>
+                      <div className="flex flex-col gap-2">
+                        <CardHeader className="p-0 pb-2">
+                          <p className="text-sm font-medium text-foreground">
+                            Planujesz urlop tego dnia?
+                          </p>
+                        </CardHeader>
+                        <Button 
+                          variant="outline"
+                          onClick={() => {
+                            // Create date object from selected day
+                            const selectedDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), selectedDay.day)
                             
-                            return personalLeave 
-                              ? personalLeave.leave_types?.name || 'Urlop'
-                              : 'Dziś masz wolne'
-                          })()
-                      }
-                    </p>
-                  </div>
-                )}
-
-                {/* Birthday Section - Only show if there are birthdays */}
-                {selectedDay.birthdays && selectedDay.birthdays.length > 0 && (
-                  <div className="bg-card border border rounded-lg p-4 mb-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-sm font-medium text-foreground">
-                        Dziś urodziny obchodzi
-                      </h3>
-                      <Gift className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                    <div className="space-y-2">
-                      {selectedDay.birthdays.map((birthday) => {
-                        const birthDate = new Date(birthday.birth_date)
-                        const formattedDate = `${birthDate.getDate()} ${monthNames[birthDate.getMonth()].toLowerCase()}`
-                        
-                        return (
-                          <div key={birthday.id} className="text-sm">
-                            <p className="font-medium text-foreground">{birthday.full_name}</p>
-                            <p className="text-muted-foreground">{formattedDate}</p>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* Planned Leaves Section - unified with Figma design */}
-                {selectedDay.plannedLeaves && selectedDay.plannedLeaves.length > 0 && (
-                  <div className="bg-card border border rounded-lg p-4">
-                    <div className="flex flex-row gap-3 items-start w-full mb-3">
-                      <Info className="w-4 h-4 text-foreground mt-0.5 shrink-0" />
-                      <div className="text-sm font-medium leading-5 text-foreground">
-                        Zaplanowane urlopy
+                            // Dispatch custom event with the selected date
+                            const event = new CustomEvent('openLeaveRequest', {
+                              detail: { date: selectedDate }
+                            })
+                            window.dispatchEvent(event)
+                            
+                            // Close the current day details sheet
+                            setSelectedDay(null)
+                          }}
+                        >
+                          <Plus className="h-4 w-4" />
+                          Złóż wniosek o urlop
+                        </Button>
                       </div>
-                    </div>
-                    
-                    <div className="flex flex-col gap-8 w-full">
-                      {selectedDay.plannedLeaves.map((leave) => {
-                        const endDate = new Date(leave.end_date)
-                        const formattedEndDate = `${endDate.getDate().toString().padStart(2, '0')}.${(endDate.getMonth() + 1).toString().padStart(2, '0')}`
-                        
-                        return (
-                          <div key={leave.id} className="flex flex-row gap-4 items-center justify-start min-w-[85px] w-full">
-                            <Avatar className="w-10 h-10 rounded-full bg-muted">
-                              <AvatarImage src={leave.user_avatar || undefined} />
-                              <AvatarFallback className="">
-                                {leave.user_name.split(' ').map(n => n[0]).join('') || leave.user_email[0].toUpperCase()}
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Working Team Members Section - "Na zmianie będą" */}
+                {selectedDay.workingTeamMembers && selectedDay.workingTeamMembers.length > 0 && (
+                  <Card>
+                    <CardContent>
+                      <CardHeader className="p-0 pb-3">
+                        <p className="text-sm font-medium text-foreground">
+                          Na zmianie będą
+                        </p>
+                      </CardHeader>
+                      <div className="flex flex-col gap-2">
+                        {selectedDay.workingTeamMembers.map((member) => (
+                          <div key={member.id} className="flex gap-4 items-center min-w-[85px] w-full">
+                            <Avatar className="w-10 h-10 shrink-0">
+                              <AvatarImage src={member.avatar} />
+                              <AvatarFallback>
+                                {member.name.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
                               </AvatarFallback>
                             </Avatar>
-                            <div className="basis-0 flex flex-col grow items-start justify-start min-h-px min-w-px">
-                              <div className="font-medium text-sm text-foreground leading-5 w-full overflow-ellipsis overflow-hidden">
-                                {leave.user_name}
-                              </div>
-                              <div className="font-normal text-sm text-muted-foreground leading-5 w-full overflow-ellipsis overflow-hidden">
-                                {leave.user_email}
-                              </div>
-                            </div>
-                            <div className="flex flex-col items-end justify-center text-sm text-right">
-                              <div className="font-medium text-foreground leading-5">
-                                {leave.leave_type_name}
-                              </div>
-                              <div className="font-normal text-muted-foreground leading-5">
-                                do {formattedEndDate}
-                              </div>
-                            </div>
-                            <div className="bg-cyan-200 rounded-lg shrink-0 w-10 h-10 flex items-center justify-center">
-                              <TreePalm className="w-6 h-6 text-foreground" />
+                            <div className="flex flex-1 flex-col items-start leading-0 min-h-px min-w-px text-sm">
+                              <p className="font-medium text-foreground leading-5 overflow-ellipsis overflow-hidden whitespace-nowrap w-full">
+                                {member.name}
+                              </p>
+                              {member.teamName && (
+                                <p className="font-normal text-muted-foreground leading-5 overflow-ellipsis overflow-hidden whitespace-nowrap w-full">
+                                  {member.teamName}
+                                </p>
+                              )}
                             </div>
                           </div>
-                        )
-                      })}
-                    </div>
-                  </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Planned Leaves Section - "Zaplanowane urlopy" */}
+                {selectedDay.plannedLeaves && selectedDay.plannedLeaves.length > 0 && (
+                  <Card>
+                    <CardContent>
+                      <CardHeader className="p-0 pb-3">
+                        <p className="text-sm font-medium text-foreground">
+                          Zaplanowane urlopy
+                        </p>
+                      </CardHeader>
+                      <div className="flex flex-col gap-2">
+                        {selectedDay.plannedLeaves.map((leave) => {
+                          const endDate = new Date(leave.end_date)
+                          const formattedEndDate = `${endDate.getDate().toString().padStart(2, '0')}.${(endDate.getMonth() + 1).toString().padStart(2, '0')}`
+                          
+                          return (
+                            <div key={leave.id} className="flex gap-4 items-center min-w-[85px] w-full">
+                              <Avatar className="w-10 h-10 shrink-0">
+                                <AvatarImage src={leave.user_avatar} />
+                                <AvatarFallback>
+                                  {leave.user_name.split(' ').map(n => n[0]).join('').toUpperCase() || leave.user_email[0].toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex flex-1 flex-col items-start leading-0 min-h-px min-w-px text-sm">
+                                <p className="font-medium text-foreground leading-5 overflow-ellipsis overflow-hidden whitespace-nowrap w-full">
+                                  {leave.user_name}
+                                </p>
+                                <p className="font-normal text-muted-foreground leading-5 overflow-ellipsis overflow-hidden whitespace-nowrap w-full">
+                                  {leave.user_email}
+                                </p>
+                              </div>
+                              <div className="flex flex-col items-end justify-center text-sm text-right shrink-0">
+                                <p className="font-medium text-foreground leading-5 overflow-ellipsis overflow-hidden whitespace-nowrap">
+                                  {leave.leave_type_name}
+                                </p>
+                                <p className="font-normal text-muted-foreground leading-5 overflow-ellipsis overflow-hidden whitespace-nowrap">
+                                  do {formattedEndDate}
+                                </p>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
                 )}
               </>
             )}
           </div>
           
           {/* Footer with Close button - positioned right */}
-          <SheetFooter className="flex flex-row justify-end mt-auto p-4 gap-2">
+          <SheetFooter className="flex flex-row justify-end gap-2 p-6">
             <Button 
               variant="outline" 
               onClick={() => setSelectedDay(null)}
