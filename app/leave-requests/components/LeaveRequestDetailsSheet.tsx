@@ -1,22 +1,23 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { 
-  Sheet, 
-  SheetContent, 
-  SheetHeader, 
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
   SheetTitle,
   SheetDescription
 } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
-import { Calendar, ChevronDown, Info, TreePalm } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
+import { Calendar, ChevronDown } from 'lucide-react'
 import { RejectLeaveRequestDialog } from './RejectLeaveRequestDialog'
 import { useSonnerToast } from '@/hooks/use-sonner-toast'
 import { useRouter } from 'next/navigation'
 import { useOrganization } from '@/components/app-layout-client'
+import { EditLeaveRequestSheet } from '@/components/EditLeaveRequestSheet'
+import { LeaveType, LeaveBalance, UserProfile } from '@/types/leave'
 
 interface LeaveRequestDetailsSheetProps {
   requestId: string | null
@@ -58,141 +59,82 @@ export function LeaveRequestDetailsSheet({ requestId, isOpen, onClose }: LeaveRe
   const [leaveRequest, setLeaveRequest] = useState<LeaveRequestDetails | null>(null)
   const [conflictingLeaves, setConflictingLeaves] = useState<ConflictingLeave[]>([])
   const [loading, setLoading] = useState(false)
-  const [remainingDays, setRemainingDays] = useState<number>(0)
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false)
+  const [isEditOpen, setIsEditOpen] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
-  
-  const { showSuccess, showError } = useSonnerToast()
+  const [lastFetchedId, setLastFetchedId] = useState<string | null>(null)
+
+  // Data for edit sheet (from API)
+  const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([])
+  const [leaveBalances, setLeaveBalances] = useState<LeaveBalance[]>([])
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
+  const [userRole, setUserRole] = useState<string>('')
+  const [currentUserId, setCurrentUserId] = useState<string>('')
+
+  const { showSuccess, showError} = useSonnerToast()
   const router = useRouter()
   const { organization } = useOrganization()
 
   const fetchLeaveRequestDetails = async () => {
-    if (!requestId) {
-      console.log('No requestId provided')
-      return
-    }
-    
-    if (!organization?.id) {
-      console.log('No organization context available:', organization)
-      return
-    }
+    if (!requestId) return
 
-    console.log('Fetching leave request details:', { requestId, organizationId: organization.id })
     setLoading(true)
-    const supabase = createClient()
 
     try {
-      // Get leave request details
-      const { data, error } = await supabase
-        .from('leave_requests')
-        .select(`
-          *,
-          leave_types (
-            name,
-            requires_balance
-          ),
-          profiles!leave_requests_user_id_fkey (
-            full_name,
-            email,
-            avatar_url
-          )
-        `)
-        .eq('id', requestId)
-        .eq('organization_id', organization.id)
-        .single()
+      console.log('🔍 Fetching leave request details via API:', { requestId })
 
-      console.log('Leave request query result:', { data, error, requestId, organizationId: organization.id })
+      const response = await fetch(`/api/leave-requests/${requestId}/details`)
 
-      if (error) {
-        console.error('Error fetching leave request:', {
-          error,
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        console.error('❌ API Error:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorData,
           requestId,
-          organizationId: organization.id
+          url: response.url
         })
         return
       }
 
-      setLeaveRequest(data)
+      const data = await response.json()
+      console.log('✅ Leave request API response:', {
+        id: data.leaveRequest.id,
+        status: data.leaveRequest.status,
+        userId: data.leaveRequest.user_id,
+        organizationId: data.leaveRequest.organization_id
+      })
 
-      // Always try to fetch balance data first, regardless of requires_balance flag
-      const currentYear = new Date().getFullYear()
-      const { data: balanceData, error: balanceError } = await supabase
-        .from('leave_balances')
-        .select('remaining_days, entitled_days')
-        .eq('user_id', data.user_id)
-        .eq('leave_type_id', data.leave_type_id)
-        .eq('year', currentYear)
-        .single()
+      // Set all the state from API response
+      setLeaveRequest(data.leaveRequest)
+      setConflictingLeaves(data.conflictingLeaves)
+      setUserRole(data.userRole)
+      setCurrentUserId(data.currentUserId)
+      setLeaveTypes(data.leaveTypes)
+      setLeaveBalances(data.leaveBalances)
+      setUserProfile(data.userProfile)
 
-      if (balanceError || !balanceData) {
-        // No balance found - this means it's an unlimited leave type (like sick leave, unpaid leave)
-        if (balanceError && balanceError.code !== 'PGRST116') {
-          // Log actual errors (but not "no rows returned" which is expected for unlimited leave)
-          console.error('Error fetching leave balance:', balanceError)
-        }
-        setRemainingDays(999) // Large number to indicate unlimited
-      } else {
-        // Balance exists - calculate remaining days after approval
-        const currentRemaining = balanceData.remaining_days || 0
-        const wouldRemainAfterApproval = currentRemaining - data.days_requested
-        const finalRemaining = Math.max(0, wouldRemainAfterApproval)
-        setRemainingDays(finalRemaining)
-      }
+      console.log('🔍 Manager sheet debug:', {
+        hasLeaveRequest: !!data.leaveRequest,
+        hasUserProfile: !!data.userProfile,
+        hasLeaveTypes: !!data.leaveTypes,
+        hasLeaveBalances: !!data.leaveBalances,
+        leaveRequestStatus: data.leaveRequest?.status,
+        userRole: data.userRole,
+        canEdit: ['pending', 'approved'].includes(data.leaveRequest?.status),
+        canDelete: ['pending', 'approved'].includes(data.leaveRequest?.status)
+      })
 
-      // Fetch overlapping leave requests from team members
-      const { data: overlappingLeaves, error: overlappingError } = await supabase
-        .from('leave_requests')
-        .select(`
-          id,
-          start_date,
-          end_date,
-          leave_types (
-            name
-          ),
-          profiles!leave_requests_user_id_fkey (
-            full_name,
-            email,
-            avatar_url
-          )
-        `)
-        .eq('organization_id', organization.id)
-        .neq('user_id', data.user_id) // Exclude the current request's user
-        .neq('id', data.id) // Exclude the current request itself
-        .in('status', ['approved', 'pending']) // Include both approved and pending requests
-        .lte('start_date', data.end_date) // Leave starts before or on current request's end date
-        .gte('end_date', data.start_date) // Leave ends after or on current request's start date
-
-      if (overlappingError) {
-        console.error('Error fetching overlapping leaves:', overlappingError)
-        setConflictingLeaves([])
-      } else {
-        // Transform the data to match our interface
-        const transformedLeaves = overlappingLeaves?.map(leave => ({
-          id: leave.id,
-          full_name: (leave.profiles as any)?.full_name || null,
-          email: (leave.profiles as any)?.email || '',
-          avatar_url: (leave.profiles as any)?.avatar_url || null,
-          leave_type: (leave.leave_types as any)?.name || 'Urlop',
-          end_date: new Date(leave.end_date).toLocaleDateString('pl-PL', { 
-            day: '2-digit', 
-            month: '2-digit' 
-          })
-        })) || []
-        
-        setConflictingLeaves(transformedLeaves)
-      }
+      // Cache this request ID
+      setLastFetchedId(requestId)
 
     } catch (error) {
-      console.error('Unexpected error in fetchLeaveRequestDetails:', {
+      console.error('❌ Fetch error:', {
         error,
         message: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
         requestId,
-        organizationId: organization?.id
+        name: error instanceof Error ? error.name : typeof error
       })
     } finally {
       setLoading(false)
@@ -200,10 +142,13 @@ export function LeaveRequestDetailsSheet({ requestId, isOpen, onClose }: LeaveRe
   }
 
   useEffect(() => {
-    if (isOpen && requestId && organization?.id) {
-      fetchLeaveRequestDetails()
+    if (isOpen && requestId) {
+      // Only fetch if we don't have data for this request ID
+      if (lastFetchedId !== requestId) {
+        fetchLeaveRequestDetails()
+      }
     }
-  }, [isOpen, requestId, organization?.id])
+  }, [isOpen, requestId])
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('pl-PL', {
@@ -288,7 +233,7 @@ export function LeaveRequestDetailsSheet({ requestId, isOpen, onClose }: LeaveRe
 
       const data = await response.json()
       showSuccess(data.message || 'Wniosek urlopowy został odrzucony')
-      
+
       // Close sheet and refresh data
       onClose()
       router.refresh()
@@ -301,6 +246,10 @@ export function LeaveRequestDetailsSheet({ requestId, isOpen, onClose }: LeaveRe
       setIsProcessing(false)
     }
   }
+
+  // Check if request can be edited (admins can edit pending/approved)
+  const canEdit = leaveRequest &&
+    ['pending', 'approved'].includes(leaveRequest.status)
 
   if (!leaveRequest && !loading) {
     return null
@@ -422,42 +371,46 @@ export function LeaveRequestDetailsSheet({ requestId, isOpen, onClose }: LeaveRe
                     </div>
                   </div>
 
-                  {/* W tym terminie urlop planują - unified with Figma design */}
+                  {/* Zaplanowane urlopy - matching Figma design */}
                   {conflictingLeaves.length > 0 && (
-                    <div className="bg-card border border rounded-lg p-4 w-full">
-                      <div className="flex flex-row gap-3 items-start w-full mb-3">
-                        <Info className="w-4 h-4 text-foreground mt-0.5 shrink-0" />
-                        <div className="text-sm font-medium leading-5 text-foreground">
-                          W tym terminie urlop planują
-                        </div>
+                    <div className="bg-card border border-border rounded-lg p-6 w-full">
+                      <div className="flex items-center justify-between w-full mb-3">
+                        <p className="text-sm font-medium leading-5 text-foreground">
+                          Zaplanowane urlopy
+                        </p>
                       </div>
-                      <div className="flex flex-col gap-8 w-full">
+                      <div className="flex flex-col gap-2 w-full">
                         {conflictingLeaves.map((conflict) => (
-                          <div key={conflict.id} className="flex flex-row gap-4 items-center justify-start min-w-[85px] w-full">
-                            <Avatar className="w-10 h-10 rounded-full bg-muted">
+                          <div key={conflict.id} className="flex gap-4 items-center min-w-[85px] w-full">
+                            <Avatar className="w-10 h-10 rounded-full">
                               <AvatarImage src={conflict.avatar_url || undefined} />
-                              <AvatarFallback className="">
-                                {conflict.full_name?.split(' ').map(n => n[0]).join('') || conflict.email[0].toUpperCase()}
+                              <AvatarFallback className="bg-muted">
+                                {conflict.full_name?.split(' ').map(n => n[0]).join('') || conflict.email?.[0]?.toUpperCase() || '?'}
                               </AvatarFallback>
                             </Avatar>
-                            <div className="basis-0 flex flex-col grow items-start justify-start min-h-px min-w-px">
-                              <div className="font-medium text-sm text-foreground leading-5 w-full overflow-ellipsis overflow-hidden">
-                                {conflict.full_name || conflict.email.split('@')[0]}
+                            <div className="basis-0 flex flex-col grow items-start leading-none min-h-px min-w-px text-nowrap">
+                              <div className="flex flex-col font-medium justify-center overflow-ellipsis overflow-hidden text-foreground w-full">
+                                <p className="leading-5 overflow-ellipsis overflow-hidden text-sm text-nowrap">
+                                  {conflict.full_name || conflict.email?.split('@')[0] || 'Unknown'}
+                                </p>
                               </div>
-                              <div className="font-normal text-sm text-muted-foreground leading-5 w-full overflow-ellipsis overflow-hidden">
-                                {conflict.email}
-                              </div>
-                            </div>
-                            <div className="flex flex-col items-end justify-center text-sm text-right">
-                              <div className="font-medium text-foreground leading-5">
-                                {conflict.leave_type}
-                              </div>
-                              <div className="font-normal text-muted-foreground leading-5">
-                                do {conflict.end_date}
+                              <div className="flex flex-col font-normal justify-center overflow-ellipsis overflow-hidden text-muted-foreground w-full">
+                                <p className="leading-5 overflow-ellipsis overflow-hidden text-sm text-nowrap">
+                                  {conflict.email || 'No email'}
+                                </p>
                               </div>
                             </div>
-                            <div className="bg-cyan-200 rounded-lg shrink-0 w-10 h-10 flex items-center justify-center">
-                              <TreePalm className="w-6 h-6 text-foreground" />
+                            <div className="flex flex-col items-end justify-center leading-none text-nowrap text-right text-sm">
+                              <div className="flex flex-col font-medium justify-center overflow-ellipsis overflow-hidden text-foreground w-full">
+                                <p className="leading-5 overflow-ellipsis overflow-hidden text-sm text-nowrap">
+                                  {conflict.leave_type}
+                                </p>
+                              </div>
+                              <div className="flex flex-col font-normal justify-center overflow-ellipsis overflow-hidden text-muted-foreground w-full">
+                                <p className="leading-5 overflow-ellipsis overflow-hidden text-sm text-nowrap">
+                                  do {conflict.end_date}
+                                </p>
+                              </div>
                             </div>
                           </div>
                         ))}
@@ -478,24 +431,46 @@ export function LeaveRequestDetailsSheet({ requestId, isOpen, onClose }: LeaveRe
                   </div>
                 </div>
 
-                {/* Footer - only show if status is pending */}
-                {leaveRequest.status === 'pending' && (
-                  <div className="flex justify-end gap-2 pt-4 w-full">
-                    <Button 
-                      variant="outline" 
-                      className="h-9 px-4 py-2"
-                      onClick={() => setIsRejectDialogOpen(true)}
-                      disabled={isProcessing}
-                    >
-                      {isProcessing ? 'Przetwarzanie...' : 'Odrzuć wniosek'}
-                    </Button>
-                    <Button 
-                      className="h-9 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90"
-                      onClick={handleApprove}
-                      disabled={isProcessing}
-                    >
-                      {isProcessing ? 'Przetwarzanie...' : 'Zaakceptuj wniosek'}
-                    </Button>
+                {/* Footer - show actions based on status */}
+                {(leaveRequest.status === 'pending' || canEdit) && (
+                  <div className="flex justify-between gap-2 pt-4 w-full">
+                    {/* Left side button - Edit */}
+                    <div className="flex gap-2">
+                      {canEdit && (
+                        <Button
+                          variant="outline"
+                          className="h-9 px-4 py-2"
+                          onClick={() => {
+                            onClose()
+                            setIsEditOpen(true)
+                          }}
+                          disabled={isProcessing}
+                        >
+                          Edytuj wniosek
+                        </Button>
+                      )}
+                    </div>
+
+                    {/* Right side buttons - Approve/Reject (only for pending) */}
+                    {leaveRequest.status === 'pending' && (
+                      <div className="flex gap-2 ml-auto">
+                        <Button
+                          variant="outline"
+                          className="h-9 px-4 py-2"
+                          onClick={() => setIsRejectDialogOpen(true)}
+                          disabled={isProcessing}
+                        >
+                          {isProcessing ? 'Przetwarzanie...' : 'Odrzuć wniosek'}
+                        </Button>
+                        <Button
+                          className="h-9 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90"
+                          onClick={handleApprove}
+                          disabled={isProcessing}
+                        >
+                          {isProcessing ? 'Przetwarzanie...' : 'Zaakceptuj wniosek'}
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 )}
               </>
@@ -516,6 +491,21 @@ export function LeaveRequestDetailsSheet({ requestId, isOpen, onClose }: LeaveRe
         requestId={requestId || ''}
         applicantName={leaveRequest?.profiles?.full_name || leaveRequest?.profiles?.email.split('@')[0] || 'Użytkownik'}
       />
+
+      {/* Edit Leave Request Sheet */}
+      {leaveRequest && userProfile && (
+        <EditLeaveRequestSheet
+          leaveRequest={leaveRequest as any}
+          leaveTypes={leaveTypes}
+          leaveBalances={leaveBalances}
+          userProfile={userProfile as any}
+          isOpen={isEditOpen}
+          onClose={() => {
+            setIsEditOpen(false)
+            fetchLeaveRequestDetails()
+          }}
+        />
+      )}
     </Sheet>
   )
 } 

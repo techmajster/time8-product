@@ -811,32 +811,44 @@
 
 ---
 
-## Phase 2.10: Lemon Squeezy Seat Management with Grace Periods 💳
+## Phase 2.10: Lemon Squeezy Seat Management with Grace Periods 💳 🚧 **IN PROGRESS**
 
 **Goal:** Implement comprehensive seat-based subscription management with user grace periods and automatic billing synchronization
 **Success Criteria:** Users marked for removal keep access until renewal, Lemon Squeezy automatically updated, customers charged correctly, zero manual intervention required
 **Priority:** HIGH - Can start now
 **Spec:** `.agent-os/specs/2025-11-04-seat-based-subscription-grace-periods/`
+**Progress:** 3 of 10 tasks complete (30%)
 
 ### Features
 
-- [ ] **Database Schema Extensions** `S`
-  - Add tracking columns to subscriptions table (current_seats, pending_seats, lemonsqueezy_quantity_synced, lemonsqueezy_subscription_item_id)
-  - Extend users table with removal_effective_date and new status values (pending_removal, archived)
-  - Create alerts table for billing discrepancy monitoring
-  - Add indexes for performance optimization
+- [x] **Database Schema Extensions** `S` ✅ **COMPLETED** (2025-11-04)
+  - ✅ Added tracking columns to subscriptions table (current_seats, pending_seats, lemonsqueezy_quantity_synced, lemonsqueezy_subscription_item_id)
+  - ✅ Extended user_organizations table with removal_effective_date and user_organization_status enum (active, pending_removal, archived)
+  - ✅ Created alerts table for billing discrepancy monitoring with RLS policies
+  - ✅ Added 11 performance indexes for seat counting and archival queries
+  - ✅ Added database triggers for backward compatibility (is_active synced with status, auto-resolved_at for alerts)
+  - ✅ All migrations deployed to production via Supabase MCP
+  - ✅ Test suite created and passing (schema validation tests)
+  - Files: [migrations/20251104000000_add_seat_management_to_subscriptions.sql](supabase/migrations/20251104000000_add_seat_management_to_subscriptions.sql), [migrations/20251104000001_add_seat_management_to_user_organizations.sql](supabase/migrations/20251104000001_add_seat_management_to_user_organizations.sql), [migrations/20251104000002_create_alerts_table.sql](supabase/migrations/20251104000002_create_alerts_table.sql)
 
-- [ ] **Background Jobs Infrastructure** `M`
-  - ApplyPendingSubscriptionChangesJob (runs every 6 hours, updates Lemon Squeezy 24h before renewal)
-  - ReconcileSubscriptionsJob (runs daily, verifies DB vs Lemon Squeezy, sends alerts)
-  - Configure job scheduling with GoodJob/Sidekiq cron
-  - Add job monitoring and error handling
+- [x] **Background Jobs Infrastructure** `M` ✅ **COMPLETED** (2025-11-04)
+  - ✅ Implemented ApplyPendingSubscriptionChangesJob (runs every 6 hours, updates Lemon Squeezy 24-48h before renewal)
+  - ✅ Implemented ReconcileSubscriptionsJob (runs daily at 3 AM, verifies DB vs Lemon Squeezy, sends alerts)
+  - ✅ Configured cron scheduling in vercel.json
+  - ✅ Added comprehensive monitoring and error handling (authorization, API checks, alert creation)
+  - ✅ Test suite created (10 tests passing: authorization, API config, manual triggers)
+  - ✅ Both jobs integrate with alerts table for success/failure tracking
+  - Files: [api/cron/apply-pending-subscription-changes/route.ts](app/api/cron/apply-pending-subscription-changes/route.ts), [api/cron/reconcile-subscriptions/route.ts](app/api/cron/reconcile-subscriptions/route.ts), [vercel.json:26-33](vercel.json#L26-L33)
 
-- [ ] **Lemon Squeezy API Integration** `S`
-  - Add updateSubscriptionItem method for quantity updates
-  - Add getSubscriptionItem method for reconciliation
-  - Implement retry logic for API failures
-  - Add API call logging for debugging
+- [x] **Lemon Squeezy API Integration** `S` ✅ **COMPLETED** (2025-11-04)
+  - ✅ Created reusable LemonSqueezyClient class with TypeScript interfaces
+  - ✅ Implemented updateSubscriptionItem method with disable_prorations: true
+  - ✅ Implemented getSubscriptionItem and getSubscription methods for reconciliation
+  - ✅ Added exponential backoff retry logic (3 attempts, 1000ms base delay)
+  - ✅ Comprehensive logging for all API calls (success, error, retry attempts)
+  - ✅ Factory function createLemonSqueezyClient() for environment-based initialization
+  - ✅ Test suite created (16 tests passing: API methods, retry logic, error handling, logging)
+  - Files: [lib/lemonsqueezy-client.ts](lib/lemonsqueezy-client.ts), [__tests__/lib/lemonsqueezy-client.test.ts](__tests__/lib/lemonsqueezy-client.test.ts)
 
 - [ ] **Webhook Handler Enhancements** `M`
   - Extend subscription_payment_success handler to apply pending seat changes

@@ -2,32 +2,32 @@
 
 ## Tasks
 
-- [ ] 1. Database Schema and Migrations
-  - [ ] 1.1 Write tests for schema changes
-  - [ ] 1.2 Create migration to extend subscriptions table (current_seats, pending_seats, lemonsqueezy_quantity_synced, lemonsqueezy_subscription_item_id)
-  - [ ] 1.3 Create migration to extend users table (removal_effective_date) and user_status enum (pending_removal, archived)
-  - [ ] 1.4 Create migration for alerts table with indexes
-  - [ ] 1.5 Add database indexes for performance optimization
-  - [ ] 1.6 Run migrations and verify schema changes
-  - [ ] 1.7 Verify all tests pass
+- [x] 1. Database Schema and Migrations
+  - [x] 1.1 Write tests for schema changes
+  - [x] 1.2 Create migration to extend subscriptions table (current_seats, pending_seats, lemonsqueezy_quantity_synced, lemonsqueezy_subscription_item_id)
+  - [x] 1.3 Create migration to extend users table (removal_effective_date) and user_status enum (pending_removal, archived)
+  - [x] 1.4 Create migration for alerts table with indexes
+  - [x] 1.5 Add database indexes for performance optimization
+  - [x] 1.6 Run migrations and verify schema changes
+  - [x] 1.7 Verify all tests pass
 
-- [ ] 2. Background Jobs Infrastructure
-  - [ ] 2.1 Write tests for ApplyPendingSubscriptionChangesJob
-  - [ ] 2.2 Implement ApplyPendingSubscriptionChangesJob (finds subscriptions renewing in 24h, updates Lemon Squeezy)
-  - [ ] 2.3 Configure job to run every 6 hours via cron
-  - [ ] 2.4 Write tests for ReconcileSubscriptionsJob
-  - [ ] 2.5 Implement ReconcileSubscriptionsJob (compares DB vs Lemon Squeezy, sends alerts)
-  - [ ] 2.6 Configure job to run daily at 3 AM via cron
-  - [ ] 2.7 Add job monitoring and error handling
-  - [ ] 2.8 Verify all tests pass
+- [x] 2. Background Jobs Infrastructure
+  - [x] 2.1 Write tests for ApplyPendingSubscriptionChangesJob
+  - [x] 2.2 Implement ApplyPendingSubscriptionChangesJob (finds subscriptions renewing in 24h, updates Lemon Squeezy)
+  - [x] 2.3 Configure job to run every 6 hours via cron
+  - [x] 2.4 Write tests for ReconcileSubscriptionsJob
+  - [x] 2.5 Implement ReconcileSubscriptionsJob (compares DB vs Lemon Squeezy, sends alerts)
+  - [x] 2.6 Configure job to run daily at 3 AM via cron
+  - [x] 2.7 Add job monitoring and error handling
+  - [x] 2.8 Verify all tests pass
 
-- [ ] 3. Lemon Squeezy API Integration
-  - [ ] 3.1 Write tests for subscription item quantity updates
-  - [ ] 3.2 Add updateSubscriptionItem method to Lemon Squeezy client
-  - [ ] 3.3 Add getSubscriptionItem method for reconciliation
-  - [ ] 3.4 Implement retry logic for API failures
-  - [ ] 3.5 Add API call logging for debugging
-  - [ ] 3.6 Verify all tests pass
+- [x] 3. Lemon Squeezy API Integration
+  - [x] 3.1 Write tests for subscription item quantity updates
+  - [x] 3.2 Add updateSubscriptionItem method to Lemon Squeezy client
+  - [x] 3.3 Add getSubscriptionItem method for reconciliation
+  - [x] 3.4 Implement retry logic for API failures
+  - [x] 3.5 Add API call logging for debugging
+  - [x] 3.6 Verify all tests pass
 
 - [ ] 4. Webhook Handler Enhancements
   - [ ] 4.1 Write tests for subscription_payment_success with pending changes

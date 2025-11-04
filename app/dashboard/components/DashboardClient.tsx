@@ -121,8 +121,8 @@ export function DashboardClient({
       </div>
 
       <div className="flex gap-4">
-        {/* Left Column */}
-        <div className="flex-1 flex flex-col gap-4">
+        {/* Left Column - 30% width */}
+        <div className="w-[30%] flex flex-col gap-4">
           {/* Current Day Card */}
           <CurrentDayCard
             todayText={td('todayIs', { dayName: currentDayName })}
@@ -197,8 +197,8 @@ export function DashboardClient({
           />
         </div>
 
-        {/* Right Column - Calendar */}
-        <div className="flex-1">
+        {/* Right Column - Calendar - 70% width */}
+        <div className="w-[70%]">
           <DashboardCalendar
             organizationId={organizationId}
             countryCode={countryCode}

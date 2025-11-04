@@ -218,3 +218,49 @@ export function useApproveRejectLeaveRequest(requestId: string) {
     },
   })
 }
+
+// Delete leave request mutation (for managers/admins)
+export function useDeleteLeaveRequest(requestId: string) {
+  const queryClient = useQueryClient()
+  const router = useRouter()
+
+  return useMutation({
+    mutationFn: async () => {
+      const response = await fetch(`/api/leave-requests/${requestId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        const result = await response.json()
+        throw new Error(result.error || 'Nie udało się usunąć wniosku')
+      }
+
+      return response.json()
+    },
+    onSuccess: (data) => {
+      // Invalidate all related queries
+      queryClient.invalidateQueries({ queryKey: ['leaveRequests'] })
+      queryClient.invalidateQueries({ queryKey: ['calendar-leave-requests'] })
+      queryClient.invalidateQueries({ queryKey: ['leave-balances'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-leave-balances'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-current-leaves'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-pending-requests'] })
+      queryClient.invalidateQueries({ queryKey: ['profile-leave-balances'] })
+      queryClient.invalidateQueries({ queryKey: ['profile-recent-requests'] })
+      queryClient.invalidateQueries({ queryKey: ['team-leave-balances'] })
+
+      // Show success toast
+      toast.success(data.message || 'Wniosek urlopowy został usunięty')
+
+      // Refresh page data
+      router.refresh()
+    },
+    onError: (error: Error) => {
+      console.error('Error deleting leave request:', error)
+      toast.error(error.message || 'Nie udało się usunąć wniosku')
+    },
+  })
+}

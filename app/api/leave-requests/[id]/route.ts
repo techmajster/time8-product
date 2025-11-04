@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { handleLeaveRequestEdit } from '@/lib/leave-balance-utils'
+import { handleLeaveRequestEdit, handleLeaveRequestCancellation } from '@/lib/leave-balance-utils'
 import { authenticateAndGetOrgContext } from '@/lib/auth-utils-v2'
 
 export async function PUT(
@@ -131,13 +131,14 @@ export async function DELETE(
 ) {
   try {
     const { id: requestId } = await params
-    
+
     // Use optimized auth utility
     const auth = await authenticateAndGetOrgContext()
     if (!auth.success) return auth.error
     const { context } = auth
-    const { user, organization } = context
+    const { user, organization, role } = context
     const organizationId = organization.id
+    const isManager = role === 'admin' || role === 'manager'
 
     const supabase = await createClient()
 
@@ -146,7 +147,6 @@ export async function DELETE(
       .from('leave_requests')
       .select('*')
       .eq('id', requestId)
-      .eq('user_id', user.id) // Only allow users to delete their own requests
       .eq('organization_id', organizationId)
       .single()
 
@@ -157,43 +157,108 @@ export async function DELETE(
       )
     }
 
-    // Only allow deletion of cancelled requests
-    if (leaveRequest.status !== 'cancelled') {
-      return NextResponse.json(
-        { error: 'Only cancelled leave requests can be deleted' },
-        { status: 400 }
-      )
+    // Check permissions based on role
+    const isOwnRequest = leaveRequest.user_id === user.id
+
+    if (isManager) {
+      // Managers/admins can delete pending or approved requests from any user (even after started)
+      if (!['pending', 'approved'].includes(leaveRequest.status)) {
+        return NextResponse.json(
+          { error: 'Only pending or approved leave requests can be deleted' },
+          { status: 400 }
+        )
+      }
+
+      // Store the status for balance restoration
+      const previousStatus = leaveRequest.status
+
+      // Delete the request
+      const { error: deleteError } = await supabase
+        .from('leave_requests')
+        .delete()
+        .eq('id', requestId)
+
+      if (deleteError) {
+        console.error('Error deleting leave request:', deleteError)
+        return NextResponse.json(
+          { error: 'Failed to delete leave request' },
+          { status: 500 }
+        )
+      }
+
+      // Handle balance restoration if the request was approved
+      if (previousStatus === 'approved') {
+        try {
+          await handleLeaveRequestCancellation(
+            leaveRequest.user_id,
+            leaveRequest.leave_type_id,
+            leaveRequest.days_requested,
+            leaveRequest.organization_id,
+            previousStatus
+          )
+        } catch (balanceError) {
+          console.error('Error restoring leave balance:', balanceError)
+          // Note: Request is already deleted, but balance restoration failed
+          // In production, consider using a transaction or a background job
+        }
+      }
+
+      const message = previousStatus === 'approved'
+        ? 'Wniosek urlopowy został usunięty. Dni urlopowe zostały przywrócone do salda pracownika.'
+        : 'Wniosek urlopowy został usunięty'
+
+      return NextResponse.json({
+        success: true,
+        message
+      })
+
+    } else {
+      // Regular users can only delete their own cancelled requests
+      if (!isOwnRequest) {
+        return NextResponse.json(
+          { error: 'You can only delete your own leave requests' },
+          { status: 403 }
+        )
+      }
+
+      // Only allow deletion of cancelled requests
+      if (leaveRequest.status !== 'cancelled') {
+        return NextResponse.json(
+          { error: 'Only cancelled leave requests can be deleted' },
+          { status: 400 }
+        )
+      }
+
+      // Delete the leave request
+      const { data: deletedData, error: deleteError } = await supabase
+        .from('leave_requests')
+        .delete()
+        .eq('id', requestId)
+        .eq('user_id', user.id) // Extra safety check
+        .select()
+
+      if (deleteError) {
+        console.error('Error deleting leave request:', deleteError)
+        return NextResponse.json(
+          { error: 'Failed to delete leave request: ' + deleteError.message },
+          { status: 500 }
+        )
+      }
+
+      // Check if any records were actually deleted
+      if (!deletedData || deletedData.length === 0) {
+        return NextResponse.json(
+          { error: 'No leave request was deleted - request may not exist or you may not have permission' },
+          { status: 404 }
+        )
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: 'Leave request deleted successfully',
+        deletedCount: deletedData.length
+      })
     }
-
-    // Delete the leave request
-    const { data: deletedData, error: deleteError } = await supabase
-      .from('leave_requests')
-      .delete()
-      .eq('id', requestId)
-      .eq('user_id', user.id) // Extra safety check
-      .select()
-
-    if (deleteError) {
-      console.error('Error deleting leave request:', deleteError)
-      return NextResponse.json(
-        { error: 'Failed to delete leave request: ' + deleteError.message },
-        { status: 500 }
-      )
-    }
-
-    // Check if any records were actually deleted
-    if (!deletedData || deletedData.length === 0) {
-      return NextResponse.json(
-        { error: 'No leave request was deleted - request may not exist or you may not have permission' },
-        { status: 404 }
-      )
-    }
-
-    return NextResponse.json({
-      success: true,
-      message: 'Leave request deleted successfully',
-      deletedCount: deletedData.length
-    })
 
   } catch (error) {
     console.error('API Error deleting leave request:', error)

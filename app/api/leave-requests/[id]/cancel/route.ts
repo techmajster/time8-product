@@ -15,8 +15,9 @@ export async function POST(
     const auth = await authenticateAndGetOrgContext()
     if (!auth.success) return auth.error
     const { context } = auth
-    const { user, organization } = context
+    const { user, organization, role } = context
     const organizationId = organization.id
+    const isManager = role === 'admin' || role === 'manager'
 
     const supabase = await createClient()
 
@@ -51,8 +52,8 @@ export async function POST(
       )
     }
 
-    // Check if user owns the request (only users can cancel their own requests)
-    if (leaveRequest.user_id !== user.id) {
+    // Check permissions: managers can cancel any request, employees only their own
+    if (!isManager && leaveRequest.user_id !== user.id) {
       return NextResponse.json(
         { error: 'You can only cancel your own leave requests' },
         { status: 403 }
@@ -67,11 +68,11 @@ export async function POST(
       )
     }
 
-    // Don't allow cancellation if the leave period has already started
+    // Employees can only cancel before start date, managers can cancel anytime
     const today = new Date()
     const startDate = new Date(leaveRequest.start_date)
-    
-    if (today >= startDate) {
+
+    if (!isManager && today >= startDate) {
       return NextResponse.json(
         { error: 'Cannot cancel leave request - the leave period has already started' },
         { status: 400 }

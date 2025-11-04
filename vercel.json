@@ -22,6 +22,14 @@
     {
       "path": "/api/cron/send-weekly-summary",
       "schedule": "0 9 * * 1"
+    },
+    {
+      "path": "/api/cron/apply-pending-subscription-changes",
+      "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/cron/reconcile-subscriptions",
+      "schedule": "0 3 * * *"
     }
   ],
   "headers": [

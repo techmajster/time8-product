@@ -175,12 +175,11 @@ function OverlapUserItem({ user }: { user: OverlapUser }) {
           do {format(parseISO(user.end_date), 'dd.MM', { locale: pl })}
         </div>
       </div>
-      <VacationIcon />
     </div>
   )
 }
 
-function AddAbsenceSheetContent({ preloadedEmployees, userRole, isOpen, onClose, workingDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] }: AddAbsenceSheetProps) {
+function AddAbsenceSheetContent({ preloadedEmployees, userRole, activeOrganizationId, isOpen, onClose, workingDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] }: AddAbsenceSheetProps) {
   const supabase = createClient()
   const sheetContentRef = React.useRef<HTMLDivElement>(null)
 
@@ -270,8 +269,9 @@ function AddAbsenceSheetContent({ preloadedEmployees, userRole, isOpen, onClose,
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      // Use the active organization ID passed from parent component
-      if (!activeOrganizationId) return
+      // Use the active organization ID passed from parent component or fall back to organizationId state
+      const orgId = activeOrganizationId || organizationId
+      if (!orgId) return
 
       let query = supabase
         .from('user_organizations')
@@ -286,18 +286,18 @@ function AddAbsenceSheetContent({ preloadedEmployees, userRole, isOpen, onClose,
             avatar_url
           )
         `)
-        .eq('organization_id', activeOrganizationId)
+        .eq('organization_id', orgId)
         .eq('is_active', true)
 
       // If manager, show team members (including themselves for self-absence requests)
       if (userRole === 'manager') {
         console.log('🔍 AddAbsenceSheet - Manager loading team members for user:', user.id)
-        
+
         const { data: managerOrg, error: managerOrgError } = await supabase
           .from('user_organizations')
           .select('team_id')
           .eq('user_id', user.id)
-          .eq('organization_id', activeOrganizationId)
+          .eq('organization_id', orgId)
           .eq('is_active', true)
           .single()
         
@@ -487,50 +487,53 @@ function AddAbsenceSheetContent({ preloadedEmployees, userRole, isOpen, onClose,
 
   const checkOverlaps = async () => {
     if (!formData.start_date || !formData.end_date || !formData.employee_id) return
+    // Use the active organization ID passed from parent component or fall back to organizationId state
+    const orgId = activeOrganizationId || organizationId
+    if (!orgId) return
 
     try {
-      const { data: overlaps, error } = await supabase
-        .from('leave_requests')
-        .select(`
-          id,
-          start_date,
-          end_date,
-          status,
-          user_id,
-          profiles!leave_requests_user_id_fkey (
-            id,
-            full_name,
-            email,
-            avatar_url
-          ),
-          leave_types (
-            name,
-            color
-          )
-        `)
-        .gte('end_date', formData.start_date)
-        .lte('start_date', formData.end_date)
-        .in('status', ['pending', 'approved'])
-        .neq('user_id', formData.employee_id)
+      console.log('[Add Absence Sheet] Checking overlaps via API:', {
+        start_date: formData.start_date,
+        end_date: formData.end_date,
+        exclude_user_id: formData.employee_id
+      })
 
-      if (error) {
-        console.error('Supabase error:', error)
-        throw error
+      // Use API endpoint with admin client to fetch overlaps
+      const response = await fetch('/api/leave-requests/overlapping', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          start_date: formData.start_date,
+          end_date: formData.end_date,
+          exclude_user_id: formData.employee_id, // Exclude the selected employee
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`)
       }
 
-      const formattedOverlaps: OverlapUser[] = (overlaps || []).map(request => ({
-        id: (request.profiles as any)?.id || '',
-        full_name: (request.profiles as any)?.full_name || null,
-        email: (request.profiles as any)?.email || '',
-        avatar_url: (request.profiles as any)?.avatar_url || null,
-        leave_type_name: (request.leave_types as any)?.name || 'Nieobecność',
+      const data = await response.json()
+      const overlaps = data.overlappingRequests || []
+
+      console.log('[Add Absence Sheet] Found overlaps:', overlaps.length)
+
+      // Format for display
+      const formattedOverlaps: OverlapUser[] = overlaps.map((request: any) => ({
+        id: request.id,
+        full_name: request.full_name,
+        email: request.email,
+        avatar_url: request.avatar_url,
+        leave_type_name: request.leave_type_name,
         end_date: request.end_date,
-        color: (request.leave_types as any)?.color || '#22d3ee'
+        color: request.color || '#22d3ee'
       }))
 
       setOverlapUsers(formattedOverlaps)
     } catch (error) {
-      console.error('Error checking overlaps:', error instanceof Error ? error.message : error)
+      console.error('[Add Absence Sheet] Error checking overlaps:', error instanceof Error ? error.message : error)
       setOverlapUsers([])
     }
   }
@@ -901,14 +904,13 @@ function AddAbsenceSheetContent({ preloadedEmployees, userRole, isOpen, onClose,
 
             {/* Overlap Warning */}
             {overlapUsers.length > 0 && (
-              <div className="border rounded-lg p-4 bg-muted/20">
-                <div className="flex items-start gap-3 mb-3">
-                  <Info className="h-4 w-4 mt-0.5" />
-                  <div className="font-medium text-sm">
-                    W tym terminie urlop planują
-                  </div>
+              <div className="border border-border rounded-lg p-4 bg-amber-100">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="font-medium text-sm text-card-foreground leading-5">
+                    W tym terminie również planują urlop:
+                  </p>
                 </div>
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {overlapUsers.map((user, index) => (
                     <OverlapUserItem key={`${user.id}-${index}`} user={user} />
                   ))}
@@ -980,6 +982,7 @@ export default function AddAbsenceSheet({ preloadedEmployees, userRole, activeOr
         <AddAbsenceSheetContent
           preloadedEmployees={preloadedEmployees}
           userRole={userRole}
+          activeOrganizationId={activeOrganizationId}
           isOpen={isOpen}
           onClose={() => setIsOpen(false)}
           workingDays={workingDays}

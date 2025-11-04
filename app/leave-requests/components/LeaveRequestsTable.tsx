@@ -3,7 +3,7 @@
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { LeaveRequestDetailsSheet } from '@/components/LeaveRequestDetailsSheet'
+import { LeaveRequestDetailsSheet } from './LeaveRequestDetailsSheet'
 import { useState } from 'react'
 
 interface LeaveRequestWithUser {

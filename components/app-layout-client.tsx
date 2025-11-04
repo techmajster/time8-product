@@ -243,7 +243,7 @@ export function AppLayoutClient({
               <NotificationBell />
             </div>
           </header>
-          <main className="flex flex-1 flex-col gap-4 p-11 pt-0">
+          <main className="flex flex-1 flex-col gap-4 p-11 pt-0 pb-0">
             {children}
           </main>
         </SidebarInset>

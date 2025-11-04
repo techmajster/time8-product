@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     const { organization, user } = context
     const organizationId = organization.id
 
-    const { start_date, end_date } = await request.json()
+    const { start_date, end_date, exclude_user_id } = await request.json()
 
     if (!start_date || !end_date) {
       return NextResponse.json(
@@ -21,6 +21,9 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+
+    // Use exclude_user_id if provided, otherwise exclude current user
+    const userIdToExclude = exclude_user_id || user.id
 
     const supabaseAdmin = createAdminClient()
 
@@ -41,7 +44,7 @@ export async function POST(request: NextRequest) {
         )
       `)
       .eq('organization_id', organizationId)
-      .neq('user_id', user.id) // Exclude current user
+      .neq('user_id', userIdToExclude) // Exclude specified user
       .in('status', ['approved', 'pending']) // Include both approved and pending requests
       .lte('start_date', end_date) // Leave starts before or on request's end date
       .gte('end_date', start_date) // Leave ends after or on request's start date

@@ -79,7 +79,6 @@ function OverlapUserItem({ user }: { user: OverlapUser }) {
           do {format(parseISO(user.end_date), 'dd.MM', { locale: pl })}
         </div>
       </div>
-      <VacationIcon />
     </div>
   )
 }
@@ -128,6 +127,8 @@ export function NewLeaveRequestSheet({ leaveTypes, leaveBalances, userProfile, i
   const { leaveRequestSubmitted } = useLeaveSystemToasts()
   const [calculatedDays, setCalculatedDays] = useState<number | null>(null)
   const [overlapUsers, setOverlapUsers] = useState<OverlapUser[]>([])
+  const [isCheckingOverlaps, setIsCheckingOverlaps] = useState(false)
+  const [overlapCheckError, setOverlapCheckError] = useState<string | null>(null)
   const sheetContentRef = React.useRef<HTMLDivElement>(null)
 
   // Listen for custom event to open the sheet
@@ -227,7 +228,18 @@ export function NewLeaveRequestSheet({ leaveTypes, leaveBalances, userProfile, i
 
   // Check for overlapping users
   const checkOverlaps = async () => {
-    if (!dateRange?.from || !dateRange?.to || !userProfile?.id) return
+    if (!dateRange?.from || !dateRange?.to) {
+      console.log('[Overlap Check] Missing date range')
+      return
+    }
+
+    if (!userProfile?.id) {
+      console.log('[Overlap Check] Missing user profile ID')
+      return
+    }
+
+    setIsCheckingOverlaps(true)
+    setOverlapCheckError(null)
 
     try {
       const formatDate = (date: Date) => {
@@ -237,49 +249,63 @@ export function NewLeaveRequestSheet({ leaveTypes, leaveBalances, userProfile, i
         return `${year}-${month}-${day}`
       }
 
-      const { data: overlaps, error } = await supabase
-        .from('leave_requests')
-        .select(`
-          id,
-          start_date,
-          end_date,
-          status,
-          user_id,
-          profiles!leave_requests_user_id_fkey (
-            id,
-            full_name,
-            email,
-            avatar_url
-          ),
-          leave_types (
-            name,
-            color
-          )
-        `)
-        .gte('end_date', formatDate(dateRange.from))
-        .lte('start_date', formatDate(dateRange.to))
-        .in('status', ['pending', 'approved'])
-        .neq('user_id', userProfile.id)
+      const startDate = formatDate(dateRange.from)
+      const endDate = formatDate(dateRange.to)
 
-      if (error) {
-        console.error('Supabase error:', error)
-        throw error
+      console.log('[Overlap Check] Checking overlaps via API:', {
+        startDate,
+        endDate,
+        currentUserId: userProfile.id,
+        organizationId: userProfile.organization_id
+      })
+
+      // Use API endpoint with admin client to fetch overlaps
+      const response = await fetch('/api/leave-requests/overlapping', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          start_date: startDate,
+          end_date: endDate,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`)
       }
 
-      const formattedOverlaps: OverlapUser[] = (overlaps || []).map(request => ({
-        id: (request.profiles as any)?.id || '',
-        full_name: (request.profiles as any)?.full_name || null,
-        email: (request.profiles as any)?.email || '',
-        avatar_url: (request.profiles as any)?.avatar_url || null,
-        leave_type_name: (request.leave_types as any)?.name || 'Nieobecność',
+      const data = await response.json()
+      const overlaps = data.overlappingRequests || []
+
+      console.log('[Overlap Check] Found overlaps:', overlaps.length)
+      console.log('[Overlap Check] Overlap data:', overlaps)
+
+      // Format for display (add color field if missing)
+      const formattedOverlaps: OverlapUser[] = overlaps.map((request: any) => ({
+        id: request.id,
+        full_name: request.full_name,
+        email: request.email,
+        avatar_url: request.avatar_url,
+        leave_type_name: request.leave_type_name,
         end_date: request.end_date,
-        color: (request.leave_types as any)?.color || '#22d3ee'
+        color: request.color || '#22d3ee'
       }))
 
       setOverlapUsers(formattedOverlaps)
+      setIsCheckingOverlaps(false)
     } catch (error) {
-      console.error('Error checking overlaps:', error instanceof Error ? error.message : error)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      console.error('[Overlap Check] Error:', errorMessage, error)
+
+      setOverlapCheckError(errorMessage)
       setOverlapUsers([])
+      setIsCheckingOverlaps(false)
+
+      // Show user-visible error toast
+      toast.error('Nie udało się sprawdzić konfliktów urlopowych', {
+        description: 'Spróbuj ponownie lub skontaktuj się z administratorem.'
+      })
     }
   }
 
@@ -325,7 +351,6 @@ export function NewLeaveRequestSheet({ leaveTypes, leaveBalances, userProfile, i
         setTimeout(() => {
           handleClose()
         }, 1500)
-        leaveRequestSubmitted()
       }
     })
   }
@@ -477,18 +502,44 @@ export function NewLeaveRequestSheet({ leaveTypes, leaveBalances, userProfile, i
               })()}
 
               {/* Overlap Warning */}
-              {overlapUsers.length > 0 && (
-                <div className="border rounded-lg p-4 bg-amber-50 border-amber-200">
-                  <div className="flex items-start gap-3 mb-3">
-                    <Info className="h-4 w-4 mt-0.5 text-amber-600" />
-                    <div className="font-medium text-sm text-amber-900">
-                      W tym terminie urlop planują
-                    </div>
+              {isCheckingOverlaps && (
+                <div className="border border-border rounded-lg p-4 bg-muted/50">
+                  <div className="flex items-center gap-3">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
+                    <p className="font-medium text-sm text-muted-foreground">
+                      Sprawdzanie konfliktów urlopowych...
+                    </p>
                   </div>
-                  <div className="space-y-3">
+                </div>
+              )}
+
+              {!isCheckingOverlaps && overlapUsers.length > 0 && (
+                <div className="border border-border rounded-lg p-4 bg-amber-100">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="font-medium text-sm text-card-foreground leading-5">
+                      W tym terminie również planują urlop:
+                    </p>
+                  </div>
+                  <div className="space-y-2">
                     {overlapUsers.map((user, index) => (
                       <OverlapUserItem key={`${user.id}-${index}`} user={user} />
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {!isCheckingOverlaps && overlapCheckError && (
+                <div className="border border-destructive/50 rounded-lg p-4 bg-destructive/10">
+                  <div className="flex items-start gap-3">
+                    <Info className="h-4 w-4 mt-0.5 text-destructive" />
+                    <div>
+                      <p className="font-medium text-sm text-destructive mb-1">
+                        Nie można sprawdzić konfliktów urlopowych
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Możesz kontynuować tworzenie wniosku, ale niektóre informacje mogą być niedostępne.
+                      </p>
+                    </div>
                   </div>
                 </div>
               )}

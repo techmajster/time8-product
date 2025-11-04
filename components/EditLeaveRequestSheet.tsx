@@ -83,7 +83,6 @@ function OverlapUserItem({ user }: { user: OverlapUser }) {
           do {format(parseISO(user.end_date), 'dd.MM', { locale: pl })}
         </div>
       </div>
-      <VacationIcon />
     </div>
   )
 }
@@ -252,49 +251,55 @@ export function EditLeaveRequestSheet({
         return `${year}-${month}-${day}`
       }
 
-      const { data: overlaps, error } = await supabase
-        .from('leave_requests')
-        .select(`
-          id,
-          start_date,
-          end_date,
-          status,
-          user_id,
-          profiles!leave_requests_user_id_fkey (
-            id,
-            full_name,
-            email,
-            avatar_url
-          ),
-          leave_types (
-            name,
-            color
-          )
-        `)
-        .gte('end_date', formatDate(dateRange.from))
-        .lte('start_date', formatDate(dateRange.to))
-        .in('status', ['pending', 'approved'])
-        .neq('user_id', leaveRequest.user_id)
-        .neq('id', leaveRequest.id) // Exclude current request
+      const startDate = formatDate(dateRange.from)
+      const endDate = formatDate(dateRange.to)
 
-      if (error) {
-        console.error('Supabase error:', error)
-        throw error
+      console.log('[Edit Sheet] Checking overlaps via API:', {
+        startDate,
+        endDate,
+        excludeUserId: leaveRequest.user_id
+      })
+
+      // Use API endpoint with admin client to fetch overlaps
+      const response = await fetch('/api/leave-requests/overlapping', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          start_date: startDate,
+          end_date: endDate,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`)
       }
 
-      const formattedOverlaps: OverlapUser[] = (overlaps || []).map(request => ({
-        id: (request.profiles as any)?.id || '',
-        full_name: (request.profiles as any)?.full_name || null,
-        email: (request.profiles as any)?.email || '',
-        avatar_url: (request.profiles as any)?.avatar_url || null,
-        leave_type_name: (request.leave_types as any)?.name || 'Nieobecność',
+      const data = await response.json()
+      const overlaps = data.overlappingRequests || []
+
+      // Filter out the current request being edited AND all requests from the same user
+      const filteredOverlaps = overlaps.filter((req: any) =>
+        req.id !== leaveRequest.id && req.user_id !== leaveRequest.user_id
+      )
+
+      console.log('[Edit Sheet] Found overlaps:', filteredOverlaps.length)
+
+      // Format for display
+      const formattedOverlaps: OverlapUser[] = filteredOverlaps.map((request: any) => ({
+        id: request.id,
+        full_name: request.full_name,
+        email: request.email,
+        avatar_url: request.avatar_url,
+        leave_type_name: request.leave_type_name,
         end_date: request.end_date,
-        color: (request.leave_types as any)?.color || '#22d3ee'
+        color: request.color || '#22d3ee'
       }))
 
       setOverlapUsers(formattedOverlaps)
     } catch (error) {
-      console.error('Error checking overlaps:', error instanceof Error ? error.message : error)
+      console.error('[Edit Sheet] Error checking overlaps:', error instanceof Error ? error.message : error)
       setOverlapUsers([])
     }
   }
@@ -365,10 +370,13 @@ export function EditLeaveRequestSheet({
     })
   }
 
-  // Check if request can be cancelled
-  const canCancel = leaveRequest && 
-    leaveRequest.status !== 'cancelled' && 
-    new Date() < new Date(leaveRequest.start_date)
+  // Check if user is manager/admin
+  const isManager = userProfile?.role === 'admin' || userProfile?.role === 'manager'
+
+  // Managers/admins can cancel at any time, employees only before start date
+  const canCancel = leaveRequest &&
+    leaveRequest.status !== 'cancelled' &&
+    (isManager || new Date() < new Date(leaveRequest.start_date))
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
@@ -509,14 +517,13 @@ export function EditLeaveRequestSheet({
 
             {/* Overlap Warning */}
             {overlapUsers.length > 0 && (
-              <div className="border rounded-lg p-4 bg-amber-50 border-amber-200">
-                <div className="flex items-start gap-3 mb-3">
-                  <Info className="h-4 w-4 mt-0.5 text-amber-600" />
-                  <div className="font-medium text-sm text-amber-900">
-                    W tym terminie urlop planują
-                  </div>
+              <div className="border border-border rounded-lg p-4 bg-amber-100">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="font-medium text-sm text-card-foreground leading-5">
+                    W tym terminie również planują urlop:
+                  </p>
                 </div>
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {overlapUsers.map((user, index) => (
                     <OverlapUserItem key={`${user.id}-${index}`} user={user} />
                   ))}
@@ -541,9 +548,6 @@ export function EditLeaveRequestSheet({
             {/* Footer - Fixed at Bottom */}
             <div className="flex flex-row gap-2 items-center justify-between w-full p-6 pt-0 bg-background">
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={onClose}>
-                  Zamknij
-                </Button>
                 {canCancel && (
                   <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
                     <AlertDialogTrigger asChild>

@@ -42,7 +42,8 @@ export async function GET(
         profiles!leave_requests_user_id_fkey (
           id,
           full_name,
-          email
+          email,
+          avatar_url
         ),
         reviewed_by_profile:profiles!leave_requests_reviewed_by_fkey (
           full_name,
@@ -136,7 +137,14 @@ export async function GET(
       email: leaveRequest.profiles?.email || '',
       role: userOrganization.role,
       employment_start_date: null, // Not needed for details
-      organization_id: organizationId
+      organization_id: organizationId,
+      organizations: {
+        id: organization.id,
+        name: organization.name,
+        work_mode: organization.work_mode || 'monday_to_friday',
+        working_days: organization.working_days || ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+        country_code: organization.country_code || 'PL'
+      }
     }
 
     return NextResponse.json({
