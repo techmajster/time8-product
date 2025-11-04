@@ -3,14 +3,19 @@
 import React, { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
+import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { LeaveType, LeaveBalance, UserProfile } from '@/types/leave'
 import { useRouter } from 'next/navigation'
 import { DateRangePicker } from '@/components/ui/date-range-picker'
 import { useLeaveSystemToasts } from '@/hooks/use-sonner-toast'
 import { DateRange } from 'react-day-picker'
-import { ChevronDownIcon } from 'lucide-react'
+import { ChevronDownIcon, Info, TreePalm } from 'lucide-react'
+import { format, parseISO } from 'date-fns'
+import { pl } from 'date-fns/locale'
+import { createClient } from '@/lib/supabase/client'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,6 +34,56 @@ interface PendingRequest {
   days_requested: number
 }
 
+interface OverlapUser {
+  id: string
+  full_name: string | null
+  email: string
+  avatar_url: string | null
+  leave_type_name: string
+  end_date: string
+  color: string
+}
+
+// Vacation icon component
+function VacationIcon() {
+  return (
+    <div className="bg-cyan-200 relative rounded-lg size-10 flex items-center justify-center">
+      <TreePalm className="h-6 w-6 text-foreground" />
+    </div>
+  )
+}
+
+// Overlap warning user item component
+function OverlapUserItem({ user }: { user: OverlapUser }) {
+  return (
+    <div className="flex flex-row gap-4 items-center justify-start w-full min-w-[85px]">
+      <Avatar className="size-10">
+        <AvatarImage src={user.avatar_url || undefined} />
+        <AvatarFallback>
+          {(user.full_name || user.email)?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+        </AvatarFallback>
+      </Avatar>
+      <div className="flex-1 flex flex-col items-start justify-start">
+        <div className="font-medium text-sm text-foreground leading-5 truncate w-full">
+          {user.full_name || user.email}
+        </div>
+        <div className="font-normal text-sm text-muted-foreground leading-5 truncate w-full">
+          {user.email}
+        </div>
+      </div>
+      <div className="flex flex-col items-end justify-center text-sm">
+        <div className="font-medium text-foreground leading-5">
+          {user.leave_type_name}
+        </div>
+        <div className="font-normal text-muted-foreground leading-5">
+          do {format(parseISO(user.end_date), 'dd.MM', { locale: pl })}
+        </div>
+      </div>
+      <VacationIcon />
+    </div>
+  )
+}
+
 interface NewLeaveRequestSheetProps {
   leaveTypes: LeaveType[]
   leaveBalances: LeaveBalance[]
@@ -45,7 +100,7 @@ interface NewLeaveRequestSheetProps {
 }
 
 export function NewLeaveRequestSheet({ leaveTypes, leaveBalances, userProfile, initialDate, pendingRequests = [] }: NewLeaveRequestSheetProps) {
-  const router = useRouter()
+  const supabase = createClient()
   const [isOpen, setIsOpen] = useState(false)
 
   // React Query mutation
@@ -72,6 +127,7 @@ export function NewLeaveRequestSheet({ leaveTypes, leaveBalances, userProfile, i
   }
   const { leaveRequestSubmitted } = useLeaveSystemToasts()
   const [calculatedDays, setCalculatedDays] = useState<number | null>(null)
+  const [overlapUsers, setOverlapUsers] = useState<OverlapUser[]>([])
   const sheetContentRef = React.useRef<HTMLDivElement>(null)
 
   // Listen for custom event to open the sheet
@@ -124,6 +180,7 @@ export function NewLeaveRequestSheet({ leaveTypes, leaveBalances, userProfile, i
     } else {
       setCalculatedDays(null)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dateRange])
 
   const calculateWorkingDays = async () => {
@@ -167,6 +224,73 @@ export function NewLeaveRequestSheet({ leaveTypes, leaveBalances, userProfile, i
     }
     return count
   }
+
+  // Check for overlapping users
+  const checkOverlaps = async () => {
+    if (!dateRange?.from || !dateRange?.to || !userProfile?.id) return
+
+    try {
+      const formatDate = (date: Date) => {
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
+        return `${year}-${month}-${day}`
+      }
+
+      const { data: overlaps, error } = await supabase
+        .from('leave_requests')
+        .select(`
+          id,
+          start_date,
+          end_date,
+          status,
+          user_id,
+          profiles!leave_requests_user_id_fkey (
+            id,
+            full_name,
+            email,
+            avatar_url
+          ),
+          leave_types (
+            name,
+            color
+          )
+        `)
+        .gte('end_date', formatDate(dateRange.from))
+        .lte('start_date', formatDate(dateRange.to))
+        .in('status', ['pending', 'approved'])
+        .neq('user_id', userProfile.id)
+
+      if (error) {
+        console.error('Supabase error:', error)
+        throw error
+      }
+
+      const formattedOverlaps: OverlapUser[] = (overlaps || []).map(request => ({
+        id: (request.profiles as any)?.id || '',
+        full_name: (request.profiles as any)?.full_name || null,
+        email: (request.profiles as any)?.email || '',
+        avatar_url: (request.profiles as any)?.avatar_url || null,
+        leave_type_name: (request.leave_types as any)?.name || 'Nieobecność',
+        end_date: request.end_date,
+        color: (request.leave_types as any)?.color || '#22d3ee'
+      }))
+
+      setOverlapUsers(formattedOverlaps)
+    } catch (error) {
+      console.error('Error checking overlaps:', error instanceof Error ? error.message : error)
+      setOverlapUsers([])
+    }
+  }
+
+  // Check overlaps when dates change
+  useEffect(() => {
+    if (dateRange?.from && dateRange?.to) {
+      checkOverlaps()
+    } else {
+      setOverlapUsers([])
+    }
+  }, [dateRange?.from, dateRange?.to])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -218,14 +342,15 @@ export function NewLeaveRequestSheet({ leaveTypes, leaveBalances, userProfile, i
             <div className="flex flex-col h-full">
               <div className="flex flex-col gap-6 p-6 flex-1 overflow-y-auto">
                 <div className="flex flex-col gap-1.5 w-full">
-                  <SheetTitle className="text-lg font-semibold mb-6">Nowy wniosek urlopowy</SheetTitle>
+                  <SheetTitle className="text-lg font-semibold">Nowy wniosek urlopowy</SheetTitle>
+                  <Separator className="mt-4" />
                 </div>
 
                 {/* Minimal Form */}
                 <form onSubmit={handleSubmit} className="space-y-5 flex-1">
               {/* Leave Type Selection */}
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Jaki urlop chcesz wybrać?</Label>
+                <Label className="text-sm font-medium">Jaki urlop chcesz wykorzystać</Label>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
@@ -307,7 +432,7 @@ export function NewLeaveRequestSheet({ leaveTypes, leaveBalances, userProfile, i
                 <DateRangePicker
                   date={dateRange}
                   onDateChange={setDateRange}
-                  placeholder="Wybierz typ urlopu"
+                  placeholder="Wybierz datę urlopu"
                   className="h-9 w-full"
                   container={sheetContentRef.current}
                   existingLeaveRequests={disabledDates}
@@ -322,14 +447,60 @@ export function NewLeaveRequestSheet({ leaveTypes, leaveBalances, userProfile, i
                 )}
               </div>
 
+              {/* Balance Summary Cards */}
+              {(() => {
+                const selectedLeaveType = leaveTypes.find(type => type.id === formData.leave_type_id)
+                const balance = leaveBalances.find(lb => lb.leave_type_id === formData.leave_type_id)
+                const availableDays = balance ? calculateAvailableDays(formData.leave_type_id, balance.remaining_days) : 0
+                const requestedDays = calculatedDays || 0
+                const remainingDays = Math.max(0, availableDays - requestedDays)
+
+                // Only show for leave types that require balance
+                if (!formData.leave_type_id || !selectedLeaveType?.requires_balance) return null
+
+                return (
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="flex flex-col items-center justify-center p-4 border rounded-lg bg-background">
+                      <span className="text-xs text-muted-foreground mb-1">Dostępny</span>
+                      <span className="text-lg font-semibold">{availableDays} dni</span>
+                    </div>
+                    <div className="flex flex-col items-center justify-center p-4 border rounded-lg bg-background">
+                      <span className="text-xs text-muted-foreground mb-1">Wnioskowany</span>
+                      <span className="text-lg font-semibold">{requestedDays} dni</span>
+                    </div>
+                    <div className="flex flex-col items-center justify-center p-4 border rounded-lg bg-background">
+                      <span className="text-xs text-muted-foreground mb-1">Pozostanie</span>
+                      <span className="text-lg font-semibold">{remainingDays} dni</span>
+                    </div>
+                  </div>
+                )
+              })()}
+
+              {/* Overlap Warning */}
+              {overlapUsers.length > 0 && (
+                <div className="border rounded-lg p-4 bg-amber-50 border-amber-200">
+                  <div className="flex items-start gap-3 mb-3">
+                    <Info className="h-4 w-4 mt-0.5 text-amber-600" />
+                    <div className="font-medium text-sm text-amber-900">
+                      W tym terminie urlop planują
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    {overlapUsers.map((user, index) => (
+                      <OverlapUserItem key={`${user.id}-${index}`} user={user} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Optional Description */}
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Chcesz coś dodać? (opcjonalnie)</Label>
+                <Label className="text-sm font-medium">Chcesz coś dodać?</Label>
                 <Textarea
                   value={formData.reason}
                   onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-                  placeholder="Opisz powód urlopu"
-                  className="min-h-[76px] resize-none"
+                  placeholder="Dodatkowe informacje"
+                  className="min-h-[126px] resize-none"
                 />
               </div>
 
@@ -347,7 +518,7 @@ export function NewLeaveRequestSheet({ leaveTypes, leaveBalances, userProfile, i
                   disabled={!formData.leave_type_id || !dateRange?.from || !dateRange?.to || !calculatedDays || calculatedDays <= 0 || createMutation.isPending}
                   onClick={handleSubmit}
                 >
-                  {createMutation.isPending ? 'Składanie wniosku...' : 'Złóż wniosek urlopowy'}
+                  {createMutation.isPending ? 'Wysyłanie...' : 'Wyślij wniosek'}
                 </Button>
               </div>
             </div>
