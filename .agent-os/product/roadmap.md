@@ -1078,7 +1078,22 @@
     - Cleaner, more modern UI matching design system
     - Reusable components for other sheets
 
-  - [ ] **Main Content Pages** - Dashboard, Calendar, Leave, Team pages
+  - [x] **Calendar Component Refactoring** `M` ✅ **COMPLETED** (2025-11-04)
+    - ✅ Removed hardcoded last update info (commented out until shift feature)
+    - ✅ Migrated holidays to React Query using existing useHolidays hook (53 lines → single hook call)
+    - ✅ Added loading states (CalendarSkeleton, DaySheetSkeleton components)
+    - ✅ Added error handling with user-friendly toast notifications
+    - ✅ Added adjacent month prefetching for better UX during navigation
+    - ✅ Added visual feedback for month navigation (disabled state during loading)
+    - ✅ Implemented complete i18n using next-intl (all Polish text → translation keys)
+    - ✅ Added comprehensive ARIA attributes for accessibility (grid roles, labels, screen reader support)
+    - ✅ Removed all debug console.log statements
+    - ✅ Extracted magic numbers to calendar-constants.ts (CALENDAR_GRID_SIZE, MAX_VISIBLE_AVATARS, etc.)
+    - **Result:** Production-ready calendar with improved performance, accessibility, and maintainability
+    - **Spec:** Analysis doc at `/docs/analysis-dashboard-calendar-card.md`
+    - Files: [CalendarClient.tsx](app/calendar/components/CalendarClient.tsx), [DashboardClient.tsx](app/dashboard/components/DashboardClient.tsx), [calendar-constants.ts](lib/calendar-constants.ts)
+
+  - [ ] **Main Content Pages** - Dashboard, Leave, Team pages
   - [ ] **Admin Pages** - Settings, Users, Groups
   - [ ] **Forms & Modals** - Create/Edit components
   - [ ] **Cards & Components** - Reusable UI elements

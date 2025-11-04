@@ -31,7 +31,8 @@ export function useLeaveRequests(
       if (!response.ok) {
         throw new Error('Failed to fetch leave requests')
       }
-      return response.json()
+      const data = await response.json()
+      return data.leaveRequests || []
     },
     initialData,
     staleTime: 1000 * 30, // 30 seconds

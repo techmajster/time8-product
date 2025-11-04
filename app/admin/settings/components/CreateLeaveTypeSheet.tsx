@@ -14,6 +14,7 @@ interface CreateLeaveTypeSheetProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   organizationId: string
+  onSuccess?: (leaveType: any) => void
 }
 
 interface LeaveTypeFormData {
@@ -27,7 +28,8 @@ interface LeaveTypeFormData {
 export function CreateLeaveTypeSheet({
   open,
   onOpenChange,
-  organizationId
+  organizationId,
+  onSuccess
 }: CreateLeaveTypeSheetProps) {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -124,8 +126,13 @@ export function CreateLeaveTypeSheet({
       }
 
       toast.success('Rodzaj urlopu został utworzony!')
+
+      // Call success callback if provided
+      if (onSuccess) {
+        onSuccess(createdLeaveType)
+      }
+
       handleClose()
-      router.refresh()
 
     } catch (error) {
       console.error('Error creating leave type:', error)
