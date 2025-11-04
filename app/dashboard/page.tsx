@@ -5,12 +5,7 @@ import { redirect } from 'next/navigation'
 import { NewLeaveRequestSheet } from '@/app/leave/components/NewLeaveRequestSheet'
 import { DashboardClient } from './components/DashboardClient'
 import { getTranslations } from 'next-intl/server'
-
-interface NearestBirthday {
-  name: string
-  date: Date
-  daysUntil: number
-}
+import { calculateNearestBirthday, type NearestBirthday } from '@/lib/utils/birthday'
 
 export default async function DashboardPage() {
   const t = await getTranslations('dashboard')
@@ -68,7 +63,14 @@ export default async function DashboardPage() {
   profile.role = userOrg.role
   profile.organizations = userOrg.organizations
 
-  // Use admin client for better RLS handling
+  // SECURITY NOTE: Using admin client to bypass RLS for team-based filtering
+  // This is necessary because the current RLS policies don't support the complex
+  // team scope logic (restrict_calendar_by_group setting). The code manually
+  // filters results based on teamMemberIds which is calculated based on:
+  // 1. User's role (admin sees all, manager sees team)
+  // 2. Organization's restrict_calendar_by_group setting
+  // 3. User's team membership
+  // TODO: Future enhancement - Implement RLS policies to handle this logic at the database level
   const supabaseAdmin = createAdminClient()
 
   // Get current date for display
@@ -246,45 +248,8 @@ export default async function DashboardPage() {
     .not('birth_date', 'is', null)
     .order('full_name')
 
-  // Calculate nearest birthday
-  const calculateNearestBirthday = (): NearestBirthday | null => {
-    if (!teamMembersWithBirthdays || teamMembersWithBirthdays.length === 0) {
-      return null
-    }
-
-    const today = new Date()
-    const currentYear = today.getFullYear()
-    
-    let nearestBirthday: NearestBirthday | null = null
-    let minDaysUntilBirthday = Infinity
-
-    teamMembersWithBirthdays.forEach((member: any) => {
-      if (!member.birth_date) return
-      
-      const birthDate = new Date(member.birth_date)
-      const thisYearBirthday = new Date(currentYear, birthDate.getMonth(), birthDate.getDate())
-      
-      // If birthday already passed this year, use next year's birthday
-      if (thisYearBirthday < today) {
-        thisYearBirthday.setFullYear(currentYear + 1)
-      }
-      
-      const daysUntilBirthday = Math.ceil((thisYearBirthday.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
-      
-      if (daysUntilBirthday < minDaysUntilBirthday) {
-        minDaysUntilBirthday = daysUntilBirthday
-        nearestBirthday = {
-          name: member.full_name,
-          date: thisYearBirthday,
-          daysUntil: daysUntilBirthday
-        }
-      }
-    })
-
-    return nearestBirthday
-  }
-
-  const nearestBirthday = calculateNearestBirthday()
+  // Calculate nearest birthday using utility function
+  const nearestBirthday = calculateNearestBirthday(teamMembersWithBirthdays || [])
 
   // Get pending leave requests count based on team scope
   let pendingCount = 0

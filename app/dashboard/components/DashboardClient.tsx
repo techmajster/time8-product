@@ -1,5 +1,6 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -60,6 +61,9 @@ export function DashboardClient({
   currentYear,
   monthNames,
 }: DashboardClientProps) {
+  const t = useTranslations('calendar')
+  const td = useTranslations('dashboard')
+
   // Use React Query hooks with initial SSR data
   const { data: leaveBalances = initialLeaveBalances } = useLeaveBalances(userId)
   const { data: allTeamMembers = initialTeamMembers } = useTeamMembers(
@@ -87,7 +91,7 @@ export function DashboardClient({
       {/* Greeting Section */}
       <div className="flex items-center justify-between py-2">
         <div className="flex items-center gap-3">
-          <span className="text-5xl font-light text-foreground">Cześć</span>
+          <span className="text-5xl font-light text-foreground">{td('greeting')}</span>
           <Avatar className="w-12 h-12">
             <AvatarImage src={profile.avatar_url || ''} />
             <AvatarFallback>
@@ -101,14 +105,14 @@ export function DashboardClient({
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-3 text-xl text-foreground">
             <span className="font-normal">
-              Masz jeszcze {remainingVacationDays} {remainingVacationDays === 1 ? 'dzień' : 'dni'} urlopu
+              {td('vacationBalance', { days: `${remainingVacationDays} ${remainingVacationDays === 1 ? 'dzień' : 'dni'}` })}
             </span>
             {isVacationOverride && (
               <span
                 className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full"
-                title={`Domyślna wartość dla workspace: ${workspaceDefault} dni`}
+                title={td('customBalanceTooltip', { default: workspaceDefault })}
               >
-                Niestandardowe saldo
+                {td('customBalance')}
               </span>
             )}
           </div>
@@ -121,18 +125,18 @@ export function DashboardClient({
         <div className="flex-1 flex flex-col gap-4">
           {/* Current Day Card */}
           <CurrentDayCard
-            todayText={`Dzisiaj jest ${currentDayName}`}
+            todayText={td('todayIs', { dayName: currentDayName })}
             day={currentDay}
             dateText={`${currentDay} ${monthNames[new Date().getMonth()].toLowerCase()}`}
             year={currentYear}
-            workStatus="Pracujesz dzisiaj"
+            workStatus={td('workingToday')}
             workHours="9:00 - 15:00"
           />
 
           {/* Birthday Card */}
           <BirthdayCard
-            title="Najbliższe urodziny"
-            noBirthdaysText="Brak urodzin w tym miesiącu"
+            title={td('nearestBirthday')}
+            noBirthdaysText={td('noBirthdaysThisMonth')}
             name={nearestBirthday?.name}
             daysText={
               nearestBirthday
@@ -146,26 +150,28 @@ export function DashboardClient({
             initials={nearestBirthday?.name.split(' ').map((n) => n[0]).join('').toUpperCase()}
           />
 
-          {/* Leave Requests Card */}
-          <Card className="flex-row items-end justify-between">
-            <CardContent className="flex-1">
-              <div className="flex flex-col gap-2">
-                <div className="text-sm font-medium">Wnioski urlopowe</div>
-                <div className="text-xl font-semibold">
-                  {pendingRequestsCount === 0
-                    ? 'Brak oczekujących'
-                    : pendingRequestsCount === 1
-                    ? '1 oczekujący'
-                    : `${pendingRequestsCount} oczekujących`}
+          {/* Leave Requests Card - Only visible to admins and managers */}
+          {(profile.role === 'admin' || profile.role === 'manager') && (
+            <Card className="flex-row items-end justify-between">
+              <CardContent className="flex-1">
+                <div className="flex flex-col gap-2">
+                  <div className="text-sm font-medium">{td('leaveRequests')}</div>
+                  <div className="text-xl font-semibold">
+                    {pendingRequestsCount === 0
+                      ? td('noPending')
+                      : pendingRequestsCount === 1
+                      ? td('pendingOne')
+                      : td('pendingCount', { count: pendingRequestsCount })}
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-            <CardContent className="flex-shrink-0">
-              <Button asChild className="h-8 px-3 text-xs">
-                <Link href="/leave-requests">Przejdź do wniosków</Link>
-              </Button>
-            </CardContent>
-          </Card>
+              </CardContent>
+              <CardContent className="flex-shrink-0">
+                <Button asChild className="h-8 px-3 text-xs">
+                  <Link href="/leave-requests">{td('goToRequests')}</Link>
+                </Button>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Team Card */}
           <TeamCard
@@ -200,11 +206,7 @@ export function DashboardClient({
             colleagues={colleagues || []}
             teamMemberIds={teamMemberIds}
             teamScope={teamScope}
-            calendarTitle="Kalendarz urlopów"
-            badgeText="Twój kalendarz"
-            lastUpdateLabel="Ostatnia aktualizacja"
-            lastUpdateUser="Paweł Chróściak"
-            lastUpdateDate="28.06.2025"
+            calendarTitle={t('calendarTitle')}
           />
         </div>
       </div>

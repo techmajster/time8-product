@@ -1,9 +1,12 @@
 'use client'
 
+import { useState } from 'react'
+import Link from 'next/link'
 import CalendarClient from '@/app/calendar/components/CalendarClient'
 import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
+import { ChevronLeft, ChevronRight, Fullscreen } from 'lucide-react'
 
 interface DashboardCalendarProps {
   organizationId: string
@@ -18,11 +21,12 @@ interface DashboardCalendarProps {
   teamMemberIds: string[]
   teamScope: any
   calendarTitle: string
-  badgeText: string
-  lastUpdateLabel?: string
-  lastUpdateUser?: string
-  lastUpdateDate?: string
 }
+
+const monthNames = [
+  'Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec',
+  'Lipiec', 'Sierpień', 'Wrzesień', 'Październik', 'Listopad', 'Grudzień'
+]
 
 export function DashboardCalendar({
   organizationId,
@@ -31,29 +35,71 @@ export function DashboardCalendar({
   colleagues,
   teamMemberIds,
   teamScope,
-  calendarTitle,
-  badgeText,
-  lastUpdateLabel,
-  lastUpdateUser,
-  lastUpdateDate
+  calendarTitle
 }: DashboardCalendarProps) {
+  const [currentDate, setCurrentDate] = useState(new Date())
+
+  const handlePreviousMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))
+  }
+
+  const handleNextMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))
+  }
+
+
   return (
-    <Card className="border border-border">
-      <CardContent className="p-6">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <h3 className="text-xl font-semibold text-foreground">
-              {calendarTitle}
-            </h3>
-            <Badge variant="secondary" className="text-xs">
-              {badgeText}
-            </Badge>
+    <Card className="border border-border p-0">
+      <CardContent className="p-0">
+        {/* Header - Single line with title, navigation, and button */}
+        <div className="flex items-center justify-between px-6 pt-6 pb-6">
+          {/* Title */}
+          <h3 className="text-xl font-semibold text-foreground">
+            {calendarTitle}
+          </h3>
+
+          {/* Month Navigation - Center */}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handlePreviousMonth}
+              className="h-8 w-8 opacity-50 hover:opacity-100 bg-card"
+              aria-label="Previous month"
+            >
+              <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+            </Button>
+
+            <h2 className="text-base font-semibold min-w-[140px] text-center" aria-live="polite" aria-atomic="true">
+              {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+            </h2>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleNextMonth}
+              className="h-8 w-8 opacity-50 hover:opacity-100 bg-card"
+              aria-label="Next month"
+            >
+              <ChevronRight className="h-4 w-4" aria-hidden="true" />
+            </Button>
           </div>
+
+          {/* Pełny widok Button */}
+          <Button
+            variant="outline"
+            asChild
+            className="h-8"
+          >
+            <Link href="/calendar">
+              <Fullscreen className="h-4 w-4 mr-2" />
+              Pełny widok
+            </Link>
+          </Button>
         </div>
 
         {/* Calendar */}
-        <div className="mb-6">
+        <div className="px-6 mb-6">
           <CalendarClient
             organizationId={organizationId}
             countryCode={countryCode}
@@ -63,20 +109,11 @@ export function DashboardCalendar({
             teamScope={teamScope}
             showHeader={false}
             showPadding={false}
+            externalCurrentDate={currentDate}
+            onDateChange={setCurrentDate}
+            hideNavigation={true}
           />
         </div>
-
-        {/* Separator */}
-        <Separator className="mb-4" />
-
-        {/* Last update info */}
-        {lastUpdateLabel && lastUpdateUser && lastUpdateDate && (
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            <span>{lastUpdateLabel}</span>
-            <span>{lastUpdateUser}</span>
-            <span>{lastUpdateDate}</span>
-          </div>
-        )}
       </CardContent>
     </Card>
   )
