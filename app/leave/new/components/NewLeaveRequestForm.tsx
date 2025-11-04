@@ -512,7 +512,7 @@ export function NewLeaveRequestForm({ leaveTypes, leaveBalances, userProfile, on
   }
 
   return (
-    <div className="p-8">
+    <div className="py-11">
       <div className="max-w-2xl mx-auto">
         <Link 
           href="/leave" 

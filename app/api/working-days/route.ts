@@ -51,18 +51,28 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('Error calculating working days:', error)
-      
+
+      // Get organization's working days for fallback
+      const { data: orgData } = await supabase
+        .from('organizations')
+        .select('working_days, country_code')
+        .eq('id', organizationId)
+        .single()
+
+      const workingDays = (orgData?.working_days as string[]) || ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']
+      const countryCode = orgData?.country_code || 'PL'
+
       // Fallback calculation if database function fails
       const { data: holidaysCheck } = await supabase
         .from('company_holidays')
         .select('name, date, type')
         .gte('date', startDate)
         .lte('date', endDate)
-        .eq('type', 'national')
+        .or(`organization_id.eq.${organizationId},and(type.eq.national,country_code.eq.${countryCode})`)
         .order('date')
-      
-      const fallbackDays = calculateWorkingDaysFallback(startDate, endDate, holidaysCheck || [])
-      
+
+      const fallbackDays = calculateWorkingDaysFallback(startDate, endDate, holidaysCheck || [], workingDays)
+
       return NextResponse.json({
         working_days: fallbackDays,
         start_date: startDate,
@@ -75,14 +85,15 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Get organization's country code for filtering
+    // Get organization's country code and working days
     const { data: orgData } = await supabase
       .from('organizations')
-      .select('country_code')
+      .select('country_code, working_days')
       .eq('id', organizationId)
       .single()
 
     const countryCode = orgData?.country_code || 'PL'
+    const workingDays = (orgData?.working_days as string[]) || ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']
 
     // Get holidays in the period for display (filtered by country)
     const { data: holidays } = await supabase
@@ -117,24 +128,33 @@ export async function POST(request: NextRequest) {
 }
 
 // Fallback function for client-side calculation
-function calculateWorkingDaysFallback(startDate: string, endDate: string, holidays: Array<{ date: string; name: string; type: string }>): number {
+function calculateWorkingDaysFallback(
+  startDate: string,
+  endDate: string,
+  holidays: Array<{ date: string; name: string; type: string }>,
+  workingDays: string[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']
+): number {
   const start = new Date(startDate)
   const end = new Date(endDate)
   const holidayDates = new Set(holidays.map(h => h.date))
-  
-  let workingDays = 0
+
+  // Map day names to day numbers
+  const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+  const workingDayNumbers = workingDays.map(day => dayNames.indexOf(day.toLowerCase()))
+
+  let workingDaysCount = 0
   const currentDate = new Date(start)
 
   while (currentDate <= end) {
     const dayOfWeek = currentDate.getDay()
     const dateString = currentDate.toISOString().split('T')[0]
-    
-    // Count Monday (1) through Friday (5), excluding holidays
-    if (dayOfWeek >= 1 && dayOfWeek <= 5 && !holidayDates.has(dateString)) {
-      workingDays++
+
+    // Count days that are in working days and not holidays
+    if (workingDayNumbers.includes(dayOfWeek) && !holidayDates.has(dateString)) {
+      workingDaysCount++
     }
     currentDate.setDate(currentDate.getDate() + 1)
   }
 
-  return workingDays
+  return workingDaysCount
 } 

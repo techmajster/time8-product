@@ -5,22 +5,37 @@ export const leaveRequestKeys = {
   all: ['leaveRequests'] as const,
   lists: () => [...leaveRequestKeys.all, 'list'] as const,
   list: (filters: string) => [...leaveRequestKeys.lists(), { filters }] as const,
+  calendar: (startDate: string, endDate: string, teamMemberIds: string) =>
+    ['calendar-leave-requests', startDate, endDate, teamMemberIds] as const,
   details: () => [...leaveRequestKeys.all, 'detail'] as const,
   detail: (id: string) => [...leaveRequestKeys.details(), id] as const,
 }
 
 // Fetch all leave requests
-export function useLeaveRequests(organizationId: string) {
+export function useLeaveRequests(
+  organizationId: string,
+  userId?: string,
+  initialData?: any[]
+) {
+  const filters = userId ? `${organizationId}-${userId}` : organizationId
+
   return useQuery({
-    queryKey: leaveRequestKeys.list(organizationId),
+    queryKey: leaveRequestKeys.list(filters),
     queryFn: async () => {
-      const response = await fetch(`/api/leave-requests?organizationId=${organizationId}`)
+      const params = new URLSearchParams({ organizationId })
+      if (userId) {
+        params.append('userId', userId)
+      }
+
+      const response = await fetch(`/api/leave-requests?${params}`)
       if (!response.ok) {
         throw new Error('Failed to fetch leave requests')
       }
-      return response.json()
+      const data = await response.json()
+      return data.leaveRequests || []
     },
-    staleTime: 1000 * 60 * 2, // 2 minutes
+    initialData,
+    staleTime: 1000 * 30, // 30 seconds
     enabled: !!organizationId, // Only run if organizationId exists
   })
 }
@@ -106,5 +121,57 @@ export function useDeleteLeaveRequest() {
       // Invalidate leave requests list
       queryClient.invalidateQueries({ queryKey: leaveRequestKeys.lists() })
     },
+  })
+}
+
+// Fetch calendar leave requests for a date range
+export function useCalendarLeaveRequests(
+  startDate: string,
+  endDate: string,
+  teamMemberIds: string[]
+) {
+  const teamMemberIdsStr = teamMemberIds.join(',')
+
+  return useQuery({
+    queryKey: leaveRequestKeys.calendar(startDate, endDate, teamMemberIdsStr),
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        start_date: startDate,
+        end_date: endDate,
+        team_member_ids: teamMemberIdsStr,
+      })
+
+      const response = await fetch(`/api/calendar/leave-requests?${params}`)
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch leave requests: ${response.statusText}`)
+      }
+
+      const leaveData = await response.json()
+
+      // Transform to match expected calendar format
+      if (leaveData && leaveData.length > 0) {
+        return leaveData.map((leave: any) => ({
+          ...leave,
+          profiles: {
+            id: leave.profiles?.id || leave.user_id,
+            first_name: leave.profiles?.full_name?.split(' ')[0] || 'Unknown',
+            last_name: leave.profiles?.full_name?.split(' ').slice(1).join(' ') || 'User',
+            full_name: leave.profiles?.full_name || 'Unknown User',
+            email: leave.profiles?.email || '',
+            avatar_url: leave.profiles?.avatar_url || null,
+          },
+          leave_types: {
+            id: leave.leave_types?.id || leave.leave_type_id,
+            name: leave.leave_types?.name || 'Unknown Type',
+            color: leave.leave_types?.color || '#6b7280',
+          },
+        }))
+      }
+
+      return []
+    },
+    staleTime: 1000 * 60 * 2, // 2 minutes
+    enabled: !!startDate && !!endDate && teamMemberIds.length > 0,
   })
 }

@@ -235,9 +235,10 @@ async function updateOrganizationSubscription(
   status: string
 ): Promise<void> {
   try {
-    const FREE_SEATS = 3;
-    const paidSeats = Math.max(0, totalUsers - FREE_SEATS);
-    
+    const FREE_TIER_LIMIT = 3;
+    // Business logic: Up to 3 users are free. 4+ users pay for ALL seats.
+    const paidSeats = totalUsers > FREE_TIER_LIMIT ? totalUsers : 0;
+
     const updates: any = { paid_seats: paidSeats };
     
     // Update subscription tier based on status and quantity
@@ -323,7 +324,7 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
         organization_id: customer.organization_id,
         customer_id: customer.id,
         lemonsqueezy_subscription_id: subscriptionId,
-        variant_id: variant_id || null,
+        lemonsqueezy_variant_id: variant_id || null,
         status,
         quantity,
         renews_at: renews_at || null,
@@ -387,7 +388,7 @@ export async function processSubscriptionUpdated(payload: any): Promise<EventRes
 
     const { meta, data } = payload;
     const { id: subscriptionId, attributes } = data;
-    const { status, quantity, renews_at, ends_at, trial_ends_at } = attributes;
+    const { status, quantity, variant_id, renews_at, ends_at, trial_ends_at } = attributes;
 
     // Validate subscription status
     if (!isValidSubscriptionStatus(status)) {
@@ -423,6 +424,7 @@ export async function processSubscriptionUpdated(payload: any): Promise<EventRes
       .update({
         status,
         quantity,
+        lemonsqueezy_variant_id: variant_id || null,
         renews_at: renews_at || null,
         ends_at: ends_at || null,
         trial_ends_at: trial_ends_at || null,
@@ -437,9 +439,27 @@ export async function processSubscriptionUpdated(payload: any): Promise<EventRes
       return { success: false, error };
     }
 
-    // Update organization subscription if quantity changed
-    if (existingSubscription.quantity !== quantity) {
+    // Update organization subscription if EITHER quantity OR variant changed
+    // This is critical for detecting plan changes (e.g., monthly→yearly with same seat count)
+    const variantChanged = existingSubscription.lemonsqueezy_variant_id !== variant_id;
+    const quantityChanged = existingSubscription.quantity !== quantity;
+
+    if (variantChanged || quantityChanged) {
       await updateOrganizationSubscription(supabase, existingSubscription.organization_id, quantity, status);
+
+      // Log changes for debugging
+      if (variantChanged) {
+        console.log(
+          `[Billing] Variant changed for subscription ${subscriptionId}: ` +
+          `${existingSubscription.lemonsqueezy_variant_id} → ${variant_id}`
+        );
+      }
+      if (quantityChanged) {
+        console.log(
+          `[Billing] Quantity changed for subscription ${subscriptionId}: ` +
+          `${existingSubscription.quantity} → ${quantity} seats`
+        );
+      }
     }
 
     // Log successful processing

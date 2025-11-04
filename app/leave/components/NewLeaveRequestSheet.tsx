@@ -1,8 +1,6 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { format, differenceInDays, parseISO } from 'date-fns'
-import { pl } from 'date-fns/locale'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { Textarea } from '@/components/ui/textarea'
@@ -11,9 +9,8 @@ import { LeaveType, LeaveBalance, UserProfile } from '@/types/leave'
 import { useRouter } from 'next/navigation'
 import { DateRangePicker } from '@/components/ui/date-range-picker'
 import { useLeaveSystemToasts } from '@/hooks/use-sonner-toast'
-import { createClient } from '@/lib/supabase/client'
 import { DateRange } from 'react-day-picker'
-import { Plus, ChevronDownIcon } from 'lucide-react'
+import { ChevronDownIcon } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,19 +20,59 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { toast } from 'sonner'
 import { getApplicableLeaveTypes, isLeaveTypeDisabled } from '@/lib/leave-validation'
+import { useDisabledDates } from '@/hooks/use-disabled-dates'
+import { useHolidays } from '@/hooks/useHolidays'
+import { useCreateLeaveRequest } from '@/hooks/use-leave-mutations'
+
+interface PendingRequest {
+  leave_type_id: string
+  days_requested: number
+}
 
 interface NewLeaveRequestSheetProps {
   leaveTypes: LeaveType[]
   leaveBalances: LeaveBalance[]
-  userProfile?: UserProfile
-  initialDate?: Date // Add optional initial date prop
+  userProfile?: UserProfile & {
+    organizations?: {
+      id: string
+      name: string
+      work_mode?: 'monday_to_friday' | 'multi_shift'
+      working_days?: string[]
+    }
+  }
+  initialDate?: Date
+  pendingRequests?: PendingRequest[] // For balance calculation
 }
 
-export function NewLeaveRequestSheet({ leaveTypes, leaveBalances, userProfile, initialDate }: NewLeaveRequestSheetProps) {
+export function NewLeaveRequestSheet({ leaveTypes, leaveBalances, userProfile, initialDate, pendingRequests = [] }: NewLeaveRequestSheetProps) {
   const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
+
+  // React Query mutation
+  const createMutation = useCreateLeaveRequest()
+
+  // Fetch disabled dates for current user
+  const { disabledDates } = useDisabledDates({
+    userId: userProfile?.id || null,
+    organizationId: userProfile?.organization_id || ''
+  })
+
+  // Fetch holidays for disabled dates using React Query
+  const { data: holidays = [], isLoading: isLoadingHolidays } = useHolidays({
+    organizationId: userProfile?.organization_id || '',
+    countryCode: userProfile?.country_code || 'PL'
+  })
+
+  // Calculate available balance (remaining_days - pending days for each leave type)
+  const calculateAvailableDays = (leaveTypeId: string, remainingDays: number): number => {
+    const pendingDays = pendingRequests
+      .filter(req => req.leave_type_id === leaveTypeId)
+      .reduce((sum, req) => sum + req.days_requested, 0)
+    return Math.max(0, remainingDays - pendingDays)
+  }
   const { leaveRequestSubmitted } = useLeaveSystemToasts()
   const [calculatedDays, setCalculatedDays] = useState<number | null>(null)
+  const sheetContentRef = React.useRef<HTMLDivElement>(null)
 
   // Listen for custom event to open the sheet
   useEffect(() => {
@@ -72,10 +109,13 @@ export function NewLeaveRequestSheet({ leaveTypes, leaveBalances, userProfile, i
     reason: ''
   })
   const [dateRange, setDateRange] = useState<DateRange | undefined>()
-  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleClose = () => {
     setIsOpen(false)
+    // Reset form state
+    setFormData({ leave_type_id: '', reason: '' })
+    setDateRange(undefined)
+    setCalculatedDays(null)
   }
 
   useEffect(() => {
@@ -130,7 +170,7 @@ export function NewLeaveRequestSheet({ leaveTypes, leaveBalances, userProfile, i
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!formData.leave_type_id || !dateRange?.from || !dateRange?.to || !userProfile?.organization_id || !userProfile?.id) {
       toast.error('Missing required information')
       return
@@ -141,90 +181,36 @@ export function NewLeaveRequestSheet({ leaveTypes, leaveBalances, userProfile, i
       return
     }
 
-    setIsSubmitting(true)
-
-    try {
-      // Format dates in local timezone to avoid off-by-one errors
-      const formatDateLocal = (date: Date) => {
-        const year = date.getFullYear()
-        const month = String(date.getMonth() + 1).padStart(2, '0')
-        const day = String(date.getDate()).padStart(2, '0')
-        return `${year}-${month}-${day}`
-      }
-
-      const requestPayload = {
-        leave_type_id: formData.leave_type_id,
-        start_date: formatDateLocal(dateRange.from),
-        end_date: formatDateLocal(dateRange.to),
-        days_requested: calculatedDays,
-        reason: formData.reason || null,
-      }
-      
-      console.log('Submitting leave request:', requestPayload)
-      
-      // Use the API route instead of direct Supabase call to ensure proper validation and RLS
-      const response = await fetch('/api/leave-requests', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestPayload),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        console.error('Leave request API error:', {
-          status: response.status,
-          statusText: response.statusText,
-          errorData: errorData
-        })
-        throw new Error(errorData.error || 'Failed to submit leave request')
-      }
-
-      // Close sheet first, then show toast
-      setTimeout(() => {
-        handleClose()
-      }, 1500)
-      
-      leaveRequestSubmitted()
-      router.refresh()
-
-    } catch (error) {
-      console.error('Error submitting leave request:', error)
-      console.error('Form data at time of error:', {
-        formData,
-        dateRange,
-        calculatedDays,
-        userProfile: userProfile ? { id: userProfile.id, organization_id: userProfile.organization_id } : null
-      })
-      
-      // Handle different types of errors
-      let errorMessage = 'An unexpected error occurred while submitting your leave request'
-      
-      if (error instanceof Error) {
-        errorMessage = `Error submitting leave request: ${error.message}`
-      } else if (error && typeof error === 'object') {
-        // Handle Supabase error objects
-        const supabaseError = error as any
-        if (supabaseError.message) {
-          errorMessage = `Error submitting leave request: ${supabaseError.message}`
-        } else if (supabaseError.code) {
-          errorMessage = `Database error (${supabaseError.code}): Please check your input and try again`
-        } else if (supabaseError.details) {
-          errorMessage = `Error submitting leave request: ${supabaseError.details}`
-        }
-      }
-      
-      toast.error(errorMessage)
-    } finally {
-      setIsSubmitting(false)
+    // Format dates in local timezone to avoid off-by-one errors
+    const formatDateLocal = (date: Date) => {
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
     }
+
+    // Use React Query mutation
+    createMutation.mutate({
+      leave_type_id: formData.leave_type_id,
+      start_date: formatDateLocal(dateRange.from),
+      end_date: formatDateLocal(dateRange.to),
+      days_requested: calculatedDays,
+      reason: formData.reason || null,
+    }, {
+      onSuccess: () => {
+        setTimeout(() => {
+          handleClose()
+        }, 1500)
+        leaveRequestSubmitted()
+      }
+    })
   }
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
-        <SheetContent 
-          side="right" 
+        <SheetContent
+          ref={sheetContentRef}
+          side="right"
           size="content"
           className="overflow-y-auto"
         >
@@ -250,6 +236,7 @@ export function NewLeaveRequestSheet({ leaveTypes, leaveBalances, userProfile, i
                         (() => {
                           const selectedLeaveType = leaveTypes.find(type => type.id === formData.leave_type_id)
                           const balance = leaveBalances.find(lb => lb.leave_type_id === formData.leave_type_id)
+                          const availableDays = balance ? calculateAvailableDays(formData.leave_type_id, balance.remaining_days) : 0
                           return selectedLeaveType ? (
                             <div className="flex flex-col items-start">
                               <span className="font-medium text-sm">{selectedLeaveType.name}</span>
@@ -259,7 +246,7 @@ export function NewLeaveRequestSheet({ leaveTypes, leaveBalances, userProfile, i
                                 </span>
                               ) : balance ? (
                                 <span className="text-xs text-muted-foreground">
-                                  Dostępne {balance.remaining_days} dni
+                                  Dostępne {availableDays} dni
                                 </span>
                               ) : null}
                             </div>
@@ -274,8 +261,9 @@ export function NewLeaveRequestSheet({ leaveTypes, leaveBalances, userProfile, i
                   <DropdownMenuContent className="w-[var(--radix-dropdown-menu-trigger-width)]">
                     {userProfile && getApplicableLeaveTypes(userProfile, leaveTypes, leaveBalances, userProfile.organization_id).map((type, index, array) => {
                       const balance = leaveBalances.find(lb => lb.leave_type_id === type.id)
+                      const availableDays = balance ? calculateAvailableDays(type.id, balance.remaining_days) : 0
                       const disabledState = isLeaveTypeDisabled(type, balance)
-                      
+
                       return (
                         <React.Fragment key={type.id}>
                           <DropdownMenuItem
@@ -291,7 +279,7 @@ export function NewLeaveRequestSheet({ leaveTypes, leaveBalances, userProfile, i
                                 </span>
                               ) : balance ? (
                                 <span className="text-xs text-muted-foreground">
-                                  Dostępne {Math.max(0, balance.remaining_days)} dni
+                                  Dostępne {availableDays} dni
                                 </span>
                               ) : (
                                 <span className="text-xs text-muted-foreground">
@@ -321,6 +309,11 @@ export function NewLeaveRequestSheet({ leaveTypes, leaveBalances, userProfile, i
                   onDateChange={setDateRange}
                   placeholder="Wybierz typ urlopu"
                   className="h-9 w-full"
+                  container={sheetContentRef.current}
+                  existingLeaveRequests={disabledDates}
+                  holidaysToDisable={holidays}
+                  isLoadingHolidays={isLoadingHolidays}
+                  workingDays={userProfile?.organizations?.working_days || ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']}
                 />
                 {calculatedDays !== null && (
                   <p className="text-sm text-muted-foreground mt-1">
@@ -351,10 +344,10 @@ export function NewLeaveRequestSheet({ leaveTypes, leaveBalances, userProfile, i
                 <Button
                   type="submit"
                   size="sm"
-                  disabled={!formData.leave_type_id || !dateRange?.from || !dateRange?.to || !calculatedDays || calculatedDays <= 0 || isSubmitting}
+                  disabled={!formData.leave_type_id || !dateRange?.from || !dateRange?.to || !calculatedDays || calculatedDays <= 0 || createMutation.isPending}
                   onClick={handleSubmit}
                 >
-                  {isSubmitting ? 'Składanie wniosku...' : 'Złóż wniosek urlopowy'}
+                  {createMutation.isPending ? 'Składanie wniosku...' : 'Złóż wniosek urlopowy'}
                 </Button>
               </div>
             </div>

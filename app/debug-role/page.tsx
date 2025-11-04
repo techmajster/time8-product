@@ -80,11 +80,11 @@ export default function DebugRolePage() {
   }
 
   if (loading) {
-    return <div className="p-8">Loading...</div>
+    return <div className="py-11">Loading...</div>
   }
 
   return (
-    <div className="p-8 space-y-4">
+    <div className="py-11 space-y-4">
       <h1 className="text-2xl font-bold">Debug Role Page</h1>
       <div className="p-4 bg-muted rounded">
         <p>{message}</p>

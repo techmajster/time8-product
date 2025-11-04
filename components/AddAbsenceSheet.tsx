@@ -32,6 +32,8 @@ import { DateRange } from 'react-day-picker'
 import { cn } from '@/lib/utils'
 import { getApplicableLeaveTypes, isLeaveTypeDisabled } from '@/lib/leave-validation'
 import { LeaveType, LeaveBalance } from '@/types/leave'
+import { useDisabledDates } from '@/hooks/use-disabled-dates'
+import { useHolidays } from '@/hooks/useHolidays'
 
 interface Employee {
   id: string
@@ -56,6 +58,7 @@ interface AddAbsenceSheetProps {
   preloadedEmployees?: Employee[]
   userRole?: string
   activeOrganizationId?: string
+  workingDays?: string[]
   isOpen: boolean
   onClose: () => void
 }
@@ -177,9 +180,10 @@ function OverlapUserItem({ user }: { user: OverlapUser }) {
   )
 }
 
-function AddAbsenceSheetContent({ preloadedEmployees, userRole, isOpen, onClose }: AddAbsenceSheetProps) {
+function AddAbsenceSheetContent({ preloadedEmployees, userRole, isOpen, onClose, workingDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] }: AddAbsenceSheetProps) {
   const supabase = createClient()
-  
+  const sheetContentRef = React.useRef<HTMLDivElement>(null)
+
   // State
   const [loading, setLoading] = useState(false)
   const [employees, setEmployees] = useState<Employee[]>(preloadedEmployees || [])
@@ -198,6 +202,18 @@ function AddAbsenceSheetContent({ preloadedEmployees, userRole, isOpen, onClose 
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
+
+  // Fetch disabled dates for selected employee
+  const { disabledDates } = useDisabledDates({
+    userId: formData.employee_id || null,
+    organizationId: organizationId
+  })
+
+  // Fetch holidays for disabled dates using React Query
+  const { data: holidays = [], isLoading: isLoadingHolidays } = useHolidays({
+    organizationId: organizationId,
+    countryCode: 'PL' // Default to Poland, ideally this should come from organization settings
+  })
 
   // Computed values
   const selectedEmployee = employees.find(emp => emp.id === formData.employee_id)
@@ -657,7 +673,7 @@ function AddAbsenceSheetContent({ preloadedEmployees, userRole, isOpen, onClose 
   }
 
   return (
-    <SheetContent size="content" className="overflow-y-auto">
+    <SheetContent ref={sheetContentRef} size="content" className="overflow-y-auto">
       <div className="flex flex-col h-full">
         <div className="flex flex-col p-6 flex-1 overflow-y-auto">
           <div className="flex flex-col space-y-1.5">
@@ -846,6 +862,11 @@ function AddAbsenceSheetContent({ preloadedEmployees, userRole, isOpen, onClose 
                     to: parseISO(formData.end_date)
                   } : undefined}
                   onDateRangeChange={handleDateRangeChange}
+                  container={sheetContentRef.current}
+                  existingLeaveRequests={disabledDates}
+                  holidaysToDisable={holidays}
+                  isLoadingHolidays={isLoadingHolidays}
+                  workingDays={workingDays}
                 />
                 {(errors.start_date || errors.end_date || errors.dates) && (
                   <p className="text-sm text-destructive">
@@ -941,7 +962,7 @@ function AddAbsenceSheetContent({ preloadedEmployees, userRole, isOpen, onClose 
 }
 
 // Main component with global event listener
-export default function AddAbsenceSheet({ preloadedEmployees, userRole, activeOrganizationId }: Omit<AddAbsenceSheetProps, 'isOpen' | 'onClose'>) {
+export default function AddAbsenceSheet({ preloadedEmployees, userRole, activeOrganizationId, workingDays }: Omit<AddAbsenceSheetProps, 'isOpen' | 'onClose'>) {
   const [isOpen, setIsOpen] = useState(false)
 
   useEffect(() => {
@@ -961,6 +982,7 @@ export default function AddAbsenceSheet({ preloadedEmployees, userRole, activeOr
           userRole={userRole}
           isOpen={isOpen}
           onClose={() => setIsOpen(false)}
+          workingDays={workingDays}
         />
       </Suspense>
     </Sheet>

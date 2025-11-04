@@ -187,7 +187,7 @@ export function TeamManagementClient({ teamMembers, teams, leaveBalances, invita
   }
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="py-11 space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-semibold text-foreground">Zarządzanie zespołami</h1>

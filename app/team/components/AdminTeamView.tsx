@@ -20,9 +20,8 @@ import {
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
-
-
 import Link from 'next/link'
+import { useTeamMembersQuery, useTeamLeaveBalances } from '@/hooks/use-team-queries'
 
 interface TeamMember {
   id: string
@@ -58,18 +57,36 @@ interface Team {
 }
 
 interface AdminTeamViewProps {
-  teamMembers: TeamMember[]
-  leaveBalances: LeaveBalance[]
+  organizationId: string
+  initialTeamMembers: TeamMember[]
+  initialLeaveBalances: LeaveBalance[]
   teams: Team[]
   currentUser: any
 }
 
-export function AdminTeamView({ teamMembers, leaveBalances, teams }: AdminTeamViewProps) {
+export function AdminTeamView({
+  organizationId,
+  initialTeamMembers,
+  initialLeaveBalances,
+  teams
+}: AdminTeamViewProps) {
   const [selectedTeamId, setSelectedTeamId] = useState<string>('all')
 
+  // Use React Query hooks with initial SSR data
+  const { data: teamMembers = initialTeamMembers } = useTeamMembersQuery(
+    organizationId,
+    undefined,
+    initialTeamMembers
+  )
+  const { data: leaveBalances = initialLeaveBalances } = useTeamLeaveBalances(
+    organizationId,
+    new Date().getFullYear(),
+    initialLeaveBalances
+  )
+
   // Filter team members based on selected team
-  const filteredMembers = selectedTeamId === 'all' 
-    ? teamMembers 
+  const filteredMembers = selectedTeamId === 'all'
+    ? teamMembers
     : selectedTeamId === 'no-team'
     ? teamMembers.filter(member => !member.team_id)
     : teamMembers.filter(member => member.team_id === selectedTeamId)
@@ -91,7 +108,7 @@ export function AdminTeamView({ teamMembers, leaveBalances, teams }: AdminTeamVi
   }
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="py-11 space-y-6">
       {/* Header with Team Selector */}
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-semibold text-foreground">Mój zespół</h1>

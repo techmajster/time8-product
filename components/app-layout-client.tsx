@@ -183,15 +183,21 @@ export function AppLayoutClient({
 
   // Map background state to CSS variable
   const getBackgroundStyle = () => {
-    switch (backgroundState) {
-      case 'vacation':
-        return { backgroundColor: 'var(--bg-vacation)' }
-      case 'sick-leave':
-        return { backgroundColor: 'var(--bg-sick-leave)' }
-      case 'default':
-      default:
-        return { backgroundColor: 'var(--bg-default)' }
+    // Only apply dynamic backgrounds on dashboard page
+    if (pathname === '/dashboard') {
+      switch (backgroundState) {
+        case 'vacation':
+          return { backgroundImage: 'var(--bg-vacation)' }
+        case 'sick-leave':
+          return { backgroundImage: 'var(--bg-sick-leave)' }
+        case 'default':
+        default:
+          return { backgroundColor: 'var(--bg-default)' }
+      }
     }
+
+    // For all other pages, use the base background from Figma
+    return { backgroundColor: 'var(--background)' }
   }
 
   return (

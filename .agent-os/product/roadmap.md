@@ -598,6 +598,282 @@
 - No blocking issues
 - Committed: e32d8cf (2025-10-31)
 
+## Phase 2.6: Fix Stale Seat Count Data 🐛 ✅ **COMPLETED**
+
+**Goal:** Fix incorrect seat counts displayed on billing page and employee invitation logic
+**Success Criteria:** Billing page shows real-time accurate seat counts, employee invitations use correct availability checks
+**Completed:** 2025-10-31
+
+### Issue
+
+**Problem:** Billing page showed "3 z 9 miejsc wykorzystanych" when dashboard displayed 6 active users
+**Root Cause:** API endpoints relied on materialized view (`mv_organization_seat_usage`) with stale data that was never refreshed
+
+### Impact
+
+**Critical Bugs Discovered:**
+1. **Billing Display Bug** - Users see incorrect seat usage on billing page
+2. **Employee Invitation Bug** - Seat availability check could incorrectly block legitimate invitations
+3. **Data Integrity Issue** - Materialized view designed for 90% performance gain but had no refresh mechanism active in production
+
+### Solution
+
+**Approach:** Replace materialized view queries with direct `user_organizations` table queries
+**Trade-off:** Lose 90% performance optimization (5ms → 50ms) but gain 100% data accuracy
+**Rationale:** Billing page loads once, not in tight loop - 45ms difference negligible vs data correctness
+
+### Changes
+
+- [x] **Fix `/api/billing/subscription` endpoint** `XS` ✅
+  - ✅ Replaced `mv_organization_seat_usage` query with direct `user_organizations` count
+  - ✅ Changed query from `.single()` to count with `{ count: 'exact', head: true }`
+  - ✅ Real-time accuracy - always shows current active member count
+  - Files: [route.ts:65-75](app/api/billing/subscription/route.ts#L65-L75)
+
+- [x] **Fix `/api/employees` endpoint** `XS` ✅
+  - ✅ Replaced `mv_organization_seat_usage` query with direct `user_organizations` count
+  - ✅ Removed `.maybeSingle()` fallback logic (no longer needed)
+  - ✅ Seat availability check now uses real-time data
+  - Files: [route.ts:63-78](app/api/employees/route.ts#L63-L78)
+
+### Testing
+
+- ✅ Build verification passed
+- ✅ TypeScript compilation successful
+- ✅ Ready for browser testing
+
+### Benefits
+
+- ✅ Real-time accurate seat counts on billing page
+- ✅ Correct seat availability checks for employee invitations
+- ✅ Eliminated entire class of "stale data" bugs
+- ✅ Simpler codebase (no refresh logic needed)
+- ✅ Better user trust (accurate billing information)
+
+### Notes
+
+- **Materialized View Status**: `mv_organization_seat_usage` still exists but no longer used in production code
+- **Leave Summaries View**: `mv_org_leave_summaries` created but never used - can be removed or kept for future
+- **Performance**: 45ms slower per query is negligible for billing page that loads once
+
+---
+
+## Phase 2.7: React Query Migration - Critical Mutations 🔄 ✅
+
+**Goal:** Migrate critical leave request mutations to React Query for real-time cache invalidation
+**Success Criteria:** All leave request creation, editing, and cancellation operations automatically trigger UI updates without manual page refresh
+
+### Features
+
+- [x] **NewLeaveRequestSheet Mutation** `S` ✅
+  - Convert form submission to React Query useMutation
+  - Invalidate calendar and leave request queries on success
+  - Remove router.refresh() calls (replaced by cache invalidation)
+  - Show optimistic updates during submission
+  - Handle error states with proper toast messages
+  - Files: [NewLeaveRequestSheet.tsx](app/leave/components/NewLeaveRequestSheet.tsx)
+
+- [x] **EditLeaveRequestSheet Mutations** `S` ✅
+  - Convert edit form submission to React Query useMutation
+  - Convert cancellation logic to useMutation
+  - Invalidate both calendar and leave request queries
+  - Already has query invalidation for calendar - extend to all pages
+  - Files: [EditLeaveRequestSheet.tsx](components/EditLeaveRequestSheet.tsx)
+
+- [x] **LeaveRequestActions Mutations** `S` ✅
+  - Convert approval/rejection actions to React Query mutations
+  - Invalidate dashboard, calendar, team, and leave request queries
+  - Remove manual router.refresh() calls
+  - Show optimistic UI updates during approval/rejection
+  - Files: [LeaveRequestActions.tsx](app/leave/components/LeaveRequestActions.tsx)
+
+- [x] **Admin Settings Mutations** `S` ✅
+  - Convert work mode update to useMutation
+  - Invalidate organization and calendar queries
+  - Files: [WorkModeSettings.tsx](app/admin/settings/components/WorkModeSettings.tsx)
+
+### Dependencies
+
+- Phase 2.6 complete (stale data issues identified) ✅
+- Phase 2.7 complete (mutations trigger cache invalidation) ✅
+- React Query already installed and configured ✅
+- Calendar and /leave pages already using useQuery ✅
+
+### Impact
+
+- Eliminates need for manual page refresh after mutations
+- Consistent auto-refresh behavior across all pages
+- Better user experience with optimistic updates
+- Cleaner code without router.refresh() calls
+
+---
+
+## Phase 2.8: React Query Migration - High-Traffic Pages 📊 ✅ **COMPLETED**
+
+**Goal:** Convert high-traffic pages to React Query for real-time data synchronization
+**Success Criteria:** Dashboard, team, and leave request management pages show real-time updates when data changes elsewhere in the app
+**Completed:** 2025-11-03
+
+### Features
+
+- [x] **Dashboard Page** `M` ✅
+  - ✅ Created DashboardClient wrapper component using React Query hooks
+  - ✅ Converted leave balances query to useQuery with SSR initialData
+  - ✅ Converted team members query to useQuery
+  - ✅ Converted current leave requests query to useQuery
+  - ✅ Converted pending requests count query to useQuery
+  - ✅ Fixed translation errors (replaced placeholders with direct Polish text)
+  - Files: [DashboardClient.tsx](app/dashboard/components/DashboardClient.tsx), [use-dashboard-queries.ts](hooks/use-dashboard-queries.ts)
+
+- [x] **Team Page (Admin & Manager Views)** `M` ✅
+  - ✅ Created useTeamMembersQuery and useTeamLeaveBalances hooks
+  - ✅ Updated AdminTeamView to use React Query with initialData
+  - ✅ Updated ManagerTeamView to use React Query with initialData
+  - ✅ Cache team member data with organization and team scoping
+  - ✅ Both views maintain SSR performance with automatic refetch
+  - Files: [AdminTeamView.tsx](app/team/components/AdminTeamView.tsx), [ManagerTeamView.tsx](app/team/components/ManagerTeamView.tsx), [use-team-queries.ts](hooks/use-team-queries.ts)
+
+- [x] **Profile Page** `S` ✅
+  - ✅ Created ProfileDataClient component for leave balances and recent requests
+  - ✅ Converted leave balances query to useQuery with initialData
+  - ✅ Converted recent requests query to useQuery
+  - ✅ Maintained SSR performance with automatic refetch on focus
+  - Files: [ProfileDataClient.tsx](app/profile/components/ProfileDataClient.tsx), [use-profile-queries.ts](hooks/use-profile-queries.ts)
+
+- [x] **Fixed 406 Errors from Direct Supabase Calls** `M` ✅ **CRITICAL**
+  - ✅ Fixed CalendarClient component making direct Supabase queries
+  - ✅ Created `/api/calendar/user-schedule` endpoint
+  - ✅ Created `/api/calendar/working-team-members` endpoint
+  - ✅ Fixed useUserBackground hook making direct Supabase queries
+  - ✅ Created `/api/user/active-leave` endpoint
+  - ✅ All calendar and user background data now fetched through API routes
+  - ✅ Eliminated ALL 406 (Not Acceptable) errors
+  - Files: [CalendarClient.tsx](app/calendar/components/CalendarClient.tsx), [use-user-background.ts](lib/hooks/use-user-background.ts)
+
+### API Endpoints Created
+
+- `/api/leave-balances` - User leave balances for a year
+- `/api/team-members` - Team members via user_organizations
+- `/api/leave-requests/current` - Active leave requests for a date
+- `/api/leave-requests/pending-count` - Count of pending requests
+- `/api/leave-requests/recent` - Recent leave requests for profile
+- `/api/team/members` - Team members with optional team filter
+- `/api/team/leave-balances` - All team members' leave balances
+- `/api/calendar/user-schedule` - User's work schedule for a date
+- `/api/calendar/working-team-members` - Working team members for a date
+- `/api/user/active-leave` - Current user's active leave status
+
+### React Query Hooks Created
+
+- `hooks/use-dashboard-queries.ts` - Dashboard data queries (4 hooks)
+- `hooks/use-team-queries.ts` - Team page data queries (2 hooks)
+- `hooks/use-profile-queries.ts` - Profile page data queries (3 hooks)
+
+### Cache Invalidation Updated
+
+- Updated `use-leave-mutations.ts` to invalidate all new query keys
+- Mutations now trigger automatic UI updates across all pages:
+  - Dashboard queries (leave-balances, team-members, current-leaves, pending-requests)
+  - Profile queries (leave-balances, recent-requests)
+  - Team queries (team-members, leave-balances)
+  - Calendar queries (leave-requests)
+
+### Dependencies
+
+- Phase 2.7 complete (mutations trigger cache invalidation) ✅
+- React Query already installed and configured ✅
+- SSR pattern with initialData established ✅
+
+### Impact
+
+- ✅ Real-time synchronization across all major pages
+- ✅ Automatic cache invalidation when leave requests change
+- ✅ No more manual router.refresh() needed
+- ✅ Better performance with smart caching
+- ✅ Consistent data fetching patterns
+- ✅ Fixed ALL 406 errors from direct Supabase calls
+- ✅ Proper server-side authentication for all queries
+
+### Commits
+
+1. `e322a8b` - Initial React Query migration (82 files)
+2. `3f3eae7` - Fixed translation errors
+3. `8c527b7` - Fixed CalendarClient direct Supabase calls
+4. `ced4d6e` - Fixed useUserBackground hook direct Supabase calls
+
+---
+
+## Phase 2.9: React Query Migration - Shared Data Optimization 🎯 ✅ **COMPLETED**
+
+**Goal:** Create reusable React Query hooks for shared data access patterns
+**Success Criteria:** DRY data fetching with consistent query keys, centralized cache management, reduced code duplication
+**Completed:** 2025-11-03
+
+### Features
+
+- [x] **Create Shared Query Hooks** `M` ✅
+  - ✅ `useLeaveRequests(organizationId, userId?, initialData?)` - Centralized leave requests hook with optional user filtering
+  - ✅ `useCalendarLeaveRequests(startDate, endDate, teamMemberIds)` - Calendar-specific leave requests hook
+  - ✅ `useLeaveBalances(userId, year)` - Reusable leave balances hook (in use-dashboard-queries.ts)
+  - ✅ `useTeamMembers()` - Team members data hook (in use-team-queries.ts)
+  - ✅ `useOrganization(organizationId)` - Organization config hook (hooks/useOrganization.ts)
+  - ✅ `useHolidays(options)` - Holiday data hook with date range support
+  - Files: [hooks/useLeaveRequests.ts](hooks/useLeaveRequests.ts), [hooks/useHolidays.ts](hooks/useHolidays.ts), [hooks/use-dashboard-queries.ts](hooks/use-dashboard-queries.ts), [hooks/use-team-queries.ts](hooks/use-team-queries.ts), [hooks/useOrganization.ts](hooks/useOrganization.ts)
+
+- [x] **Standardize Query Keys** `S` ✅
+  - ✅ Created centralized query key registry in [lib/query-keys.ts](lib/query-keys.ts)
+  - ✅ Each hook has its own query key factory (distributed pattern)
+  - ✅ Consistent hierarchical naming: `['leaveRequests', 'list', { filters }]`
+  - ✅ Comprehensive documentation of all query key patterns
+  - ✅ All existing useQuery calls use standardized keys
+
+- [x] **Centralized Query Configuration** `S` ✅
+  - ✅ QueryClient configuration in [components/providers/query-provider.tsx](components/providers/query-provider.tsx)
+  - ✅ Global defaults: staleTime (5 min), gcTime (10 min), retry (1)
+  - ✅ refetchOnWindowFocus disabled globally (enabled per-hook where needed)
+  - ✅ React Query DevTools enabled in development
+  - ✅ Configuration already applied to QueryClientProvider
+
+- [x] **Refactor Existing Components** `L` ✅
+  - ✅ Removed inline useQuery from [CalendarClient.tsx](app/calendar/components/CalendarClient.tsx) - now uses `useCalendarLeaveRequests()`
+  - ✅ Removed inline useQuery from [LeaveRequestsListClient.tsx](app/leave/components/LeaveRequestsListClient.tsx) - now uses `useLeaveRequests()`
+  - ✅ Dashboard already using `useLeaveBalances()` from Phase 2.8
+  - ✅ All query keys consistent across components
+  - ✅ All inline useQuery calls eliminated
+
+### Code Changes
+
+**New Hooks Created:**
+- `useCalendarLeaveRequests()` in [hooks/useLeaveRequests.ts](hooks/useLeaveRequests.ts) - Calendar date range queries with data transformation
+
+**Hooks Enhanced:**
+- `useLeaveRequests()` - Added optional `userId` filter and `initialData` support for SSR
+
+**New Files:**
+- [lib/query-keys.ts](lib/query-keys.ts) - Centralized query key registry with comprehensive documentation
+
+**Components Refactored:**
+- [CalendarClient.tsx](app/calendar/components/CalendarClient.tsx) - 55 lines removed (inline useQuery replaced with hook)
+- [LeaveRequestsListClient.tsx](app/leave/components/LeaveRequestsListClient.tsx) - 27 lines removed (inline useQuery replaced with hook)
+
+### Dependencies
+
+- Phase 2.7 & 2.8 complete (mutations and queries established) ✅
+- Query patterns identified across codebase ✅
+- React Query best practices documented ✅
+
+### Impact
+
+- ✅ Reduced code duplication (~80 lines eliminated)
+- ✅ Consistent data fetching behavior across all components
+- ✅ Centralized query key management for easier cache invalidation
+- ✅ Better code maintainability with reusable hooks
+- ✅ Improved type safety with standardized patterns
+- ✅ Zero inline useQuery calls remaining in components
+- ✅ Better cache utilization through shared query keys
+
+---
+
 ## Phase 3: Design System Implementation 🎨
 
 **Goal:** Complete visual overhaul using Figma designs and modern component library
@@ -769,7 +1045,55 @@
       **Completed:** 2025-10-30
       **Actual Effort:** 2 hours (under estimate)
 
-  - [ ] **Main Content Pages** - Dashboard, Calendar, Leave, Team pages
+  - [ ] **Leave Request Sheet Redesign** `M` 🎯 **READY TO START**
+    - **Goal:** Update NewLeaveRequestSheet to match new Figma design with enhanced UX
+    - **Figma Design:** `https://figma.com/design/Xb0VKGqH8b7w6nXW3HoacI/time8.io?node-id=25630-166742`
+    - **Spec:** Analysis complete, ready for implementation
+
+    **Quick Wins (30 min):**
+    - [ ] Fix date picker placeholder: "Wybierz typ urlopu" → "Wybierz daty urlopu"
+    - [ ] Remove unused imports (date-fns functions, unused createClient)
+    - [ ] Add form reset on close (clear all state including overlaps)
+    - [ ] Update header: "Nowy wniosek urlopowy" → "Wniosek o urlop"
+    - [ ] Add separator line below header
+    - [ ] Update footer button: "Złóż wniosek urlopowy" → "Wyślij wniosek"
+
+    **New Features (2-3 hours):**
+    - [ ] Extract OverlapUserItem component from AddAbsenceSheet (reusable)
+    - [ ] Add 3 info cards (Dostępny/Wnioskowany/Pozostanie) using Card component
+    - [ ] Add overlap detection with amber warning card
+      - API endpoint exists: `/api/leave-requests/overlapping`
+      - Show overlapping users with avatars, names, dates
+      - Trigger check when dates change
+    - [ ] Hide "Dni roboczych" text (keep calculation for cards)
+
+    **Files to Modify:**
+    - `app/leave/components/NewLeaveRequestSheet.tsx` (~150 lines changed)
+    - `components/OverlapUserItem.tsx` (new file, ~30 lines)
+    - `app/leave/components/NewLeaveRequestButton.tsx` (verify event dispatch)
+
+    **Benefits:**
+    - Better visual hierarchy with info cards
+    - Proactive overlap warnings reduce scheduling conflicts
+    - Cleaner, more modern UI matching design system
+    - Reusable components for other sheets
+
+  - [x] **Calendar Component Refactoring** `M` ✅ **COMPLETED** (2025-11-04)
+    - ✅ Removed hardcoded last update info (commented out until shift feature)
+    - ✅ Migrated holidays to React Query using existing useHolidays hook (53 lines → single hook call)
+    - ✅ Added loading states (CalendarSkeleton, DaySheetSkeleton components)
+    - ✅ Added error handling with user-friendly toast notifications
+    - ✅ Added adjacent month prefetching for better UX during navigation
+    - ✅ Added visual feedback for month navigation (disabled state during loading)
+    - ✅ Implemented complete i18n using next-intl (all Polish text → translation keys)
+    - ✅ Added comprehensive ARIA attributes for accessibility (grid roles, labels, screen reader support)
+    - ✅ Removed all debug console.log statements
+    - ✅ Extracted magic numbers to calendar-constants.ts (CALENDAR_GRID_SIZE, MAX_VISIBLE_AVATARS, etc.)
+    - **Result:** Production-ready calendar with improved performance, accessibility, and maintainability
+    - **Spec:** Analysis doc at `/docs/analysis-dashboard-calendar-card.md`
+    - Files: [CalendarClient.tsx](app/calendar/components/CalendarClient.tsx), [DashboardClient.tsx](app/dashboard/components/DashboardClient.tsx), [calendar-constants.ts](lib/calendar-constants.ts)
+
+  - [ ] **Main Content Pages** - Dashboard, Leave, Team pages
   - [ ] **Admin Pages** - Settings, Users, Groups
   - [ ] **Forms & Modals** - Create/Edit components
   - [ ] **Cards & Components** - Reusable UI elements

@@ -11,7 +11,6 @@ import { LeaveType, LeaveBalance, UserProfile } from '@/types/leave'
 import { useRouter } from 'next/navigation'
 import { DateRangePicker } from '@/components/ui/date-range-picker'
 import { useLeaveSystemToasts } from '@/hooks/use-sonner-toast'
-import { createClient } from '@/lib/supabase/client'
 import { DateRange } from 'react-day-picker'
 import { ChevronDownIcon, Trash2Icon } from 'lucide-react'
 import {
@@ -34,6 +33,9 @@ import {
 } from '@/components/ui/alert-dialog'
 import { toast } from 'sonner'
 import { getApplicableLeaveTypes, isLeaveTypeDisabled } from '@/lib/leave-validation'
+import { useDisabledDates } from '@/hooks/use-disabled-dates'
+import { useHolidays } from '@/hooks/useHolidays'
+import { useUpdateLeaveRequest, useCancelLeaveRequest } from '@/hooks/use-leave-mutations'
 
 interface LeaveRequestDetails {
   id: string
@@ -69,37 +71,60 @@ interface EditLeaveRequestSheetProps {
   leaveRequest: LeaveRequestDetails
   leaveTypes: LeaveType[]
   leaveBalances: LeaveBalance[]
-  userProfile?: UserProfile
+  userProfile?: UserProfile & {
+    organizations?: {
+      id: string
+      name: string
+      work_mode?: 'monday_to_friday' | 'multi_shift'
+      working_days?: string[]
+    }
+  }
   isOpen: boolean
   onClose: () => void
 }
 
-export function EditLeaveRequestSheet({ 
-  leaveRequest, 
-  leaveTypes, 
-  leaveBalances, 
-  userProfile, 
-  isOpen, 
-  onClose 
+export function EditLeaveRequestSheet({
+  leaveRequest,
+  leaveTypes,
+  leaveBalances,
+  userProfile,
+  isOpen,
+  onClose
 }: EditLeaveRequestSheetProps) {
   const router = useRouter()
   const { leaveRequestSubmitted } = useLeaveSystemToasts()
   const [calculatedDays, setCalculatedDays] = useState<number | null>(leaveRequest.days_requested)
+  const sheetContentRef = React.useRef<HTMLDivElement>(null)
+
+  // React Query mutations
+  const updateMutation = useUpdateLeaveRequest(leaveRequest.id)
+  const cancelMutation = useCancelLeaveRequest(leaveRequest.id)
 
   const [formData, setFormData] = useState({
     leave_type_id: leaveRequest.leave_type_id,
     reason: leaveRequest.reason || ''
   })
-  
+
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: new Date(leaveRequest.start_date),
     to: new Date(leaveRequest.end_date)
   })
-  
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isCancelling, setIsCancelling] = useState(false)
+
   const [showCancelDialog, setShowCancelDialog] = useState(false)
   const [cancelReason, setCancelReason] = useState('')
+
+  // Fetch disabled dates for the request owner (exclude current request being edited)
+  const { disabledDates } = useDisabledDates({
+    userId: leaveRequest.user_id,
+    organizationId: userProfile?.organization_id || '',
+    excludeRequestId: leaveRequest.id // Don't mark current request dates as disabled
+  })
+
+  // Fetch holidays for disabled dates using React Query
+  const { data: holidays = [], isLoading: isLoadingHolidays } = useHolidays({
+    organizationId: userProfile?.organization_id || '',
+    countryCode: userProfile?.country_code || 'PL'
+  })
 
   const calculateWorkingDays = async () => {
     if (!dateRange?.from || !dateRange?.to) {
@@ -165,7 +190,7 @@ export function EditLeaveRequestSheet({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!formData.leave_type_id || !dateRange?.from || !dateRange?.to || !userProfile?.organization_id || !userProfile?.id || !calculatedDays) {
       toast.error('Missing required information')
       return
@@ -189,81 +214,35 @@ export function EditLeaveRequestSheet({
       return
     }
 
-    setIsSubmitting(true)
-
-    try {
-      // Use the API route to update the leave request
-      const response = await fetch(`/api/leave-requests/${leaveRequest.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          leave_type_id: formData.leave_type_id,
-          start_date: dateRange.from.toISOString().split('T')[0],
-          end_date: dateRange.to.toISOString().split('T')[0],
-          days_requested: calculatedDays,
-          reason: formData.reason || null,
-        }),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to update leave request')
+    // Use React Query mutation
+    updateMutation.mutate({
+      leave_type_id: formData.leave_type_id,
+      start_date: dateRange.from.toISOString().split('T')[0],
+      end_date: dateRange.to.toISOString().split('T')[0],
+      days_requested: calculatedDays,
+      reason: formData.reason || null,
+    }, {
+      onSuccess: () => {
+        setTimeout(() => {
+          onClose()
+        }, 1500)
       }
-
-      // Close sheet first, then show toast
-      setTimeout(() => {
-        onClose()
-      }, 1500)
-      
-      toast.success('Wniosek urlopowy został zaktualizowany!')
-      router.refresh()
-
-    } catch (error) {
-      console.error('Error updating leave request:', error)
-      toast.error(error instanceof Error ? error.message : 'Failed to update leave request')
-    } finally {
-      setIsSubmitting(false)
-    }
+    })
   }
 
   const handleCancelRequest = async () => {
     if (!leaveRequest) return
-    
-    setIsCancelling(true)
-    
-    try {
-      const response = await fetch(`/api/leave-requests/${leaveRequest.id}/cancel`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          comment: cancelReason || 'Anulowane przez pracownika'
-        })
-      })
-      
-      const result = await response.json()
-      
-      if (!response.ok) {
-        throw new Error(result.error || 'Nie udało się anulować wniosku')
+
+    // Use React Query mutation
+    cancelMutation.mutate({
+      comment: cancelReason || 'Anulowane przez pracownika'
+    }, {
+      onSuccess: () => {
+        setShowCancelDialog(false)
+        setCancelReason('')
+        onClose()
       }
-      
-      toast.success(result.message || 'Wniosek urlopowy został anulowany')
-      
-      // Close dialogs and refresh
-      setShowCancelDialog(false)
-      setCancelReason('')
-      onClose()
-      router.refresh()
-      
-    } catch (error) {
-      console.error('Error cancelling request:', error)
-      toast.error(error instanceof Error ? error.message : 'Nie udało się anulować wniosku')
-    } finally {
-      setIsCancelling(false)
-    }
+    })
   }
 
   // Check if request can be cancelled
@@ -273,8 +252,9 @@ export function EditLeaveRequestSheet({
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent 
-        side="right" 
+      <SheetContent
+        ref={sheetContentRef}
+        side="right"
         size="content"
         className="overflow-y-auto"
       >
@@ -364,6 +344,11 @@ export function EditLeaveRequestSheet({
                 onDateChange={setDateRange}
                 placeholder="Wybierz typ urlopu"
                 className="h-9 w-full"
+                container={sheetContentRef.current}
+                existingLeaveRequests={disabledDates}
+                holidaysToDisable={holidays}
+                isLoadingHolidays={isLoadingHolidays}
+                workingDays={userProfile?.organizations?.working_days || ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']}
               />
               {calculatedDays !== null && (
                 <p className="text-sm text-muted-foreground mt-1">
@@ -425,24 +410,24 @@ export function EditLeaveRequestSheet({
                         <AlertDialogCancel>Nie anuluj</AlertDialogCancel>
                         <AlertDialogAction
                           onClick={handleCancelRequest}
-                          disabled={isCancelling}
+                          disabled={cancelMutation.isPending}
                           className="bg-red-600 hover:bg-red-700"
                         >
-                          {isCancelling ? 'Anulowanie...' : 'Tak, anuluj wniosek'}
+                          {cancelMutation.isPending ? 'Anulowanie...' : 'Tak, anuluj wniosek'}
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
                 )}
               </div>
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 size="sm"
                 className="bg-foreground hover:bg-foreground/90 text-white"
-                disabled={!formData.leave_type_id || !dateRange?.from || !dateRange?.to || !calculatedDays || calculatedDays <= 0 || isSubmitting}
+                disabled={!formData.leave_type_id || !dateRange?.from || !dateRange?.to || !calculatedDays || calculatedDays <= 0 || updateMutation.isPending}
                 onClick={handleSubmit}
               >
-                {isSubmitting ? 'Aktualizowanie...' : 'Zaktualizuj wniosek'}
+                {updateMutation.isPending ? 'Aktualizowanie...' : 'Zaktualizuj wniosek'}
               </Button>
             </div>
           </div>

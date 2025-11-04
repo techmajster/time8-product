@@ -260,6 +260,34 @@ body {
 
   /* Background colors for different user states */
   --bg-default: #EDE9FE; /* Light purple - default working day */
-  --bg-vacation: #C7F4D4; /* Light green/mint - vacation (urlop) */
-  --bg-sick-leave: #FECACA; /* Light peach/coral - sick leave (zwolnienie lekarskie) */
+  /* Vacation gradient: green to yellow */
+  --bg-vacation: linear-gradient(32.91deg, #bbf7d0 0%, #fef9c3 100%); /* Green to yellow gradient for vacation (urlop) */
+  /* Sick leave gradient: orange/amber to yellow */
+  --bg-sick-leave: linear-gradient(32.91deg, #fef3c7 0%, #fef9c3 100%); /* Orange/amber to yellow gradient for sick leave (zwolnienie lekarskie) */
+}
+
+/* Calendar day cell background patterns */
+.calendar-weekend-pattern,
+.calendar-holiday-pattern {
+  position: relative;
+  overflow: hidden;
+}
+
+.calendar-weekend-pattern::before,
+.calendar-holiday-pattern::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  opacity: 0.05;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(
+    135deg,
+    currentColor,
+    currentColor 2px,
+    transparent 2px,
+    transparent 8px
+  );
 }

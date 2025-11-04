@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Bell } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import {
   Sheet,
   SheetContent,
@@ -25,19 +26,13 @@ export function NotificationSheet({
   onClose,
   onNotificationRead
 }: NotificationSheetProps) {
+  const t = useTranslations('notificationSheet')
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
   const [hasMore, setHasMore] = useState(false)
 
-  // Fetch notifications when sheet opens
-  useEffect(() => {
-    if (isOpen) {
-      fetchNotifications()
-    }
-  }, [isOpen])
-
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     setIsLoading(true)
     try {
       const response = await fetch('/api/notifications?limit=20')
@@ -53,7 +48,14 @@ export function NotificationSheet({
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
+
+  // Fetch notifications when sheet opens
+  useEffect(() => {
+    if (isOpen) {
+      fetchNotifications()
+    }
+  }, [isOpen, fetchNotifications])
 
   const handleNotificationRead = (notificationId: string) => {
     // Update local state optimistically
@@ -70,12 +72,12 @@ export function NotificationSheet({
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent side="right" className="w-full sm:max-w-[560px] flex flex-col">
+      <SheetContent side="right" className="w-full sm:max-w-[560px] flex flex-col gap-4 p-6">
         {/* Header */}
-        <SheetHeader>
+        <SheetHeader className="p-0">
           <div className="flex items-center gap-2">
             <SheetTitle className="text-xl font-semibold">
-              Powiadomienia
+              {t('title')}
             </SheetTitle>
             {unreadCount > 0 && (
               <Badge
@@ -89,10 +91,10 @@ export function NotificationSheet({
         </SheetHeader>
 
         {/* Notification List */}
-        <div className="flex-1 overflow-y-auto mt-6 space-y-2">
+        <div className="flex-1 overflow-y-auto flex flex-col gap-2">
           {isLoading ? (
             // Loading skeleton
-            <div className="space-y-2">
+            <div className="flex flex-col gap-2">
               {[1, 2, 3].map(i => (
                 <Skeleton key={i} className="h-24 w-full" />
               ))}
@@ -101,7 +103,7 @@ export function NotificationSheet({
             // Empty state
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Bell className="w-12 h-12 text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">Brak powiadomień</p>
+              <p className="text-muted-foreground">{t('emptyState')}</p>
             </div>
           ) : (
             // Notification list
@@ -117,7 +119,7 @@ export function NotificationSheet({
               {hasMore && (
                 <div className="text-center py-4">
                   <p className="text-sm text-muted-foreground">
-                    Więcej powiadomień dostępnych...
+                    {t('loadMore')}
                   </p>
                 </div>
               )}
@@ -126,9 +128,9 @@ export function NotificationSheet({
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-2 mt-6 pt-4 border-t">
+        <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={onClose}>
-            Zamknij
+            {t('close')}
           </Button>
         </div>
       </SheetContent>

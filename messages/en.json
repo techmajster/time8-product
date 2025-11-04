@@ -189,7 +189,9 @@
       "pickDate": "Pick a date",
       "pickDateRange": "Pick a date range",
       "from": "From",
-      "to": "To"
+      "to": "To",
+      "publicHoliday": "Public Holiday",
+      "loadingHolidays": "Loading holidays..."
     }
   },
   "auth": {
@@ -370,10 +372,91 @@
       "requestApproved": "Leave request has been approved",
       "requestRejected": "Leave request has been rejected",
       "requestCancelled": "Leave request has been cancelled"
+    },
+    "requestSheet": {
+      "title": "Leave Request",
+      "leaveTypeLabel": "What leave do you want to use",
+      "leaveTypePlaceholder": "Select leave type",
+      "dateRangeLabel": "Leave period",
+      "dateRangePlaceholder": "Select dates",
+      "available": "Available",
+      "requested": "Requested",
+      "remaining": "Remaining",
+      "days": "days",
+      "overlappingTitle": "Also planning leave during this period:",
+      "reasonLabel": "Want to add something?",
+      "reasonPlaceholder": "Additional information",
+      "cancel": "Cancel",
+      "submit": "Send request",
+      "submitting": "Submitting request...",
+      "unlimited": "Unlimited",
+      "availableDays": "Available {days} days",
+      "noOverlapping": "No conflicts",
+      "errors": {
+        "missingInfo": "Missing required information",
+        "invalidDateRange": "Invalid date range - no working days selected",
+        "submissionFailed": "An error occurred while submitting your leave request",
+        "fallbackWarning": "Basic calculation - holidays not excluded"
+      }
+    },
+    "page": {
+      "title": "Your Leave",
+      "breadcrumb": {
+        "dashboard": "Dashboard",
+        "leave": "Your Leave"
+      },
+      "button": {
+        "requestLeave": "Submit leave request",
+        "filters": "Filters",
+        "export": "Export",
+        "details": "Details"
+      },
+      "tabs": {
+        "all": "All",
+        "year2025": "2025",
+        "year2024": "2024"
+      },
+      "cards": {
+        "nextLeave": {
+          "title": "Next leave",
+          "inDays": "in {days} {daysText}",
+          "daysCount": "{count} {daysText} - {dateRange}",
+          "noPlans": "No plans",
+          "noPlansDesc": "You have no planned leave"
+        },
+        "totalRemaining": {
+          "title": "Total remaining",
+          "days": "{count} days of annual leave",
+          "carryOver": "including {count} from last year"
+        }
+      },
+      "table": {
+        "headers": {
+          "date": "Date",
+          "description": "Description",
+          "type": "Type",
+          "days": "Number of days",
+          "status": "Status",
+          "actions": "Actions"
+        },
+        "empty": "You don't have any leave requests yet.",
+        "noDescription": "No description",
+        "unknownType": "Unknown type",
+        "daysFormat": "{count} {daysText}"
+      },
+      "status": {
+        "pending": "Pending",
+        "approved": "Approved",
+        "rejected": "Rejected",
+        "cancelled": "Cancelled",
+        "completed": "Completed"
+      }
     }
   },
   "calendar": {
     "title": "Team Calendar",
+    "calendarTitle": "Leave Calendar",
+    "yourCalendar": "Your calendar",
     "today": "Today",
     "month": "Month",
     "week": "Week",
@@ -381,7 +464,51 @@
     "upcomingLeaves": "Upcoming Leaves",
     "capacityOverview": "Capacity Overview",
     "noLeaves": "No leaves in this period",
-    "teamCapacity": "Team Capacity"
+    "teamCapacity": "Team Capacity",
+    "selectedDay": "Selected day",
+    "scheduleReady": "Schedule ready",
+    "youWorkThisDay": "You work this day",
+    "youWorkThisDayHours": "You work this day {{hours}}",
+    "onShift": "On shift",
+    "planLeave": "Planning leave for this day?",
+    "submitLeaveRequest": "Submit leave request",
+    "close": "Close",
+    "plannedLeaves": "Planned leaves",
+    "until": "until",
+    "weekend": "Weekend",
+    "workingDay": "Working day",
+    "youHaveLeave": "You have leave",
+    "nationalHoliday": "National holiday",
+    "companyHoliday": "Company holiday",
+    "weekendWithHoliday": "Weekend, {{holidayType}}",
+    "months": {
+      "january": "January",
+      "february": "February",
+      "march": "March",
+      "april": "April",
+      "may": "May",
+      "june": "June",
+      "july": "July",
+      "august": "August",
+      "september": "September",
+      "october": "October",
+      "november": "November",
+      "december": "December"
+    },
+    "days": {
+      "monday": "Monday",
+      "tuesday": "Tuesday",
+      "wednesday": "Wednesday",
+      "thursday": "Thursday",
+      "friday": "Friday",
+      "saturday": "Saturday",
+      "sunday": "Sunday"
+    },
+    "errors": {
+      "failedToFetchSchedule": "Failed to fetch work schedule",
+      "failedToFetchTeamMembers": "Failed to fetch team members list",
+      "tryAgainLater": "Please try again later"
+    }
   },
   "team": {
     "title": "Team Management",
@@ -588,9 +715,14 @@
     "birthdayTomorrow": "{date}, tomorrow",
     "birthdayToday": "{date}, today!",
     "noBirthdays": "No birthdays coming up",
+    "noBirthdaysThisMonth": "No birthdays this month",
+    "todayIs": "Today is {dayName}",
     "teamTitle": "Your team",
     "absent": "Absent",
+    "absentCount": "Absent ({count})",
     "workingTodayTitle": "Working today",
+    "workingTodayCount": "Working today ({count})",
+    "teamWithCount": "{name} ({count})",
     "leaveRequests": "Leave Requests",
     "pendingCount": "{count} pending",
     "pendingOne": "1 pending",
@@ -633,6 +765,13 @@
     "invitationSent": "Invitation has been sent",
     "profileUpdated": "Profile has been updated",
     "settingsSaved": "Settings have been saved"
+  },
+  "notificationSheet": {
+    "title": "Notifications",
+    "emptyState": "No notifications",
+    "loadMore": "More notifications available...",
+    "close": "Close",
+    "details": "Details"
   },
   "billing": {
     "currentSubscription": "Current Subscription",

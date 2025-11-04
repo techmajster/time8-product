@@ -18,6 +18,7 @@ import { EditLeaveTypesSheet } from './EditLeaveTypesSheet'
 import { EditLeavePoliciesSheet } from './EditLeavePoliciesSheet'
 import { EditGoogleWorkspaceSheet } from './EditGoogleWorkspaceSheet'
 import { CreateLeaveTypeSheet } from './CreateLeaveTypeSheet'
+import { WorkModeSettings } from './WorkModeSettings'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { getCountryFlag, getLanguageFlag } from '@/lib/flag-utils'
 import { Plus, MoreVertical, X, Lock } from 'lucide-react'
@@ -71,14 +72,15 @@ interface AdminSettingsClientProps {
 export default function AdminSettingsClient({
   currentOrganization: initialOrganization,
   users,
-  leaveTypes,
+  leaveTypes: initialLeaveTypes,
   teams,
   teamMembers
 }: AdminSettingsClientProps) {
   const t = useTranslations('billing')
   const [currentOrganization, setCurrentOrganization] = useState(initialOrganization)
+  const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>(initialLeaveTypes)
   const router = useRouter()
-  
+
   // Tab state management
   const [activeTab, setActiveTab] = useState('general')
   
@@ -254,11 +256,21 @@ export default function AdminSettingsClient({
 
   const handleDeleteLeaveType = (leaveType: LeaveType) => {
     setSelectedLeaveType(leaveType)
-    setDeleteDialogOpen(true)
+    // Add small delay to allow dropdown to fully close and clean up body styles
+    // This prevents pointer-events: none from persisting on body element
+    setTimeout(() => {
+      setDeleteDialogOpen(true)
+    }, 100)
   }
 
   const handleSubmitEdit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!selectedLeaveType?.id) {
+      toast.error('Nie wybrano rodzaju urlopu')
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -271,25 +283,46 @@ export default function AdminSettingsClient({
           days_per_year: formData.days_per_year,
           requires_balance: formData.requires_balance
         })
-        .eq('id', selectedLeaveType?.id)
+        .eq('id', selectedLeaveType.id)
 
       if (updateError) {
         throw new Error(updateError.message || 'Nie udało się zaktualizować rodzaju urlopu')
       }
 
+      // Update local state immediately (optimistic update)
+      setLeaveTypes(prevLeaveTypes =>
+        prevLeaveTypes.map(lt =>
+          lt.id === selectedLeaveType.id
+            ? {
+                ...lt,
+                name: formData.name,
+                days_per_year: formData.days_per_year,
+                requires_balance: formData.requires_balance
+              }
+            : lt
+        )
+      )
+
+      // Show success message
       toast.success('Rodzaj urlopu został zaktualizowany!')
-      setEditDialogOpen(false)
-      router.refresh()
 
     } catch (error) {
       console.error('Error updating leave type:', error)
       toast.error(error instanceof Error ? error.message : 'Wystąpił błąd podczas aktualizacji rodzaju urlopu')
     } finally {
       setLoading(false)
+      // Close dialog after loading is complete
+      setEditDialogOpen(false)
+      setSelectedLeaveType(null)
     }
   }
 
   const handleSubmitDelete = async () => {
+    if (!selectedLeaveType?.id) {
+      toast.error('Nie wybrano rodzaju urlopu')
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -297,28 +330,37 @@ export default function AdminSettingsClient({
 
       // Check if leave type is mandatory (cannot be deleted)
       if (selectedLeaveType?.is_mandatory) {
-        throw new Error('Nie można usunąć obowiązkowego rodzaju urlopu. Ten typ jest wymagany przez polskie prawo pracy.')
+        toast.error('Nie można usunąć obowiązkowego rodzaju urlopu. Ten typ jest wymagany przez polskie prawo pracy.')
+        setLoading(false)
+        return
       }
 
       // Delete the leave type (CASCADE will automatically delete related leave_requests and leave_balances)
       const { error: deleteError } = await supabase
         .from('leave_types')
         .delete()
-        .eq('id', selectedLeaveType?.id)
+        .eq('id', selectedLeaveType.id)
 
       if (deleteError) {
         throw new Error(deleteError.message || 'Nie udało się usunąć rodzaju urlopu')
       }
 
+      // Update local state immediately (optimistic update)
+      setLeaveTypes(prevLeaveTypes =>
+        prevLeaveTypes.filter(lt => lt.id !== selectedLeaveType.id)
+      )
+
+      // Show success message
       toast.success('Rodzaj urlopu został usunięty!')
-      setDeleteDialogOpen(false)
-      router.refresh()
 
     } catch (error) {
       console.error('Error deleting leave type:', error)
       toast.error(error instanceof Error ? error.message : 'Wystąpił błąd podczas usuwania rodzaju urlopu')
     } finally {
       setLoading(false)
+      // Close dialog after loading is complete
+      setDeleteDialogOpen(false)
+      setSelectedLeaveType(null)
     }
   }
 
@@ -339,8 +381,12 @@ export default function AdminSettingsClient({
         throw new Error(result.error || 'Nie udało się utworzyć domyślnych rodzajów urlopów')
       }
 
-      toast.success('Domyślne rodzaje urlopów zostały utworzone!')
-      router.refresh()
+      // Update local state with newly created leave types
+      if (result.data && result.data.length > 0) {
+        setLeaveTypes(prevLeaveTypes => [...prevLeaveTypes, ...result.data])
+      }
+
+      toast.success(result.message || 'Domyślne rodzaje urlopów zostały utworzone!')
 
     } catch (error) {
       console.error('Error creating default leave types:', error)
@@ -524,7 +570,7 @@ export default function AdminSettingsClient({
   }
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="py-11 space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-semibold text-foreground">Ustawienia administracyjne</h1>
@@ -820,7 +866,9 @@ export default function AdminSettingsClient({
                               <div className="flex flex-col gap-0">
                                 <div className="flex items-center gap-2">
                                   {leaveType.is_mandatory && (
-                                    <Lock className="h-4 w-4 text-muted-foreground" title="Obowiązkowy typ urlopu - nie można usunąć" />
+                                    <div title="Obowiązkowy typ urlopu - nie można usunąć">
+                                      <Lock className="h-4 w-4 text-muted-foreground" />
+                                    </div>
                                   )}
                                   <span className="text-sm font-medium text-foreground">
                                     {leaveType.name}
@@ -1487,104 +1535,6 @@ export default function AdminSettingsClient({
             </CardContent>
           </Card>
 
-          {/* Seat Management Card */}
-          <Card className="border border-border">
-            <CardHeader className="pb-0">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1.5">
-                  <CardTitle className="text-xl font-semibold">{t('seatManagement')}</CardTitle>
-                  <CardDescription>
-                    {t('seatManagementDescription')}
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0 pb-6 space-y-6">
-              {subscriptionLoading ? (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-3 gap-6">
-                    <div className="text-center">
-                      <div className="h-8 bg-muted rounded animate-pulse mb-2"></div>
-                      <div className="h-4 bg-muted rounded animate-pulse"></div>
-                    </div>
-                    <div className="text-center">
-                      <div className="h-8 bg-muted rounded animate-pulse mb-2"></div>
-                      <div className="h-4 bg-muted rounded animate-pulse"></div>
-                    </div>
-                    <div className="text-center">
-                      <div className="h-8 bg-muted rounded animate-pulse mb-2"></div>
-                      <div className="h-4 bg-muted rounded animate-pulse"></div>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-3 gap-6">
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-green-600">{getSeatUsage().freeSeats}</div>
-                      <div className="text-sm text-muted-foreground">{t('freeSeatsLabel')}</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-blue-600">{getSeatUsage().paidSeats}</div>
-                      <div className="text-sm text-muted-foreground">{t('paidSeatsLabel')}</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-foreground">{getSeatUsage().total}</div>
-                      <div className="text-sm text-muted-foreground">{t('totalSeatsLabel')}</div>
-                    </div>
-                  </div>
-                  
-                  <div className="w-[400px] space-y-2">
-                    <Label className="text-sm font-medium text-foreground">
-                      {t('currentTeamMembers')}
-                    </Label>
-                    <div className="text-sm text-muted-foreground">
-                      {t('activeTeamMembers', {count: getSeatUsage().used, plural: getSeatUsage().used !== 1 ? 's' : ''})}
-                    </div>
-                  </div>
-                  
-                  {!subscriptionData ? (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                      <div className="space-y-2">
-                        <div className="font-medium text-blue-900 text-sm">
-                          {t('readyToGrow')}
-                        </div>
-                        <div className="text-blue-700 text-sm">
-                          {t('growDescription')}
-                        </div>
-                      </div>
-                    </div>
-                  ) : getSeatUsage().remaining <= 1 ? (
-                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                      <div className="space-y-2">
-                        <div className="font-medium text-amber-900 text-sm">
-                          {getSeatUsage().remaining === 0 ? t('allSeatsInUse') : 'Almost out of seats'}
-                        </div>
-                        <div className="text-amber-700 text-sm">
-                          {getSeatUsage().remaining === 0 
-                            ? t('allSeatsInUse')
-                            : t('almostOutOfSeats', {remaining: getSeatUsage().remaining})
-                          }
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                      <div className="space-y-2">
-                        <div className="font-medium text-green-900 text-sm">
-                          {t('seatsAvailable', {remaining: getSeatUsage().remaining})}
-                        </div>
-                        <div className="text-green-700 text-sm">
-                          {t('inviteMoreMembers')}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
           {/* Billing Override Banner */}
           {currentOrganization?.billing_override_reason && (
             <Card className="border border-blue-200 bg-blue-50">
@@ -1732,17 +1682,7 @@ export default function AdminSettingsClient({
         </FigmaTabsContent>
 
         <FigmaTabsContent value="work-modes" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Dostępne tryby pracy</CardTitle>
-              <CardDescription>
-                Konfiguracja trybów pracy dostępnych w organizacji
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">Ta sekcja będzie wkrótce dostępna.</p>
-            </CardContent>
-          </Card>
+          <WorkModeSettings currentOrganization={currentOrganization} />
         </FigmaTabsContent>
 
         <FigmaTabsContent value="additional-rules" className="mt-6">
@@ -1858,7 +1798,18 @@ export default function AdminSettingsClient({
       </Dialog>
 
       {/* Delete Leave Type Dialog */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+      <Dialog
+        open={deleteDialogOpen}
+        onOpenChange={(open) => {
+          setDeleteDialogOpen(open)
+          // Ensure pointer-events is restored when dialog closes
+          if (!open) {
+            setTimeout(() => {
+              document.body.style.pointerEvents = ''
+            }, 50)
+          }
+        }}
+      >
         <DialogContent className="max-w-md">
           <div className="absolute right-4 top-4 z-10">
             <Button
@@ -1997,6 +1948,10 @@ export default function AdminSettingsClient({
           open={isCreateLeaveTypeSheetOpen}
           onOpenChange={setIsCreateLeaveTypeSheetOpen}
           organizationId={currentOrganization?.id}
+          onSuccess={(newLeaveType) => {
+            // Add new leave type to local state
+            setLeaveTypes(prevLeaveTypes => [...prevLeaveTypes, newLeaveType])
+          }}
         />
     </div>
   )

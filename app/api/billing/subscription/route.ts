@@ -13,6 +13,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { calculateComprehensiveSeatInfo } from '@/lib/billing/seat-calculation';
 import { authenticateAndGetOrgContext } from '@/lib/auth-utils-v2';
+import { getVariantPrice } from '@/lib/lemon-squeezy/pricing';
 
 /**
  * GET handler for retrieving subscription information
@@ -56,23 +57,23 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Count active members using materialized view for 90% faster performance
+    // Count active members using direct query for real-time accuracy
     const serviceClient = createServiceClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    const { data: seatData, error: memberError } = await serviceClient
-      .from('mv_organization_seat_usage')
-      .select('active_seats')
+    const { count: activeMembersCount, error: memberError } = await serviceClient
+      .from('user_organizations')
+      .select('*', { count: 'exact', head: true })
       .eq('organization_id', organizationId)
-      .single();
+      .eq('is_active', true);
 
     if (memberError) {
-      console.error('❌ Seat usage query failed:', memberError);
+      console.error('❌ Active members count query failed:', memberError);
     }
 
-    const currentMembers = seatData?.active_seats || 1; // Default to 1 if query fails
+    const currentMembers = activeMembersCount || 0;
 
     // Count pending invitations that will consume seats when accepted
     const { count: pendingInvitationsCount, error: pendingCountError } = await serviceClient
@@ -92,7 +93,7 @@ export async function GET(request: NextRequest) {
       // Return free tier with comprehensive seat calculation
       const seatInfo = calculateComprehensiveSeatInfo(
         0, // 0 paid seats
-        currentMembers,
+        currentMembersCount,
         pendingInvitations
       );
 
@@ -167,7 +168,7 @@ export async function GET(request: NextRequest) {
 
       const data = await response.json();
       const lsAttrs = data.data.attributes;
-      
+
       console.log(`✅ Found subscription: ${lsAttrs.variant_name} (${lsAttrs.first_subscription_item?.quantity || 'N/A'} seats)`);
 
       const seatInfo = calculateComprehensiveSeatInfo(
@@ -175,6 +176,18 @@ export async function GET(request: NextRequest) {
         currentMembers,
         pendingInvitations
       );
+
+      // Fetch real pricing from variant API using variant_id
+      const variantId = lsAttrs.variant_id?.toString();
+      let variantPrice = null;
+      if (variantId) {
+        try {
+          variantPrice = await getVariantPrice(variantId);
+          console.log(`💰 Fetched variant price: ${variantPrice?.price} ${variantPrice?.currency} (${variantPrice?.interval})`);
+        } catch (error) {
+          console.error('❌ Failed to fetch variant price:', error);
+        }
+      }
 
       const subscriptionData = {
         id: data.data.id,
@@ -194,7 +207,11 @@ export async function GET(request: NextRequest) {
         },
         variant: {
           name: lsAttrs.variant_name,
-          price: lsAttrs.first_subscription_item?.price_id || 0, // Real price from Lemon Squeezy
+          // Price must be in cents for frontend formatCurrency() which divides by 100
+          // getVariantPrice() returns PLN (10.00), so multiply by 100 to get cents (1000)
+          price: variantPrice ? Math.round(variantPrice.price * 100) : 1000, // Price per seat in cents
+          currency: variantPrice?.currency || 'PLN',
+          interval: variantPrice?.interval || 'month',
           quantity: lsAttrs.first_subscription_item?.quantity || orgDetails.paid_seats
         },
         billing_info: {

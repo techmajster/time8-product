@@ -110,6 +110,21 @@ export default async function DashboardPage() {
     .eq('year', new Date().getFullYear())
     .eq('leave_types.requires_balance', true)
 
+  // Get pending leave requests for current user (for balance calculation)
+  const { data: userPendingRequests } = await supabase
+    .from('leave_requests')
+    .select(`
+      *,
+      leave_types (
+        id,
+        name,
+        color
+      )
+    `)
+    .eq('user_id', user.id)
+    .eq('organization_id', profile.organization_id)
+    .eq('status', 'pending')
+
   // Find vacation leave balance
   const vacationBalance = leaveBalances?.find(b => b.leave_types?.name === 'Urlop wypoczynkowy')
   const remainingVacationDays = vacationBalance?.remaining_days || 0
@@ -342,13 +357,17 @@ export default async function DashboardPage() {
   return (
     <AppLayout>
       {/* NewLeaveRequestSheet component for dashboard functionality */}
-      <NewLeaveRequestSheet 
-        leaveTypes={leaveTypes || []} 
-        leaveBalances={leaveBalances || []} 
-        userProfile={profile} 
+      <NewLeaveRequestSheet
+        leaveTypes={leaveTypes || []}
+        leaveBalances={leaveBalances || []}
+        userProfile={profile}
+        pendingRequests={(userPendingRequests || []).map(req => ({
+          leave_type_id: req.leave_types?.id || '',
+          days_requested: req.days_requested
+        }))}
       />
       
-      <div className="p-8">
+      <div className="py-11">
         <div className="flex flex-col gap-6">
           {/* Greeting Section */}
           <div className="flex items-center justify-between py-2">

@@ -99,8 +99,8 @@ function AddUsersPageContent() {
           console.warn('⚠️ Failed to load pricing, using fallback')
           // Set fallback pricing
           setPricingInfo({
-            monthlyPricePerSeat: 12.99,
-            annualPricePerSeat: 10.83,
+            monthlyPricePerSeat: 10.00,
+            annualPricePerSeat: 8.00,
             currency: 'PLN',
             monthlyVariantId: '972634',
             yearlyVariantId: '972635'
@@ -110,8 +110,8 @@ function AddUsersPageContent() {
         console.error('❌ Error loading pricing:', error)
         // Use fallback pricing
         setPricingInfo({
-          monthlyPricePerSeat: 12.99,
-          annualPricePerSeat: 10.83,
+          monthlyPricePerSeat: 10.00,
+          annualPricePerSeat: 8.00,
           currency: 'PLN',
           monthlyVariantId: '972634',
           yearlyVariantId: '972635'
