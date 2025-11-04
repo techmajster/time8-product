@@ -29,13 +29,13 @@
   - [x] 3.5 Add API call logging for debugging
   - [x] 3.6 Verify all tests pass
 
-- [ ] 4. Webhook Handler Enhancements
-  - [ ] 4.1 Write tests for subscription_payment_success with pending changes
-  - [ ] 4.2 Extend subscription_payment_success handler to apply pending seat changes
-  - [ ] 4.3 Implement user archival logic at renewal (status: pending_removal → archived)
-  - [ ] 4.4 Add webhook logging for pending change applications
-  - [ ] 4.5 Handle edge cases (no pending changes, already synced, etc.)
-  - [ ] 4.6 Verify all tests pass
+- [x] 4. Webhook Handler Enhancements
+  - [x] 4.1 Write tests for subscription_payment_success with pending changes
+  - [x] 4.2 Extend subscription_payment_success handler to apply pending seat changes
+  - [x] 4.3 Implement user archival logic at renewal (status: pending_removal → archived)
+  - [x] 4.4 Add webhook logging for pending change applications
+  - [x] 4.5 Handle edge cases (no pending changes, already synced, etc.)
+  - [x] 4.6 Verify all tests pass
 
 - [ ] 5. User Management Logic
   - [ ] 5.1 Write tests for removeUser function with grace period

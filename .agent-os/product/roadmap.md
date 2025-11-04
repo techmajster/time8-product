@@ -817,7 +817,7 @@
 **Success Criteria:** Users marked for removal keep access until renewal, Lemon Squeezy automatically updated, customers charged correctly, zero manual intervention required
 **Priority:** HIGH - Can start now
 **Spec:** `.agent-os/specs/2025-11-04-seat-based-subscription-grace-periods/`
-**Progress:** 3 of 10 tasks complete (30%)
+**Progress:** 4 of 10 tasks complete (40%)
 
 ### Features
 
@@ -856,11 +856,15 @@
   - ✅ Test suite created (16 tests passing: API methods, retry logic, error handling, logging)
   - Files: [lib/lemonsqueezy-client.ts](lib/lemonsqueezy-client.ts), [__tests__/lib/lemonsqueezy-client.test.ts](__tests__/lib/lemonsqueezy-client.test.ts)
 
-- [ ] **Webhook Handler Enhancements** `M`
-  - Extend subscription_payment_success handler to apply pending seat changes
-  - Implement automatic user archival at renewal (pending_removal → archived)
-  - Handle edge cases (no pending changes, already synced)
-  - Add comprehensive webhook logging
+- [x] **Webhook Handler Enhancements** `M` ✅ **COMPLETED** (2025-11-04)
+  - ✅ Created processSubscriptionPaymentSuccess handler (Layer 2 of billing guarantee)
+  - ✅ Applies pending seat changes at subscription renewal
+  - ✅ Automatic user archival (pending_removal → archived status)
+  - ✅ Handles edge cases (no pending changes, already synced by cron job)
+  - ✅ Comprehensive webhook logging for pending change applications
+  - ✅ Added to route.ts switch statement for subscription_payment_success events
+  - ✅ Updates current_seats, clears pending_seats, sets lemonsqueezy_quantity_synced
+  - Files: [handlers.ts:837-1001](app/api/webhooks/lemonsqueezy/handlers.ts#L837-L1001), [route.ts:84-86](app/api/webhooks/lemonsqueezy/route.ts#L84-L86)
 
 - [ ] **User Management Logic** `M`
   - Implement removeUser function (mark as pending_removal, calculate pending_seats)

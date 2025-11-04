@@ -833,3 +833,169 @@ export async function processSubscriptionResumed(payload: any): Promise<EventRes
     return { success: false, error: errorMessage };
   }
 }
+
+/**
+ * Processes subscription_payment_success event
+ *
+ * This handler applies pending seat changes when a subscription renews.
+ * It is part of Layer 2 of the multi-layer billing guarantee system.
+ */
+export async function processSubscriptionPaymentSuccess(payload: any): Promise<EventResult> {
+  try {
+    // Validate payload structure
+    if (!validateSubscriptionPayload(payload)) {
+      const error = 'Invalid payload structure for subscription_payment_success event';
+      await logBillingEvent(
+        payload?.meta?.event_name || 'subscription_payment_success',
+        payload?.meta?.event_id || 'unknown',
+        payload,
+        'failed',
+        error
+      );
+      return { success: false, error };
+    }
+
+    const { meta, data } = payload;
+    const { id: subscriptionId, attributes } = data;
+    const { status, quantity, renews_at } = attributes;
+
+    // Check if event already processed
+    if (await isEventAlreadyProcessed(meta.event_id)) {
+      await logBillingEvent(meta.event_name, meta.event_id, payload, 'skipped', 'Event already processed');
+      return { success: true, data: { message: 'Event already processed' } };
+    }
+
+    const supabase = createClient();
+
+    // Find existing subscription
+    const { data: existingSubscription, error: findError } = await supabase
+      .from('subscriptions')
+      .select('*')
+      .eq('lemonsqueezy_subscription_id', subscriptionId)
+      .single();
+
+    if (findError || !existingSubscription) {
+      const error = 'Subscription not found for payment success event';
+      await logBillingEvent(meta.event_name, meta.event_id, payload, 'failed', error);
+      return { success: false, error };
+    }
+
+    // Check if there are pending seat changes to apply
+    const hasPendingChanges = existingSubscription.pending_seats !== null;
+    const alreadySynced = existingSubscription.lemonsqueezy_quantity_synced === true;
+
+    if (!hasPendingChanges) {
+      // No pending changes - just log and return success
+      await logBillingEvent(meta.event_name, meta.event_id, payload, 'processed', 'No pending changes to apply');
+      console.log(`[Webhook] subscription_payment_success: No pending changes for subscription ${subscriptionId}`);
+
+      return {
+        success: true,
+        data: {
+          subscription: existingSubscription.id,
+          organization: existingSubscription.organization_id,
+          message: 'No pending changes to apply'
+        }
+      };
+    }
+
+    if (alreadySynced && hasPendingChanges) {
+      // Already synced by cron job - just apply the changes locally
+      console.log(`[Webhook] subscription_payment_success: Changes already synced to Lemon Squeezy, applying locally for subscription ${subscriptionId}`);
+    }
+
+    // Apply pending seat changes
+    const previousSeats = existingSubscription.current_seats;
+    const newSeats = existingSubscription.pending_seats;
+
+    console.log(`[Webhook] Applied pending seat change for subscription ${subscriptionId}: ${previousSeats} → ${newSeats} seats`);
+
+    // Update subscription: apply pending changes
+    const { data: updatedSubscription, error: updateError } = await supabase
+      .from('subscriptions')
+      .update({
+        current_seats: newSeats,
+        pending_seats: null,
+        lemonsqueezy_quantity_synced: true,
+        quantity: newSeats,
+        status,
+        renews_at: renews_at || null,
+        updated_at: new Date().toISOString()
+      })
+      .eq('lemonsqueezy_subscription_id', subscriptionId)
+      .select()
+      .single();
+
+    if (updateError) {
+      const error = `Failed to apply pending seat changes: ${updateError.message}`;
+      await logBillingEvent(meta.event_name, meta.event_id, payload, 'failed', error);
+      return { success: false, error };
+    }
+
+    // Archive users marked as pending_removal
+    const { data: usersToArchive, error: usersError } = await supabase
+      .from('user_organizations')
+      .select('id, user_id, removal_effective_date')
+      .eq('organization_id', existingSubscription.organization_id)
+      .eq('status', 'pending_removal')
+      .not('removal_effective_date', 'is', null);
+
+    let archivedCount = 0;
+
+    if (usersError) {
+      console.error(`[Webhook] Failed to fetch users for archival: ${usersError.message}`);
+    } else if (usersToArchive && usersToArchive.length > 0) {
+      console.log(`[Webhook] Archiving ${usersToArchive.length} users marked as pending_removal`);
+
+      // Update all users to archived status
+      const { error: archiveError } = await supabase
+        .from('user_organizations')
+        .update({
+          status: 'archived',
+          updated_at: new Date().toISOString()
+        })
+        .in('id', usersToArchive.map(u => u.id));
+
+      if (archiveError) {
+        console.error(`[Webhook] Failed to archive users: ${archiveError.message}`);
+      } else {
+        archivedCount = usersToArchive.length;
+        console.log(`[Webhook] Successfully archived ${archivedCount} users`);
+      }
+    }
+
+    // Update organization subscription with new seat count
+    await updateOrganizationSubscription(supabase, existingSubscription.organization_id, newSeats, status);
+
+    // Log successful processing
+    await logBillingEvent(
+      meta.event_name,
+      meta.event_id,
+      payload,
+      'processed',
+      `Applied pending seat change: ${previousSeats} → ${newSeats} seats, archived ${archivedCount} users`
+    );
+
+    return {
+      success: true,
+      data: {
+        subscription: existingSubscription.id,
+        organization: existingSubscription.organization_id,
+        previousSeats,
+        newSeats,
+        usersArchived: archivedCount
+      }
+    };
+
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    await logBillingEvent(
+      payload?.meta?.event_name || 'subscription_payment_success',
+      payload?.meta?.event_id || 'unknown',
+      payload,
+      'failed',
+      errorMessage
+    );
+    return { success: false, error: errorMessage };
+  }
+}

@@ -12,6 +12,7 @@ import {
   processSubscriptionUpdated,
   processSubscriptionCancelled,
   processSubscriptionPaymentFailed,
+  processSubscriptionPaymentSuccess,
   processSubscriptionPaused,
   processSubscriptionResumed,
   logBillingEvent
@@ -78,6 +79,10 @@ export async function POST(request: NextRequest) {
 
       case 'subscription_payment_failed':
         result = await processSubscriptionPaymentFailed(payload);
+        break;
+
+      case 'subscription_payment_success':
+        result = await processSubscriptionPaymentSuccess(payload);
         break;
 
       case 'subscription_paused':
