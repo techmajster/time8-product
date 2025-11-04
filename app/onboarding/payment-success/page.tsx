@@ -202,7 +202,7 @@ function PaymentSuccessPageContent() {
           <Image
             alt="time8 logo"
             className="block h-[30px] w-auto"
-            src="/assets/auth/30f1f246576f6427b3a9b511194297cbba4d7ec6.svg"
+            src="/auth-assets/30f1f246576f6427b3a9b511194297cbba4d7ec6.svg"
             width={108}
             height={30}
             priority
@@ -239,7 +239,7 @@ function PaymentSuccessPageContent() {
           <Image
             alt="time8 logo"
             className="block h-[30px] w-auto"
-            src="/assets/auth/30f1f246576f6427b3a9b511194297cbba4d7ec6.svg"
+            src="/auth-assets/30f1f246576f6427b3a9b511194297cbba4d7ec6.svg"
             width={108}
             height={30}
             priority
@@ -278,7 +278,7 @@ function PaymentSuccessPageContent() {
         <Image
           alt="time8 logo"
           className="block h-[30px] w-auto"
-          src="/assets/auth/30f1f246576f6427b3a9b511194297cbba4d7ec6.svg"
+          src="/auth-assets/30f1f246576f6427b3a9b511194297cbba4d7ec6.svg"
           width={108}
           height={30}
           priority

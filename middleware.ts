@@ -52,6 +52,7 @@ export async function middleware(request: NextRequest) {
     '/favicon.ico',
     '/_next',
     '/images',
+    '/auth-assets', // Allow auth page assets to load without authentication
   ]
 
   // Public API routes

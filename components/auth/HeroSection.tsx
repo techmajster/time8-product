@@ -60,12 +60,14 @@ export function HeroSection() {
             </div>
 
             {/* Noise texture overlay */}
-            <div
-              className="absolute bg-repeat bg-[length:233.333px_233.333px] bg-[position:0_0] bottom-[-50%] left-0 mix-blend-color-burn opacity-50 right-[-50%] top-0"
-              style={{
-                backgroundImage: "url('/auth-assets/a8f3fbe5b79280c3b93294ff3d6f0599355a660a.png')"
-              }}
-            />
+            <div className="absolute bottom-[-50%] left-0 right-[-50%] top-0 opacity-50 mix-blend-color-burn">
+              <div
+                className="absolute inset-0 bg-repeat bg-[length:233.333px_233.333px]"
+                style={{
+                  backgroundImage: `url('/auth-assets/a8f3fbe5b79280c3b93294ff3d6f0599355a660a.png')`
+                }}
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -80,7 +82,6 @@ export function HeroSection() {
             width={528}
             height={806}
             priority
-            unoptimized
           />
         </div>
       </div>
