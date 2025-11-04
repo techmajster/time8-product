@@ -45,3 +45,6 @@ next-env.d.ts
 docs/*.csv
 fix_szymon_balances.sql
 scripts/fix-szymon-balances.js
+
+# Vercel setup scripts (contain production secrets)
+setup-vercel-env.sh
