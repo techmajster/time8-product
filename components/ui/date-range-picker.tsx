@@ -101,6 +101,28 @@ export function DateRangePicker({
   const selectedRange = value || date
   const handleChange = onDateRangeChange || onDateChange
 
+  // Custom handler to fix double-click issue when changing date ranges
+  const handleRangeSelect = React.useCallback((newRange: DateRange | undefined) => {
+    // If we currently have a complete range selected (both from and to dates)
+    if (selectedRange?.from && selectedRange?.to && newRange?.from && newRange?.to) {
+      // Check if this is actually a new date being clicked
+      const fromChanged = selectedRange.from.getTime() !== newRange.from.getTime()
+      const toChanged = selectedRange.to.getTime() !== newRange.to.getTime()
+
+      // If both dates changed, user clicked a date outside the existing range
+      // Reset to start a new selection with just that date
+      if (fromChanged && toChanged) {
+        // The 'to' date in newRange is the date the user just clicked
+        // Set it as the new 'from' date and clear 'to' to start fresh
+        handleChange?.({ from: newRange.to, to: undefined })
+        return
+      }
+    }
+
+    // For all other cases (incomplete ranges, extending ranges, etc.), use default behavior
+    handleChange?.(newRange)
+  }, [selectedRange, handleChange])
+
   // Helper function to check if a date is a weekend based on working days
   const isWeekend = React.useCallback((date: Date): boolean => {
     const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
@@ -241,7 +263,7 @@ export function DateRangePicker({
             mode="range"
             defaultMonth={selectedRange?.from}
             selected={selectedRange}
-            onSelect={handleChange}
+            onSelect={handleRangeSelect}
             numberOfMonths={2}
             weekStartsOn={1}
             locale={dateLocale}
