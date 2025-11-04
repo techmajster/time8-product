@@ -831,14 +831,20 @@
   - ✅ Test suite created and passing (schema validation tests)
   - Files: [migrations/20251104000000_add_seat_management_to_subscriptions.sql](supabase/migrations/20251104000000_add_seat_management_to_subscriptions.sql), [migrations/20251104000001_add_seat_management_to_user_organizations.sql](supabase/migrations/20251104000001_add_seat_management_to_user_organizations.sql), [migrations/20251104000002_create_alerts_table.sql](supabase/migrations/20251104000002_create_alerts_table.sql)
 
-- [x] **Background Jobs Infrastructure** `M` ✅ **COMPLETED** (2025-11-04)
+- [x] **Background Jobs Infrastructure** `M` ✅ **COMPLETED** (2025-11-04) ⚠️ **REMOVED FROM PRODUCTION**
   - ✅ Implemented ApplyPendingSubscriptionChangesJob (runs every 6 hours, updates Lemon Squeezy 24-48h before renewal)
   - ✅ Implemented ReconcileSubscriptionsJob (runs daily at 3 AM, verifies DB vs Lemon Squeezy, sends alerts)
   - ✅ Configured cron scheduling in vercel.json
   - ✅ Added comprehensive monitoring and error handling (authorization, API checks, alert creation)
   - ✅ Test suite created (10 tests passing: authorization, API config, manual triggers)
   - ✅ Both jobs integrate with alerts table for success/failure tracking
-  - Files: [api/cron/apply-pending-subscription-changes/route.ts](app/api/cron/apply-pending-subscription-changes/route.ts), [api/cron/reconcile-subscriptions/route.ts](app/api/cron/reconcile-subscriptions/route.ts), [vercel.json:26-33](vercel.json#L26-L33)
+  - ⚠️ **NOTE:** Cron job routes temporarily removed from production (commit fb516aa) until Vercel cron is properly configured
+  - **TODO:** Re-add cron jobs after Vercel cron configuration is complete:
+    - Configure Vercel cron in project settings
+    - Restore files: `app/api/cron/apply-pending-subscription-changes/route.ts`, `app/api/cron/reconcile-subscriptions/route.ts`
+    - Restore tests: `__tests__/cron/apply-pending-subscription-changes.test.ts`, `__tests__/cron/reconcile-subscriptions.test.ts`
+    - Verify cron scheduling in vercel.json
+  - Files: [vercel.json:26-33](vercel.json#L26-L33) (cron config still present)
 
 - [x] **Lemon Squeezy API Integration** `S` ✅ **COMPLETED** (2025-11-04)
   - ✅ Created reusable LemonSqueezyClient class with TypeScript interfaces
