@@ -809,6 +809,125 @@
 **Success Criteria:** DRY data fetching with consistent query keys, centralized cache management, reduced code duplication
 **Completed:** 2025-11-03
 
+---
+
+## Phase 2.10: Lemon Squeezy Seat Management with Grace Periods 💳
+
+**Goal:** Implement comprehensive seat-based subscription management with user grace periods and automatic billing synchronization
+**Success Criteria:** Users marked for removal keep access until renewal, Lemon Squeezy automatically updated, customers charged correctly, zero manual intervention required
+**Priority:** HIGH - Can start now
+**Spec:** `.agent-os/specs/2025-11-04-seat-based-subscription-grace-periods/`
+
+### Features
+
+- [ ] **Database Schema Extensions** `S`
+  - Add tracking columns to subscriptions table (current_seats, pending_seats, lemonsqueezy_quantity_synced, lemonsqueezy_subscription_item_id)
+  - Extend users table with removal_effective_date and new status values (pending_removal, archived)
+  - Create alerts table for billing discrepancy monitoring
+  - Add indexes for performance optimization
+
+- [ ] **Background Jobs Infrastructure** `M`
+  - ApplyPendingSubscriptionChangesJob (runs every 6 hours, updates Lemon Squeezy 24h before renewal)
+  - ReconcileSubscriptionsJob (runs daily, verifies DB vs Lemon Squeezy, sends alerts)
+  - Configure job scheduling with GoodJob/Sidekiq cron
+  - Add job monitoring and error handling
+
+- [ ] **Lemon Squeezy API Integration** `S`
+  - Add updateSubscriptionItem method for quantity updates
+  - Add getSubscriptionItem method for reconciliation
+  - Implement retry logic for API failures
+  - Add API call logging for debugging
+
+- [ ] **Webhook Handler Enhancements** `M`
+  - Extend subscription_payment_success handler to apply pending seat changes
+  - Implement automatic user archival at renewal (pending_removal → archived)
+  - Handle edge cases (no pending changes, already synced)
+  - Add comprehensive webhook logging
+
+- [ ] **User Management Logic** `M`
+  - Implement removeUser function (mark as pending_removal, calculate pending_seats)
+  - Implement reactivateUser function (check seat availability, update status)
+  - Update seat calculation logic to include pending_removal users in counts
+  - Add admin-only permissions validation
+
+- [ ] **Alert Service** `S`
+  - Implement alertService.critical method (Slack, email, database)
+  - Configure Slack webhook URL and admin email addresses
+  - Test alert delivery in development environment
+
+- [ ] **Admin UI Components** `L`
+  - Create UserStatusBadge component (pending_removal, archived badges)
+  - Create SubscriptionWidget component (current/pending seats, renewal date)
+  - Create PendingChangesSection component (list pending removals with cancel option)
+  - Add archived users view with reactivation button
+  - Integrate components into existing admin pages
+
+- [ ] **API Endpoints** `S`
+  - Create GET /api/admin/pending-changes endpoint
+  - Create POST /api/admin/cancel-removal/:userId endpoint
+  - Create POST /api/admin/reactivate-user/:userId endpoint
+  - Add authorization middleware (admin only)
+
+- [ ] **Integration Testing** `M`
+  - E2E test for complete user removal flow with grace period
+  - E2E test for user reactivation flow
+  - E2E test for multiple removals in same billing period
+  - E2E test for background job execution cycle
+  - E2E test for webhook processing at renewal
+  - Test with Lemon Squeezy test mode sandbox
+
+- [ ] **Documentation and Deployment** `S`
+  - Update README with seat management feature documentation
+  - Document environment variables needed (Slack webhook, admin email)
+  - Create runbook for responding to critical alerts
+  - Update deployment checklist with new background jobs
+  - Deploy to staging and run smoke tests
+  - Monitor for 24 hours post-deployment
+  - Mark billing roadmap issues as complete
+
+### Dependencies
+
+- Phase 2.6 complete (stale seat data fixed) ✅
+- Existing Lemon Squeezy integration ✅
+- Webhook infrastructure in place ✅
+- Background job processor configured (GoodJob/Sidekiq)
+
+### Technical Approach
+
+**Architecture Pattern:**
+- YOUR DATABASE → Source of truth for seat tracking
+- YOUR APPLICATION → Enforces access control
+- LEMON SQUEEZY → Handles billing only (updated by application)
+
+**Multi-Layer Billing Guarantees:**
+1. **Layer 1:** Proactive update 24h before renewal (scheduled job)
+2. **Layer 2:** Webhook confirmation at renewal
+3. **Layer 3:** Daily reconciliation job
+4. **Layer 4:** Admin dashboard monitoring
+5. **Layer 5:** Critical alerts for discrepancies
+
+### Integration Points
+
+**Extends Existing Code:**
+- `/app/api/webhooks/lemonsqueezy/handlers.ts` - Add archival logic
+- `/lib/billing/seat-calculation.ts` - Add grace period logic
+- Database schema - Add tracking fields
+- User management - Add removal/archival flows
+
+**New Code Required:**
+- Background jobs (2 new jobs)
+- Admin dashboard components
+- Reconciliation service
+- Alert service integration
+
+### Estimated Impact
+
+- Fair billing: Customers only pay for active seats
+- Better UX: Users keep access through paid periods
+- Zero manual intervention for normal operations
+- Automatic billing accuracy guarantees
+- Historical data preservation via archival system
+
 ### Features
 
 - [x] **Create Shared Query Hooks** `M` ✅

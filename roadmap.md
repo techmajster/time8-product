@@ -13,36 +13,34 @@ This document outlines a comprehensive plan to fix critical billing page pricing
 
 ## Critical Issues Identified
 
-### Issue 0: Incorrect Paid Seats Calculation ⚠️ MOST CRITICAL
+### Issue 0: Incorrect Paid Seats Calculation ⚠️ MOST CRITICAL ✅ **FIXED**
 **Problem:** System calculates paid seats as `quantity - 3` instead of "all seats paid when 4+ users"
-**Current Behavior:** 6 users = 3 paid seats (6-3)
-**Required Behavior:** 6 users = 6 paid seats (all paid when 4+)
-**Root Cause:** Wrong formula in `/lib/billing/seat-calculation.ts` line 18, and propagated to all billing code
-**Impact:**
-- **Billing discrepancy** - LemonSqueezy charges for 6 seats, but database shows 3 paid seats
-- Incorrect seat limits displayed to users
-- Potential revenue loss or customer confusion
-- **MUST BE FIXED FIRST** before other enhancements
+**Status:** ✅ **RESOLVED** - All calculation formulas updated to use correct "all paid when 4+" logic
+**Fixed In:**
+- `/lib/billing/seat-calculation.ts` - Core calculation function
+- `/app/api/webhooks/lemonsqueezy/handlers.ts` - Webhook handler
+- Verified in codebase analysis (2025-11-04)
 
-### Issue 1: Incorrect Pricing Display
+### Issue 1: Incorrect Pricing Display ✅ **FIXED**
 **Problem:** Billing page shows "15,143.56 zł za miejsce" instead of "12.99 PLN"
-**Root Cause:** Line 197 in `/app/api/billing/subscription/route.ts` uses `price_id` (UUID like `1514356`) instead of actual `price` value
-**Impact:** Users see confusing and incorrect pricing information
+**Status:** ✅ **RESOLVED** - Now uses correct price value from variant API
+**Fixed In:** Phase 2.5 & 2.6 (Subscription System Enhancement)
 
-### Issue 2: Variant Changes Ignored
+### Issue 2: Variant Changes Ignored ✅ **FIXED**
 **Problem:** When user switches from Monthly→Yearly plan, variant change is not stored
-**Root Cause:** Database column `lemonsqueezy_variant_id` was removed in migration `20250828210000`
-**Impact:** No tracking of which plan (monthly/yearly) user currently has
+**Status:** ✅ **RESOLVED** - `lemonsqueezy_variant_id` column restored via migration `20251103103912_add_variant_id_to_subscriptions.sql`
+**Fixed In:** Migration applied to production
 
-### Issue 3: Silent Variant-Only Changes
+### Issue 3: Silent Variant-Only Changes ✅ **FIXED**
 **Problem:** When user changes variant but keeps same seat count (Monthly 6→Yearly 6), webhook handler doesn't trigger organization update
-**Root Cause:** Line 441-443 in `handlers.ts` only checks `quantity` changes, not `variant_id` changes
-**Impact:** Critical scenario failure - variant changes are completely undetected
+**Status:** ✅ **RESOLVED** - Webhook handler now checks both `variant_id` AND `quantity` changes
+**Fixed In:** `/app/api/webhooks/lemonsqueezy/handlers.ts` (lines 442-463)
+**Verification:** Codebase analysis confirmed proper detection logic implemented
 
-### Issue 4: Missing Audit Trail
+### Issue 4: Missing Audit Trail ✅ **FIXED**
 **Problem:** No historical record of plan changes in database
-**Root Cause:** Variant information not persisted
-**Impact:** Cannot analyze subscription patterns or troubleshoot billing issues
+**Status:** ✅ **RESOLVED** - Variant information now persisted in subscriptions table
+**Fixed In:** Database schema + webhook handlers
 
 ---
 
