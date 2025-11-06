@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
-import { RefreshCw, TriangleAlert } from 'lucide-react'
+import { RefreshCw, TriangleAlert, Loader2 } from 'lucide-react'
 import { DecorativeBackground } from '@/components/auth/DecorativeBackground'
 import { LanguageDropdown } from '@/components/auth/LanguageDropdown'
 import Image from 'next/image'
@@ -100,7 +100,7 @@ function PaymentFailurePageContent() {
 
 export default function PaymentFailurePage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="size-8 animate-spin text-muted-foreground" /></div>}>
       <PaymentFailurePageContent />
     </Suspense>
   )

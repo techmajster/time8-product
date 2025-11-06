@@ -62,6 +62,7 @@ export default function OnboardingRoutingPage() {
             // Map API response to expected format
             const mappedInvitation = {
               ...invitation,
+              organizationId: invitation.organization_id,
               organizationName: invitation.organization_name,
               inviterName: invitation.full_name, // This is the invited person's name
               inviterEmail: invitation.email, // This is the invited person's email

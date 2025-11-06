@@ -18,6 +18,7 @@ export interface OrganizationStatusResponse {
   }>
   pendingInvitations: Array<{
     id: string
+    organizationId: string
     organizationName: string
     organizationInitials: string
     inviterName: string

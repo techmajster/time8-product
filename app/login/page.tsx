@@ -4,6 +4,7 @@ import { Suspense, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useTranslations, useLocale } from 'next-intl'
 import Image from 'next/image'
+import { Loader2 } from 'lucide-react'
 import { LoginForm } from "./components/LoginForm"
 import { SignupForm } from "./components/SignupForm"
 import { ForgotPasswordForm } from "./components/ForgotPasswordForm"
@@ -111,7 +112,7 @@ function LoginPageContent() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="size-8 animate-spin text-muted-foreground" /></div>}>
       <LoginPageContent />
     </Suspense>
   )

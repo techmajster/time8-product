@@ -14,7 +14,7 @@ import { PricingInfo, calculatePricing } from '@/lib/lemon-squeezy/pricing'
 import { DecorativeBackground } from '@/components/auth/DecorativeBackground'
 import { LanguageDropdown } from '@/components/auth/LanguageDropdown'
 import { UserPlusIcon } from '@/components/onboarding/icons'
-import { Minus, Plus } from 'lucide-react'
+import { Minus, Plus, Loader2 } from 'lucide-react'
 
 function AddUsersPageContent() {
   const t = useTranslations('onboarding.addUsers')
@@ -499,7 +499,7 @@ export default function AddUsersPage() {
   return (
     <Suspense fallback={
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-muted-foreground">Loading...</div>
+        <Loader2 className="size-8 animate-spin text-muted-foreground" />
       </div>
     }>
       <AddUsersPageContent />

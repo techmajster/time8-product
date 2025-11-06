@@ -1022,7 +1022,7 @@ export default function AddAbsenceSheet({ preloadedEmployees, userRole, activeOr
 
   return (
     <Sheet open={isOpen} onOpenChange={handleSheetClose}>
-      <Suspense fallback={<div>Loading...</div>}>
+      <Suspense fallback={<div className="flex items-center justify-center p-8"><Loader2 className="size-8 animate-spin text-muted-foreground" /></div>}>
         <AddAbsenceSheetContent
           ref={contentRef}
           preloadedEmployees={preloadedEmployees}
