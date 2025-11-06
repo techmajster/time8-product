@@ -76,16 +76,38 @@ export default async function TeamPage() {
     // Use admin client for bypassing RLS issues
     const supabaseAdmin = createAdminClient()
     
-    // Get all teams
+    // Get all teams with manager information
     const { data: teams } = await supabaseAdmin
       .from('teams')
       .select(`
         id,
         name,
-        color
+        color,
+        manager_id,
+        manager:profiles!teams_manager_id_fkey (
+          id,
+          full_name,
+          email
+        )
       `)
       .eq('organization_id', profile.organization_id)
       .order('name')
+
+    // Get organization admins for fallback approver
+    const { data: orgAdmins } = await supabaseAdmin
+      .from('user_organizations')
+      .select(`
+        user_id,
+        profiles!user_organizations_user_id_fkey (
+          id,
+          full_name,
+          email
+        )
+      `)
+      .eq('organization_id', profile.organization_id)
+      .eq('role', 'admin')
+      .eq('is_active', true)
+      .limit(1)
 
     // MULTI-ORG UPDATE: Get all team members via user_organizations using admin client
     const { data: rawTeamMembers } = await supabaseAdmin
@@ -103,7 +125,13 @@ export default async function TeamPage() {
         teams!user_organizations_team_id_fkey (
           id,
           name,
-          color
+          color,
+          manager_id,
+          manager:profiles!teams_manager_id_fkey (
+            id,
+            full_name,
+            email
+          )
         )
       `)
       .eq('organization_id', profile.organization_id)
@@ -146,6 +174,11 @@ export default async function TeamPage() {
       .eq('year', new Date().getFullYear())
       .eq('leave_types.requires_balance', true)
 
+    // Get fallback admin approver
+    const fallbackAdmin = orgAdmins?.[0]?.profiles
+      ? (Array.isArray(orgAdmins[0].profiles) ? orgAdmins[0].profiles[0] : orgAdmins[0].profiles)
+      : null
+
     return (
       <AppLayout>
         <AdminTeamView
@@ -154,6 +187,7 @@ export default async function TeamPage() {
           initialLeaveBalances={leaveBalances || []}
           teams={teams || []}
           currentUser={profile}
+          fallbackAdmin={fallbackAdmin}
         />
       </AppLayout>
     )
@@ -163,6 +197,22 @@ export default async function TeamPage() {
   // Get team scope for manager (only their team)
   const teamScope = await getUserTeamScope(user.id)
   const teamMemberIds = await getTeamMemberIds(teamScope)
+
+  // Get the manager's team information with manager details
+  const { data: managerTeam } = await supabase
+    .from('teams')
+    .select(`
+      id,
+      name,
+      manager_id,
+      manager:profiles!teams_manager_id_fkey (
+        id,
+        full_name,
+        email
+      )
+    `)
+    .eq('id', userOrg.team_id || '')
+    .single()
 
   // MULTI-ORG UPDATE: Get team members via user_organizations (team-scoped)
   const { data: rawTeamMembers } = await supabase
@@ -180,7 +230,13 @@ export default async function TeamPage() {
       teams!user_organizations_team_id_fkey (
         id,
         name,
-        color
+        color,
+        manager_id,
+        manager:profiles!teams_manager_id_fkey (
+          id,
+          full_name,
+          email
+        )
       )
     `)
     .in('user_id', teamMemberIds)
@@ -248,6 +304,11 @@ export default async function TeamPage() {
     user_profile: Array.isArray(request.user_profile) ? request.user_profile[0] : request.user_profile
   })) || []
 
+  // Get the manager info from the team
+  const teamManager = managerTeam?.manager
+    ? (Array.isArray(managerTeam.manager) ? managerTeam.manager[0] : managerTeam.manager)
+    : null
+
   return (
     <AppLayout>
       <ManagerTeamView
@@ -257,6 +318,7 @@ export default async function TeamPage() {
         initialLeaveBalances={leaveBalances || []}
         leaveRequests={leaveRequests}
         managerName={profile.full_name || 'Manager'}
+        teamManager={teamManager}
       />
     </AppLayout>
   )

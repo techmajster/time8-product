@@ -22,17 +22,17 @@ export async function PUT(
     const auth = await authenticateAndGetOrgContext()
     if (!auth.success) return auth.error
     const { context } = auth
-    const { user, organization } = context
+    const { user, organization, role } = context
     const organizationId = organization.id
+    const isManager = role === 'admin' || role === 'manager'
 
     const supabase = await createClient()
 
-    // Get the existing leave request to verify ownership
+    // Get the existing leave request (allow admins/managers to edit any request in their org)
     const { data: existingRequest, error: fetchError } = await supabase
       .from('leave_requests')
       .select('*')
       .eq('id', requestId)
-      .eq('user_id', user.id) // Only allow users to edit their own requests
       .eq('organization_id', organizationId)
       .single()
 
@@ -40,6 +40,15 @@ export async function PUT(
       return NextResponse.json(
         { error: 'Leave request not found or access denied' },
         { status: 404 }
+      )
+    }
+
+    // Permission check: user must own the request OR be an admin/manager
+    const isOwnRequest = existingRequest.user_id === user.id
+    if (!isOwnRequest && !isManager) {
+      return NextResponse.json(
+        { error: 'You do not have permission to edit this leave request' },
+        { status: 403 }
       )
     }
 
@@ -84,12 +93,27 @@ export async function PUT(
         updated_at: new Date().toISOString()
       }
 
-      // If the request was previously approved or rejected, reset to pending for re-approval
-      if (existingRequest.status === 'approved' || existingRequest.status === 'rejected') {
-        updateData.status = 'pending'
-        updateData.reviewed_by = null
-        updateData.reviewed_at = null
-        updateData.review_comment = null
+      // Add audit trail when admin/manager edits another user's request
+      if (!isOwnRequest && isManager) {
+        updateData.edited_by = user.id
+        updateData.edited_at = new Date().toISOString()
+      }
+
+      // Handle status changes based on who is editing
+      if (isManager) {
+        // Admin/manager edits: keep current status (approved stays approved, pending stays pending)
+        // No status change needed - admin edits preserve the status
+      } else if (isOwnRequest) {
+        // Employee editing their own request
+        // If previously rejected, reset to pending for re-review
+        if (existingRequest.status === 'rejected') {
+          updateData.status = 'pending'
+          updateData.reviewed_by = null
+          updateData.reviewed_at = null
+          updateData.review_comment = null
+        }
+        // If approved, this shouldn't happen (blocked by start date check above)
+        // If pending, status stays pending
       }
 
       const { error: updateError } = await supabase

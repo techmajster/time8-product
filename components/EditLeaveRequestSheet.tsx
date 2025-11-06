@@ -21,22 +21,27 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog'
 import { toast } from 'sonner'
+import { DeleteLeaveRequestSheet } from '@/app/leave-requests/components/DeleteLeaveRequestSheet'
 import { getApplicableLeaveTypes, isLeaveTypeDisabled } from '@/lib/leave-validation'
 import { useDisabledDates } from '@/hooks/use-disabled-dates'
 import { useHolidays } from '@/hooks/useHolidays'
 import { useUpdateLeaveRequest, useCancelLeaveRequest } from '@/hooks/use-leave-mutations'
+import { useQueryClient } from '@tanstack/react-query'
+
+// Helper function to parse date string in local timezone (avoid UTC conversion)
+const parseDateLocal = (dateString: string): Date => {
+  const [year, month, day] = dateString.split('-').map(Number)
+  return new Date(year, month - 1, day)
+}
+
+// Helper function to format date in local timezone (YYYY-MM-DD)
+const formatDateLocal = (date: Date): string => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
 
 interface OverlapUser {
   id: string
@@ -127,8 +132,11 @@ interface EditLeaveRequestSheetProps {
       name: string
       work_mode?: 'monday_to_friday' | 'multi_shift'
       working_days?: string[]
+      country_code?: string
     }
   }
+  currentUserRole?: string  // Role of the currently logged-in user
+  currentUserId?: string    // ID of the currently logged-in user
   isOpen: boolean
   onClose: () => void
 }
@@ -138,10 +146,13 @@ export function EditLeaveRequestSheet({
   leaveTypes,
   leaveBalances,
   userProfile,
+  currentUserRole,
+  currentUserId,
   isOpen,
   onClose
 }: EditLeaveRequestSheetProps) {
   const supabase = createClient()
+  const queryClient = useQueryClient()
   const [calculatedDays, setCalculatedDays] = useState<number | null>(leaveRequest.days_requested)
   const [overlapUsers, setOverlapUsers] = useState<OverlapUser[]>([])
   const sheetContentRef = React.useRef<HTMLDivElement>(null)
@@ -156,12 +167,33 @@ export function EditLeaveRequestSheet({
   })
 
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: new Date(leaveRequest.start_date),
-    to: new Date(leaveRequest.end_date)
+    from: parseDateLocal(leaveRequest.start_date),
+    to: parseDateLocal(leaveRequest.end_date)
   })
 
-  const [showCancelDialog, setShowCancelDialog] = useState(false)
-  const [cancelReason, setCancelReason] = useState('')
+  const [showDeleteSheet, setShowDeleteSheet] = useState(false)
+
+  // Check if the CURRENTLY LOGGED-IN user is manager/admin (needed for role-specific messaging)
+  // Note: userProfile contains the LEAVE REQUEST OWNER's data, not the logged-in user
+  const isManager = currentUserRole === 'admin' || currentUserRole === 'manager'
+
+  // Handle sheet close with form reset
+  const handleClose = () => {
+    // Reset form state to original values
+    setFormData({
+      leave_type_id: leaveRequest.leave_type_id,
+      reason: leaveRequest.reason || ''
+    })
+    setDateRange({
+      from: parseDateLocal(leaveRequest.start_date),
+      to: parseDateLocal(leaveRequest.end_date)
+    })
+    setCalculatedDays(leaveRequest.days_requested)
+    setOverlapUsers([])
+    setShowDeleteSheet(false)
+    // Call parent onClose
+    onClose()
+  }
 
   // Fetch disabled dates for the request owner (exclude current request being edited)
   const { disabledDates } = useDisabledDates({
@@ -173,7 +205,7 @@ export function EditLeaveRequestSheet({
   // Fetch holidays for disabled dates using React Query
   const { data: holidays = [], isLoading: isLoadingHolidays } = useHolidays({
     organizationId: userProfile?.organization_id || '',
-    countryCode: userProfile?.country_code || 'PL'
+    countryCode: userProfile?.organizations?.country_code || 'PL'
   })
 
   const calculateWorkingDays = async () => {
@@ -329,8 +361,8 @@ export function EditLeaveRequestSheet({
     // Check if any changes were made
     const hasChanges = (
       formData.leave_type_id !== leaveRequest.leave_type_id ||
-      dateRange.from.toISOString().split('T')[0] !== leaveRequest.start_date ||
-      dateRange.to.toISOString().split('T')[0] !== leaveRequest.end_date ||
+      formatDateLocal(dateRange.from) !== leaveRequest.start_date ||
+      formatDateLocal(dateRange.to) !== leaveRequest.end_date ||
       formData.reason !== (leaveRequest.reason || '')
     )
 
@@ -342,36 +374,68 @@ export function EditLeaveRequestSheet({
     // Use React Query mutation
     updateMutation.mutate({
       leave_type_id: formData.leave_type_id,
-      start_date: dateRange.from.toISOString().split('T')[0],
-      end_date: dateRange.to.toISOString().split('T')[0],
+      start_date: formatDateLocal(dateRange.from),
+      end_date: formatDateLocal(dateRange.to),
       days_requested: calculatedDays,
       reason: formData.reason || null,
     }, {
-      onSuccess: () => {
-        setTimeout(() => {
-          onClose()
-        }, 1500)
+      onSuccess: async () => {
+        // Show role-specific success message
+        // Admin/manager editing another employee's request vs employee editing their own
+        if (isManager && leaveRequest.user_id !== currentUserId) {
+          toast.success('Wniosek urlopowy został zaktualizowany jako administrator')
+        } else {
+          toast.success('Wniosek urlopowy został zaktualizowany')
+        }
+
+        // Invalidate all queries - this will trigger refetch for active queries
+        await queryClient.invalidateQueries({
+          queryKey: ['leaveRequests'],
+          refetchType: 'active'
+        })
+
+        // Also trigger a router refresh to update server components
+        window.dispatchEvent(new CustomEvent('refetch-leave-requests'))
+
+        // Small delay to allow UI to update
+        await new Promise(resolve => setTimeout(resolve, 300))
+        handleClose()
       }
     })
   }
 
-  const handleCancelRequest = async () => {
+  const handleDeleteRequest = async (reason: string) => {
     if (!leaveRequest) return
 
     // Use React Query mutation
     cancelMutation.mutate({
-      comment: cancelReason || 'Anulowane przez pracownika'
+      comment: reason
     }, {
-      onSuccess: () => {
-        setShowCancelDialog(false)
-        setCancelReason('')
-        onClose()
+      onSuccess: async () => {
+        // Show role-specific success message
+        // Admin/manager canceling another employee's request vs employee canceling their own
+        if (isManager && leaveRequest.user_id !== currentUserId) {
+          toast.success('Wniosek urlopowy został anulowany jako administrator')
+        } else {
+          toast.success('Wniosek urlopowy został anulowany')
+        }
+
+        // Invalidate all queries - this will trigger refetch for active queries
+        await queryClient.invalidateQueries({
+          queryKey: ['leaveRequests'],
+          refetchType: 'active'
+        })
+
+        // Also trigger a router refresh to update server components
+        window.dispatchEvent(new CustomEvent('refetch-leave-requests'))
+
+        setShowDeleteSheet(false)
+        // Small delay to allow UI to update
+        await new Promise(resolve => setTimeout(resolve, 300))
+        handleClose()
       }
     })
   }
-
-  // Check if user is manager/admin
-  const isManager = userProfile?.role === 'admin' || userProfile?.role === 'manager'
 
   // Managers/admins can cancel at any time, employees only before start date
   const canCancel = leaveRequest &&
@@ -379,7 +443,7 @@ export function EditLeaveRequestSheet({
     (isManager || new Date() < new Date(leaveRequest.start_date))
 
   return (
-    <Sheet open={isOpen} onOpenChange={onClose}>
+    <Sheet open={isOpen} onOpenChange={(open) => { if (!open) handleClose() }}>
       <SheetContent
         ref={sheetContentRef}
         side="right"
@@ -393,6 +457,26 @@ export function EditLeaveRequestSheet({
                 <SheetTitle className="text-lg font-semibold">Edytuj wniosek urlopowy</SheetTitle>
                 <Separator className="mt-4" />
               </div>
+
+              {/* Admin Context Banner - shown when admin/manager edits another user's request */}
+              {isManager && leaveRequest.user_id !== userProfile?.id && leaveRequest.profiles && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <Info className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <h4 className="text-sm font-semibold text-amber-900 mb-1">
+                        Edytujesz wniosek urlopowy innego użytkownika
+                      </h4>
+                      <p className="text-sm text-amber-800">
+                        Wprowadzane zmiany zostaną zapisane w dzienniku zmian dla pracownika:{' '}
+                        <span className="font-medium">
+                          {leaveRequest.profiles.full_name || leaveRequest.profiles.email}
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Edit Form */}
               <form onSubmit={handleSubmit} className="space-y-5 flex-1">
@@ -546,64 +630,53 @@ export function EditLeaveRequestSheet({
             </div>
             
             {/* Footer - Fixed at Bottom */}
-            <div className="flex flex-row gap-2 items-center justify-between w-full p-6 pt-0 bg-background">
-              <div className="flex gap-2">
-                {canCancel && (
-                  <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50">
-                        <Trash2Icon className="w-4 h-4 mr-1" />
-                        Anuluj wniosek
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Anulować wniosek urlopowy?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Czy na pewno chcesz anulować ten wniosek urlopowy? Tej akcji nie można cofnąć.
-                          {leaveRequest?.status === 'approved' && (
-                            <span className="block mt-2 text-green-600 font-medium">
-                              Dni urlopowe zostaną przywrócone do Twojego salda.
-                            </span>
-                          )}
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium">Powód anulowania (opcjonalnie)</Label>
-                        <Textarea
-                          value={cancelReason}
-                          onChange={(e) => setCancelReason(e.target.value)}
-                          placeholder="Opisz powód anulowania..."
-                          className="min-h-[76px] resize-none"
-                        />
-                      </div>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Nie anuluj</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={handleCancelRequest}
-                          disabled={cancelMutation.isPending}
-                          className="bg-red-600 hover:bg-red-700"
-                        >
-                          {cancelMutation.isPending ? 'Anulowanie...' : 'Tak, anuluj wniosek'}
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                )}
+            <div className="flex items-center gap-2 w-full p-6 pt-0 bg-background">
+              {/* Left side - Anuluj button */}
+              <div className="flex-1 flex gap-2">
+                <Button
+                  variant="outline"
+                  className="h-9 px-4 py-2"
+                  onClick={handleClose}
+                >
+                  Anuluj
+                </Button>
               </div>
-              <Button
-                type="submit"
-                size="sm"
-                className="bg-foreground hover:bg-foreground/90 text-white"
-                disabled={!formData.leave_type_id || !dateRange?.from || !dateRange?.to || !calculatedDays || calculatedDays <= 0 || updateMutation.isPending}
-                onClick={handleSubmit}
-              >
-                {updateMutation.isPending ? 'Aktualizowanie...' : 'Zaktualizuj wniosek'}
-              </Button>
+
+              {/* Right side - Delete and Save buttons */}
+              <div className="flex justify-end gap-2 flex-1">
+                {canCancel && (
+                  <Button
+                    variant="destructive"
+                    className="h-9 px-4 py-2"
+                    onClick={() => {
+                      handleClose() // Close edit sheet
+                      setShowDeleteSheet(true) // Open delete sheet
+                    }}
+                  >
+                    Usuń wniosek
+                  </Button>
+                )}
+                <Button
+                  type="submit"
+                  className="h-9 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90"
+                  disabled={!formData.leave_type_id || !dateRange?.from || !dateRange?.to || !calculatedDays || calculatedDays <= 0 || updateMutation.isPending}
+                  onClick={handleSubmit}
+                >
+                  {updateMutation.isPending ? 'Aktualizowanie...' : 'Zapisz zmiany'}
+                </Button>
+              </div>
             </div>
           </div>
         </div>
       </SheetContent>
+
+      {/* Delete Leave Request Sheet */}
+      <DeleteLeaveRequestSheet
+        isOpen={showDeleteSheet}
+        onClose={() => setShowDeleteSheet(false)}
+        onDelete={handleDeleteRequest}
+        leaveRequest={leaveRequest}
+      />
     </Sheet>
   )
 } 

@@ -1,6 +1,7 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { authenticateAndGetOrgContext, requireRole } from '@/lib/auth-utils-v2'
+import { removeUser } from '@/lib/seat-management'
 
 export async function DELETE(
   request: NextRequest,
@@ -62,16 +63,15 @@ export async function DELETE(
       return NextResponse.json({ error: 'You cannot delete your own account' }, { status: 400 })
     }
 
-    // Set the employee as inactive instead of deleting
-    const { error: updateError } = await supabaseAdmin
-      .from('user_organizations')
-      .update({ is_active: false })
-      .eq('user_id', id)
-      .eq('organization_id', organizationId)
+    // Use the seat management system to remove the user
+    // This properly handles status transitions and seat count updates
+    const result = await removeUser(id, organizationId, user.id)
 
-    if (updateError) {
-      console.error('Error removing employee:', updateError)
-      return NextResponse.json({ error: 'Failed to remove employee from organization' }, { status: 500 })
+    if (!result.success) {
+      console.error('Error removing employee:', result.error)
+      return NextResponse.json({
+        error: result.error || 'Failed to remove employee from organization'
+      }, { status: 500 })
     }
 
     // Clean up any invitations for this user in this organization
@@ -97,9 +97,18 @@ export async function DELETE(
       }
     }
 
+    console.log('✅ Employee removed via seat management system:', {
+      userId: id,
+      organizationId,
+      scheduledRemoval: result.data?.removal_effective_date
+    })
+
     return NextResponse.json({
       success: true,
-      message: 'Employee successfully removed from organization'
+      message: result.data?.removal_effective_date
+        ? `Employee will be removed on ${new Date(result.data.removal_effective_date).toLocaleDateString()}`
+        : 'Employee successfully removed from organization',
+      removal_effective_date: result.data?.removal_effective_date
     })
 
   } catch (error) {

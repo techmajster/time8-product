@@ -297,6 +297,22 @@
     "admin": "Admin",
     "holidays": "Holidays",
     "help": "Help",
+    "sections": {
+      "yourAccount": "Your Account",
+      "manager": "Manager",
+      "administrator": "Administrator"
+    },
+    "items": {
+      "dashboard": "Dashboard",
+      "myLeave": "My Leave",
+      "calendar": "Calendar",
+      "myTeam": "My Team",
+      "leaveRequests": "Leave Requests",
+      "addAbsence": "Add Absence",
+      "administrativeSettings": "Administrative Settings",
+      "users": "Users",
+      "groups": "Groups"
+    },
     "groups": {
       "manager": "Manager",
       "admin": "Admin"
@@ -324,8 +340,20 @@
       "settings": "Settings",
       "signOut": "Sign Out",
       "darkMode": "Dark Mode",
-      "language": "Language"
+      "language": "Language",
+      "myProfile": "My Profile"
     }
+  },
+  "workspace": {
+    "title": "Workspace",
+    "yourWorkspaces": "Your workspaces",
+    "invitations": "Invitations",
+    "currentWorkspace": "Current workspace",
+    "backToWorkspace": "Back to workspace",
+    "enterWorkspace": "Enter workspace",
+    "acceptInvitation": "Accept invitation",
+    "newWorkspace": "New workspace",
+    "close": "Close"
   },
   "leave": {
     "title": "Leave Management",
@@ -338,11 +366,13 @@
     "endDate": "End Date",
     "days": "Days",
     "reason": "Reason",
-    "status": "Status",
-    "pending": "Pending",
-    "approved": "Approved",
-    "rejected": "Rejected",
-    "cancelled": "Cancelled",
+    "status": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "cancelled": "Cancelled",
+      "completed": "Completed"
+    },
     "approve": "Approve",
     "reject": "Reject",
     "comment": "Comment",
@@ -358,7 +388,8 @@
       "available": "Available",
       "used": "Used",
       "total": "Total",
-      "remaining": "Remaining"
+      "remaining": "Remaining",
+      "requested": "Requested"
     },
     "errors": {
       "invalidDates": "Invalid dates",
@@ -398,6 +429,36 @@
         "submissionFailed": "An error occurred while submitting your leave request",
         "fallbackWarning": "Basic calculation - holidays not excluded"
       }
+    },
+    "sheet": {
+      "requester": "Requester",
+      "leaveBalance": "Leave Balance",
+      "details": "Details",
+      "deleteConfirm": "Delete Confirmation",
+      "rejectReason": "Rejection Reason",
+      "rejectReasonPlaceholder": "Please provide a reason for rejection (required)",
+      "addLeave": "Add Leave",
+      "editLeave": "Edit Leave Request",
+      "leaveDetails": "Leave Request Details",
+      "leaveRequest": "Leave Request",
+      "deleteLeaveRequest": "Delete Leave Request",
+      "confirmDelete": "Are you sure you want to delete this leave request? This action cannot be undone.",
+      "used": "Used",
+      "datePeriod": "Date Period",
+      "dateRange": "Leave Period",
+      "workingDays": "Working Days",
+      "conflictingLeaves": "Also planning leave during this period:",
+      "submissionDate": "Submission Date",
+      "description": "Description"
+    },
+    "buttons": {
+      "approve": "Approve Request",
+      "reject": "Reject Request",
+      "edit": "Edit Request",
+      "delete": "Delete",
+      "save": "Save Changes",
+      "cancel": "Cancel",
+      "close": "Close"
     },
     "page": {
       "title": "Your Leave",
@@ -586,6 +647,17 @@
     "createAccounts": "Create Accounts",
     "processing": "Processing...",
     "code": "Code",
+    "myTeam": "My Team",
+    "employee": "Employee",
+    "employeeColumn": "Employee",
+    "teamColumn": "Team",
+    "approverColumn": "Approver",
+    "remainingVacation": "Remaining vacation",
+    "unpaidLeave": "Unpaid leave",
+    "days": "days",
+    "notAssigned": "Not assigned",
+    "noLastName": "No last name",
+    "addEmployee": "Add employee",
     "roles": {
       "admin": "Administrator",
       "manager": "Manager",
@@ -870,5 +942,45 @@
     "contactAdmin": "Contact your administrator for access",
     "readOnlyMode": "Read-Only Mode",
     "readOnlyModeDescription": "You can view this page but cannot make changes. Contact an administrator if you need edit access."
+  },
+  "leaveRequestsPage": {
+    "title": "Leave Requests",
+    "tabs": {
+      "new": "New",
+      "accepted": "Accepted",
+      "rejected": "Rejected",
+      "completed": "Completed",
+      "all": "All"
+    },
+    "actions": {
+      "filters": "Filters",
+      "export": "Export"
+    },
+    "table": {
+      "headers": {
+        "applicant": "Applicant",
+        "date": "Date",
+        "description": "Description",
+        "type": "Type",
+        "days": "Days",
+        "action": "Action"
+      },
+      "noRequests": "No leave requests in this category",
+      "day": "day",
+      "days": "days"
+    },
+    "status": {
+      "new": "New",
+      "accepted": "Accepted",
+      "rejected": "Rejected",
+      "cancelled": "Cancelled",
+      "completed": "Completed"
+    },
+    "pagination": {
+      "rowsPerPage": "Rows per page:",
+      "page": "Page",
+      "of": "of",
+      "rows": "rows"
+    }
   }
 } 

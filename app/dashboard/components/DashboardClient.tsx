@@ -150,8 +150,8 @@ export function DashboardClient({
             initials={nearestBirthday?.name.split(' ').map((n) => n[0]).join('').toUpperCase()}
           />
 
-          {/* Leave Requests Card - Only visible to admins and managers */}
-          {(profile.role === 'admin' || profile.role === 'manager') && (
+          {/* Leave Requests Card - Only visible to admins and managers with pending requests */}
+          {(profile.role === 'admin' || profile.role === 'manager') && pendingRequestsCount > 0 && (
             <Card className="flex-row items-end justify-between">
               <CardContent className="flex-1">
                 <div className="flex flex-col gap-2">

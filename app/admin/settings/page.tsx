@@ -125,6 +125,68 @@ export default async function AdminSettingsPage() {
     .eq('is_active', true)
     .not('team_id', 'is', null)
 
+  // Get subscription data for SubscriptionWidget
+  const { data: subscription } = await supabase
+    .from('subscriptions')
+    .select('current_seats, pending_seats, renews_at, status')
+    .eq('organization_id', profile.organization_id)
+    .in('status', ['active', 'on_trial', 'past_due'])
+    .single()
+
+  // Get users with pending_removal status
+  const { data: pendingRemovalUsers } = await supabase
+    .from('user_organizations')
+    .select(`
+      user_id,
+      status,
+      removal_effective_date,
+      role,
+      profiles:user_id (
+        id,
+        email,
+        full_name,
+        avatar_url
+      )
+    `)
+    .eq('organization_id', profile.organization_id)
+    .eq('status', 'pending_removal')
+
+  // Get archived users
+  const { data: archivedUsers } = await supabase
+    .from('user_organizations')
+    .select(`
+      user_id,
+      status,
+      role,
+      profiles:user_id (
+        id,
+        email,
+        full_name,
+        avatar_url
+      )
+    `)
+    .eq('organization_id', profile.organization_id)
+    .eq('status', 'archived')
+
+  // Transform pending removal users
+  const transformedPendingUsers = pendingRemovalUsers?.map(pu => ({
+    id: pu.user_id,  // Use user_id for cancel removal lookup
+    email: (pu.profiles as any)?.email || '',
+    full_name: (pu.profiles as any)?.full_name || null,
+    avatar_url: (pu.profiles as any)?.avatar_url || null,
+    removal_effective_date: pu.removal_effective_date,
+    role: pu.role
+  })) || []
+
+  // Transform archived users
+  const transformedArchivedUsers = archivedUsers?.map(au => ({
+    id: au.user_id,  // Use user_id for reactivation lookup
+    email: (au.profiles as any)?.email || '',
+    full_name: (au.profiles as any)?.full_name || null,
+    avatar_url: (au.profiles as any)?.avatar_url || null,
+    role: au.role
+  })) || []
+
   return (
     <AppLayout>
       <AdminSettingsClient
@@ -133,6 +195,9 @@ export default async function AdminSettingsPage() {
         users={users || []}
         teams={teams || []}
         teamMembers={teamMembers || []}
+        subscription={subscription}
+        pendingRemovalUsers={transformedPendingUsers}
+        archivedUsers={transformedArchivedUsers}
       />
     </AppLayout>
   )

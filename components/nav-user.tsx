@@ -14,6 +14,8 @@ import { useTheme } from "next-themes"
 import { useState, useTransition } from 'react'
 import { type Locale } from '@/lib/i18n-utils'
 import { toast } from 'sonner'
+import { PolandFlag } from '@/components/icons/PolandFlag'
+import { UKFlag } from '@/components/icons/UKFlag'
 
 import {
   Avatar,
@@ -40,16 +42,16 @@ import {
 import { Switch } from "@/components/ui/switch"
 
 const languages = [
-  { 
-    code: 'pl' as Locale, 
-    name: 'Polski', 
-    flag: '🇵🇱',
+  {
+    code: 'pl' as Locale,
+    name: 'Polski',
+    flagComponent: PolandFlag,
     englishName: 'Polish'
   },
-  { 
-    code: 'en' as Locale, 
-    name: 'English', 
-    flag: '🇬🇧',
+  {
+    code: 'en' as Locale,
+    name: 'English',
+    flagComponent: UKFlag,
     englishName: 'English'
   },
 ];
@@ -163,7 +165,7 @@ export function NavUser({
             <DropdownMenuItem className="flex items-center justify-between">
               <div className="flex items-center">
                 {isDarkMode ? <Moon className="h-4 w-4 mr-2" /> : <Sun className="h-4 w-4 mr-2" />}
-                Tryb ciemny
+                {t('userMenu.darkMode')}
               </div>
               <Switch
                 checked={isDarkMode}
@@ -175,23 +177,26 @@ export function NavUser({
             <DropdownMenuSub>
               <DropdownMenuSubTrigger>
                 <Languages className="h-4 w-4 mr-2" />
-                Język
+                {t('userMenu.language')}
               </DropdownMenuSubTrigger>
               <DropdownMenuSubContent>
-                {languages.map((language) => (
-                  <DropdownMenuItem
-                    key={language.code}
-                    onClick={() => switchLanguage(language.code)}
-                    disabled={isPending}
-                    className="cursor-pointer"
-                  >
-                    <span className="mr-2">{language.flag}</span>
-                    {language.name}
-                    {language.code === locale && (
-                      <span className="ml-auto text-xs opacity-60">✓</span>
-                    )}
-                  </DropdownMenuItem>
-                ))}
+                {languages.map((language) => {
+                  const FlagComponent = language.flagComponent
+                  return (
+                    <DropdownMenuItem
+                      key={language.code}
+                      onClick={() => switchLanguage(language.code)}
+                      disabled={isPending}
+                      className="cursor-pointer"
+                    >
+                      <FlagComponent size={16} className="mr-2" />
+                      {language.name}
+                      {language.code === locale && (
+                        <span className="ml-auto text-xs opacity-60">✓</span>
+                      )}
+                    </DropdownMenuItem>
+                  )
+                })}
               </DropdownMenuSubContent>
             </DropdownMenuSub>
 
@@ -200,7 +205,7 @@ export function NavUser({
             {/* My Profile - accessible to all users */}
             <DropdownMenuItem onClick={() => router.push('/profile')}>
               <User className="h-4 w-4 mr-2" />
-              Mój profil
+              {t('userMenu.myProfile')}
             </DropdownMenuItem>
 
             <DropdownMenuSeparator />

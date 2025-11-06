@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { sendCriticalAlert, sendInfoAlert } from '@/lib/alert-service'
 
 /**
  * ApplyPendingSubscriptionChangesJob
@@ -123,22 +124,19 @@ export async function POST(request: NextRequest) {
           throw new Error(`Database update failed: ${updateError.message}`)
         }
 
-        // Create info alert for admin dashboard
-        await supabase
-          .from('alerts')
-          .insert({
-            severity: 'info',
-            message: `Subscription ${subscription.lemonsqueezy_subscription_id} updated in Lemon Squeezy: ${subscription.current_seats} → ${subscription.pending_seats} seats`,
-            metadata: {
-              subscription_id: subscription.id,
-              organization_id: subscription.organization_id,
-              previous_quantity: subscription.current_seats,
-              new_quantity: subscription.pending_seats,
-              renews_at: subscription.renews_at,
-              job: 'ApplyPendingSubscriptionChangesJob',
-              synced_at: new Date().toISOString()
-            }
-          })
+        // Create info alert for admin dashboard (database only)
+        await sendInfoAlert(
+          `Subscription ${subscription.lemonsqueezy_subscription_id} updated in Lemon Squeezy: ${subscription.current_seats} → ${subscription.pending_seats} seats`,
+          {
+            subscription_id: subscription.id,
+            organization_id: subscription.organization_id,
+            previous_quantity: subscription.current_seats,
+            new_quantity: subscription.pending_seats,
+            renews_at: subscription.renews_at,
+            job: 'ApplyPendingSubscriptionChangesJob',
+            synced_at: new Date().toISOString()
+          }
+        )
 
         results.push({
           subscription_id: subscription.id,
@@ -158,21 +156,18 @@ export async function POST(request: NextRequest) {
           error: errorMessage
         })
 
-        // Create critical alert for failed updates
-        await supabase
-          .from('alerts')
-          .insert({
-            severity: 'critical',
-            message: `Failed to update subscription ${subscription.lemonsqueezy_subscription_id} in Lemon Squeezy`,
-            metadata: {
-              subscription_id: subscription.id,
-              organization_id: subscription.organization_id,
-              pending_quantity: subscription.pending_seats,
-              renews_at: subscription.renews_at,
-              error: errorMessage,
-              job: 'ApplyPendingSubscriptionChangesJob'
-            }
-          })
+        // Create critical alert for failed updates (multi-channel: database, Slack, email)
+        await sendCriticalAlert(
+          `Failed to update subscription ${subscription.lemonsqueezy_subscription_id} in Lemon Squeezy`,
+          {
+            subscription_id: subscription.id,
+            organization_id: subscription.organization_id,
+            pending_quantity: subscription.pending_seats,
+            renews_at: subscription.renews_at,
+            error: errorMessage,
+            job: 'ApplyPendingSubscriptionChangesJob'
+          }
+        )
 
         console.error(`❌ Failed to update subscription ${subscription.lemonsqueezy_subscription_id}:`, errorMessage)
       }

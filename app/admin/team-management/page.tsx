@@ -312,15 +312,76 @@ export default async function AdminTeamManagementPage() {
     return member.teams?.name || 'Bez grupy'
   }
 
+  // Get users with pending_removal status
+  const { data: pendingRemovalUsers } = await supabaseAdmin
+    .from('user_organizations')
+    .select(`
+      user_id,
+      status,
+      removal_effective_date,
+      role,
+      profiles!user_organizations_user_id_fkey (
+        id,
+        email,
+        full_name,
+        avatar_url
+      )
+    `)
+    .eq('organization_id', profile.organization_id)
+    .eq('status', 'pending_removal')
 
+  // Get archived users
+  const { data: archivedUsers, error: archivedError } = await supabaseAdmin
+    .from('user_organizations')
+    .select(`
+      user_id,
+      role,
+      status,
+      is_active,
+      profiles!user_organizations_user_id_fkey (
+        id,
+        email,
+        full_name,
+        avatar_url
+      )
+    `)
+    .eq('organization_id', profile.organization_id)
+    .eq('status', 'archived')
+
+  console.log('📦 Archived users query:', {
+    count: archivedUsers?.length || 0,
+    error: archivedError,
+    sample: archivedUsers?.slice(0, 2)
+  })
+
+  // Transform pending removal users
+  const transformedPendingUsers = pendingRemovalUsers?.map(pu => ({
+    id: pu.user_id,  // Use user_id for cancel removal lookup
+    email: (pu.profiles as any)?.email || '',
+    full_name: (pu.profiles as any)?.full_name || null,
+    avatar_url: (pu.profiles as any)?.avatar_url || null,
+    removal_effective_date: pu.removal_effective_date,
+    role: pu.role
+  })) || []
+
+  // Transform archived users
+  const transformedArchivedUsers = archivedUsers?.map(au => ({
+    id: au.user_id,  // Use user_id for reactivation lookup
+    email: (au.profiles as any)?.email || '',
+    full_name: (au.profiles as any)?.full_name || null,
+    avatar_url: (au.profiles as any)?.avatar_url || null,
+    role: au.role
+  })) || []
 
   return (
     <AppLayout>
-      <TeamManagementClient 
+      <TeamManagementClient
         teamMembers={teamMembers}
         teams={teamsWithDetails || []}
         leaveBalances={leaveBalances as any || []}
         invitations={invitations || []}
+        pendingRemovalUsers={transformedPendingUsers}
+        archivedUsers={transformedArchivedUsers}
       />
     </AppLayout>
   )

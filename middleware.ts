@@ -72,6 +72,7 @@ export async function middleware(request: NextRequest) {
     '/api/test-rls', // RLS policy diagnostic endpoint
     '/api/debug-user-state', // User state debugging endpoint
     '/api/fix-user-organization', // User organization fix endpoint
+    '/api/test/alert-email', // Test alert email delivery (requires auth header)
     '/api/fix-admin-user', // Fix admin@bb8.pl account
     '/api/debug-database-state', // Comprehensive database state check
     '/api/fix-broken-accounts', // Fix missing profiles and organization memberships

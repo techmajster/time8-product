@@ -60,15 +60,20 @@ export function UpcomingLeaves({ leaveRequests }: UpcomingLeavesProps) {
   }
 
   const getStatusBadge = (status: string) => {
+    // Unified status badge styling matching reference implementation
     switch (status) {
       case 'approved':
-        return <Badge variant="default" className="text-xs bg-success/10 text-success-foreground border-success/20">Zatwierdzony</Badge>
+        return <Badge variant="default" className="bg-green-500 text-white border-transparent">Zatwierdzony</Badge>
       case 'pending':
-        return <Badge variant="secondary" className="text-xs bg-warning/10 text-warning-foreground border-warning/20">Oczekujący</Badge>
+        return <Badge variant="default">Oczekujący</Badge>
       case 'rejected':
-        return <Badge variant="destructive" className="text-xs">Odrzucony</Badge>
+        return <Badge variant="destructive">Odrzucony</Badge>
+      case 'cancelled':
+        return <Badge variant="secondary">Anulowany</Badge>
+      case 'completed':
+        return <Badge variant="secondary">Zakończony</Badge>
       default:
-        return <Badge variant="outline" className="text-xs">Nieznany</Badge>
+        return <Badge variant="secondary">Nieznany</Badge>
     }
   }
 

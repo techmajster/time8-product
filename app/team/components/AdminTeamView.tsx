@@ -1,8 +1,6 @@
 'use client'
 
-import { useState } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Card, CardContent } from '@/components/ui/card'
 import {
   Table,
   TableBody,
@@ -11,17 +9,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
 import Link from 'next/link'
 import { useTeamMembersQuery, useTeamLeaveBalances } from '@/hooks/use-team-queries'
+import { useTranslations } from 'next-intl'
 
 interface TeamMember {
   id: string
@@ -34,6 +26,12 @@ interface TeamMember {
     id: string
     name: string
     color: string
+    manager_id: string | null
+    manager: {
+      id: string
+      full_name: string | null
+      email: string
+    } | null
   } | null
 }
 
@@ -54,6 +52,12 @@ interface Team {
   id: string
   name: string
   color: string
+  manager_id: string | null
+  manager: {
+    id: string
+    full_name: string | null
+    email: string
+  } | null
 }
 
 interface AdminTeamViewProps {
@@ -62,15 +66,21 @@ interface AdminTeamViewProps {
   initialLeaveBalances: LeaveBalance[]
   teams: Team[]
   currentUser: any
+  fallbackAdmin: {
+    id: string
+    full_name: string | null
+    email: string
+  } | null
 }
 
 export function AdminTeamView({
   organizationId,
   initialTeamMembers,
   initialLeaveBalances,
-  teams
+  teams,
+  fallbackAdmin
 }: AdminTeamViewProps) {
-  const [selectedTeamId, setSelectedTeamId] = useState<string>('all')
+  const t = useTranslations('team')
 
   // Use React Query hooks with initial SSR data
   const { data: teamMembers = initialTeamMembers } = useTeamMembersQuery(
@@ -83,13 +93,6 @@ export function AdminTeamView({
     new Date().getFullYear(),
     initialLeaveBalances
   )
-
-  // Filter team members based on selected team
-  const filteredMembers = selectedTeamId === 'all'
-    ? teamMembers
-    : selectedTeamId === 'no-team'
-    ? teamMembers.filter(member => !member.team_id)
-    : teamMembers.filter(member => member.team_id === selectedTeamId)
 
   // Get leave balance for a specific user and leave type
   const getLeaveBalance = (userId: string, leaveTypeName: string): number => {
@@ -107,82 +110,62 @@ export function AdminTeamView({
     return member.email.charAt(0).toUpperCase()
   }
 
+  // Get approver for a team member
+  const getApprover = (member: TeamMember): string => {
+    // If member has a team with a manager, show the manager
+    if (member.teams?.manager?.full_name) {
+      return member.teams.manager.full_name
+    }
+    // Otherwise, show fallback admin
+    if (fallbackAdmin?.full_name) {
+      return fallbackAdmin.full_name
+    }
+    // Final fallback
+    return t('notAssigned')
+  }
+
   return (
     <div className="py-11 space-y-6">
-      {/* Header with Team Selector */}
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-semibold text-foreground">Mój zespół</h1>
-        <div className="flex items-center gap-3">
-          <Select value={selectedTeamId} onValueChange={setSelectedTeamId}>
-            <SelectTrigger className="w-fit">
-              <SelectValue placeholder="Wybierz zespół" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">
-                <div className="flex items-center gap-2">
-                  Wszyscy ({teamMembers.length})
-                </div>
-              </SelectItem>
-              {teams.map((team) => {
-                const teamMemberCount = teamMembers.filter(m => m.team_id === team.id).length
-                return (
-                  <SelectItem key={team.id} value={team.id}>
-                    <div className="flex items-center gap-2">
-                      {team.name} ({teamMemberCount})
-                    </div>
-                  </SelectItem>
-                )
-              })}
-              {teamMembers.filter(m => !m.team_id).length > 0 && (
-                <SelectItem value="no-team">
-                  <div className="flex items-center gap-2">
-                    Bez zespołu ({teamMembers.filter(m => !m.team_id).length})
-                  </div>
-                </SelectItem>
-              )}
-            </SelectContent>
-          </Select>
-          <Link href="/admin/team-management/add-employee">
-            <Button size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Dodaj pracownika
-            </Button>
-          </Link>
-        </div>
+        <h1 className="text-3xl font-semibold text-foreground">{t('myTeam')}</h1>
+        <Link href="/admin/team-management/add-employee">
+          <Button size="sm">
+            <Plus className="h-4 w-4 mr-2" />
+            {t('addEmployee')}
+          </Button>
+        </Link>
       </div>
 
       {/* Table */}
-      <Card>
-        <CardContent className="py-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="font-medium text-muted-foreground">Wnioskujący</TableHead>
-                <TableHead className="font-medium text-muted-foreground w-52">Zespół</TableHead>
-                <TableHead className="font-medium text-muted-foreground w-[202px]">Akceptujący</TableHead>
-                <TableHead className="font-medium text-muted-foreground w-[131px] text-right">Pozostały urlop</TableHead>
-                <TableHead className="font-medium text-muted-foreground w-[161px] text-right">Urlop NŻ</TableHead>
-              </TableRow>
-            </TableHeader>
+      <div className="border-0">
+        <Table>
+          <TableHeader>
+            <TableRow className="border-b">
+              <TableHead className="font-medium text-muted-foreground">{t('employeeColumn')}</TableHead>
+              <TableHead className="font-medium text-muted-foreground w-52">{t('teamColumn')}</TableHead>
+              <TableHead className="font-medium text-muted-foreground w-[202px]">{t('approverColumn')}</TableHead>
+              <TableHead className="font-medium text-muted-foreground w-[131px] text-right">{t('remainingVacation')}</TableHead>
+              <TableHead className="font-medium text-muted-foreground w-[161px] text-right">{t('unpaidLeave')}</TableHead>
+            </TableRow>
+          </TableHeader>
             <TableBody>
-              {filteredMembers.length === 0 ? (
+              {teamMembers.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="h-16 text-center">
                     <div className="text-muted-foreground">
-                      {selectedTeamId === 'all' 
-                        ? 'Brak pracowników w organizacji' 
-                        : 'Brak pracowników w wybranym zespole'
-                      }
+                      {t('notAssigned')}
                     </div>
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredMembers.map((member) => {
+                teamMembers.map((member) => {
                   const vacationDays = getLeaveBalance(member.id, 'Urlop wypoczynkowy')
-                  const parentalDays = getLeaveBalance(member.id, 'Urlop NŻ') || getLeaveBalance(member.id, 'Urlop na żądanie')
-                  
+                  const unpaidDays = getLeaveBalance(member.id, 'Urlop bezpłatny')
+                  const approver = getApprover(member)
+
                   return (
-                    <TableRow key={member.id} className="h-[72px]">
+                    <TableRow key={member.id} className="h-[52px]">
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <Avatar className="size-10">
@@ -193,7 +176,7 @@ export function AdminTeamView({
                           </Avatar>
                           <div>
                             <div className="font-medium text-foreground">
-                              {member.full_name || 'Bez nazwiska'}
+                              {member.full_name || t('noLastName')}
                             </div>
                             <div className="text-sm text-muted-foreground">
                               {member.email}
@@ -204,23 +187,23 @@ export function AdminTeamView({
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <div className="font-medium text-foreground">
-                            {member.teams?.name || 'Bez zespołu'}
+                            {member.teams?.name || t('notAssigned')}
                           </div>
                         </div>
                       </TableCell>
                       <TableCell>
                         <div className="font-medium text-foreground">
-                          Paweł Chróściak
+                          {approver}
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="text-foreground">
-                          {vacationDays} dni
+                          {vacationDays} {t('days')}
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="text-foreground">
-                          {parentalDays} dni
+                          {unpaidDays} {t('days')}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -229,12 +212,7 @@ export function AdminTeamView({
               )}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
-
-      {/* Dialogs */}
-
-
+      </div>
     </div>
   )
 }

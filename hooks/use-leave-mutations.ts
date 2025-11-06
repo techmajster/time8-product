@@ -1,5 +1,4 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
 // Types for mutation payloads
@@ -31,7 +30,6 @@ interface ApproveRejectLeaveRequestPayload {
 // Create leave request mutation
 export function useCreateLeaveRequest() {
   const queryClient = useQueryClient()
-  const router = useRouter()
 
   return useMutation({
     mutationFn: async (payload: CreateLeaveRequestPayload) => {
@@ -64,9 +62,6 @@ export function useCreateLeaveRequest() {
 
       // Show success toast
       toast.success('Wniosek urlopowy został złożony!')
-
-      // Refresh page data
-      router.refresh()
     },
     onError: (error: Error) => {
       console.error('Error creating leave request:', error)
@@ -78,7 +73,6 @@ export function useCreateLeaveRequest() {
 // Update leave request mutation
 export function useUpdateLeaveRequest(requestId: string) {
   const queryClient = useQueryClient()
-  const router = useRouter()
 
   return useMutation({
     mutationFn: async (payload: UpdateLeaveRequestPayload) => {
@@ -109,11 +103,7 @@ export function useUpdateLeaveRequest(requestId: string) {
       queryClient.invalidateQueries({ queryKey: ['profile-recent-requests'] })
       queryClient.invalidateQueries({ queryKey: ['team-leave-balances'] })
 
-      // Show success toast
-      toast.success('Wniosek urlopowy został zaktualizowany!')
-
-      // Refresh page data
-      router.refresh()
+      // Note: Success toast is shown in the component with role-specific messaging
     },
     onError: (error: Error) => {
       console.error('Error updating leave request:', error)
@@ -125,7 +115,6 @@ export function useUpdateLeaveRequest(requestId: string) {
 // Cancel leave request mutation
 export function useCancelLeaveRequest(requestId: string) {
   const queryClient = useQueryClient()
-  const router = useRouter()
 
   return useMutation({
     mutationFn: async (payload: CancelLeaveRequestPayload) => {
@@ -158,11 +147,10 @@ export function useCancelLeaveRequest(requestId: string) {
       queryClient.invalidateQueries({ queryKey: ['profile-recent-requests'] })
       queryClient.invalidateQueries({ queryKey: ['team-leave-balances'] })
 
-      // Show success toast
-      toast.success(data.message || 'Wniosek urlopowy został anulowany')
+      // Trigger refetch for pages using manual fetch
+      window.dispatchEvent(new CustomEvent('refetch-leave-requests'))
 
-      // Refresh page data
-      router.refresh()
+      // Note: Success toast is shown in the component with role-specific messaging
     },
     onError: (error: Error) => {
       console.error('Error cancelling leave request:', error)
@@ -174,7 +162,6 @@ export function useCancelLeaveRequest(requestId: string) {
 // Approve or reject leave request mutation
 export function useApproveRejectLeaveRequest(requestId: string) {
   const queryClient = useQueryClient()
-  const router = useRouter()
 
   return useMutation({
     mutationFn: async (payload: ApproveRejectLeaveRequestPayload) => {
@@ -205,12 +192,12 @@ export function useApproveRejectLeaveRequest(requestId: string) {
       queryClient.invalidateQueries({ queryKey: ['profile-recent-requests'] })
       queryClient.invalidateQueries({ queryKey: ['team-leave-balances'] })
 
+      // Trigger refetch for pages using manual fetch
+      window.dispatchEvent(new CustomEvent('refetch-leave-requests'))
+
       // Show success toast
       const actionText = variables.action === 'approve' ? 'zatwierdzony' : 'odrzucony'
       toast.success(`Wniosek został ${actionText}`)
-
-      // Refresh page data
-      router.refresh()
     },
     onError: (error: Error) => {
       console.error('Error approving/rejecting leave request:', error)
@@ -222,7 +209,6 @@ export function useApproveRejectLeaveRequest(requestId: string) {
 // Delete leave request mutation (for managers/admins)
 export function useDeleteLeaveRequest(requestId: string) {
   const queryClient = useQueryClient()
-  const router = useRouter()
 
   return useMutation({
     mutationFn: async () => {
@@ -252,11 +238,11 @@ export function useDeleteLeaveRequest(requestId: string) {
       queryClient.invalidateQueries({ queryKey: ['profile-recent-requests'] })
       queryClient.invalidateQueries({ queryKey: ['team-leave-balances'] })
 
+      // Trigger refetch for pages using manual fetch
+      window.dispatchEvent(new CustomEvent('refetch-leave-requests'))
+
       // Show success toast
       toast.success(data.message || 'Wniosek urlopowy został usunięty')
-
-      // Refresh page data
-      router.refresh()
     },
     onError: (error: Error) => {
       console.error('Error deleting leave request:', error)

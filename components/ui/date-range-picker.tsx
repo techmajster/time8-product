@@ -96,30 +96,98 @@ export function DateRangePicker({
   const t = useTranslations('common')
   const locale = useLocale()
   const dateLocale = locale === 'pl' ? plWithCapitals : enUS
+  const [isPopoverOpen, setIsPopoverOpen] = React.useState(false)
+
+  // Internal state to track intermediate selection (when only start date is set)
+  const [internalRange, setInternalRange] = React.useState<DateRange | undefined>(value || date)
 
   // Support both prop naming conventions for compatibility
-  const selectedRange = value || date
+  const externalRange = value || date
   const handleChange = onDateRangeChange || onDateChange
 
-  // Custom handler to fix double-click issue when changing date ranges
-  const handleRangeSelect = React.useCallback((newRange: DateRange | undefined) => {
-    // If we currently have a complete range selected (both from and to dates)
-    if (selectedRange?.from && selectedRange?.to && newRange?.from && newRange?.to) {
-      // Check if this is actually a new date being clicked
-      const fromChanged = selectedRange.from.getTime() !== newRange.from.getTime()
-      const toChanged = selectedRange.to.getTime() !== newRange.to.getTime()
+  // Use internal range for selection logic, but sync with external when both dates are set
+  const selectedRange = internalRange
 
-      // If both dates changed, user clicked a date outside the existing range
-      // Reset to start a new selection with just that date
-      if (fromChanged && toChanged) {
-        // The 'to' date in newRange is the date the user just clicked
-        // Set it as the new 'from' date and clear 'to' to start fresh
-        handleChange?.({ from: newRange.to, to: undefined })
-        return
-      }
+  // Sync internal state when external value changes (e.g., form reset)
+  React.useEffect(() => {
+    setInternalRange(externalRange)
+  }, [externalRange])
+
+  // Custom handler for date range selection with proper auto-close behavior
+  const handleRangeSelect = React.useCallback((newRange: DateRange | undefined) => {
+    // State machine for date range selection:
+    // 1. No selection (undefined or null) -> First click sets START date only, stays open
+    // 2. START only (from without to) -> Second click sets END date, closes calendar
+    // 3. Complete range (from and to) -> New click RESETS to new START, stays open
+
+    if (!newRange) {
+      // User cleared the selection
+      setInternalRange(undefined)
+      handleChange?.(undefined)
+      return
     }
 
-    // For all other cases (incomplete ranges, extending ranges, etc.), use default behavior
+    // Case 1: No previous selection - first click
+    if (!selectedRange || (!selectedRange.from && !selectedRange.to)) {
+      // First click sets ONLY start date, keep calendar open
+      // react-day-picker might give us both dates, so force only the start
+      const startOnly = { from: newRange.from, to: undefined }
+      setInternalRange(startOnly)
+      handleChange?.(startOnly)
+      return
+    }
+
+    // Case 2: Only start date exists - second click to set end date
+    if (selectedRange.from && !selectedRange.to) {
+      // Check if user clicked a different date than the start date
+      const clickedDate = newRange.to || newRange.from
+
+      if (clickedDate && clickedDate.getTime() !== selectedRange.from.getTime()) {
+        // User clicked a different date - set it as the end date
+        const completeRange = { from: selectedRange.from, to: clickedDate }
+        setInternalRange(completeRange)
+        handleChange?.(completeRange)
+
+        // Close calendar
+        setTimeout(() => {
+          setIsPopoverOpen(false)
+        }, 100)
+      } else {
+        // User clicked the same date - just update the state
+        setInternalRange(newRange)
+        handleChange?.(newRange)
+      }
+      return
+    }
+
+    // Case 3: Complete range exists - user wants to reset
+    if (selectedRange.from && selectedRange.to) {
+      // When user clicks on a complete range, react-day-picker returns a new range
+      // We want to ONLY set the start date (the clicked date) and clear the end
+      // The clicked date is whichever one is different from our current range
+      if (newRange.from && newRange.to) {
+        // Both dates present - find which one is the newly clicked date
+        const clickedDate =
+          newRange.from.getTime() !== selectedRange.from.getTime() &&
+          newRange.from.getTime() !== selectedRange.to.getTime()
+            ? newRange.from
+            : newRange.to
+
+        // Set only start date, clear end
+        const resetRange = { from: clickedDate, to: undefined }
+        setInternalRange(resetRange)
+        handleChange?.(resetRange)
+      } else if (newRange.from) {
+        // Only start date - use it
+        const resetRange = { from: newRange.from, to: undefined }
+        setInternalRange(resetRange)
+        handleChange?.(resetRange)
+      }
+      return
+    }
+
+    // Fallback: apply the change
+    setInternalRange(newRange)
     handleChange?.(newRange)
   }, [selectedRange, handleChange])
 
@@ -225,7 +293,7 @@ export function DateRangePicker({
 
   return (
     <div className={cn("grid gap-2", className)}>
-      <Popover modal={false}>
+      <Popover modal={false} open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
         <PopoverTrigger asChild>
           <Button
             id="date"

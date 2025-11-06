@@ -39,34 +39,35 @@ function formatDateRange(startDate: string, endDate: string): string {
 }
 
 function getStatusBadge(status: string, t: any) {
+  // Unified status badge styling matching reference implementation
   switch (status) {
     case 'approved':
       return (
-        <Badge className="bg-green-600 text-white text-xs px-2 py-0.5 rounded-md font-semibold">
+        <Badge variant="default" className="bg-green-500 text-white border-transparent">
           {t('leave.page.status.approved')}
         </Badge>
       )
     case 'pending':
       return (
-        <Badge className="bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded-md font-semibold">
+        <Badge variant="default">
           {t('leave.page.status.pending')}
         </Badge>
       )
     case 'rejected':
       return (
-        <Badge className="bg-red-100 text-secondary-foreground text-xs px-2 py-0.5 rounded-md font-semibold">
+        <Badge variant="destructive">
           {t('leave.page.status.rejected')}
         </Badge>
       )
     case 'cancelled':
       return (
-        <Badge className="bg-secondary text-secondary-foreground text-xs px-2 py-0.5 rounded-md font-semibold">
+        <Badge variant="secondary">
           {t('leave.page.status.cancelled')}
         </Badge>
       )
     default:
       return (
-        <Badge className="bg-neutral-500 text-white text-xs px-2 py-0.5 rounded-md font-semibold">
+        <Badge variant="secondary">
           {t('leave.page.status.completed')}
         </Badge>
       )

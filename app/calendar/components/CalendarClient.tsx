@@ -50,6 +50,7 @@ interface CalendarClientProps {
   externalCurrentDate?: Date
   onDateChange?: (date: Date) => void
   hideNavigation?: boolean
+  disableResponsive?: boolean
 }
 
 interface Holiday {
@@ -126,7 +127,7 @@ interface SelectedDayData {
   }
 }
 
-export default function CalendarClient({ organizationId, countryCode, userId, colleagues, teamMemberIds, teamScope, showHeader = true, showPadding = true, workingDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'], externalCurrentDate, onDateChange, hideNavigation = false }: CalendarClientProps) {
+export default function CalendarClient({ organizationId, countryCode, userId, colleagues, teamMemberIds, teamScope, showHeader = true, showPadding = true, workingDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'], externalCurrentDate, onDateChange, hideNavigation = false, disableResponsive = false }: CalendarClientProps) {
   const [internalDate, setInternalDate] = useState(new Date())
   
   // Use external date if provided, otherwise use internal state
@@ -733,7 +734,7 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
                   key={`${weekIndex}-${dayIndex}`}
                   onClick={() => dayData.isCurrentMonth && handleDayClick(dayData.day)}
                   className={`
-                    relative h-32 rounded-lg overflow-hidden cursor-pointer transition-colors
+                    relative h-32 ${disableResponsive ? '' : 'min-[850px]:h-auto min-[850px]:aspect-square'} rounded-lg overflow-hidden cursor-pointer transition-colors
                     ${dayData.isOutside
                       ? 'opacity-50 bg-accent'
                       : `${dayData.bgClass || 'bg-accent'} ${dayData.patternClass || ''} hover:opacity-90`

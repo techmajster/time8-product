@@ -54,6 +54,14 @@ export async function GET(
       .eq('organization_id', organizationId)
       .single()
 
+    // Get the leave request owner's role from user_organizations
+    const { data: ownerOrgData } = await supabaseAdmin
+      .from('user_organizations')
+      .select('role')
+      .eq('user_id', leaveRequest?.user_id)
+      .eq('organization_id', organizationId)
+      .single()
+
     if (fetchError || !leaveRequest) {
       console.error('Leave request fetch failed:', {
         requestId,
@@ -131,11 +139,12 @@ export async function GET(
       .eq('year', new Date().getFullYear())
 
     // Prepare user profile for editing
+    // IMPORTANT: This profile represents the LEAVE REQUEST OWNER, not the logged-in user
     const userProfile = {
       id: leaveRequest.user_id,
       full_name: leaveRequest.profiles?.full_name || null,
       email: leaveRequest.profiles?.email || '',
-      role: userOrganization.role,
+      role: ownerOrgData?.role || 'employee', // Use the leave request owner's role, not the logged-in user's role
       employment_start_date: null, // Not needed for details
       organization_id: organizationId,
       organizations: {

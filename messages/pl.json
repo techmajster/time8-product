@@ -299,6 +299,22 @@
     "holidays": "Święta",
     "help": "Pomoc",
     "components": "Biblioteka komponentów",
+    "sections": {
+      "yourAccount": "Twoje konto",
+      "manager": "Kierownik",
+      "administrator": "Administrator"
+    },
+    "items": {
+      "dashboard": "Dashboard",
+      "myLeave": "Moje urlopy",
+      "calendar": "Kalendarz",
+      "myTeam": "Mój zespół",
+      "leaveRequests": "Wnioski urlopowe",
+      "addAbsence": "Dodaj nieobecność",
+      "administrativeSettings": "Ustawienia administracyjne",
+      "users": "Użytkownicy",
+      "groups": "Grupy"
+    },
     "groups": {
       "manager": "Menedżer",
       "admin": "Administrator"
@@ -326,8 +342,20 @@
       "settings": "Ustawienia",
       "signOut": "Wyloguj się",
       "darkMode": "Tryb ciemny",
-      "language": "Język"
+      "language": "Język",
+      "myProfile": "Mój profil"
     }
+  },
+  "workspace": {
+    "title": "Przestrzeń robocza",
+    "yourWorkspaces": "Twoje przestrzenie",
+    "invitations": "Zaproszenia",
+    "currentWorkspace": "Obecna przestrzeń",
+    "backToWorkspace": "Wróć do przestrzeni",
+    "enterWorkspace": "Wejdź do przestrzeni",
+    "acceptInvitation": "Zaakceptuj zaproszenie",
+    "newWorkspace": "Nowa przestrzeń",
+    "close": "Zamknij"
   },
   "leave": {
     "title": "Zarządzanie urlopami",
@@ -340,11 +368,13 @@
     "endDate": "Data zakończenia",
     "days": "Dni",
     "reason": "Powód",
-    "status": "Status",
-    "pending": "Oczekujący",
-    "approved": "Zatwierdzony",
-    "rejected": "Odrzucony",
-    "cancelled": "Anulowany",
+    "status": {
+      "pending": "Oczekuje",
+      "approved": "Zaakceptowany",
+      "rejected": "Odrzucony",
+      "cancelled": "Anulowany",
+      "completed": "Zrealizowany"
+    },
     "approve": "Zatwierdź",
     "reject": "Odrzuć",
     "comment": "Komentarz",
@@ -357,10 +387,11 @@
       "training": "Urlop szkoleniowy"
     },
     "balance": {
-      "available": "Dostępne",
+      "available": "Dostępny",
       "used": "Wykorzystane",
       "total": "Łącznie",
-      "remaining": "Pozostało"
+      "remaining": "Pozostanie",
+      "requested": "Wnioskowany"
     },
     "errors": {
       "invalidDates": "Nieprawidłowe daty",
@@ -400,6 +431,36 @@
         "submissionFailed": "Wystąpił błąd podczas składania wniosku",
         "fallbackWarning": "Obliczanie podstawowe - święta nie są wykluczone"
       }
+    },
+    "sheet": {
+      "requester": "Wnioskujący",
+      "leaveBalance": "Saldo urlopu",
+      "details": "Szczegóły",
+      "deleteConfirm": "Potwierdzenie usunięcia",
+      "rejectReason": "Powód odrzucenia",
+      "rejectReasonPlaceholder": "Podaj powód odrzucenia (wymagane)",
+      "addLeave": "Dodaj urlop",
+      "editLeave": "Edytuj wniosek urlopowy",
+      "leaveDetails": "Szczegóły wniosku urlopowego",
+      "leaveRequest": "Wniosek o urlop",
+      "deleteLeaveRequest": "Usuń wniosek urlopowy",
+      "confirmDelete": "Czy na pewno chcesz usunąć ten wniosek urlopowy? Tej operacji nie można cofnąć.",
+      "used": "Wykorzystane",
+      "datePeriod": "Termin",
+      "dateRange": "Termin urlopu",
+      "workingDays": "Dni robocze",
+      "conflictingLeaves": "W tym terminie również planują urlop:",
+      "submissionDate": "Data złożenia wniosku",
+      "description": "Opis"
+    },
+    "buttons": {
+      "approve": "Zaakceptuj wniosek",
+      "reject": "Odrzuć wniosek",
+      "edit": "Edytuj wniosek",
+      "delete": "Usuń",
+      "save": "Zapisz zmiany",
+      "cancel": "Anuluj",
+      "close": "Zamknij"
     },
     "page": {
       "title": "Twoje urlopy",
@@ -588,6 +649,17 @@
     "createAccounts": "Utwórz konta",
     "processing": "Przetwarzanie...",
     "code": "Kod",
+    "myTeam": "Mój zespół",
+    "employee": "Pracownik",
+    "employeeColumn": "Pracownik",
+    "teamColumn": "Zespół",
+    "approverColumn": "Akceptujący",
+    "remainingVacation": "Pozostały urlop",
+    "unpaidLeave": "Urlop bezpłatny",
+    "days": "dni",
+    "notAssigned": "Nie przydzielony",
+    "noLastName": "Bez nazwiska",
+    "addEmployee": "Dodaj pracownika",
     "roles": {
       "admin": "Administrator",
       "manager": "Menedżer",
@@ -872,5 +944,45 @@
     "contactAdmin": "Skontaktuj się z administratorem",
     "readOnlyMode": "Tryb tylko do odczytu",
     "readOnlyModeDescription": "Możesz przeglądać tę stronę, ale nie możesz wprowadzać zmian. Skontaktuj się z administratorem, jeśli potrzebujesz dostępu do edycji."
+  },
+  "leaveRequestsPage": {
+    "title": "Wnioski urlopowe",
+    "tabs": {
+      "new": "Nowe",
+      "accepted": "Zaakceptowane",
+      "rejected": "Odrzucone",
+      "completed": "Zrealizowane",
+      "all": "Wszystkie"
+    },
+    "actions": {
+      "filters": "Filtry",
+      "export": "Export"
+    },
+    "table": {
+      "headers": {
+        "applicant": "Wnioskujący",
+        "date": "Data",
+        "description": "Opis",
+        "type": "Typ",
+        "days": "Liczba dni",
+        "action": "Akcja"
+      },
+      "noRequests": "Brak wniosków urlopowych w tej kategorii",
+      "day": "dzień",
+      "days": "dni"
+    },
+    "status": {
+      "new": "Nowy",
+      "accepted": "Zaakceptowane",
+      "rejected": "Odrzucone",
+      "cancelled": "Anulowany",
+      "completed": "Zrealizowany"
+    },
+    "pagination": {
+      "rowsPerPage": "Wierszy na stronę:",
+      "page": "Strona",
+      "of": "z",
+      "rows": "wierszy"
+    }
   }
 } 

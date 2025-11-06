@@ -10,6 +10,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Loader2, Plus, MoreHorizontal } from 'lucide-react'
 import { toast } from 'sonner'
 import { PendingInvitationsSection } from './PendingInvitationsSection'
+import { PendingChangesSection } from '@/components/admin/PendingChangesSection'
+import { ArchivedUsersSection } from '@/components/admin/ArchivedUsersSection'
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -58,14 +60,33 @@ interface Invitation {
   team_name: string
 }
 
+interface ArchivedUser {
+  id: string
+  email: string
+  full_name: string | null
+  avatar_url: string | null
+  role: string
+}
+
+interface PendingRemovalUser {
+  id: string
+  email: string
+  full_name: string | null
+  avatar_url: string | null
+  removal_effective_date: string
+  role: string
+}
+
 interface TeamManagementClientProps {
   teamMembers: TeamMember[]
   teams: any[]
   leaveBalances: LeaveBalance[]
   invitations: Invitation[]
+  pendingRemovalUsers: PendingRemovalUser[]
+  archivedUsers: ArchivedUser[]
 }
 
-export function TeamManagementClient({ teamMembers, teams, leaveBalances, invitations }: TeamManagementClientProps) {
+export function TeamManagementClient({ teamMembers, teams, leaveBalances, invitations, pendingRemovalUsers, archivedUsers }: TeamManagementClientProps) {
   const router = useRouter()
   
   // Debug: Log the received data
@@ -186,6 +207,48 @@ export function TeamManagementClient({ teamMembers, teams, leaveBalances, invita
     }
   }
 
+  // Handle canceling pending removal
+  const handleCancelRemoval = async (userId: string) => {
+    try {
+      const response = await fetch(`/api/admin/cancel-removal/${userId}`, {
+        method: 'POST'
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to cancel removal')
+      }
+
+      // Refresh the page to update all data
+      router.refresh()
+    } catch (error: any) {
+      console.error('Error canceling removal:', error)
+      throw error // Let the component handle the error
+    }
+  }
+
+  // Handle reactivating an archived user
+  const handleReactivateUser = async (userId: string) => {
+    try {
+      const response = await fetch(`/api/admin/reactivate-user/${userId}`, {
+        method: 'POST'
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to reactivate user')
+      }
+
+      // Refresh the page to update all data
+      router.refresh()
+    } catch (error: any) {
+      console.error('Error reactivating user:', error)
+      throw error // Let the component handle the error
+    }
+  }
+
   return (
     <div className="py-11 space-y-6">
       {/* Header */}
@@ -197,7 +260,21 @@ export function TeamManagementClient({ teamMembers, teams, leaveBalances, invita
       <div className="mt-6">
           {/* Pending Invitations Section */}
           <PendingInvitationsSection invitations={invitations} />
-          
+
+          {/* Pending Changes Section */}
+          <PendingChangesSection
+            users={pendingRemovalUsers}
+            onCancelRemoval={handleCancelRemoval}
+            className="mt-6"
+          />
+
+          {/* Archived Users Section */}
+          <ArchivedUsersSection
+            users={archivedUsers}
+            onReactivate={handleReactivateUser}
+            className="mt-6"
+          />
+
           <div className="mb-4 mt-8 min-h-[60px] flex items-center">
             <div className="flex items-center justify-between w-full">
               <div className="flex items-center gap-4">

@@ -1,7 +1,7 @@
 'use client'
 
 import { useLeaveRequest } from './providers/LeaveRequestProvider'
-import { LeaveRequestDetailsSheet } from './LeaveRequestDetailsSheet'
+import { LeaveRequestDetailsSheet } from './leave-requests/LeaveRequestDetailsSheet'
 
 export function GlobalLeaveRequestSheet() {
   const { selectedRequestId, isSheetOpen, closeLeaveRequestDetails } = useLeaveRequest()

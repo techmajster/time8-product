@@ -284,6 +284,99 @@ Tables should maintain consistent spacing.
 
 **Rule:** All tables should have `spacing-6` (24px) left/right padding from Card's `p-6`.
 
+### Badge Component
+
+Badges use a unified color system for consistent status representation across the application.
+
+#### Status Badge Variants
+
+All status badges follow a standardized color scheme:
+
+```tsx
+import { Badge } from '@/components/ui/badge'
+
+// Leave Request Statuses
+<Badge variant="default">Pending</Badge>                                      // Purple
+<Badge variant="default" className="bg-green-500 text-white border-transparent">Approved</Badge>  // Green
+<Badge variant="destructive">Rejected</Badge>                                 // Red
+<Badge variant="secondary">Cancelled</Badge>                                  // Gray
+<Badge variant="secondary">Completed</Badge>                                  // Gray
+```
+
+#### Status Badge Color Standards
+
+| Status | Variant | Background | Text | Border | Visual |
+|--------|---------|-----------|------|--------|--------|
+| **Pending** | `default` | Purple (`--primary`) | White | Transparent | Purple badge |
+| **Approved** | `default` + className | Green (`bg-green-500`) | White | Transparent | Green badge |
+| **Rejected** | `destructive` | Red (`--destructive`) | White | Transparent | Red badge |
+| **Cancelled** | `secondary` | Gray (`--secondary`) | Dark | Transparent | Gray badge |
+| **Completed** | `secondary` | Gray (`--secondary`) | Dark | Transparent | Gray badge |
+
+#### User Status Badges
+
+User status badges include icons for better visual hierarchy:
+
+```tsx
+import { UserStatusBadge } from '@/components/admin/UserStatusBadge'
+
+<UserStatusBadge status="active" />           // Green with CheckCircle2 icon
+<UserStatusBadge status="pending_removal" />  // Orange with Clock icon
+<UserStatusBadge status="archived" />         // Gray with Archive icon
+<UserStatusBadge status="invited" />          // Blue with Clock icon
+```
+
+| Status | Color | Icon | Usage |
+|--------|-------|------|-------|
+| **Active** | Green (`border-green-500/50 bg-green-50`) | CheckCircle2 | Active team members |
+| **Pending Removal** | Orange (`border-orange-500/50 bg-orange-50`) | Clock | Scheduled for removal |
+| **Archived** | Gray (`border-gray-300 bg-gray-100`) | Archive | Removed users |
+| **Invited** | Blue (`border-blue-500/50 bg-blue-50`) | Clock | Pending invitations |
+
+#### Subscription Status Badges
+
+```tsx
+// Subscription widget badges
+<Badge variant="outline" className="border-green-500/50 bg-green-50 text-green-700">Active</Badge>
+<Badge variant="outline" className="border-blue-500/50 bg-blue-50 text-blue-700">Trial</Badge>
+<Badge variant="destructive">Past Due</Badge>
+<Badge variant="secondary">Cancelled</Badge>
+```
+
+#### Notification Badge
+
+```tsx
+// Unread count badge on bell icon
+<Badge variant="destructive" className="absolute -top-1 -right-1 h-5 min-w-5 px-1">
+  {unreadCount > 99 ? '99+' : unreadCount}
+</Badge>
+```
+
+#### Badge Usage Guidelines
+
+**DO:**
+- ✅ Use `StatusBadge` component for leave request statuses
+- ✅ Use `UserStatusBadge` for user/team member statuses
+- ✅ Use semantic variants (`default`, `destructive`, `secondary`)
+- ✅ Maintain consistent green shade (`bg-green-500`) for approved statuses
+- ✅ Include icons in user status badges for clarity
+
+**DON'T:**
+- ❌ Use different green shades (e.g., `green-100`, `green-600`)
+- ❌ Use undefined color tokens (e.g., `success`, `warning`)
+- ❌ Override badge styles with hardcoded colors unless approved pattern
+- ❌ Mix badge color patterns across different pages
+
+#### Badge Component Locations
+
+| Component | File | Purpose |
+|-----------|------|---------|
+| `StatusBadge` | `components/admin/StatusBadge.tsx` | Leave request statuses |
+| `UserStatusBadge` | `components/admin/UserStatusBadge.tsx` | User/team member statuses |
+| `Badge` | `components/ui/badge.tsx` | Base badge component |
+| Notification Badge | `components/notifications/notification-bell.tsx` | Unread count indicator |
+| Subscription Badge | `components/admin/SubscriptionWidget.tsx` | Billing status |
+
 ---
 
 ## Typography

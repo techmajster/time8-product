@@ -49,8 +49,8 @@ export function DashboardCalendar({
 
 
   return (
-    <Card className="border border-border p-0">
-      <CardContent className="p-0">
+    <Card className="border border-border p-0 flex flex-col">
+      <CardContent className="p-0 flex flex-col">
         {/* Header - Single line with title, navigation, and button */}
         <div className="flex items-center justify-between px-6 pt-6 pb-6">
           {/* Title */}

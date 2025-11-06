@@ -11,6 +11,7 @@ import {
   Users,
 } from "lucide-react"
 import { UserRole, isManagerOrAdmin, isAdmin } from '@/lib/permissions'
+import { useTranslations } from 'next-intl'
 
 import { Logo } from "@/components/logo"
 import { NavMain } from "@/components/nav-main"
@@ -40,6 +41,8 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 }
 
 export function AppSidebar({ organizationName, organizationLogo, organizationInitials, userProfile, userRole, ...props }: AppSidebarProps) {
+  const t = useTranslations('navigation')
+
   // Format user data for NavUser component
   const userData = {
     name: userProfile?.full_name || userProfile?.email?.split('@')[0] || 'User',
@@ -48,40 +51,40 @@ export function AppSidebar({ organizationName, organizationLogo, organizationIni
     role: userRole || 'employee'
   }
 
-  // Base navigation items for all users - "Twoje konto"
+  // Base navigation items for all users
   const getBaseNavItems = () => [
     {
-      title: 'Dashboard',
+      title: t('items.dashboard'),
       url: "/dashboard",
       icon: Gauge,
       isActive: true,
     },
     {
-      title: 'Moje urlopy',
+      title: t('items.myLeave'),
       url: "/leave",
       icon: CalendarCheck2,
     },
     {
-      title: 'Kalendarz',
+      title: t('items.calendar'),
       url: "/calendar",
       icon: CalendarDays,
     },
   ]
 
-  // Get manager/admin specific items - "Kierownik"
+  // Get manager/admin specific items
   const getManagerItems = () => [
     {
-      title: 'Mój zespół',
+      title: t('items.myTeam'),
       url: "/team",
       icon: Users,
     },
     {
-      title: 'Wnioski urlopowe',
+      title: t('items.leaveRequests'),
       url: "/leave-requests",
       icon: FileSymlink,
     },
     {
-      title: 'Dodaj nieobecność',
+      title: t('items.addAbsence'),
       url: "#",
       icon: CalendarX,
       onClick: () => {
@@ -89,38 +92,40 @@ export function AppSidebar({ organizationName, organizationLogo, organizationIni
         window.dispatchEvent(event)
       }
     },
-    {
-      title: 'Grafik',
-      url: "/schedule",
-      icon: CalendarDays,
-    },
+    // Temporarily hidden - Schedule feature
+    // {
+    //   title: 'Grafik',
+    //   url: "/schedule",
+    //   icon: CalendarDays,
+    // },
   ]
 
-  // Admin items - "Administrator"
+  // Admin items
   const getAdminItems = () => [
     {
-      title: 'Ustawienia administracyjne',
+      title: t('items.administrativeSettings'),
       url: "/admin/settings",
       icon: Users,
     },
     {
-      title: 'Użytkownicy',
+      title: t('items.users'),
       url: "/admin/team-management",
       icon: FileSymlink,
     },
     {
-      title: 'Grupy',
+      title: t('items.groups'),
       url: "/admin/groups",
       icon: CalendarX,
     },
   ]
 
+  // Temporarily hidden - Help Center
   const navSecondaryData = [
-    {
-      title: 'Centrum pomocy',
-      url: "/help",
-      icon: CircleHelp,
-    },
+    // {
+    //   title: 'Centrum pomocy',
+    //   url: "/help",
+    //   icon: CircleHelp,
+    // },
   ]
 
   // Get base navigation items (for all users)
@@ -146,17 +151,17 @@ export function AppSidebar({ organizationName, organizationLogo, organizationIni
           />
         </div>
         
-        {/* Base navigation with "Twoje konto" label */}
-        <NavMain items={baseNavigationItems} label="Twoje konto" />
+        {/* Base navigation */}
+        <NavMain items={baseNavigationItems} label={t('sections.yourAccount')} />
 
-        {/* Manager navigation with "Kierownik" label */}
+        {/* Manager navigation */}
         {hasManagerAccess && (
-          <NavMain items={getManagerItems()} label="Kierownik" />
+          <NavMain items={getManagerItems()} label={t('sections.manager')} />
         )}
 
-        {/* Admin navigation with "Administrator" label */}
+        {/* Admin navigation */}
         {hasAdminAccess && (
-          <NavMain items={getAdminItems()} label="Administrator" />
+          <NavMain items={getAdminItems()} label={t('sections.administrator')} />
         )}
         
         <NavSecondary items={navSecondaryData} className="mt-auto" />

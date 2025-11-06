@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { sendCriticalAlert, sendWarningAlert, sendInfoAlert } from '@/lib/alert-service'
 
 /**
  * ReconcileSubscriptionsJob
@@ -134,23 +135,20 @@ export async function POST(request: NextRequest) {
             details
           })
 
-          // Create critical alert for mismatch
-          await supabase
-            .from('alerts')
-            .insert({
-              severity: 'critical',
-              message: `Subscription ${subscription.lemonsqueezy_subscription_id} out of sync! LS: ${lsQuantity}, DB: ${dbQuantity}`,
-              metadata: {
-                subscription_id: subscription.id,
-                organization_id: subscription.organization_id,
-                lemonsqueezy_subscription_id: subscription.lemonsqueezy_subscription_id,
-                lemonsqueezy_quantity: lsQuantity,
-                database_quantity: dbQuantity,
-                difference: Math.abs(lsQuantity - dbQuantity),
-                job: 'ReconcileSubscriptionsJob',
-                detected_at: new Date().toISOString()
-              }
-            })
+          // Create critical alert for mismatch (multi-channel: database, Slack, email)
+          await sendCriticalAlert(
+            `Subscription ${subscription.lemonsqueezy_subscription_id} out of sync! LS: ${lsQuantity}, DB: ${dbQuantity}`,
+            {
+              subscription_id: subscription.id,
+              organization_id: subscription.organization_id,
+              lemonsqueezy_subscription_id: subscription.lemonsqueezy_subscription_id,
+              lemonsqueezy_quantity: lsQuantity,
+              database_quantity: dbQuantity,
+              difference: Math.abs(lsQuantity - dbQuantity),
+              job: 'ReconcileSubscriptionsJob',
+              detected_at: new Date().toISOString()
+            }
+          )
 
           console.error(`❌ MISMATCH: Subscription ${subscription.lemonsqueezy_subscription_id}: DB=${dbQuantity}, LS=${lsQuantity}`)
         }
@@ -163,20 +161,17 @@ export async function POST(request: NextRequest) {
           error: errorMessage
         })
 
-        // Create warning alert for failed reconciliation check
-        await supabase
-          .from('alerts')
-          .insert({
-            severity: 'warning',
-            message: `Failed to reconcile subscription ${subscription.lemonsqueezy_subscription_id}`,
-            metadata: {
-              subscription_id: subscription.id,
-              organization_id: subscription.organization_id,
-              lemonsqueezy_subscription_id: subscription.lemonsqueezy_subscription_id,
-              error: errorMessage,
-              job: 'ReconcileSubscriptionsJob'
-            }
-          })
+        // Create warning alert for failed reconciliation check (database + Slack)
+        await sendWarningAlert(
+          `Failed to reconcile subscription ${subscription.lemonsqueezy_subscription_id}`,
+          {
+            subscription_id: subscription.id,
+            organization_id: subscription.organization_id,
+            lemonsqueezy_subscription_id: subscription.lemonsqueezy_subscription_id,
+            error: errorMessage,
+            job: 'ReconcileSubscriptionsJob'
+          }
+        )
 
         console.error(`⚠️ Failed to reconcile subscription ${subscription.lemonsqueezy_subscription_id}:`, errorMessage)
       }
@@ -185,20 +180,17 @@ export async function POST(request: NextRequest) {
       await new Promise(resolve => setTimeout(resolve, 100))
     }
 
-    // Create summary info alert if everything matched
+    // Create summary info alert if everything matched (database only)
     if (mismatchCount === 0 && errors.length === 0 && subscriptions.length > 0) {
-      await supabase
-        .from('alerts')
-        .insert({
-          severity: 'info',
-          message: `Daily reconciliation complete: All ${subscriptions.length} subscriptions in sync`,
-          metadata: {
-            checked: subscriptions.length,
-            matches: matchCount,
-            job: 'ReconcileSubscriptionsJob',
-            completed_at: new Date().toISOString()
-          }
-        })
+      await sendInfoAlert(
+        `Daily reconciliation complete: All ${subscriptions.length} subscriptions in sync`,
+        {
+          checked: subscriptions.length,
+          matches: matchCount,
+          job: 'ReconcileSubscriptionsJob',
+          completed_at: new Date().toISOString()
+        }
+      )
     }
 
     return NextResponse.json({

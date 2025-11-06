@@ -1,10 +1,10 @@
 /**
  * Lemon Squeezy Webhook Event Handlers
- * 
+ *
  * Handles processing of subscription lifecycle events from Lemon Squeezy webhooks.
  */
 
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
 
 export interface EventResult {
   success: boolean;
@@ -37,7 +37,7 @@ export async function logBillingEvent(
   errorMessage?: string
 ): Promise<void> {
   try {
-    const supabase = createClient();
+    const supabase = createAdminClient();
     
     await supabase
       .from('billing_events')
@@ -59,7 +59,7 @@ export async function logBillingEvent(
  */
 export async function isEventAlreadyProcessed(eventId: string): Promise<boolean> {
   try {
-    const supabase = createClient();
+    const supabase = createAdminClient();
     
     const { data, error } = await supabase
       .from('billing_events')
@@ -295,7 +295,7 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
       return { success: true, data: { message: 'Event already processed' } };
     }
 
-    const supabase = createClient();
+    const supabase = createAdminClient();
 
     // Find customer record, passing custom data from checkout
     const { data: customer, error: customerError } = await findOrCreateCustomer(
@@ -403,7 +403,7 @@ export async function processSubscriptionUpdated(payload: any): Promise<EventRes
       return { success: true, data: { message: 'Event already processed' } };
     }
 
-    const supabase = createClient();
+    const supabase = createAdminClient();
 
     // Find existing subscription
     const { data: existingSubscription, error: findError } = await supabase
@@ -516,7 +516,7 @@ export async function processSubscriptionCancelled(payload: any): Promise<EventR
       return { success: true, data: { message: 'Event already processed' } };
     }
 
-    const supabase = createClient();
+    const supabase = createAdminClient();
 
     // Find existing subscription
     const { data: existingSubscription, error: findError } = await supabase
@@ -605,7 +605,7 @@ export async function processSubscriptionPaymentFailed(payload: any): Promise<Ev
       return { success: true, data: { message: 'Event already processed' } };
     }
 
-    const supabase = createClient();
+    const supabase = createAdminClient();
 
     // Find existing subscription
     const { data: existingSubscription, error: findError } = await supabase
@@ -689,7 +689,7 @@ export async function processSubscriptionPaused(payload: any): Promise<EventResu
       return { success: true, data: { message: 'Event already processed' } };
     }
 
-    const supabase = createClient();
+    const supabase = createAdminClient();
 
     // Find existing subscription
     const { data: existingSubscription, error: findError } = await supabase
@@ -774,7 +774,7 @@ export async function processSubscriptionResumed(payload: any): Promise<EventRes
       return { success: true, data: { message: 'Event already processed' } };
     }
 
-    const supabase = createClient();
+    const supabase = createAdminClient();
 
     // Find existing subscription
     const { data: existingSubscription, error: findError } = await supabase
@@ -865,7 +865,7 @@ export async function processSubscriptionPaymentSuccess(payload: any): Promise<E
       return { success: true, data: { message: 'Event already processed' } };
     }
 
-    const supabase = createClient();
+    const supabase = createAdminClient();
 
     // Find existing subscription
     const { data: existingSubscription, error: findError } = await supabase
@@ -885,7 +885,15 @@ export async function processSubscriptionPaymentSuccess(payload: any): Promise<E
     const alreadySynced = existingSubscription.lemonsqueezy_quantity_synced === true;
 
     if (!hasPendingChanges) {
-      // No pending changes - just log and return success
+      // No pending changes - just update renews_at and return success
+      await supabase
+        .from('subscriptions')
+        .update({
+          renews_at: renews_at || null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('lemonsqueezy_subscription_id', subscriptionId);
+
       await logBillingEvent(meta.event_name, meta.event_id, payload, 'processed', 'No pending changes to apply');
       console.log(`[Webhook] subscription_payment_success: No pending changes for subscription ${subscriptionId}`);
 
@@ -935,7 +943,7 @@ export async function processSubscriptionPaymentSuccess(payload: any): Promise<E
     // Archive users marked as pending_removal
     const { data: usersToArchive, error: usersError } = await supabase
       .from('user_organizations')
-      .select('id, user_id, removal_effective_date')
+      .select('user_id, removal_effective_date')
       .eq('organization_id', existingSubscription.organization_id)
       .eq('status', 'pending_removal')
       .not('removal_effective_date', 'is', null);
@@ -947,14 +955,15 @@ export async function processSubscriptionPaymentSuccess(payload: any): Promise<E
     } else if (usersToArchive && usersToArchive.length > 0) {
       console.log(`[Webhook] Archiving ${usersToArchive.length} users marked as pending_removal`);
 
-      // Update all users to archived status
+      // Update all users to archived status using composite key
       const { error: archiveError } = await supabase
         .from('user_organizations')
         .update({
           status: 'archived',
           updated_at: new Date().toISOString()
         })
-        .in('id', usersToArchive.map(u => u.id));
+        .eq('organization_id', existingSubscription.organization_id)
+        .in('user_id', usersToArchive.map(u => u.user_id));
 
       if (archiveError) {
         console.error(`[Webhook] Failed to archive users: ${archiveError.message}`);

@@ -28,6 +28,9 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { SubscriptionWidget } from '@/components/admin/SubscriptionWidget'
+import { PendingChangesSection } from '@/components/admin/PendingChangesSection'
+import { ArchivedUsersSection } from '@/components/admin/ArchivedUsersSection'
 
 interface LeaveType {
   id: string
@@ -61,12 +64,39 @@ interface TeamMember {
   team_id: string
 }
 
+interface Subscription {
+  current_seats: number
+  pending_seats: number | null
+  renews_at: string | null
+  status: string
+}
+
+interface PendingRemovalUser {
+  id: string
+  email: string
+  full_name: string | null
+  avatar_url: string | null
+  removal_effective_date: string | null
+  role: string
+}
+
+interface ArchivedUser {
+  id: string
+  email: string
+  full_name: string | null
+  avatar_url: string | null
+  role: string
+}
+
 interface AdminSettingsClientProps {
   currentOrganization: any
   users: any[]
   leaveTypes: LeaveType[]
   teams: Team[]
   teamMembers: TeamMember[]
+  subscription: Subscription | null
+  pendingRemovalUsers: PendingRemovalUser[]
+  archivedUsers: ArchivedUser[]
 }
 
 export default function AdminSettingsClient({
@@ -74,11 +104,16 @@ export default function AdminSettingsClient({
   users,
   leaveTypes: initialLeaveTypes,
   teams,
-  teamMembers
+  teamMembers,
+  subscription: initialSubscription,
+  pendingRemovalUsers: initialPendingUsers,
+  archivedUsers: initialArchivedUsers
 }: AdminSettingsClientProps) {
   const t = useTranslations('billing')
   const [currentOrganization, setCurrentOrganization] = useState(initialOrganization)
   const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>(initialLeaveTypes)
+  const [pendingRemovalUsers, setPendingRemovalUsers] = useState<PendingRemovalUser[]>(initialPendingUsers)
+  const [archivedUsers, setArchivedUsers] = useState<ArchivedUser[]>(initialArchivedUsers)
   const router = useRouter()
 
   // Tab state management
@@ -466,6 +501,54 @@ export default function AdminSettingsClient({
       toast.error(error.message || 'Unable to open customer portal')
     } finally {
       setPortalLoading(false)
+    }
+  }
+
+  // Handle cancelling a pending user removal
+  const handleCancelRemoval = async (userId: string) => {
+    try {
+      const response = await fetch(`/api/admin/cancel-removal/${userId}`, {
+        method: 'POST'
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to cancel removal')
+      }
+
+      // Remove user from pending removal list
+      setPendingRemovalUsers(prev => prev.filter(u => u.id !== userId))
+
+      // Refresh the page to update all data
+      router.refresh()
+    } catch (error: any) {
+      console.error('Error cancelling removal:', error)
+      throw error // Let the component handle the error
+    }
+  }
+
+  // Handle reactivating an archived user
+  const handleReactivateUser = async (userId: string) => {
+    try {
+      const response = await fetch(`/api/admin/reactivate-user/${userId}`, {
+        method: 'POST'
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to reactivate user')
+      }
+
+      // Remove user from archived list
+      setArchivedUsers(prev => prev.filter(u => u.id !== userId))
+
+      // Refresh the page to update all data
+      router.refresh()
+    } catch (error: any) {
+      console.error('Error reactivating user:', error)
+      throw error // Let the component handle the error
     }
   }
 
@@ -1573,6 +1656,31 @@ export default function AdminSettingsClient({
               </CardContent>
             </Card>
           )}
+
+          {/* Subscription Widget */}
+          {initialSubscription && (
+            <SubscriptionWidget
+              currentSeats={initialSubscription.current_seats}
+              pendingSeats={initialSubscription.pending_seats}
+              renewsAt={initialSubscription.renews_at}
+              status={initialSubscription.status as 'active' | 'on_trial' | 'past_due' | 'cancelled'}
+              className="mt-6"
+            />
+          )}
+
+          {/* Pending Removals Section */}
+          <PendingChangesSection
+            users={pendingRemovalUsers}
+            onCancelRemoval={handleCancelRemoval}
+            className="mt-6"
+          />
+
+          {/* Archived Users Section */}
+          <ArchivedUsersSection
+            users={archivedUsers}
+            onReactivate={handleReactivateUser}
+            className="mt-6"
+          />
 
         </FigmaTabsContent>
 

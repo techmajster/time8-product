@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, Suspense } from 'react'
+import React, { useState, useEffect, Suspense, forwardRef, useImperativeHandle } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import {
   Sheet,
@@ -179,9 +179,10 @@ function OverlapUserItem({ user }: { user: OverlapUser }) {
   )
 }
 
-function AddAbsenceSheetContent({ preloadedEmployees, userRole, activeOrganizationId, isOpen, onClose, workingDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] }: AddAbsenceSheetProps) {
-  const supabase = createClient()
-  const sheetContentRef = React.useRef<HTMLDivElement>(null)
+const AddAbsenceSheetContent = forwardRef<{ resetForm: () => void }, AddAbsenceSheetProps>(
+  function AddAbsenceSheetContent({ preloadedEmployees, userRole, activeOrganizationId, isOpen, onClose, workingDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] }, ref) {
+    const supabase = createClient()
+    const sheetContentRef = React.useRef<HTMLDivElement>(null)
 
   // State
   const [loading, setLoading] = useState(false)
@@ -201,6 +202,30 @@ function AddAbsenceSheetContent({ preloadedEmployees, userRole, activeOrganizati
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
+
+  // Handle sheet close with form reset
+  const resetForm = () => {
+    setFormData({
+      employee_id: '',
+      leave_type_id: '',
+      start_date: '',
+      end_date: '',
+      notes: ''
+    })
+    setErrors({})
+    setOverlapUsers([])
+  }
+
+  const handleClose = () => {
+    resetForm()
+    // Call parent onClose
+    onClose()
+  }
+
+  // Expose resetForm to parent via ref
+  useImperativeHandle(ref, () => ({
+    resetForm
+  }))
 
   // Fetch disabled dates for selected employee
   const { disabledDates } = useDisabledDates({
@@ -604,18 +629,14 @@ function AddAbsenceSheetContent({ preloadedEmployees, userRole, activeOrganizati
       }
 
       toast.success('Nieobecność została dodana')
-      onClose()
-      
-      // Reset form
-      setFormData({
-        employee_id: '',
-        leave_type_id: '',
-        start_date: '',
-        end_date: '',
-        notes: ''
-      })
-      setErrors({})
-      
+
+      // Trigger refetch for pages using manual fetch
+      window.dispatchEvent(new CustomEvent('refetch-leave-requests'))
+
+      // Small delay to allow UI to update
+      await new Promise(resolve => setTimeout(resolve, 300))
+      handleClose()
+
     } catch (error) {
       console.error('Error creating absence:', error)
       toast.error(error instanceof Error ? error.message : 'Błąd tworzenia nieobecności')
@@ -625,8 +646,19 @@ function AddAbsenceSheetContent({ preloadedEmployees, userRole, activeOrganizati
   }
 
   const handleDateRangeChange = (range: DateRange | undefined) => {
-    if (range?.from && range?.to) {
-      // Debug logging to see what dates we're receiving
+    if (!range) {
+      // Clear dates if range is undefined
+      setFormData(prev => ({
+        ...prev,
+        start_date: '',
+        end_date: ''
+      }))
+      setErrors(prev => ({ ...prev, start_date: '', end_date: '', dates: '' }))
+      return
+    }
+
+    if (range.from && range.to) {
+      // Both dates selected - format and update
       console.log('🔍 Date range received:', {
         from: range.from,
         to: range.to,
@@ -665,30 +697,22 @@ function AddAbsenceSheetContent({ preloadedEmployees, userRole, activeOrganizati
         start_date: startDate,
         end_date: endDate
       }))
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        start_date: '',
-        end_date: ''
-      }))
+      setErrors(prev => ({ ...prev, start_date: '', end_date: '', dates: '' }))
     }
-    setErrors(prev => ({ ...prev, start_date: '', end_date: '', dates: '' }))
+    // Note: We don't handle the case where only `from` is set because the DateRangePicker
+    // manages that state internally and will call this handler again when both dates are selected
   }
 
   return (
     <SheetContent ref={sheetContentRef} size="content" className="overflow-y-auto">
       <div className="flex flex-col h-full">
         <div className="flex flex-col p-6 flex-1 overflow-y-auto">
-          <div className="flex flex-col space-y-1.5">
-            <SheetTitle className="text-lg font-semibold">Dodaj nieobecność</SheetTitle>
-            <SheetDescription>
-              Dodaj nieobecność dla wybranego pracownika. Wniosek zostanie automatycznie zatwierdzony.
-            </SheetDescription>
+          <div className="flex flex-col gap-1.5 w-full">
+            <SheetTitle className="text-lg font-semibold">Dodaj urlop</SheetTitle>
+            <Separator className="mt-4" />
           </div>
 
-          <Separator className="my-6" />
-
-          <div className="space-y-6">
+          <div className="space-y-6 pt-6">
             {/* Employee Selection */}
             <div className="space-y-2">
               <Label className="text-sm font-medium">
@@ -762,9 +786,14 @@ function AddAbsenceSheetContent({ preloadedEmployees, userRole, activeOrganizati
                   <Button
                     variant="outline"
                     className="w-full justify-between h-auto min-h-9 px-3 py-2"
-                    disabled={!formData.employee_id}
+                    disabled={!formData.employee_id || loading}
                   >
-                    {formData.leave_type_id ? (
+                    {loading && formData.employee_id ? (
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span className="text-muted-foreground">Ładowanie typów nieobecności...</span>
+                      </div>
+                    ) : formData.leave_type_id ? (
                       (() => {
                         const selectedLeaveType = leaveTypes.find(lt => lt.id === formData.leave_type_id)
                         const balance = leaveBalances.find(lb => lb.leave_type_id === formData.leave_type_id)
@@ -782,7 +811,7 @@ function AddAbsenceSheetContent({ preloadedEmployees, userRole, activeOrganizati
                     ) : (
                       <span className="text-muted-foreground">Wybierz typ nieobecności</span>
                     )}
-                    <ChevronDownIcon className="size-4 opacity-50" />
+                    {!loading && <ChevronDownIcon className="size-4 opacity-50" />}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-[var(--radix-dropdown-menu-trigger-width)]">
@@ -853,53 +882,57 @@ function AddAbsenceSheetContent({ preloadedEmployees, userRole, activeOrganizati
               {errors.leave_type_id && <p className="text-sm text-destructive">{errors.leave_type_id}</p>}
             </div>
 
-            {/* Date Range and Days */}
-            <div className="flex gap-4">
-              <div className="flex-1 space-y-2">
-                <Label className="text-sm font-medium">
-                  Termin nieobecności
-                </Label>
-                <DateRangePicker
-                  value={formData.start_date && formData.end_date ? {
-                    from: parseISO(formData.start_date),
-                    to: parseISO(formData.end_date)
-                  } : undefined}
-                  onDateRangeChange={handleDateRangeChange}
-                  container={sheetContentRef.current}
-                  existingLeaveRequests={disabledDates}
-                  holidaysToDisable={holidays}
-                  isLoadingHolidays={isLoadingHolidays}
-                  workingDays={workingDays}
-                />
-                {(errors.start_date || errors.end_date || errors.dates) && (
-                  <p className="text-sm text-destructive">
-                    {errors.dates || errors.start_date || errors.end_date}
-                  </p>
-                )}
-              </div>
-              
-              <div className="w-fit space-y-2">
-                <Label className="text-sm font-medium">
-                  Urlop
-                </Label>
-                <Input
-                  value={selectedDays > 0 ? `${selectedDays} dni` : '0 dni'}
-                  disabled
-                  className="text-center w-16"
-                />
-              </div>
-              
-              <div className="w-fit space-y-2">
-                <Label className="text-sm font-medium">
-                  Zostanie
-                </Label>
-                <Input
-                  value={selectedBalance ? `${remainingAfter} dni` : '0 dni'}
-                  disabled
-                  className="text-center w-16"
-                />
-              </div>
+            {/* Date Range */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">
+                Termin nieobecności
+              </Label>
+              <DateRangePicker
+                value={formData.start_date && formData.end_date ? {
+                  from: parseISO(formData.start_date),
+                  to: parseISO(formData.end_date)
+                } : undefined}
+                onDateRangeChange={handleDateRangeChange}
+                container={sheetContentRef.current}
+                existingLeaveRequests={disabledDates}
+                holidaysToDisable={holidays}
+                isLoadingHolidays={isLoadingHolidays}
+                workingDays={workingDays}
+              />
+              {(errors.start_date || errors.end_date || errors.dates) && (
+                <p className="text-sm text-destructive">
+                  {errors.dates || errors.start_date || errors.end_date}
+                </p>
+              )}
             </div>
+
+            {/* Balance Summary Cards */}
+            {(() => {
+              const selectedLeaveType = leaveTypes.find(type => type.id === formData.leave_type_id)
+              const availableDays = selectedBalance?.remaining_days || 0
+              const requestedDays = selectedDays
+              const remainingDays = remainingAfter
+
+              // Only show for leave types that require balance AND when dates are selected
+              if (!formData.leave_type_id || !selectedLeaveType?.requires_balance || !formData.start_date || !formData.end_date) return null
+
+              return (
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="flex flex-col items-center justify-center p-4 border rounded-lg bg-background">
+                    <span className="text-xs text-muted-foreground mb-1">Dostępny</span>
+                    <span className="text-lg font-semibold">{availableDays} dni</span>
+                  </div>
+                  <div className="flex flex-col items-center justify-center p-4 border rounded-lg bg-background">
+                    <span className="text-xs text-muted-foreground mb-1">Wnioskowany</span>
+                    <span className="text-lg font-semibold">{requestedDays} dni</span>
+                  </div>
+                  <div className="flex flex-col items-center justify-center p-4 border rounded-lg bg-background">
+                    <span className="text-xs text-muted-foreground mb-1">Pozostanie</span>
+                    <span className="text-lg font-semibold">{remainingDays} dni</span>
+                  </div>
+                </div>
+              )
+            })()}
             {errors.balance && <p className="text-sm text-destructive">{errors.balance}</p>}
 
             {/* Overlap Warning */}
@@ -936,14 +969,16 @@ function AddAbsenceSheetContent({ preloadedEmployees, userRole, activeOrganizati
 
         {/* Footer with buttons at bottom */}
         <div className="p-6">
-          <div className="flex gap-2 justify-end">
+          <div className="flex justify-between items-center w-full">
             <Button
               variant="outline"
-              onClick={onClose}
+              className="h-9 px-4 py-2"
+              onClick={handleClose}
             >
-              Zamknij
+              Anuluj
             </Button>
             <Button
+              className="h-9 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90"
               onClick={handleSubmit}
               disabled={loading}
             >
@@ -953,7 +988,7 @@ function AddAbsenceSheetContent({ preloadedEmployees, userRole, activeOrganizati
                   Dodawanie...
                 </>
               ) : (
-                'Dodaj nieobecność'
+                'Dodaj urlop'
               )}
             </Button>
           </div>
@@ -961,11 +996,12 @@ function AddAbsenceSheetContent({ preloadedEmployees, userRole, activeOrganizati
       </div>
     </SheetContent>
   )
-}
+})
 
 // Main component with global event listener
 export default function AddAbsenceSheet({ preloadedEmployees, userRole, activeOrganizationId, workingDays }: Omit<AddAbsenceSheetProps, 'isOpen' | 'onClose'>) {
   const [isOpen, setIsOpen] = useState(false)
+  const contentRef = React.useRef<{ resetForm: () => void } | null>(null)
 
   useEffect(() => {
     const handleOpenAddAbsence = () => {
@@ -976,10 +1012,19 @@ export default function AddAbsenceSheet({ preloadedEmployees, userRole, activeOr
     return () => window.removeEventListener('openAddAbsence', handleOpenAddAbsence)
   }, [])
 
+  const handleSheetClose = (open: boolean) => {
+    if (!open) {
+      // Sheet is closing - reset form via ref if available
+      contentRef.current?.resetForm()
+    }
+    setIsOpen(open)
+  }
+
   return (
-    <Sheet open={isOpen} onOpenChange={setIsOpen}>
+    <Sheet open={isOpen} onOpenChange={handleSheetClose}>
       <Suspense fallback={<div>Loading...</div>}>
         <AddAbsenceSheetContent
+          ref={contentRef}
           preloadedEmployees={preloadedEmployees}
           userRole={userRole}
           activeOrganizationId={activeOrganizationId}

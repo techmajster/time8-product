@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { authenticateAndGetOrgContext, isManagerOrAdmin } from '@/lib/auth-utils-v2'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     // Authenticate and get organization context
     const auth = await authenticateAndGetOrgContext()
@@ -13,12 +13,30 @@ export async function GET() {
     const { context } = auth
     const { user, organization, role } = context
     const organizationId = organization.id
-    const supabase = await createClient()
+    // Use admin client to bypass RLS policies since we've already validated permissions
+    const supabaseAdmin = createAdminClient()
+
+    // Parse query parameters for pagination and filtering
+    const { searchParams } = new URL(request.url)
+    const page = parseInt(searchParams.get('page') || '1', 10)
+    const limit = parseInt(searchParams.get('limit') || '10', 10)
+    const tab = searchParams.get('tab') || 'wszystkie' // nowe, zaakceptowane, odrzucone, zrealizowane, wszystkie
+
+    // Calculate pagination offsets
+    const from = (page - 1) * limit
+    const to = from + limit - 1
 
     // Build query based on role
     const canViewAll = isManagerOrAdmin(role)
-    
-    let query = supabase
+
+    // Base query for count
+    let countQuery = supabaseAdmin
+      .from('leave_requests')
+      .select('id', { count: 'exact', head: true })
+      .eq('organization_id', organizationId)
+
+    // Base query for data
+    let dataQuery = supabaseAdmin
       .from('leave_requests')
       .select(`
         *,
@@ -30,7 +48,8 @@ export async function GET() {
         user_profile:profiles!leave_requests_user_id_fkey (
           id,
           full_name,
-          email
+          email,
+          avatar_url
         ),
         reviewed_by_profile:profiles!leave_requests_reviewed_by_fkey (
           full_name,
@@ -39,23 +58,69 @@ export async function GET() {
       `)
       .eq('organization_id', organizationId)
       .order('created_at', { ascending: false })
+      .range(from, to)
 
     // If employee, only show their own requests
     if (!canViewAll) {
-      query = query.eq('user_id', user.id)
+      countQuery = countQuery.eq('user_id', user.id)
+      dataQuery = dataQuery.eq('user_id', user.id)
     }
 
-    const { data: leaveRequests, error } = await query
+    // Apply tab filtering
+    switch (tab) {
+      case 'nowe':
+        countQuery = countQuery.eq('status', 'pending')
+        dataQuery = dataQuery.eq('status', 'pending')
+        break
+      case 'zaakceptowane':
+        countQuery = countQuery.eq('status', 'approved')
+        dataQuery = dataQuery.eq('status', 'approved')
+        break
+      case 'odrzucone':
+        countQuery = countQuery.eq('status', 'rejected')
+        dataQuery = dataQuery.eq('status', 'rejected')
+        break
+      case 'zrealizowane':
+        countQuery = countQuery.eq('status', 'completed')
+        dataQuery = dataQuery.eq('status', 'completed')
+        break
+      case 'wszystkie':
+      default:
+        // No status filter for all requests
+        break
+    }
 
-    if (error) {
-      console.error('Error fetching leave requests:', error)
+    // Execute queries in parallel
+    const [{ data: leaveRequests, error: dataError }, { count, error: countError }] = await Promise.all([
+      dataQuery,
+      countQuery
+    ])
+
+    if (dataError) {
+      console.error('Error fetching leave requests:', dataError)
       return NextResponse.json(
         { error: 'Failed to fetch leave requests' },
         { status: 500 }
       )
     }
 
-    return NextResponse.json({ leaveRequests })
+    if (countError) {
+      console.error('Error counting leave requests:', countError)
+      return NextResponse.json(
+        { error: 'Failed to count leave requests' },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json({
+      leaveRequests,
+      pagination: {
+        page,
+        limit,
+        total: count || 0,
+        totalPages: Math.ceil((count || 0) / limit)
+      }
+    })
 
   } catch (error) {
     console.error('API Error fetching leave requests:', error)

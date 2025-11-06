@@ -28,6 +28,7 @@ import { getApplicableLeaveTypes, isLeaveTypeDisabled } from '@/lib/leave-valida
 import { useDisabledDates } from '@/hooks/use-disabled-dates'
 import { useHolidays } from '@/hooks/useHolidays'
 import { useCreateLeaveRequest } from '@/hooks/use-leave-mutations'
+import { useQueryClient } from '@tanstack/react-query'
 
 interface PendingRequest {
   leave_type_id: string
@@ -100,6 +101,7 @@ interface NewLeaveRequestSheetProps {
 
 export function NewLeaveRequestSheet({ leaveTypes, leaveBalances, userProfile, initialDate, pendingRequests = [] }: NewLeaveRequestSheetProps) {
   const supabase = createClient()
+  const queryClient = useQueryClient()
   const [isOpen, setIsOpen] = useState(false)
 
   // React Query mutation
@@ -169,10 +171,13 @@ export function NewLeaveRequestSheet({ leaveTypes, leaveBalances, userProfile, i
 
   const handleClose = () => {
     setIsOpen(false)
-    // Reset form state
+    // Reset all form state
     setFormData({ leave_type_id: '', reason: '' })
     setDateRange(undefined)
     setCalculatedDays(null)
+    setOverlapUsers([])
+    setIsCheckingOverlaps(false)
+    setOverlapCheckError(null)
   }
 
   useEffect(() => {
@@ -347,16 +352,25 @@ export function NewLeaveRequestSheet({ leaveTypes, leaveBalances, userProfile, i
       days_requested: calculatedDays,
       reason: formData.reason || null,
     }, {
-      onSuccess: () => {
-        setTimeout(() => {
-          handleClose()
-        }, 1500)
+      onSuccess: async () => {
+        // Invalidate all queries - this will trigger refetch for active queries
+        await queryClient.invalidateQueries({
+          queryKey: ['leaveRequests'],
+          refetchType: 'active'
+        })
+
+        // Also trigger a router refresh to update server components
+        window.dispatchEvent(new CustomEvent('refetch-leave-requests'))
+
+        // Small delay to allow UI to update
+        await new Promise(resolve => setTimeout(resolve, 300))
+        handleClose()
       }
     })
   }
 
   return (
-    <Sheet open={isOpen} onOpenChange={setIsOpen}>
+    <Sheet open={isOpen} onOpenChange={(open) => { if (!open) handleClose() }}>
         <SheetContent
           ref={sheetContentRef}
           side="right"

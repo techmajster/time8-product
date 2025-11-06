@@ -96,7 +96,7 @@ export interface LeaveRequest {
   end_date: string
   days_requested: number
   reason?: string
-  status: 'pending' | 'approved' | 'rejected' | 'cancelled'
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled' | 'completed'
   reviewed_by?: string
   reviewed_at?: string
   rejection_reason?: string

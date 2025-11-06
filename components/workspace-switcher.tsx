@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { ChevronsUpDown, Plus, Users, Check } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import {
   Dialog,
   DialogContent,
@@ -74,9 +75,10 @@ const AvatarGroup = ({ memberAvatars, memberCount }: {
   )
 }
 
-export function WorkspaceSwitcher({ 
+export function WorkspaceSwitcher({
   currentWorkspaceName = "BB8 Team",
 }: WorkspaceSwitcherProps) {
+  const t = useTranslations('workspace')
   const [isOpen, setIsOpen] = useState(false)
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
   const [pendingInvitations, setPendingInvitations] = useState<PendingInvitation[]>([])
@@ -217,20 +219,20 @@ export function WorkspaceSwitcher({
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate text-xs">Workspace</span>
+                <span className="truncate text-xs">{t('title')}</span>
                 <span className="truncate font-medium">{currentWorkspaceName}</span>
               </div>
               <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>
           </DialogTrigger>
-          
+
           <DialogContent className="max-w-[720px] p-6" showCloseButton={false}>
-            <DialogTitle className="sr-only">Switch workspace</DialogTitle>
+            <DialogTitle className="sr-only">{t('title')}</DialogTitle>
             <div className="space-y-6">
               {/* Your workspaces section */}
               <div className="space-y-4">
                 <h2 className="text-xl font-semibold text-foreground leading-7">
-                  Your workspaces
+                  {t('yourWorkspaces')}
                 </h2>
                 
                 {isLoading ? (
@@ -271,12 +273,12 @@ export function WorkspaceSwitcher({
                             </div>
                             <div className="flex flex-col items-end justify-between h-full">
                               {isCurrent && (
-                                <Badge 
-                                  variant="outline" 
+                                <Badge
+                                  variant="outline"
                                   className="mb-2 text-xs font-semibold text-foreground bg-card border flex items-center gap-1"
                                 >
                                   <Check className="w-3 h-3" />
-                                  Current workspace
+                                  {t('currentWorkspace')}
                                 </Badge>
                               )}
                               <Button
@@ -284,7 +286,7 @@ export function WorkspaceSwitcher({
                                 className="h-9"
                                 onClick={() => isCurrent ? setIsOpen(false) : handleEnterWorkspace(workspace.id)}
                               >
-                                {isCurrent ? "Back to workspace" : "Enter workspace"}
+                                {isCurrent ? t('backToWorkspace') : t('enterWorkspace')}
                               </Button>
                             </div>
                           </div>
@@ -299,7 +301,7 @@ export function WorkspaceSwitcher({
               {pendingInvitations.length > 0 && (
                 <div className="space-y-4">
                   <h2 className="text-xl font-semibold text-foreground leading-7">
-                    Invitations
+                    {t('invitations')}
                   </h2>
                   <div className="space-y-5">
                     {pendingInvitations.map((invitation) => (
@@ -322,7 +324,7 @@ export function WorkspaceSwitcher({
                               onClick={() => handleAcceptInvitation(invitation.token)}
                             >
                               <Users className="w-4 h-4 mr-2" />
-                              Accept invitation
+                              {t('acceptInvitation')}
                             </Button>
                           </div>
                         </div>
@@ -343,14 +345,14 @@ export function WorkspaceSwitcher({
                   onClick={handleCreateNewWorkspace}
                 >
                   <Plus className="w-4 h-4 mr-2" />
-                  New workspace
+                  {t('newWorkspace')}
                 </Button>
                 <Button
                   variant="outline"
                   className="h-9"
                   onClick={() => setIsOpen(false)}
                 >
-                  Close
+                  {t('close')}
                 </Button>
               </div>
             </div>
