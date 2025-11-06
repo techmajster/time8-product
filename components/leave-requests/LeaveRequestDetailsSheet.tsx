@@ -11,7 +11,6 @@ import {
 } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { X } from 'lucide-react'
 import { StatusBadge } from '@/components/admin/StatusBadge'
 import { RequesterSection } from '@/components/admin/RequesterSection'
 import { BalanceCards } from '@/components/admin/BalanceCards'
@@ -272,19 +271,11 @@ export function LeaveRequestDetailsSheet({
               </div>
             ) : leaveRequest ? (
               <>
-                {/* Header with close button */}
+                {/* Header */}
                 <div className="flex justify-between items-start w-full">
                   <h2 className="text-xl font-semibold leading-7 text-foreground">
                     {tSheet('leaveRequest')}
                   </h2>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 -mt-1"
-                    onClick={onClose}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
                 </div>
 
                 {/* Separator */}
@@ -379,7 +370,13 @@ export function LeaveRequestDetailsSheet({
                       {tSheet('submissionDate')}
                     </p>
                     <p className="text-base font-semibold text-foreground">
-                      {formatDate(leaveRequest.created_at)} 12:00
+                      {new Date(leaveRequest.created_at).toLocaleDateString('pl-PL', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
                     </p>
                   </div>
 
