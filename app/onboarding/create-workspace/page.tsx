@@ -11,7 +11,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ChevronLeft } from 'lucide-react'
 import { DecorativeBackground } from '@/components/auth/DecorativeBackground'
-import { LanguageSwitcher } from '@/components/auth/LanguageSwitcher'
+import { LanguageDropdown } from '@/components/auth/LanguageDropdown'
 
 function CreateWorkspacePageContent() {
   const t = useTranslations('onboarding.createWorkspace')
@@ -82,7 +82,7 @@ function CreateWorkspacePageContent() {
       <DecorativeBackground />
 
       {/* Language Switcher */}
-      <LanguageSwitcher />
+      <LanguageDropdown />
 
       {/* Top header with logo */}
       <div className="absolute left-[32px] top-[32px] z-10">

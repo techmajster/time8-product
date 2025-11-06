@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { PricingInfo, calculatePricing } from '@/lib/lemon-squeezy/pricing'
 import { DecorativeBackground } from '@/components/auth/DecorativeBackground'
-import { LanguageSwitcher } from '@/components/auth/LanguageSwitcher'
+import { LanguageDropdown } from '@/components/auth/LanguageDropdown'
 import { UserPlusIcon } from '@/components/onboarding/icons'
 import { Minus, Plus } from 'lucide-react'
 
@@ -299,7 +299,7 @@ function AddUsersPageContent() {
         </div>
       </div>
 
-      <LanguageSwitcher />
+      <LanguageDropdown />
 
       {/* Main content container with max-width 824px */}
       <div className="absolute left-1/2 top-1/2 translate-x-[-50%] translate-y-[-50%] w-full max-w-[824px] px-8 z-10">

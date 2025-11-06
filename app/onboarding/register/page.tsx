@@ -12,7 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { ChevronLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { DecorativeBackground } from '@/components/auth/DecorativeBackground'
-import { LanguageSwitcher } from '@/components/auth/LanguageSwitcher'
+import { LanguageDropdown } from '@/components/auth/LanguageDropdown'
 
 function RegisterPageContent() {
   const t = useTranslations('auth')
@@ -154,7 +154,7 @@ function RegisterPageContent() {
       <DecorativeBackground />
 
       {/* Language Switcher */}
-      <LanguageSwitcher />
+      <LanguageDropdown />
 
       {/* Logo - Time8 */}
       <div className="absolute left-[32px] top-[32px] z-10">

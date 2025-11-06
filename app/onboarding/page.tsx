@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { WelcomeScreen, ChoiceScreen, MultiOptionScreen } from '@/components/onboarding'
 import { OrganizationStatusResponse } from '@/app/api/user/organization-status/route'
 import { Time8Logo } from '@/components/ui/time8-logo'
+import { Loader2 } from 'lucide-react'
 
 interface OnboardingState {
   loading: boolean
@@ -18,6 +20,7 @@ interface OnboardingState {
 export default function OnboardingRoutingPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const t = useTranslations('onboarding.loading')
   const [state, setState] = useState<OnboardingState>({
     loading: true,
     error: null,
@@ -242,13 +245,16 @@ export default function OnboardingRoutingPage() {
   if (state.loading) {
     return (
       <div className="bg-white min-h-screen flex items-center justify-center relative">
-        <div className="text-center space-y-4 z-10">
-          <div 
-            className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"
-            role="status"
-            aria-label="Loading"
-          ></div>
-          <p className="text-sm text-muted-foreground">Setting up your onboarding experience...</p>
+        <div className="flex flex-col gap-8 items-center p-16 z-10">
+          <Loader2 className="size-16 animate-spin text-muted-foreground" />
+          <div className="flex flex-col gap-3 items-center">
+            <h1 className="text-3xl font-bold leading-9 text-center text-foreground">
+              {t('title')}
+            </h1>
+            <p className="text-sm text-muted-foreground text-center leading-5">
+              {t('description')}
+            </p>
+          </div>
         </div>
       </div>
     )

@@ -10,7 +10,7 @@ import { ForgotPasswordForm } from "./components/ForgotPasswordForm"
 import { ResetPasswordForm } from "./components/ResetPasswordForm"
 import { DecorativeBackground } from "@/components/auth/DecorativeBackground"
 import { HeroSection } from "@/components/auth/HeroSection"
-import { LanguageSwitcher } from "@/components/auth/LanguageSwitcher"
+import { LanguageDropdown } from "@/components/auth/LanguageDropdown"
 
 type AuthMode = 'login' | 'signup' | 'forgot-password' | 'reset-password'
 
@@ -61,7 +61,7 @@ function LoginPageContent() {
         <DecorativeBackground />
         
         {/* Language Switcher */}
-        <LanguageSwitcher />
+        <LanguageDropdown />
 
         {/* Content Container */}
         <div className="flex flex-col gap-6 items-start w-full max-w-[384px] relative z-10">

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import Image from 'next/image'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { LanguageSwitcher } from '@/components/auth/LanguageSwitcher'
+import { LanguageDropdown } from '@/components/auth/LanguageDropdown'
 import { DecorativeBackground } from '@/components/auth/DecorativeBackground'
 import { OnboardingCard } from './OnboardingCard'
 import { MailCheckIcon, UserCheckIcon, UserPlusIcon, UsersIcon } from './icons'
@@ -42,9 +42,11 @@ export function MultiOptionScreen({ userName, userWorkspaces, pendingInvitations
   const tInvitation = useTranslations('onboarding.invitation')
   const tWorkspace = useTranslations('onboarding.workspace')
   const tWelcome = useTranslations('onboarding.welcome')
+  const tLogout = useTranslations('onboarding.logout')
   const [accepting, setAccepting] = useState<string | null>(null)
   const [entering, setEntering] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [loggingOut, setLoggingOut] = useState(false)
   const router = useRouter()
 
   const handleAcceptInvitation = async (invitation: Invitation) => {
@@ -117,6 +119,19 @@ export function MultiOptionScreen({ userName, userWorkspaces, pendingInvitations
     router.push('/onboarding/create-workspace')
   }
 
+  const handleLogout = async () => {
+    try {
+      setLoggingOut(true)
+      await fetch('/api/logout', { method: 'POST' })
+      router.push('/login')
+    } catch (error) {
+      console.error('Error signing out:', error)
+      setError('Failed to log out. Please try again.')
+    } finally {
+      setLoggingOut(false)
+    }
+  }
+
   // Prepare cards array (invitations + workspaces + create card)
   const cards: Array<{
     type: 'invitation' | 'workspace' | 'create'
@@ -148,7 +163,7 @@ export function MultiOptionScreen({ userName, userWorkspaces, pendingInvitations
       <DecorativeBackground />
 
       {/* Language Switcher */}
-      <LanguageSwitcher />
+      <LanguageDropdown />
 
       {/* Top header with logo */}
       <div className="absolute left-[32px] top-[32px] z-10">
@@ -244,6 +259,19 @@ export function MultiOptionScreen({ userName, userWorkspaces, pendingInvitations
                 })}
               </div>
             ))}
+          </div>
+
+          {/* Logout Link */}
+          <div className="text-center text-sm">
+            {tLogout('prompt')}{" "}
+            <button
+              type="button"
+              onClick={handleLogout}
+              disabled={loggingOut}
+              className="text-primary underline underline-offset-4 hover:text-primary/80 hover:no-underline transition-colors cursor-pointer disabled:opacity-50"
+            >
+              {tLogout('action')}
+            </button>
           </div>
         </div>
       </div>

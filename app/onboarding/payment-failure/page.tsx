@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { RefreshCw, TriangleAlert } from 'lucide-react'
 import { DecorativeBackground } from '@/components/auth/DecorativeBackground'
-import { LanguageSwitcher } from '@/components/auth/LanguageSwitcher'
+import { LanguageDropdown } from '@/components/auth/LanguageDropdown'
 import Image from 'next/image'
 
 function PaymentFailurePageContent() {
@@ -74,7 +74,7 @@ function PaymentFailurePageContent() {
         />
       </div>
 
-      <LanguageSwitcher />
+      <LanguageDropdown />
 
       {/* Centered content */}
       <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10">

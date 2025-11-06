@@ -1,5 +1,9 @@
 {
   "onboarding": {
+    "loading": {
+      "title": "Setting up your onboarding experience...",
+      "description": "Please wait while we prepare everything"
+    },
     "welcome": {
       "title": "Welcome {name}!",
       "subtitle": "Let's get started with your workspace",
@@ -32,6 +36,10 @@
       "title": "Your workspace:",
       "enter": "Enter workspace",
       "entering": "Entering..."
+    },
+    "logout": {
+      "prompt": "Do you want to log in to another account?",
+      "action": "Log out"
     },
     "createWorkspace": {
       "back": "Back",

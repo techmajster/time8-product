@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import Image from 'next/image'
-import { LanguageSwitcher } from '@/components/auth/LanguageSwitcher'
+import { LanguageDropdown } from '@/components/auth/LanguageDropdown'
 import { DecorativeBackground } from '@/components/auth/DecorativeBackground'
 import { OnboardingCard } from './OnboardingCard'
 import { UserPlusIcon } from './icons'
@@ -26,7 +26,7 @@ export function WelcomeScreen({ userName }: WelcomeScreenProps) {
       <DecorativeBackground />
 
       {/* Language Switcher */}
-      <LanguageSwitcher />
+      <LanguageDropdown />
 
       {/* Top header with logo */}
       <div className="absolute left-[32px] top-[32px] z-10">

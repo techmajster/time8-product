@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { CircleCheck } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { DecorativeBackground } from '@/components/auth/DecorativeBackground'
-import { LanguageSwitcher } from '@/components/auth/LanguageSwitcher'
+import { LanguageDropdown } from '@/components/auth/LanguageDropdown'
 
 interface CompanyMember {
   id: string
@@ -104,7 +104,7 @@ function SuccessPageContent() {
       <DecorativeBackground />
 
       {/* Language Switcher */}
-      <LanguageSwitcher />
+      <LanguageDropdown />
 
       {/* Logo - Time8 */}
       <div className="absolute left-[32px] top-[32px] z-10">

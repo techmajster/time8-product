@@ -11,7 +11,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Loader2, Plus, ChevronDownIcon } from 'lucide-react'
+import { Loader2, SquarePlus, ChevronDownIcon, Ellipsis } from 'lucide-react'
 import { toast } from 'sonner'
 import { ManageTeamMembersSheet } from '@/app/admin/team-management/components/ManageTeamMembersSheet'
 import { CreateTeamSheet } from '@/app/admin/team-management/components/CreateTeamSheet'
@@ -177,14 +177,13 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
         <h1 className="text-3xl font-semibold text-foreground">Grupy</h1>
         <Button
           size="sm"
-          className=""
           onClick={() => {
             resetForm()
             setIsCreateDialogOpen(true)
           }}
           disabled={loading}
         >
-          <Plus className="h-4 w-4 mr-2" />
+          <SquarePlus />
           Dodaj grupę
         </Button>
       </div>
@@ -195,66 +194,69 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
           Brak zespołów
         </div>
       ) : (
-        <Card>
-          <CardContent className="py-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="font-medium text-muted-foreground">Nazwa grupy</TableHead>
-                  <TableHead className="font-medium text-muted-foreground">Manager grupy</TableHead>
-                  <TableHead className="font-medium text-muted-foreground text-right">Członkowie</TableHead>
-                </TableRow>
-              </TableHeader>
+        <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="font-medium text-muted-foreground">Nazwa</TableHead>
+                <TableHead className="font-medium text-muted-foreground">Opis</TableHead>
+                <TableHead className="font-medium text-muted-foreground text-right">Liczba pracowników</TableHead>
+                <TableHead className="font-medium text-muted-foreground text-right">Akcje</TableHead>
+              </TableRow>
+            </TableHeader>
               <TableBody>
                 {teams.map((team) => (
                   <TableRow
                     key={team.id}
-                    className="h-[72px] cursor-pointer hover:bg-muted/50 transition-colors"
+                    className="h-[52px] cursor-pointer hover:bg-muted/50 transition-colors"
                     onClick={() => handleTeamRowClick(team)}
                   >
                     <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div>
-                          <div className="font-medium text-foreground">
-                            {team.name}
-                          </div>
-                        </div>
+                      <div className="font-medium text-foreground">
+                        {team.name}
                       </div>
                     </TableCell>
                     <TableCell>
-                      {team.manager ? (
-                        <div className="flex items-center gap-3">
-                          <Avatar className="size-10">
-                            <AvatarFallback className="text-sm font-medium">
-                              {team.manager.full_name ? team.manager.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : team.manager.email.charAt(0).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <div className="font-medium text-foreground">
-                              {team.manager.full_name || team.manager.email}
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              {team.manager.email}
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="font-medium text-muted-foreground">
-                          Brak menedżera
-                        </div>
-                      )}
+                      <div className="text-sm text-foreground">
+                        {team.description || '—'}
+                      </div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="text-foreground">
+                      <div className="text-foreground font-medium">
                         {team.member_count || 0}
                       </div>
+                    </TableCell>
+                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-[36px] w-[36px]"
+                          >
+                            <Ellipsis className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => openEditDialog(team)}>
+                            Edytuj grupę
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => openMembersSheet(team)}>
+                            Zarządzaj członkami
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => handleDeleteTeam(team)}
+                            className="text-destructive"
+                          >
+                            Usuń grupę
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
-          </CardContent>
-        </Card>
       )}
 
       {/* Create Team Sheet */}

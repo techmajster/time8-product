@@ -1,5 +1,9 @@
 {
   "onboarding": {
+    "loading": {
+      "title": "Przygotowywanie procesu onboardingu...",
+      "description": "Proszę czekać, przygotowujemy wszystko"
+    },
     "welcome": {
       "title": "Witaj {name}!",
       "subtitle": "Zacznijmy z Twoim obszarem roboczym",
@@ -32,6 +36,10 @@
       "title": "Twój obszar roboczy:",
       "enter": "Wejdź do obszaru roboczego",
       "entering": "Wchodzenie..."
+    },
+    "logout": {
+      "prompt": "Czy chcesz zalogować się na inne konto?",
+      "action": "Wyloguj się"
     },
     "createWorkspace": {
       "back": "Wstecz",
