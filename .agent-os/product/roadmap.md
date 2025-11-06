@@ -1116,23 +1116,25 @@ See [docs/DEPLOYMENT-CHECKLIST.md](docs/DEPLOYMENT-CHECKLIST.md) for complete sm
 
 ---
 
-## Phase 2.13: Standardize Auto-Refresh Pattern Across Application 🔄
+## Phase 2.13: Standardize Auto-Refresh Pattern Across Application ✅
 
 **Goal:** Implement consistent auto-refresh behavior across all pages after mutations, eliminating manual page reloads
 **Success Criteria:** All CRUD operations trigger automatic data refresh, no `window.location.reload()` or manual refresh needed
 **Priority:** MEDIUM
-**Status:** 📋 Planned
+**Status:** ✅ Complete
 **Dependencies:** Phase 2.12 complete
+**Completed:** 2025-11-06
+**PR:** https://github.com/techmajster/time8-product/pull/7
 
 ### Features
 
-- [ ] **Create Unified Event System** `S`
+- [x] **Create Unified Event System** `S`
   - Create `lib/refetch-events.ts` with event constants
   - Export helper functions for dispatching refetch events
   - Define events: `refetch-leave-requests`, `refetch-team-management`, `refetch-settings`
   - Files: [lib/refetch-events.ts](lib/refetch-events.ts)
 
-- [ ] **Update Team Management Page** `M` **HIGH PRIORITY**
+- [x] **Update Team Management Page** `M` **HIGH PRIORITY**
   - Add event listener to `TeamManagementClient`
   - Replace `window.location.reload()` with event dispatch + refetch
   - Replace `router.refresh()` with event dispatch + refetch
@@ -1140,26 +1142,26 @@ See [docs/DEPLOYMENT-CHECKLIST.md](docs/DEPLOYMENT-CHECKLIST.md) for complete sm
   - Dispatch `refetch-team-management` event in all mutations
   - Files: [TeamManagementClient.tsx](app/admin/team-management/components/TeamManagementClient.tsx), [use-team-mutations.ts](hooks/use-team-mutations.ts)
 
-- [ ] **Update Admin Settings Page** `M`
+- [x] **Update Admin Settings Page** `M`
   - Add event listener to `AdminSettingsClient`
   - Create `hooks/use-settings-mutations.ts` for leave type CRUD
   - Dispatch `refetch-settings` event in all mutations
   - Remove manual state updates in favor of refetch
   - Files: [AdminSettingsClient.tsx](app/admin/settings/components/AdminSettingsClient.tsx), [use-settings-mutations.ts](hooks/use-settings-mutations.ts)
 
-- [ ] **Update Leave Types Manager** `S`
+- [x] **Update Leave Types Manager** `S`
   - Add event listener to `LeaveTypesManager`
   - Listen for `refetch-settings` events
   - Replace Supabase client mutations with React Query hooks
   - Files: [LeaveTypesManager.tsx](app/settings/components/LeaveTypesManager.tsx)
 
-- [ ] **Ensure Leave Mutations Dispatch Events** `S`
+- [x] **Ensure Leave Mutations Dispatch Events** `S`
   - Verify all mutations in `use-leave-mutations.ts` dispatch events
   - Add `refetch-leave-requests` event to any missing mutations
   - Ensure consistent 300ms delay before sheet close
   - Files: [use-leave-mutations.ts](hooks/use-leave-mutations.ts)
 
-- [ ] **Testing & QA** `M`
+- [x] **Testing & QA** `M`
   - Test auto-refresh on `/leave-requests` ✅ Already working
   - Test auto-refresh on `/admin/team-management` after delete/cancel/reactivate
   - Test auto-refresh on `/admin/settings` after leave type changes
@@ -1340,6 +1342,302 @@ useEffect(() => {
 - Environment config: 0.5 hour
 - Testing & QA: 1 day
 - **Total: 6.5 days (1.5 weeks)**
+
+---
+
+## Phase 2.15: Complete Bilingual Translation Coverage 🌐
+
+**Goal:** Complete Polish/English translation coverage across all remaining pages and components, ensuring 100% bilingual support
+**Success Criteria:** All user-facing text translatable, zero hardcoded strings, consistent date/time formatting in both languages, comprehensive testing
+**Priority:** HIGH (User-facing quality and international readiness)
+**Status:** 📋 Planned
+**Dependencies:** Phase 2.14 complete
+
+### Current State Analysis
+
+**Translation Infrastructure:** ✅ Fully implemented
+- next-intl framework configured with cookie-based locale detection
+- Comprehensive translation files: 988 Polish keys, 986 English keys
+- Language switcher component with database + cookie persistence
+- Organization-level default locale support
+
+**Translation Coverage:** ⚠️ 26% of components using translations
+- ✅ **Fully Translated:** Auth flow, onboarding, dashboard, leave management, calendar, navigation, notifications, billing
+- ⚠️ **Partially Translated:** Profile page, Admin Groups, Admin Settings components
+- ❌ **Untranslated:** Schedule management (7 components), Settings pages (5 components), Team management pages
+
+**Work Required:** Extract ~200+ hardcoded strings from 40+ components
+
+### Features
+
+- [ ] **Profile Page Translation** `S`
+  - Extract 20+ hardcoded Polish strings from profile page
+  - Translate ProfileForm.tsx success messages and labels
+  - Translate PersonalSettingsForm.tsx labels and validation messages
+  - Add translation keys for role names (Administrator, Menedżer, Pracownik)
+  - Replace hardcoded `toLocaleDateString('pl-PL')` with next-intl formatters
+  - Add keys: `profile.basicInfo`, `profile.role`, `profile.organization`, `profile.hireDate`, etc.
+  - Files: [app/profile/page.tsx](app/profile/page.tsx), [app/profile/components/ProfileForm.tsx](app/profile/components/ProfileForm.tsx), [app/profile/components/PersonalSettingsForm.tsx](app/profile/components/PersonalSettingsForm.tsx)
+
+- [ ] **Admin Groups Page Translation** `M`
+  - Extract 50+ hardcoded strings from AdminGroupsView.tsx (completely untranslated)
+  - Translate team management UI, forms, dialogs, tables
+  - Add translation keys for success/error messages ("Grupa została zaktualizowana pomyślnie")
+  - Translate group creation, editing, deletion flows
+  - Add keys: `admin.groups.title`, `admin.groups.create`, `admin.groups.updateSuccess`, etc.
+  - Files: [app/admin/groups/components/AdminGroupsView.tsx](app/admin/groups/components/AdminGroupsView.tsx)
+
+- [ ] **Schedule Management Translation** `L`
+  - Translate 7 untranslated components (CreateTemplateDialog, AssignTemplateDialog, EditEmployeeScheduleDialog, WeeklyScheduleView, EditTemplateDialog, ScheduleTemplateManager, ScheduleManager)
+  - Extract ~70+ strings for schedule templates and management
+  - Add translation keys for:
+    - Template creation/editing workflows
+    - Employee schedule assignment
+    - Weekly schedule view labels
+    - Work mode settings (office, remote, hybrid)
+  - Add keys: `schedule.template.create`, `schedule.assign`, `schedule.workMode`, etc.
+  - Files: [app/schedule/components/CreateTemplateDialog.tsx](app/schedule/components/CreateTemplateDialog.tsx), [app/schedule/components/AssignTemplateDialog.tsx](app/schedule/components/AssignTemplateDialog.tsx), [app/schedule/components/EditEmployeeScheduleDialog.tsx](app/schedule/components/EditEmployeeScheduleDialog.tsx), [app/schedule/components/WeeklyScheduleView.tsx](app/schedule/components/WeeklyScheduleView.tsx), [app/schedule/components/EditTemplateDialog.tsx](app/schedule/components/EditTemplateDialog.tsx), [app/schedule/components/ScheduleTemplateManager.tsx](app/schedule/components/ScheduleTemplateManager.tsx), [app/schedule/components/ScheduleManager.tsx](app/schedule/components/ScheduleManager.tsx)
+
+- [ ] **Admin Settings Components Translation** `M`
+  - Translate 8 components: EditLeavePoliciesSheet, EditLeaveTypesSheet, EditOrganizationSheet, EditGoogleWorkspaceSheet, WorkModeSettings, CreateLeaveTypeSheet, AdminSettingsClient
+  - Extract ~40+ strings from configuration UI
+  - Add translation keys for:
+    - Leave policy configuration
+    - Leave type management
+    - Organization settings
+    - Google Workspace integration
+    - Work mode configuration
+  - Add keys: `admin.settings.leavePolicy`, `admin.settings.leaveType`, `admin.settings.organization`, etc.
+  - Files: [app/admin/settings/components/EditLeavePoliciesSheet.tsx](app/admin/settings/components/EditLeavePoliciesSheet.tsx), [app/admin/settings/components/EditLeaveTypesSheet.tsx](app/admin/settings/components/EditLeaveTypesSheet.tsx), [app/admin/settings/components/EditOrganizationSheet.tsx](app/admin/settings/components/EditOrganizationSheet.tsx), [app/admin/settings/components/EditGoogleWorkspaceSheet.tsx](app/admin/settings/components/EditGoogleWorkspaceSheet.tsx), [app/admin/settings/components/WorkModeSettings.tsx](app/admin/settings/components/WorkModeSettings.tsx), [app/admin/settings/components/CreateLeaveTypeSheet.tsx](app/admin/settings/components/CreateLeaveTypeSheet.tsx), [app/admin/settings/components/AdminSettingsClient.tsx](app/admin/settings/components/AdminSettingsClient.tsx)
+
+- [ ] **Settings Pages Translation** `S`
+  - Translate 5 components: LeaveTypesManager, LeavePoliciesForm, OrganizationBrandingForm, OrganizationSettingsForm, HolidayCalendarSettings
+  - Extract ~30+ strings from forms and configuration UI
+  - Add translation keys for:
+    - Leave type management
+    - Leave policy forms
+    - Organization branding
+    - Organization settings
+    - Holiday calendar configuration
+  - Add keys: `settings.leaveTypes`, `settings.leavePolicies`, `settings.branding`, etc.
+  - Files: [app/settings/components/LeaveTypesManager.tsx](app/settings/components/LeaveTypesManager.tsx), [app/settings/components/LeavePoliciesForm.tsx](app/settings/components/LeavePoliciesForm.tsx), [app/settings/components/OrganizationBrandingForm.tsx](app/settings/components/OrganizationBrandingForm.tsx), [app/settings/components/OrganizationSettingsForm.tsx](app/settings/components/OrganizationSettingsForm.tsx), [app/settings/components/HolidayCalendarSettings.tsx](app/settings/components/HolidayCalendarSettings.tsx)
+
+- [ ] **Admin Team Management Pages Translation** `S`
+  - Translate AddEmployeePage, EditEmployeePage, FigmaTabs, PendingInvitationsSection
+  - Extract ~20+ strings from employee management UI
+  - Add translation keys for:
+    - Add employee workflow
+    - Edit employee forms
+    - Pending invitations section
+  - Add keys: `admin.team.addEmployee`, `admin.team.editEmployee`, `admin.team.pendingInvitations`, etc.
+  - Files: [app/admin/team-management/add-employee/components/AddEmployeePage.tsx](app/admin/team-management/add-employee/components/AddEmployeePage.tsx), [app/admin/team-management/edit-employee/components/EditEmployeePage.tsx](app/admin/team-management/edit-employee/components/EditEmployeePage.tsx), [app/admin/team-management/components/FigmaTabs.tsx](app/admin/team-management/components/FigmaTabs.tsx), [app/admin/team-management/components/PendingInvitationsSection.tsx](app/admin/team-management/components/PendingInvitationsSection.tsx)
+
+- [ ] **Date/Time Formatting Standardization** `S`
+  - Replace all hardcoded `toLocaleDateString('pl-PL')` with next-intl formatters
+  - Implement consistent date formatting using `useFormatter()` hook
+  - Replace manual date formatting with `format.dateTime()` throughout codebase
+  - Ensure date/time displays respect user's locale preference
+  - Test date formatting in both languages across all pages
+  - Files: Search and replace across all components using date formatting
+
+- [ ] **Error Messages & Toast Audit** `S`
+  - Audit all toast notifications for hardcoded text
+  - Review API error responses for hardcoded messages
+  - Ensure all error messages use translation keys
+  - Create dedicated error message translation keys structure
+  - Update API error responses to use translation keys
+  - Test error scenarios in both languages
+  - Add keys: `errors.api.unauthorized`, `errors.api.notFound`, `errors.validation.*`, etc.
+  - Files: Review all files using `toast()` or error handling
+
+- [ ] **Help Page & Edge Cases** `XS`
+  - Review and translate help page content
+  - Fix any remaining hardcoded strings in edge case components
+  - Ensure legal/compliance text is properly translated
+  - Add keys: `help.title`, `help.sections.*`, etc.
+  - Files: [app/help/page.tsx](app/help/page.tsx)
+
+- [ ] **Translation Keys Update** `M`
+  - Add all new translation keys to `/messages/pl.json`
+  - Add corresponding English translations to `/messages/en.json`
+  - Maintain key parity between both files
+  - Organize keys by feature/page namespace
+  - Validate JSON structure and formatting
+  - Files: [messages/pl.json](messages/pl.json), [messages/en.json](messages/en.json)
+
+- [ ] **Testing & Validation** `S`
+  - Test language switching on all pages (auth, dashboard, profile, admin, settings, schedule)
+  - Verify cookie persistence across browser sessions
+  - Verify database locale storage in `user_settings.locale`
+  - Test organization default locale inheritance
+  - Test date/time formatting in both languages
+  - Verify all form validation messages are translated
+  - Test error messages and toasts in both languages
+  - Test with different user roles (employee, manager, admin)
+  - Verify no console errors related to missing translation keys
+  - Create translation coverage report
+
+### Impact
+
+- ✅ **Complete Bilingual Support:** 100% of application translated to Polish and English
+- ✅ **International Readiness:** Easy to add more languages in the future
+- ✅ **Improved UX:** Consistent language experience across entire application
+- ✅ **Professional Quality:** No hardcoded strings, proper localization
+- ✅ **Maintainable:** Centralized translation management in JSON files
+- ✅ **Scalable:** Framework supports adding new languages easily
+
+### Technical Notes
+
+**Translation Infrastructure (Already Implemented):**
+- ✅ next-intl framework configured
+- ✅ Cookie-based locale detection with fallbacks
+- ✅ Database persistence in `user_settings.locale`
+- ✅ Organization-level default locale
+- ✅ LanguageSwitcher component
+- ✅ Type-safe translation keys
+- ✅ Comprehensive translation files (988 PL keys, 986 EN keys)
+
+**Translation Pattern:**
+```typescript
+// Before (hardcoded)
+<h1>Profil użytkownika</h1>
+
+// After (translated)
+import { useTranslations } from 'next-intl'
+const t = useTranslations('profile')
+<h1>{t('title')}</h1>
+```
+
+**Date Formatting Pattern:**
+```typescript
+// Before (hardcoded locale)
+date.toLocaleDateString('pl-PL')
+
+// After (locale-aware)
+import { useFormatter } from 'next-intl'
+const format = useFormatter()
+format.dateTime(date, { dateStyle: 'medium' })
+```
+
+**Key Naming Convention:**
+- Use dot notation for nested keys: `admin.groups.createSuccess`
+- Group by feature/page: `profile.*`, `schedule.*`, `admin.*`
+- Consistent naming: `title`, `description`, `success`, `error`, `confirm`, etc.
+
+### Estimated Effort
+
+- Profile page translation: 2-3 hours
+- Admin Groups translation: 4-6 hours
+- Schedule management translation: 6-8 hours
+- Admin Settings components: 4-6 hours
+- Settings pages: 3-4 hours
+- Team management pages: 2-3 hours
+- Date/time formatting: 2-3 hours
+- Error messages & toasts: 2-3 hours
+- Help page & edge cases: 1-2 hours
+- Testing & validation: 2-3 hours
+- **Total: 28-40 hours (4-5 days)**
+
+---
+
+## Phase 2.16: Dark Mode Styling Fixes 🌓
+
+**Goal:** Fix dark mode styling issues across components with hardcoded colors that don't adapt to dark mode
+**Success Criteria:** Dashboard and all components display correctly in both light and dark modes, no hardcoded colors that ignore theme
+**Priority:** MEDIUM (UX quality and design consistency)
+**Status:** 📋 Planned
+**Dependencies:** None
+
+### Current State Analysis
+
+**Dark Mode Infrastructure:** ✅ Fully implemented
+- next-themes framework configured with theme provider
+- CSS custom properties defined for both `:root` (light) and `.dark` selectors
+- Theme toggle exists and works
+- Most components use semantic tokens correctly
+
+**Dark Mode Issues:** ⚠️ Several components with hardcoded colors
+- ✅ **Working Correctly:** Card, Button, Select, Separator, Dashboard structure components
+- ⚠️ **Partially Working:** Radio Group, Avatar, Dashboard badges
+- ❌ **Hardcoded Colors:** Calendar violet background, onboarding screens
+
+### Features
+
+- [ ] **Fix CSS Variables (globals.css)** `XS` 🎯 HIGH PRIORITY
+  - Add `--card-violet` variable to `.dark` selector with appropriate dark mode color
+  - Current issue: `--card-violet: #ede9fe` only defined in `:root` (light mode)
+  - Impact: Calendar cells in dashboard don't adapt to dark mode
+  - File: [app/globals.css:144-191](app/globals.css#L144-L191)
+  - Add dark mode value: `--card-violet: #312e81` (or similar dark purple)
+
+- [ ] **Fix Radio Group Component** `S` 🎯 HIGH PRIORITY
+  - Replace all hardcoded neutral colors with semantic tokens
+  - Issues:
+    - `border-neutral-900` → `border-primary` or `border-foreground`
+    - `bg-neutral-100` → `bg-muted` or `bg-accent`
+    - `bg-neutral-900` → `bg-primary` or `bg-foreground`
+    - `bg-white` → `bg-background` or `bg-primary-foreground`
+    - `text-neutral-800` → `text-foreground`
+  - Impact: Radio buttons in forms don't adapt to dark mode
+  - File: [components/ui/radio-group.tsx](components/ui/radio-group.tsx)
+  - Lines affected: 41, 47, 49, 61, 67, 95
+
+- [ ] **Fix Dashboard Custom Balance Badge** `XS`
+  - Replace hardcoded `bg-blue-100 text-blue-800` with semantic tokens
+  - Options: `bg-accent text-accent-foreground` or create badge variant
+  - Impact: "Custom Balance" indicator badge doesn't adapt to dark mode
+  - File: [app/dashboard/components/DashboardClient.tsx:112](app/dashboard/components/DashboardClient.tsx#L112)
+
+- [ ] **Fix Avatar Fallback Colors** `XS`
+  - Replace hardcoded `bg-[#C8BBFD] text-[#1e1b4b]` with CSS variables
+  - Use: `bg-[var(--avatar-fallback)] text-[var(--avatar-fallback-foreground)]`
+  - Note: Variables already defined in globals.css for both modes
+  - Impact: Avatar backgrounds don't respect dark mode
+  - File: [components/ui/avatar.tsx:45](components/ui/avatar.tsx#L45)
+
+- [ ] **Fix Onboarding Screens Text** `XS` (Optional)
+  - Replace `text-neutral-950` with `text-foreground` in:
+    - WelcomeScreen.tsx:52
+    - ChoiceScreen.tsx:102
+    - MultiOptionScreen.tsx:174
+  - Impact: Low priority - onboarding is typically one-time use
+  - Files: [components/onboarding/WelcomeScreen.tsx](components/onboarding/WelcomeScreen.tsx), [components/onboarding/ChoiceScreen.tsx](components/onboarding/ChoiceScreen.tsx), [components/onboarding/MultiOptionScreen.tsx](components/onboarding/MultiOptionScreen.tsx)
+
+- [ ] **Testing & Validation** `S`
+  - Verify dashboard appears correctly in both light and dark modes
+  - Test radio buttons in forms (both modes)
+  - Check avatar rendering in light and dark modes
+  - Toggle between modes to ensure smooth transitions
+  - Test calendar cell backgrounds in dashboard
+  - Verify no visual regressions in other components
+
+### Impact
+
+- ✅ **Consistent Dark Mode:** All components properly adapt to theme changes
+- ✅ **Improved UX:** Professional dark mode experience across entire application
+- ✅ **Design System Compliance:** All components use semantic color tokens
+- ✅ **Maintainable:** Easy to adjust theme colors globally via CSS variables
+- ✅ **Accessibility:** Proper contrast in both light and dark modes
+
+### Files to Modify
+
+1. `app/globals.css` - Add dark mode `--card-violet` variable
+2. `components/ui/radio-group.tsx` - Replace hardcoded neutral colors
+3. `app/dashboard/components/DashboardClient.tsx` - Fix badge colors
+4. `components/ui/avatar.tsx` - Use CSS variables for fallback
+5. `components/onboarding/WelcomeScreen.tsx` - Fix text colors (optional)
+6. `components/onboarding/ChoiceScreen.tsx` - Fix text colors (optional)
+7. `components/onboarding/MultiOptionScreen.tsx` - Fix text colors (optional)
+
+### Estimated Effort
+
+- CSS variables fix: 15 minutes
+- Radio group component: 30 minutes
+- Dashboard badge fix: 15 minutes
+- Avatar fallback fix: 10 minutes
+- Onboarding screens: 20 minutes (optional)
+- Testing & validation: 30 minutes
+- **Total: 2 hours**
 
 ---
 
