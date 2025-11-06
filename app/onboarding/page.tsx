@@ -245,7 +245,7 @@ export default function OnboardingRoutingPage() {
   // Loading state
   if (state.loading) {
     return (
-      <div className="bg-white min-h-screen flex items-center justify-center relative">
+      <div className="bg-[var(--bg-default)] min-h-screen flex items-center justify-center relative">
         <div className="flex flex-col gap-8 items-center p-16 z-10">
           <Loader2 className="size-16 animate-spin text-muted-foreground" />
           <div className="flex flex-col gap-3 items-center">
@@ -266,7 +266,7 @@ export default function OnboardingRoutingPage() {
     // If we have organizationData with invitation scenario, show invitation screen with error
     if (state.organizationData?.scenario === 'invitation') {
       return (
-        <div className="bg-white min-h-screen relative w-full">
+        <div className="bg-[var(--bg-default)] min-h-screen relative w-full">
           {/* Logo - Time8 */}
           <div className="absolute left-8 top-8">
             <Time8Logo />
@@ -319,7 +319,7 @@ export default function OnboardingRoutingPage() {
     
     // For other errors, show generic error state with navigation options
     return (
-      <div className="bg-white min-h-screen flex items-center justify-center relative p-4">
+      <div className="bg-[var(--bg-default)] min-h-screen flex items-center justify-center relative p-4">
         <div className="w-full max-w-md space-y-6 z-10">
           <Alert variant="destructive">
             <AlertDescription>
@@ -359,7 +359,7 @@ export default function OnboardingRoutingPage() {
   // Missing data state - but allow invitation scenario without user
   if (!state.organizationData || (!state.user && state.organizationData?.scenario !== 'invitation')) {
     return (
-      <div className="bg-white min-h-screen flex items-center justify-center relative p-4">
+      <div className="bg-[var(--bg-default)] min-h-screen flex items-center justify-center relative p-4">
         <div className="w-full max-w-md space-y-6 z-10">
           <Alert variant="destructive">
             <AlertDescription>

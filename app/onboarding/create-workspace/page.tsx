@@ -3,7 +3,6 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -12,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ChevronLeft, Loader2 } from 'lucide-react'
 import { DecorativeBackground } from '@/components/auth/DecorativeBackground'
 import { LanguageDropdown } from '@/components/auth/LanguageDropdown'
+import { OnboardingLogo } from '@/components/OnboardingLogo'
 
 function CreateWorkspacePageContent() {
   const t = useTranslations('onboarding.createWorkspace')
@@ -77,7 +77,7 @@ function CreateWorkspacePageContent() {
   }
 
   return (
-    <div className="bg-white flex flex-col gap-[10px] items-start relative size-full min-h-screen">
+    <div className="flex flex-col gap-[10px] items-start relative size-full min-h-screen">
       {/* Decorative background */}
       <DecorativeBackground />
 
@@ -86,16 +86,7 @@ function CreateWorkspacePageContent() {
 
       {/* Top header with logo */}
       <div className="absolute left-[32px] top-[32px] z-10">
-        <div className="h-[30px] relative w-[108.333px]">
-          <Image
-            alt="time8 logo"
-            className="block h-[30px] w-auto"
-            src="/auth-assets/30f1f246576f6427b3a9b511194297cbba4d7ec6.svg"
-            width={108}
-            height={30}
-            priority
-          />
-        </div>
+        <OnboardingLogo width={108} height={30} />
       </div>
 
       {/* Main content */}
@@ -107,7 +98,7 @@ function CreateWorkspacePageContent() {
         <div className="flex gap-0.5 items-center justify-start relative w-full">
           <button
             onClick={handleBack}
-            className="bg-white flex gap-2 items-center justify-center px-4 py-2 relative rounded-lg border border shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] hover:bg-gray-50 transition-colors cursor-pointer"
+            className="bg-card flex gap-2 items-center justify-center px-4 py-2 relative rounded-lg border border shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] hover:bg-accent transition-colors cursor-pointer"
           >
             <ChevronLeft className="w-4 h-4 text-foreground" />
             <div className="font-medium text-[14px] text-foreground" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 500, lineHeight: '20px' }}>

@@ -1554,7 +1554,8 @@ format.dateTime(date, { dateStyle: 'medium' })
 **Goal:** Fix dark mode styling issues across components with hardcoded colors that don't adapt to dark mode
 **Success Criteria:** Dashboard and all components display correctly in both light and dark modes, no hardcoded colors that ignore theme
 **Priority:** MEDIUM (UX quality and design consistency)
-**Status:** 📋 Planned
+**Status:** ✅ Completed
+**Completed:** 2025-11-06
 **Dependencies:** None
 
 ### Current State Analysis
@@ -1604,13 +1605,22 @@ format.dateTime(date, { dateStyle: 'medium' })
   - Impact: Avatar backgrounds don't respect dark mode
   - File: [components/ui/avatar.tsx:45](components/ui/avatar.tsx#L45)
 
-- [ ] **Fix Onboarding Screens Text** `XS` (Optional)
-  - Replace `text-neutral-950` with `text-foreground` in:
-    - WelcomeScreen.tsx:52
-    - ChoiceScreen.tsx:102
-    - MultiOptionScreen.tsx:174
-  - Impact: Low priority - onboarding is typically one-time use
-  - Files: [components/onboarding/WelcomeScreen.tsx](components/onboarding/WelcomeScreen.tsx), [components/onboarding/ChoiceScreen.tsx](components/onboarding/ChoiceScreen.tsx), [components/onboarding/MultiOptionScreen.tsx](components/onboarding/MultiOptionScreen.tsx)
+- [x] **Fix Onboarding Pages Dark Mode** `S` ✅ COMPLETED
+  - Created `OnboardingLogo` component that swaps between black and white logos based on theme
+  - Fixed back button styling: `bg-white` → `bg-card`, `hover:bg-gray-50` → `hover:bg-accent`
+  - Fixed LanguageDropdown: `bg-white` → `bg-card`
+  - Updated all onboarding pages:
+    - [app/onboarding/create-workspace/page.tsx](app/onboarding/create-workspace/page.tsx)
+    - [app/onboarding/add-users/page.tsx](app/onboarding/add-users/page.tsx)
+    - [app/onboarding/payment-success/page.tsx](app/onboarding/payment-success/page.tsx)
+    - [app/onboarding/register/page.tsx](app/onboarding/register/page.tsx)
+    - [app/onboarding/success/page.tsx](app/onboarding/success/page.tsx)
+    - [app/onboarding/payment-failure/page.tsx](app/onboarding/payment-failure/page.tsx)
+    - [components/onboarding/WelcomeScreen.tsx](components/onboarding/WelcomeScreen.tsx)
+  - Components:
+    - [components/OnboardingLogo.tsx](components/OnboardingLogo.tsx) (new)
+    - [components/auth/LanguageDropdown.tsx:74](components/auth/LanguageDropdown.tsx#L74)
+  - Note: Sidebar logo intentionally kept white for both modes
 
 - [ ] **Testing & Validation** `S`
   - Verify dashboard appears correctly in both light and dark modes

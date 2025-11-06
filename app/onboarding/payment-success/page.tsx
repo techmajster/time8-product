@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Loader2, CircleCheck, XCircle } from 'lucide-react'
 import { DecorativeBackground } from '@/components/auth/DecorativeBackground'
 import { LanguageDropdown } from '@/components/auth/LanguageDropdown'
+import { OnboardingLogo } from '@/components/OnboardingLogo'
 import Image from 'next/image'
 
 function PaymentSuccessPageContent() {
@@ -194,22 +195,16 @@ function PaymentSuccessPageContent() {
 
   if (isLoading) {
     return (
-      <div className="bg-white min-h-screen relative">
+      <div className="bg-[var(--bg-default)] min-h-screen relative">
         <DecorativeBackground />
         
         {/* Logo */}
         <div className="absolute left-8 top-8 z-10">
-          <Image
-            alt="time8 logo"
-            className="block h-[30px] w-auto"
-            src="/auth-assets/30f1f246576f6427b3a9b511194297cbba4d7ec6.svg"
-            width={108}
-            height={30}
-            priority
-          />
+          <OnboardingLogo width={108} height={30} />
         </div>
 
         <LanguageDropdown />
+import { OnboardingLogo } from '@/components/OnboardingLogo'
 
         {/* Centered content */}
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
@@ -231,22 +226,16 @@ function PaymentSuccessPageContent() {
 
   if (error) {
     return (
-      <div className="bg-white min-h-screen relative">
+      <div className="bg-[var(--bg-default)] min-h-screen relative">
         <DecorativeBackground />
         
         {/* Logo */}
         <div className="absolute left-8 top-8 z-10">
-          <Image
-            alt="time8 logo"
-            className="block h-[30px] w-auto"
-            src="/auth-assets/30f1f246576f6427b3a9b511194297cbba4d7ec6.svg"
-            width={108}
-            height={30}
-            priority
-          />
+          <OnboardingLogo width={108} height={30} />
         </div>
 
         <LanguageDropdown />
+import { OnboardingLogo } from '@/components/OnboardingLogo'
 
         {/* Centered content */}
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
@@ -270,22 +259,16 @@ function PaymentSuccessPageContent() {
   }
 
   return (
-    <div className="bg-white min-h-screen relative">
+    <div className="bg-[var(--bg-default)] min-h-screen relative">
       <DecorativeBackground />
       
       {/* Logo */}
       <div className="absolute left-8 top-8 z-10">
-        <Image
-          alt="time8 logo"
-          className="block h-[30px] w-auto"
-          src="/auth-assets/30f1f246576f6427b3a9b511194297cbba4d7ec6.svg"
-          width={108}
-          height={30}
-          priority
-        />
+        <OnboardingLogo width={108} height={30} />
       </div>
 
       <LanguageDropdown />
+import { OnboardingLogo } from '@/components/OnboardingLogo'
 
       {/* Centered content */}
       <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10">

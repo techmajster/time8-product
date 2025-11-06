@@ -2,7 +2,6 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -14,6 +13,7 @@ import { PricingInfo, calculatePricing } from '@/lib/lemon-squeezy/pricing'
 import { DecorativeBackground } from '@/components/auth/DecorativeBackground'
 import { LanguageDropdown } from '@/components/auth/LanguageDropdown'
 import { UserPlusIcon } from '@/components/onboarding/icons'
+import { OnboardingLogo } from '@/components/OnboardingLogo'
 import { Minus, Plus, Loader2 } from 'lucide-react'
 
 function AddUsersPageContent() {
@@ -271,7 +271,7 @@ function AddUsersPageContent() {
   // Show loading state while pricing loads
   if (pricingLoading || !pricingInfo) {
     return (
-      <div className="bg-white relative size-full min-h-screen flex items-center justify-center">
+      <div className="bg-[var(--bg-default)] relative size-full min-h-screen flex items-center justify-center">
         <DecorativeBackground />
         <div className="text-center z-10">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground mx-auto mb-4"></div>
@@ -282,21 +282,12 @@ function AddUsersPageContent() {
   }
 
   return (
-    <div className="bg-white relative size-full min-h-screen">
+    <div className="bg-[var(--bg-default)] relative size-full min-h-screen">
       <DecorativeBackground />
       
       {/* Logo in top-left corner */}
       <div className="absolute left-8 top-8 z-10">
-        <div className="h-[30px] relative w-[108.333px]">
-          <Image
-            alt="time8 logo"
-            className="block h-[30px] w-auto"
-            src="/auth-assets/30f1f246576f6427b3a9b511194297cbba4d7ec6.svg"
-            width={108}
-            height={30}
-            priority
-          />
-        </div>
+        <OnboardingLogo width={108} height={30} />
       </div>
 
       <LanguageDropdown />

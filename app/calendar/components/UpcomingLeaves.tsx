@@ -63,7 +63,7 @@ export function UpcomingLeaves({ leaveRequests }: UpcomingLeavesProps) {
     // Unified status badge styling matching reference implementation
     switch (status) {
       case 'approved':
-        return <Badge variant="default" className="bg-green-500 text-white border-transparent">Zatwierdzony</Badge>
+        return <Badge variant="default" className="bg-green-500/90 dark:bg-green-600 text-white border-transparent">Zatwierdzony</Badge>
       case 'pending':
         return <Badge variant="default">Oczekujący</Badge>
       case 'rejected':

@@ -10,6 +10,7 @@ import { CircleCheck, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { DecorativeBackground } from '@/components/auth/DecorativeBackground'
 import { LanguageDropdown } from '@/components/auth/LanguageDropdown'
+import { OnboardingLogo } from '@/components/OnboardingLogo'
 
 interface CompanyMember {
   id: string
@@ -99,24 +100,18 @@ function SuccessPageContent() {
 
   // Success screen matching Figma design (24761-15630)
   return (
-    <div className="bg-white flex flex-col gap-[10px] items-start relative size-full min-h-screen">
+    <div className="bg-[var(--bg-default)] flex flex-col gap-[10px] items-start relative size-full min-h-screen">
       {/* Decorative background */}
       <DecorativeBackground />
 
       {/* Language Switcher */}
       <LanguageDropdown />
+import { OnboardingLogo } from '@/components/OnboardingLogo'
 
       {/* Logo - Time8 */}
       <div className="absolute left-[32px] top-[32px] z-10">
         <div className="h-[30px] relative w-[108.333px]">
-          <Image
-            alt="time8 logo"
-            className="block h-[30px] w-auto"
-            src="/auth-assets/30f1f246576f6427b3a9b511194297cbba4d7ec6.svg"
-            width={108}
-            height={30}
-            priority
-          />
+          <OnboardingLogo width={108} height={30} />
         </div>
       </div>
 

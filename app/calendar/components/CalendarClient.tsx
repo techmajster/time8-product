@@ -535,18 +535,18 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
     )
     
     // Determine background color and status label
-    let bgClass = 'bg-violet-200' // Default: working day
+    let bgClass = 'bg-[var(--card-violet)]' // Default: working day (uses CSS variable that adapts to dark mode)
     let patternClass = ''
     let statusLabel = '9:00 - 15:00' // Hardcoded work hours as requested
-    
+
     if (userLeave) {
       // User has leave - determine type
       const leaveTypeName = userLeave.leave_types?.name || 'Urlop'
       if (leaveTypeName.toLowerCase().includes('zwolnienie') || leaveTypeName.toLowerCase().includes('zdrowie')) {
-        bgClass = 'bg-red-50' // Sick leave
+        bgClass = 'bg-destructive/10' // Sick leave (adapts to dark mode)
         statusLabel = leaveTypeName
       } else {
-        bgClass = 'bg-green-100' // Other leave (vacation, etc.)
+        bgClass = 'bg-green-500/10 dark:bg-green-500/20' // Vacation (adapts to dark mode)
         statusLabel = leaveTypeName
       }
     } else if (isWeekend && holiday) {
@@ -784,7 +784,7 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
                       <div className="flex flex-col items-start justify-center pb-2 pt-0 px-0">
                         {/* Show first avatars up to MAX_VISIBLE_AVATARS */}
                         {dayData.leaves.slice(0, MAX_VISIBLE_AVATARS).map((leave: LeaveRequest, index: number) => (
-                          <Avatar key={leave.id} className="w-8 h-8 mb-[-8px] border-2 border-white">
+                          <Avatar key={leave.id} className="w-8 h-8 mb-[-8px] border-2 border-card">
                             {leave.profiles?.avatar_url ? (
                               <AvatarImage src={leave.profiles.avatar_url} alt="" />
                             ) : null}
@@ -795,7 +795,7 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
                         ))}
                         {/* Show count indicator if more people than max visible */}
                         {dayData.leaves.length > MAX_VISIBLE_AVATARS && (
-                          <div className="w-8 h-8 mb-[-8px] bg-muted border-2 border-white rounded-full flex items-center justify-center">
+                          <div className="w-8 h-8 mb-[-8px] bg-muted border-2 border-card rounded-full flex items-center justify-center">
                             <span className="text-sm font-normal text-foreground">
                               +{dayData.leaves.length - MAX_VISIBLE_AVATARS}
                             </span>

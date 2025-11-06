@@ -86,7 +86,7 @@ export function ChoiceScreen({ userName, invitation }: ChoiceScreenProps) {
   }
 
   return (
-    <div className="bg-white flex flex-col gap-[10px] items-start relative size-full min-h-screen">
+    <div className="bg-[var(--bg-default)] flex flex-col gap-[10px] items-start relative size-full min-h-screen">
       {/* Decorative background */}
       <DecorativeBackground />
 

@@ -2,11 +2,11 @@
 
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import Image from 'next/image'
 import { LanguageDropdown } from '@/components/auth/LanguageDropdown'
 import { DecorativeBackground } from '@/components/auth/DecorativeBackground'
 import { OnboardingCard } from './OnboardingCard'
 import { UserPlusIcon } from './icons'
+import { OnboardingLogo } from '@/components/OnboardingLogo'
 
 interface WelcomeScreenProps {
   userName: string
@@ -21,7 +21,7 @@ export function WelcomeScreen({ userName }: WelcomeScreenProps) {
   }
 
   return (
-    <div className="bg-white flex flex-col gap-[10px] items-start relative size-full min-h-screen">
+    <div className="bg-[var(--bg-default)] flex flex-col gap-[10px] items-start relative size-full min-h-screen">
       {/* Decorative background */}
       <DecorativeBackground />
 
@@ -30,16 +30,7 @@ export function WelcomeScreen({ userName }: WelcomeScreenProps) {
 
       {/* Top header with logo */}
       <div className="absolute left-[32px] top-[32px] z-10">
-        <div className="h-[30px] relative w-[108.333px]">
-          <Image
-            alt="time8 logo"
-            className="block h-[30px] w-auto"
-            src="/auth-assets/30f1f246576f6427b3a9b511194297cbba4d7ec6.svg"
-            width={108}
-            height={30}
-            priority
-          />
-        </div>
+        <OnboardingLogo width={108} height={30} />
       </div>
       
       {/* Main content */}

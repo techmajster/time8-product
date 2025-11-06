@@ -71,7 +71,7 @@ export function LanguageDropdown() {
       <DropdownMenuTrigger asChild>
         <button
           disabled={isPending}
-          className="absolute right-6 top-6 z-20 bg-white border border-border rounded-md px-3 py-2 flex items-center justify-center gap-2 hover:bg-accent transition-colors disabled:opacity-50"
+          className="absolute right-6 top-6 z-20 bg-card border border-border rounded-md px-3 py-2 flex items-center justify-center gap-2 hover:bg-accent transition-colors disabled:opacity-50"
         >
           <CurrentFlagComponent size={16} />
           <span className="text-xs font-medium text-foreground">

@@ -6,7 +6,7 @@
 export function DecorativeBackground() {
   return (
     <div className="absolute inset-0 overflow-clip">
-      <div className="bg-white h-full overflow-clip relative w-full">
+      <div className="text-card-foreground h-full overflow-clip relative w-full">
             {/* Orange radial gradient - appears top left after 270deg rotation */}
             <div 
               className="absolute -top-[250px] -left-[250px]"
