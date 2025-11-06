@@ -109,7 +109,7 @@ export function DashboardClient({
             </span>
             {isVacationOverride && (
               <span
-                className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full"
+                className="text-xs bg-accent text-accent-foreground px-2 py-0.5 rounded-full"
                 title={td('customBalanceTooltip', { default: workspaceDefault })}
               >
                 {td('customBalance')}

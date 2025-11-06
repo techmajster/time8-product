@@ -49,7 +49,7 @@ export function WelcomeScreen({ userName }: WelcomeScreenProps) {
           {/* Header Section */}
           <div className="flex flex-col gap-[12px] h-[88px] items-start relative shrink-0 text-center w-[898px]">
             <div className="flex font-semibold gap-[12px] items-center justify-center leading-[48px] relative shrink-0 text-[48px] w-full" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 600 }}>
-              <p className="relative shrink-0 text-neutral-950">{t('title', { name: userName.split(' ')[0] })}</p>
+              <p className="relative shrink-0 text-foreground">{t('title', { name: userName.split(' ')[0] })}</p>
             </div>
             <p className="font-normal leading-[28px] relative shrink-0 text-[18px] text-muted-foreground w-full whitespace-pre-wrap" style={{ fontFamily: 'Geist, sans-serif', fontWeight: 400 }}>
               {t('subtitle')}
