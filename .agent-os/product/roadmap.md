@@ -1205,6 +1205,144 @@ useEffect(() => {
 
 ---
 
+## Phase 2.14: Holiday API Integration 🌍
+
+**Goal:** Integrate external public holiday API to automatically populate and update company_holidays table across all supported countries
+**Success Criteria:** Holidays sync automatically for all 6 countries (PL, IE, US, UK, DE, FR), admin UI for manual management, no more manual data entry
+**Priority:** MEDIUM
+**Status:** 📋 Planned
+**Dependencies:** Phase 2.13 complete
+**API Recommendation:** Calendarific Starter ($100/year) or Nager.Date (FREE for MVP)
+
+### Features
+
+- [ ] **Holiday Sync Service Layer** `M`
+  - Create `/lib/services/holiday-api-service.ts` - Wrapper for external API calls
+  - Support both Calendarific and Nager.Date providers
+  - Methods: `fetchHolidaysForCountry(countryCode, year)`, `mapToCompanyHoliday()`
+  - Error handling, retry logic, and rate limiting
+  - Create `/lib/services/holiday-sync-service.ts` - Business logic
+  - Methods: `syncHolidaysForCountry()`, `upsertHolidays()`, `deduplicateHolidays()`
+  - Files: [lib/services/holiday-api-service.ts](lib/services/holiday-api-service.ts), [lib/services/holiday-sync-service.ts](lib/services/holiday-sync-service.ts)
+
+- [ ] **Admin Holiday Sync API Endpoints** `M`
+  - Create `/app/api/admin/holidays/sync/route.ts` - Trigger manual sync
+  - **POST** endpoint with request body: `{ country_code, years }`
+  - Auth: Admin role required, uses existing RLS policies
+  - Response: `{ synced_count, errors, holidays }`
+  - Create `/app/api/admin/holidays/route.ts` - CRUD operations
+  - **GET**: List all holidays (paginated, filterable by country/type/year)
+  - **POST**: Manually add custom holiday
+  - **PATCH**: Update existing holiday
+  - **DELETE**: Remove holiday
+  - Files: [app/api/admin/holidays/sync/route.ts](app/api/admin/holidays/sync/route.ts), [app/api/admin/holidays/route.ts](app/api/admin/holidays/route.ts)
+
+- [ ] **Initial Data Population** `S`
+  - Create one-time sync script: `/scripts/initial-holiday-sync.ts`
+  - Bulk import holidays for all 6 countries (PL, IE, US, UK, DE, FR)
+  - Years: 2025, 2026, 2027 (3 years)
+  - Mark as `type: 'national'`, `organization_id: NULL`
+  - Run during deployment to populate existing empty table
+  - Create migration to track initial sync status
+  - Files: [scripts/initial-holiday-sync.ts](scripts/initial-holiday-sync.ts)
+
+- [ ] **Admin Holiday Management UI** `L`
+  - Create `/app/admin/holidays/page.tsx` - New admin page
+  - Features:
+    - Country selector dropdown (PL, IE, US, UK, DE, FR)
+    - Year range selector (current year ± 2)
+    - "Sync Holidays" button with loading indicator
+    - Data table showing all holidays (filterable by country, type, year)
+    - Edit/Delete actions for custom holidays
+    - "Add Custom Holiday" dialog form
+    - Last sync status and timestamp display
+  - Update admin navigation in `/app/admin/components/AdminLayout.tsx`
+  - Add "Holidays" link with Calendar icon
+  - Files: [app/admin/holidays/page.tsx](app/admin/holidays/page.tsx), [app/admin/components/AdminLayout.tsx](app/admin/components/AdminLayout.tsx)
+
+- [ ] **Supabase Edge Function for Background Sync** `M`
+  - Create `/supabase/functions/sync-holidays/index.ts`
+  - Scheduled Edge Function (runs monthly via cron)
+  - Auto-syncs next year's holidays for all active country codes
+  - Queries organizations table for active `country_code` values
+  - Create `holiday_sync_logs` table migration
+  - Columns: `id, country_code, year, synced_at, status, holidays_added, errors`
+  - Logs shown in admin UI for monitoring
+  - Cron schedule: `0 0 1 12 *` (December 1st annually)
+  - Manual trigger option via admin UI button
+  - Files: [supabase/functions/sync-holidays/index.ts](supabase/functions/sync-holidays/index.ts)
+
+- [ ] **Environment Configuration** `XS`
+  - Add `HOLIDAY_API_KEY` to `.env.local` and Vercel environment variables
+  - Add `HOLIDAY_API_PROVIDER` config ('calendarific' or 'nager')
+  - Add `NEXT_PUBLIC_HOLIDAY_SYNC_ENABLED` feature flag
+  - Update `.env.example` with new variables
+
+- [ ] **Enhanced Features (Optional)** `S`
+  - Sync status indicator showing last sync date
+  - "Outdated" badge if holidays >6 months old
+  - Conflict detection warning for duplicate holidays
+  - Suggest merge or keep both (national vs company)
+  - Bulk CSV import for custom holidays
+  - Map CSV columns to `company_holidays` schema
+
+- [ ] **Testing & QA** `M`
+  - Test with Nager.Date (free) first for development
+  - Verify data mapping matches existing schema
+  - Test RLS policies work correctly with synced data
+  - Verify leave calculation includes API-synced holidays
+  - Test deduplication logic
+  - Test sync error handling and retry logic
+  - Switch to Calendarific for production deployment
+
+### Impact
+
+- ✅ **No More Manual Data Entry:** All 6 countries get holidays automatically
+- ✅ **Always Up-to-Date:** Annual auto-sync ensures accuracy
+- ✅ **Scalable:** Add new countries by updating configuration
+- ✅ **Existing Infrastructure Works:** No changes to `/api/calendar/holidays` or leave calculations
+- ✅ **Admin Control:** Manual sync and custom holiday management UI
+
+### Technical Notes
+
+**Integration Points (No Changes Needed):**
+- ✅ Existing `/api/calendar/holidays` already queries `company_holidays` table
+- ✅ Existing `/api/working-days` already excludes holidays from calculations
+- ✅ Existing RLS policies automatically apply to synced holidays
+- ✅ Frontend `useHolidays()` hook will fetch API-synced data automatically
+- ✅ Calendar components will display new holidays without changes
+
+**API Comparison:**
+
+| API | Cost | Countries | Calls/Month | Update Freq | Auth |
+|-----|------|-----------|-------------|-------------|------|
+| **Calendarific Starter** | $100/year | 230+ | 10,000 | Quarterly | API Key |
+| **Nager.Date** | FREE | 100+ | Unlimited | Community | None |
+| Abstract API | $99/month | 190+ | 5,000 | Weekly | API Key |
+| OpenHolidays | FREE | 36 (EU) | Unlimited | Not stated | None |
+| API Ninjas | $39/month | 100+ | 100,000 | Not stated | API Key |
+
+**Recommendation:** Start with **Nager.Date** (free) for development/testing, switch to **Calendarific Starter** ($100/year) for production reliability.
+
+**Implementation Strategy:**
+1. Initial bulk sync: ~200 API calls (1 per country × 3 years)
+2. Daily monitoring: ~5-10 calls per day (health check)
+3. Monthly sync: ~10-20 calls (only changed countries)
+4. Total monthly: ~300-500 calls (well within 10,000 limit)
+
+### Estimated Effort
+
+- Holiday sync services: 1 day
+- Admin API endpoints: 1 day
+- Initial data population: 0.5 day
+- Admin UI: 1.5 days
+- Edge Function + automation: 1 day
+- Environment config: 0.5 hour
+- Testing & QA: 1 day
+- **Total: 6.5 days (1.5 weeks)**
+
+---
+
 ## Phase 3: Design System Implementation 🎨
 
 **Goal:** Complete visual overhaul using Figma designs and modern component library

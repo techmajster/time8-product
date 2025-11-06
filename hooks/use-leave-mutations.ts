@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { refetchLeaveRequests } from '@/lib/refetch-events'
 
 // Types for mutation payloads
 interface CreateLeaveRequestPayload {
@@ -148,7 +149,7 @@ export function useCancelLeaveRequest(requestId: string) {
       queryClient.invalidateQueries({ queryKey: ['team-leave-balances'] })
 
       // Trigger refetch for pages using manual fetch
-      window.dispatchEvent(new CustomEvent('refetch-leave-requests'))
+      refetchLeaveRequests()
 
       // Note: Success toast is shown in the component with role-specific messaging
     },
@@ -193,7 +194,7 @@ export function useApproveRejectLeaveRequest(requestId: string) {
       queryClient.invalidateQueries({ queryKey: ['team-leave-balances'] })
 
       // Trigger refetch for pages using manual fetch
-      window.dispatchEvent(new CustomEvent('refetch-leave-requests'))
+      refetchLeaveRequests()
 
       // Show success toast
       const actionText = variables.action === 'approve' ? 'zatwierdzony' : 'odrzucony'
@@ -239,7 +240,7 @@ export function useDeleteLeaveRequest(requestId: string) {
       queryClient.invalidateQueries({ queryKey: ['team-leave-balances'] })
 
       // Trigger refetch for pages using manual fetch
-      window.dispatchEvent(new CustomEvent('refetch-leave-requests'))
+      refetchLeaveRequests()
 
       // Show success toast
       toast.success(data.message || 'Wniosek urlopowy został usunięty')

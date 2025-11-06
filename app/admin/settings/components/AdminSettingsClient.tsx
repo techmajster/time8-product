@@ -31,6 +31,7 @@ import { useRouter } from 'next/navigation'
 import { SubscriptionWidget } from '@/components/admin/SubscriptionWidget'
 import { PendingChangesSection } from '@/components/admin/PendingChangesSection'
 import { ArchivedUsersSection } from '@/components/admin/ArchivedUsersSection'
+import { REFETCH_SETTINGS, REFETCH_TEAM_MANAGEMENT } from '@/lib/refetch-events'
 
 interface LeaveType {
   id: string
@@ -232,14 +233,12 @@ export default function AdminSettingsClient({
 
   const handleLeaveTypesUpdate = (updatedTypes: LeaveType[]) => {
     console.log('Leave types updated:', updatedTypes)
-    // Refresh data or update state
-    window.location.reload()
+    window.dispatchEvent(new Event(REFETCH_SETTINGS))
   }
 
   const handleLeavePoliciesUpdate = (updatedPolicies: LeavePolicies) => {
     console.log('Leave policies updated:', updatedPolicies)
-    // Refresh data or update state
-    window.location.reload()
+    window.dispatchEvent(new Event(REFETCH_SETTINGS))
   }
 
   // Handler for calendar restriction toggle
@@ -520,8 +519,8 @@ export default function AdminSettingsClient({
       // Remove user from pending removal list
       setPendingRemovalUsers(prev => prev.filter(u => u.id !== userId))
 
-      // Refresh the page to update all data
-      router.refresh()
+      // Trigger refetch of team management data
+      window.dispatchEvent(new Event(REFETCH_TEAM_MANAGEMENT))
     } catch (error: any) {
       console.error('Error cancelling removal:', error)
       throw error // Let the component handle the error
@@ -544,8 +543,8 @@ export default function AdminSettingsClient({
       // Remove user from archived list
       setArchivedUsers(prev => prev.filter(u => u.id !== userId))
 
-      // Refresh the page to update all data
-      router.refresh()
+      // Trigger refetch of team management data
+      window.dispatchEvent(new Event(REFETCH_TEAM_MANAGEMENT))
     } catch (error: any) {
       console.error('Error reactivating user:', error)
       throw error // Let the component handle the error

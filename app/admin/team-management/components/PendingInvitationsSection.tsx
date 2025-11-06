@@ -6,13 +6,14 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 import { MoreHorizontal } from 'lucide-react'
+import { refetchTeamManagement } from '@/lib/refetch-events'
 import { toast } from 'sonner'
 
 interface Invitation {
@@ -86,8 +87,7 @@ export function PendingInvitationsSection({ invitations }: PendingInvitationsSec
       if (response.ok) {
         console.log('✅ Invitation cancelled successfully')
         toast.success('Zaproszenie zostało anulowane')
-        // Refresh the page to update the list
-        window.location.reload()
+        refetchTeamManagement()
       } else {
         console.error('❌ Failed to cancel invitation:', data)
         toast.error(data.error || 'Nie udało się anulować zaproszenia')

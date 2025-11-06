@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Separator } from '@/components/ui/separator'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { refetchTeamManagement } from '@/lib/refetch-events'
 
 interface TeamMember {
   id: string
@@ -152,11 +153,11 @@ export function ManageTeamMembersSheet({
       toast.success('Zespół został zaktualizowany pomyślnie')
       setPendingChanges({ toAdd: [], toRemove: [] })
       onOpenChange(false)
-      
+
       if (onTeamUpdated) {
         onTeamUpdated()
       } else {
-        window.location.reload()
+        refetchTeamManagement()
       }
 
     } catch (error) {

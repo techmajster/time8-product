@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -12,6 +12,8 @@ import { toast } from 'sonner'
 import { PendingInvitationsSection } from './PendingInvitationsSection'
 import { PendingChangesSection } from '@/components/admin/PendingChangesSection'
 import { ArchivedUsersSection } from '@/components/admin/ArchivedUsersSection'
+import { useDeleteAccount, useCancelRemoval, useReactivateUser } from '@/hooks/use-team-mutations'
+import { REFETCH_TEAM_MANAGEMENT } from '@/lib/refetch-events'
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -78,29 +80,73 @@ interface PendingRemovalUser {
 }
 
 interface TeamManagementClientProps {
-  teamMembers: TeamMember[]
-  teams: any[]
-  leaveBalances: LeaveBalance[]
-  invitations: Invitation[]
-  pendingRemovalUsers: PendingRemovalUser[]
-  archivedUsers: ArchivedUser[]
+  teamMembers?: TeamMember[]
+  teams?: any[]
+  leaveBalances?: LeaveBalance[]
+  invitations?: Invitation[]
+  pendingRemovalUsers?: PendingRemovalUser[]
+  archivedUsers?: ArchivedUser[]
 }
 
-export function TeamManagementClient({ teamMembers, teams, leaveBalances, invitations, pendingRemovalUsers, archivedUsers }: TeamManagementClientProps) {
+export function TeamManagementClient({
+  teamMembers: initialTeamMembers = [],
+  teams: initialTeams = [],
+  leaveBalances: initialLeaveBalances = [],
+  invitations: initialInvitations = [],
+  pendingRemovalUsers: initialPendingUsers = [],
+  archivedUsers: initialArchivedUsers = []
+}: TeamManagementClientProps) {
   const router = useRouter()
-  
-  // Debug: Log the received data
-  console.log('📊 TeamManagementClient received data:', {
-    teamMembersCount: teamMembers.length,
-    teamsCount: teams.length,
-    leaveBalancesCount: leaveBalances.length,
-    leaveBalancesSample: leaveBalances.slice(0, 3),
-    memberIds: teamMembers.map(m => m.id)
-  })
-  
+
+  // State for data
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>(initialTeamMembers)
+  const [teams, setTeams] = useState<any[]>(initialTeams)
+  const [leaveBalances, setLeaveBalances] = useState<LeaveBalance[]>(initialLeaveBalances)
+  const [invitations, setInvitations] = useState<Invitation[]>(initialInvitations)
+  const [pendingRemovalUsers, setPendingRemovalUsers] = useState<PendingRemovalUser[]>(initialPendingUsers)
+  const [archivedUsers, setArchivedUsers] = useState<ArchivedUser[]>(initialArchivedUsers)
+
   // State for active team filter
   const [activeTeamFilter, setActiveTeamFilter] = useState('Wszyscy')
   const [loading, setLoading] = useState(false)
+  const [isRefetching, setIsRefetching] = useState(false)
+
+  // Hooks for mutations
+  const deleteAccountMutation = useDeleteAccount()
+  const cancelRemovalMutation = useCancelRemoval()
+  const reactivateUserMutation = useReactivateUser()
+
+  // Fetch data function
+  const fetchData = async () => {
+    setIsRefetching(true)
+    try {
+      const response = await fetch('/api/team-management')
+      if (!response.ok) throw new Error('Failed to fetch team management data')
+
+      const data = await response.json()
+      setTeamMembers(data.teamMembers || [])
+      setTeams(data.teams || [])
+      setLeaveBalances(data.leaveBalances || [])
+      setInvitations(data.invitations || [])
+      setPendingRemovalUsers(data.pendingRemovalUsers || [])
+      setArchivedUsers(data.archivedUsers || [])
+    } catch (error) {
+      console.error('Error fetching team management data:', error)
+      toast.error('Nie udało się załadować danych zespołu')
+    } finally {
+      setIsRefetching(false)
+    }
+  }
+
+  // Listen for refetch events
+  useEffect(() => {
+    const handleRefetch = () => {
+      fetchData()
+    }
+
+    window.addEventListener(REFETCH_TEAM_MANAGEMENT, handleRefetch)
+    return () => window.removeEventListener(REFETCH_TEAM_MANAGEMENT, handleRefetch)
+  }, [])
 
   // State for employee removal confirmation
   const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false)
@@ -169,39 +215,11 @@ export function TeamManagementClient({ teamMembers, teams, leaveBalances, invita
 
     setLoading(true)
     try {
-      const response = await fetch(`/api/employees/${memberToRemove.id}`, {
-        method: 'DELETE'
-      })
-
-      let data: any = {}
-      
-      // Check if response has content before parsing JSON
-      const contentType = response.headers.get('content-type')
-      if (contentType && contentType.includes('application/json')) {
-        const text = await response.text()
-        if (text) {
-          try {
-            data = JSON.parse(text)
-          } catch (e) {
-            console.error('Failed to parse JSON response:', e)
-          }
-        }
-      }
-
-      if (!response.ok) {
-        throw new Error(data.error || data.message || 'Failed to remove employee')
-      }
-
-      toast.success(data.message || 'Pracownik został usunięty z organizacji')
+      await deleteAccountMutation.mutateAsync(memberToRemove.id)
       setIsRemoveDialogOpen(false)
       setMemberToRemove(null)
-      
-      // TODO: Implement proper state refresh instead of page reload
-      window.location.reload()
-
     } catch (error) {
-      console.error('Error removing employee:', error)
-      toast.error(error instanceof Error ? error.message : 'Wystąpił błąd podczas usuwania pracownika')
+      // Error is handled by the mutation
     } finally {
       setLoading(false)
     }
@@ -210,18 +228,7 @@ export function TeamManagementClient({ teamMembers, teams, leaveBalances, invita
   // Handle canceling pending removal
   const handleCancelRemoval = async (userId: string) => {
     try {
-      const response = await fetch(`/api/admin/cancel-removal/${userId}`, {
-        method: 'POST'
-      })
-
-      const result = await response.json()
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to cancel removal')
-      }
-
-      // Refresh the page to update all data
-      router.refresh()
+      await cancelRemovalMutation.mutateAsync(userId)
     } catch (error: any) {
       console.error('Error canceling removal:', error)
       throw error // Let the component handle the error
@@ -231,18 +238,7 @@ export function TeamManagementClient({ teamMembers, teams, leaveBalances, invita
   // Handle reactivating an archived user
   const handleReactivateUser = async (userId: string) => {
     try {
-      const response = await fetch(`/api/admin/reactivate-user/${userId}`, {
-        method: 'POST'
-      })
-
-      const result = await response.json()
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to reactivate user')
-      }
-
-      // Refresh the page to update all data
-      router.refresh()
+      await reactivateUserMutation.mutateAsync(userId)
     } catch (error: any) {
       console.error('Error reactivating user:', error)
       throw error // Let the component handle the error

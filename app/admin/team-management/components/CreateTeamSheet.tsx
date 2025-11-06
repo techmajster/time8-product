@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu'
 import { Loader2, ChevronDownIcon } from 'lucide-react'
 import { toast } from 'sonner'
+import { refetchTeamManagement } from '@/lib/refetch-events'
 
 /**
  * CREATE GROUP COMPONENT
@@ -70,13 +71,13 @@ export function CreateTeamSheet({ open, onOpenChange, teamMembers, onTeamCreated
       toast.success(data.message || 'Grupa została utworzona pomyślnie')
       onOpenChange(false)
       resetForm()
-      
+
       // Call the callback to refresh data
       if (onTeamCreated) {
         onTeamCreated()
       } else {
-        // Fallback to page reload if no callback provided
-        window.location.reload()
+        // Fallback to event-driven refetch
+        refetchTeamManagement()
       }
 
     } catch (error) {
