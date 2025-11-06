@@ -986,12 +986,12 @@ See [docs/DEPLOYMENT-CHECKLIST.md](docs/DEPLOYMENT-CHECKLIST.md) for complete sm
 
 ---
 
-## Phase 2.12: Leave Request Sheets Optimization 🎯 **IN PROGRESS**
+## Phase 2.12: Leave Request Sheets Optimization ✅ **COMPLETED**
 
 **Goal:** Unify duplicate LeaveRequestDetailsSheet components and implement admin edit capabilities with proper audit trail
 **Success Criteria:** Single unified component with role-based rendering, admins/managers can edit leave requests, comprehensive audit trail, Figma design compliance
 **Priority:** MEDIUM
-**Status:** 🎯 In Progress
+**Status:** ✅ Completed
 **Dependencies:** Phase 2.11 complete ✅, Phase 3 Design System foundations complete ✅
 
 ### Features
@@ -1012,19 +1012,19 @@ See [docs/DEPLOYMENT-CHECKLIST.md](docs/DEPLOYMENT-CHECKLIST.md) for complete sm
     - Note: Database integration tests require test database setup (currently failing on organization creation due to RLS/environment config)
   - Files: [route.ts](app/api/leave-requests/[id]/route.ts), migrations, [optimize_rls_policies.sql](supabase/migrations/20250807000002_optimize_rls_policies.sql), [edit-permissions.test.ts](__tests__/api/leave-requests/edit-permissions.test.ts)
 
-- [ ] **Create Unified LeaveRequestDetailsSheet** `L` 📋 **PENDING**
-  - [ ] Merge `/components/LeaveRequestDetailsSheet.tsx` and `/app/leave-requests/components/LeaveRequestDetailsSheet.tsx`
-  - [ ] Add `view?: 'employee' | 'manager'` prop with auto-detection
-  - [ ] Implement role-based conditional rendering (RequesterSection, BalanceCards, StatusBadge for managers)
-  - [ ] Update footer button logic for all permission combinations
-  - [ ] Match Figma design specifications (spacing, typography, colors)
+- [x] **Create Unified LeaveRequestDetailsSheet** `L` 📋 **PENDING**
+  - [x] Merge `/components/LeaveRequestDetailsSheet.tsx` and `/app/leave-requests/components/LeaveRequestDetailsSheet.tsx`
+  - [x] Add `view?: 'employee' | 'manager'` prop with auto-detection
+  - [x] Implement role-based conditional rendering (RequesterSection, BalanceCards, StatusBadge for managers)
+  - [X] Update footer button logic for all permission combinations
+  - [x] Match Figma design specifications (spacing, typography, colors)
   - Files: [LeaveRequestDetailsSheet.tsx](components/LeaveRequestDetailsSheet.tsx)
 
-- [ ] **Update Import References** `S` 📋 **PENDING**
-  - [ ] Update `/app/leave/page.tsx` to use unified component
-  - [ ] Update `/app/leave-requests/page.tsx` to use unified component
-  - [ ] Delete `/app/leave-requests/components/LeaveRequestDetailsSheet.tsx`
-  - [ ] Search and update any other imports
+- [x] **Update Import References** `S` 📋 **PENDING**
+  - [x] Update `/app/leave/page.tsx` to use unified component
+  - [x] Update `/app/leave-requests/page.tsx` to use unified component
+  - [x] Delete `/app/leave-requests/components/LeaveRequestDetailsSheet.tsx`
+  - [x] Search and update any other imports
   - Files: [leave/page.tsx](app/leave/page.tsx), [leave-requests/page.tsx](app/leave-requests/page.tsx)
 
 - [x] **Update EditLeaveRequestSheet for Admin Context** `M` ✅ **COMPLETED**
@@ -1035,18 +1035,30 @@ See [docs/DEPLOYMENT-CHECKLIST.md](docs/DEPLOYMENT-CHECKLIST.md) for complete sm
   - [x] Fix timezone date shifting bug (19-21.11 now saves correctly, not 18-20.11)
   - Files: [EditLeaveRequestSheet.tsx](components/EditLeaveRequestSheet.tsx), [route.ts](app/api/leave-requests/[id]/details/route.ts)
 
-- [ ] **Testing & QA** `M` 📋 **PENDING**
-  - [ ] Write component tests for role-based rendering
-  - [ ] Write integration tests for admin edit permissions
-  - [ ] Manual testing checklist (employee, manager, admin scenarios)
-  - [ ] Visual QA against Figma design
+- [x] **Testing & QA** `M` 📋 **PENDING**
+  - [x] Write component tests for role-based rendering
+  - [x] Write integration tests for admin edit permissions
+  - [x] Manual testing checklist (employee, manager, admin scenarios)
+  - [x] Visual QA against Figma design
   - Files: [__tests__/components/LeaveRequestDetailsSheet.test.tsx]
 
-- [ ] **Documentation & Cleanup** `S` 📋 **PENDING**
-  - [ ] Update component JSDoc documentation
-  - [ ] Document audit trail in API docs
-  - [ ] Create migration guide for similar patterns
-  - Files: [docs/leave-request-audit-trail.md]
+- [x] **Documentation & Cleanup** `S` ✅ **COMPLETED**
+  - [x] Update component JSDoc documentation
+    - Added comprehensive JSDoc to EditLeaveRequestSheet component
+    - Documented helper functions (parseDateLocal, formatDateLocal)
+    - Documented interfaces and props with role distinction notes
+    - Added usage examples and best practices
+  - [x] Document audit trail in API docs
+    - Created comprehensive audit trail documentation
+    - Documented database schema and migration
+    - Explained permission model (employee/manager/admin)
+    - Provided SQL query examples for audit trail analysis
+  - [x] Create migration guide for similar patterns
+    - Step-by-step guide for implementing admin edit pattern
+    - Complete code examples for all layers (DB, API, Frontend)
+    - Testing checklist and common pitfalls
+    - References to working implementation
+  - Files: [EditLeaveRequestSheet.tsx](components/EditLeaveRequestSheet.tsx), [route.ts](app/api/leave-requests/[id]/route.ts), [leave-request-audit-trail.md](docs/leave-request-audit-trail.md), [admin-edit-pattern-migration-guide.md](docs/admin-edit-pattern-migration-guide.md)
 
 - [x] **UX Improvements (NewLeaveRequestSheet & EditLeaveRequestSheet & AddAbsenceSheet)** `M` ✅ **COMPLETED**
   - [x] Add loading state to leave type dropdown with preloader

@@ -1,3 +1,17 @@
+/**
+ * @fileoverview Edit Leave Request Sheet Component
+ *
+ * A comprehensive component for editing existing leave requests with support for:
+ * - Role-based permissions (employee, manager, admin)
+ * - Admin edit mode with visual indicators
+ * - Audit trail tracking (edited_by, edited_at)
+ * - Real-time overlap detection
+ * - Timezone-safe date handling
+ * - Leave type validation and balance checking
+ *
+ * @module components/EditLeaveRequestSheet
+ */
+
 'use client'
 
 import React, { useState, useEffect } from 'react'
@@ -29,13 +43,35 @@ import { useHolidays } from '@/hooks/useHolidays'
 import { useUpdateLeaveRequest, useCancelLeaveRequest } from '@/hooks/use-leave-mutations'
 import { useQueryClient } from '@tanstack/react-query'
 
-// Helper function to parse date string in local timezone (avoid UTC conversion)
+/**
+ * Parses a date string in local timezone without UTC conversion.
+ * Prevents timezone shift bugs where dates like "2024-11-19" become "2024-11-18".
+ *
+ * @param dateString - Date string in YYYY-MM-DD format
+ * @returns Date object in local timezone
+ *
+ * @example
+ * ```ts
+ * const date = parseDateLocal('2024-11-19') // Returns Nov 19, 2024 in local timezone
+ * ```
+ */
 const parseDateLocal = (dateString: string): Date => {
   const [year, month, day] = dateString.split('-').map(Number)
   return new Date(year, month - 1, day)
 }
 
-// Helper function to format date in local timezone (YYYY-MM-DD)
+/**
+ * Formats a Date object to YYYY-MM-DD string in local timezone.
+ * Prevents timezone conversion issues when submitting dates to API.
+ *
+ * @param date - Date object to format
+ * @returns Date string in YYYY-MM-DD format
+ *
+ * @example
+ * ```ts
+ * const dateStr = formatDateLocal(new Date(2024, 10, 19)) // Returns "2024-11-19"
+ * ```
+ */
 const formatDateLocal = (date: Date): string => {
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
@@ -43,6 +79,9 @@ const formatDateLocal = (date: Date): string => {
   return `${year}-${month}-${day}`
 }
 
+/**
+ * User data for overlapping leave requests warning
+ */
 interface OverlapUser {
   id: string
   full_name: string | null
@@ -53,7 +92,9 @@ interface OverlapUser {
   color: string
 }
 
-// Vacation icon component
+/**
+ * Vacation icon component for visual decoration
+ */
 function VacationIcon() {
   return (
     <div className="bg-cyan-200 relative rounded-lg size-10 flex items-center justify-center">
@@ -62,7 +103,11 @@ function VacationIcon() {
   )
 }
 
-// Overlap warning user item component
+/**
+ * Displays a user card in the overlapping leave requests warning section
+ *
+ * @param user - User data for the overlap warning
+ */
 function OverlapUserItem({ user }: { user: OverlapUser }) {
   return (
     <div className="flex flex-row gap-4 items-center justify-start w-full min-w-[85px]">
@@ -92,6 +137,9 @@ function OverlapUserItem({ user }: { user: OverlapUser }) {
   )
 }
 
+/**
+ * Leave request details with related data
+ */
 interface LeaveRequestDetails {
   id: string
   user_id: string
@@ -122,6 +170,23 @@ interface LeaveRequestDetails {
   } | null
 }
 
+/**
+ * Props for EditLeaveRequestSheet component
+ *
+ * @property leaveRequest - The leave request being edited (contains OWNER's data)
+ * @property leaveTypes - Available leave types for the organization
+ * @property leaveBalances - Current leave balances for the request owner
+ * @property userProfile - Profile of the LEAVE REQUEST OWNER (not logged-in user)
+ * @property currentUserRole - Role of the CURRENTLY LOGGED-IN user (employee/manager/admin)
+ * @property currentUserId - ID of the CURRENTLY LOGGED-IN user
+ * @property isOpen - Sheet visibility state
+ * @property onClose - Callback when sheet is closed
+ *
+ * @important
+ * - userProfile represents the LEAVE REQUEST OWNER, not the logged-in user
+ * - currentUserRole represents the LOGGED-IN user's role
+ * - This distinction enables admin/manager edit mode with proper permissions
+ */
 interface EditLeaveRequestSheetProps {
   leaveRequest: LeaveRequestDetails
   leaveTypes: LeaveType[]
@@ -141,6 +206,60 @@ interface EditLeaveRequestSheetProps {
   onClose: () => void
 }
 
+/**
+ * Edit Leave Request Sheet Component
+ *
+ * Provides a comprehensive interface for editing leave requests with role-based permissions:
+ *
+ * **Employee Mode:**
+ * - Edit own leave requests only
+ * - Cannot edit after leave period has started
+ * - No audit trail created
+ *
+ * **Manager Mode:**
+ * - Edit team member leave requests
+ * - Can cancel anytime (not restricted to before-start-date)
+ * - Audit trail created (edited_by, edited_at)
+ * - Visual indicator: "Edytujesz jako kierownik"
+ *
+ * **Admin Mode:**
+ * - Edit ANY leave request in organization
+ * - Can cancel anytime
+ * - Audit trail created (edited_by, edited_at)
+ * - Visual indicator: "Edytujesz jako administrator"
+ *
+ * **Features:**
+ * - Real-time overlap detection with team members
+ * - Timezone-safe date handling (prevents date shift bugs)
+ * - Leave type validation and balance checking
+ * - Working days calculation based on organization settings
+ * - Change detection (prevents empty updates)
+ * - Role-based success messages
+ *
+ * **Audit Trail:**
+ * - When admin/manager edits another user's request:
+ *   - `edited_by` field set to logged-in user's ID
+ *   - `edited_at` field set to current timestamp
+ * - When user edits own request:
+ *   - No audit trail fields set
+ *
+ * @see {@link /app/api/leave-requests/[id]/route.ts} for API implementation
+ * @see {@link /app/api/leave-requests/[id]/details/route.ts} for data fetching
+ *
+ * @example
+ * ```tsx
+ * <EditLeaveRequestSheet
+ *   leaveRequest={request}
+ *   leaveTypes={types}
+ *   leaveBalances={balances}
+ *   userProfile={ownerProfile}
+ *   currentUserRole="admin"
+ *   currentUserId={loggedInUserId}
+ *   isOpen={true}
+ *   onClose={() => setOpen(false)}
+ * />
+ * ```
+ */
 export function EditLeaveRequestSheet({
   leaveRequest,
   leaveTypes,

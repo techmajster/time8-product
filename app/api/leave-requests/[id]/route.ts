@@ -1,8 +1,83 @@
+/**
+ * @fileoverview Leave Request Update and Cancellation API Routes
+ *
+ * Handles editing and canceling leave requests with role-based permissions and audit trail:
+ *
+ * **Permission Model:**
+ * - Employees: Can edit/cancel their own requests (before start date)
+ * - Managers: Can edit/cancel team member requests anytime
+ * - Admins: Can edit/cancel ANY organization request anytime
+ *
+ * **Audit Trail:**
+ * - When admin/manager edits another user's request:
+ *   - Sets `edited_by` to logged-in user's ID
+ *   - Sets `edited_at` to current timestamp
+ * - When user edits own request: No audit trail
+ *
+ * **Business Rules:**
+ * - Cannot edit cancelled requests
+ * - Cannot edit requests after start date (employees only)
+ * - Balance adjustments handled automatically
+ * - Organization isolation enforced via RLS
+ *
+ * @module app/api/leave-requests/[id]
+ */
+
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { handleLeaveRequestEdit, handleLeaveRequestCancellation } from '@/lib/leave-balance-utils'
 import { authenticateAndGetOrgContext } from '@/lib/auth-utils-v2'
 
+/**
+ * PUT /api/leave-requests/[id]
+ *
+ * Updates an existing leave request with role-based permissions.
+ *
+ * **Request Body:**
+ * ```json
+ * {
+ *   "leave_type_id": "uuid",
+ *   "start_date": "2024-11-19",
+ *   "end_date": "2024-11-21",
+ *   "days_requested": 3,
+ *   "reason": "Optional reason text"
+ * }
+ * ```
+ *
+ * **Permissions:**
+ * - Employee: Can edit own requests only (before start date)
+ * - Manager/Admin: Can edit any request in organization/team
+ *
+ * **Audit Trail:**
+ * - Admin/Manager editing another user: Sets `edited_by` and `edited_at`
+ * - User editing own request: No audit fields set
+ *
+ * **Validation:**
+ * - All required fields must be present
+ * - Request must exist and belong to organization
+ * - Request cannot be cancelled
+ * - Request start date must be in future (for employees)
+ *
+ * **Balance Updates:**
+ * - Automatically adjusts leave balances
+ * - Handles leave type changes
+ * - Updates available/used days
+ *
+ * @param request - Next.js request object with leave request data
+ * @param params - Route parameters containing leave request ID
+ * @returns Updated leave request or error response
+ *
+ * @example
+ * ```ts
+ * // Employee editing own request
+ * PUT /api/leave-requests/123
+ * // Response: Updated request (no edited_by/edited_at)
+ *
+ * // Admin editing another user's request
+ * PUT /api/leave-requests/456
+ * // Response: Updated request (with edited_by/edited_at set to admin's ID)
+ * ```
+ */
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -149,6 +224,41 @@ export async function PUT(
   }
 }
 
+/**
+ * DELETE /api/leave-requests/[id]
+ *
+ * Cancels (soft deletes) a leave request with role-based permissions.
+ *
+ * **Permissions:**
+ * - Employee: Can cancel own pending requests (before start date only)
+ * - Manager/Admin: Can cancel pending/approved requests anytime (including after start)
+ *
+ * **Business Logic:**
+ * - Sets status to 'cancelled' (soft delete)
+ * - Automatically restores leave balance
+ * - Cannot cancel already cancelled/rejected requests
+ * - Employees blocked from canceling after start date
+ *
+ * **Balance Restoration:**
+ * - Pending requests: Restores full balance
+ * - Approved requests: Restores full balance
+ * - Handles all leave types
+ *
+ * @param request - Next.js request object
+ * @param params - Route parameters containing leave request ID
+ * @returns Success message or error response
+ *
+ * @example
+ * ```ts
+ * // Employee canceling own request (before start)
+ * DELETE /api/leave-requests/123
+ * // Response: { success: true, message: "Leave request cancelled" }
+ *
+ * // Admin canceling request anytime
+ * DELETE /api/leave-requests/456
+ * // Response: { success: true, message: "Leave request cancelled" }
+ * ```
+ */
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
