@@ -1168,6 +1168,15 @@ See [docs/DEPLOYMENT-CHECKLIST.md](docs/DEPLOYMENT-CHECKLIST.md) for complete sm
   - Test auto-refresh on `/settings` after leave type changes
   - Verify no more `window.location.reload()` calls in codebase
 
+- [x] **Loading States & Internationalization** `S` ✅ **COMPLETED**
+  - Add translation support for onboarding loading screen
+  - Replace all hardcoded "Loading..." text with professional Loader2 component
+  - Fix TypeScript error: Add missing organizationId to invitation interface
+  - Updated 11 files across onboarding, login, and components
+  - Added `onboarding.loading` translations for English and Polish
+  - Consistent loading UX using lucide-react Loader2 spinner
+  - Files: [messages/en.json](messages/en.json), [messages/pl.json](messages/pl.json), [app/onboarding/page.tsx](app/onboarding/page.tsx), [app/login/page.tsx](app/login/page.tsx), [app/api/user/organization-status/route.ts](app/api/user/organization-status/route.ts), and 6 other onboarding pages
+
 ### Impact
 
 - ✅ **Consistent UX:** All pages refresh automatically after mutations
