@@ -87,11 +87,8 @@ function JoinPageContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="text-sm text-muted-foreground">Processing your invitation...</p>
-        </div>
+      <div className="bg-[var(--bg-default)] min-h-screen flex items-center justify-center relative">
+        <Loader2 className="size-16 animate-spin text-muted-foreground" />
       </div>
     )
   }

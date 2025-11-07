@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { WelcomeScreen, ChoiceScreen, MultiOptionScreen } from '@/components/onboarding'
@@ -20,7 +19,6 @@ interface OnboardingState {
 export default function OnboardingRoutingPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const t = useTranslations('onboarding.loading')
   const [state, setState] = useState<OnboardingState>({
     loading: true,
     error: null,
@@ -246,17 +244,7 @@ export default function OnboardingRoutingPage() {
   if (state.loading) {
     return (
       <div className="bg-[var(--bg-default)] min-h-screen flex items-center justify-center relative">
-        <div className="flex flex-col gap-8 items-center p-16 z-10">
-          <Loader2 className="size-16 animate-spin text-muted-foreground" />
-          <div className="flex flex-col gap-3 items-center">
-            <h1 className="text-3xl font-bold leading-9 text-center text-foreground">
-              {t('title')}
-            </h1>
-            <p className="text-sm text-muted-foreground text-center leading-5">
-              {t('description')}
-            </p>
-          </div>
-        </div>
+        <Loader2 className="size-16 animate-spin text-muted-foreground" />
       </div>
     )
   }

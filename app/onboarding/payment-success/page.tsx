@@ -204,21 +204,10 @@ function PaymentSuccessPageContent() {
         </div>
 
         <LanguageDropdown />
-import { OnboardingLogo } from '@/components/OnboardingLogo'
 
         {/* Centered content */}
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
-          <div className="flex flex-col gap-8 items-center p-16">
-            <Loader2 className="size-16 animate-spin text-muted-foreground" />
-            <div className="flex flex-col gap-3 items-center">
-              <h1 className="text-3xl font-bold leading-9 text-center text-foreground">
-                {isCreatingOrganization ? t('loading.settingUp') : t('loading.verifying')}
-              </h1>
-              <p className="text-sm text-muted-foreground text-center leading-5">
-                {t('loading.description')}
-              </p>
-            </div>
-          </div>
+          <Loader2 className="size-16 animate-spin text-muted-foreground" />
         </div>
       </div>
     )
@@ -235,7 +224,6 @@ import { OnboardingLogo } from '@/components/OnboardingLogo'
         </div>
 
         <LanguageDropdown />
-import { OnboardingLogo } from '@/components/OnboardingLogo'
 
         {/* Centered content */}
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
@@ -268,7 +256,6 @@ import { OnboardingLogo } from '@/components/OnboardingLogo'
       </div>
 
       <LanguageDropdown />
-import { OnboardingLogo } from '@/components/OnboardingLogo'
 
       {/* Centered content */}
       <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10">

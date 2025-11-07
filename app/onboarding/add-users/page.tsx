@@ -273,9 +273,8 @@ function AddUsersPageContent() {
     return (
       <div className="bg-[var(--bg-default)] relative size-full min-h-screen flex items-center justify-center">
         <DecorativeBackground />
-        <div className="text-center z-10">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading pricing information...</p>
+        <div className="z-10">
+          <Loader2 className="size-16 animate-spin text-muted-foreground" />
         </div>
       </div>
     )
