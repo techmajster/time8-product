@@ -51,6 +51,7 @@ interface CalendarClientProps {
   onDateChange?: (date: Date) => void
   hideNavigation?: boolean
   disableResponsive?: boolean
+  headerLayout?: 'default' | 'compact'
 }
 
 interface Holiday {
@@ -127,7 +128,7 @@ interface SelectedDayData {
   }
 }
 
-export default function CalendarClient({ organizationId, countryCode, userId, colleagues, teamMemberIds, teamScope, showHeader = true, showPadding = true, workingDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'], externalCurrentDate, onDateChange, hideNavigation = false, disableResponsive = false }: CalendarClientProps) {
+export default function CalendarClient({ organizationId, countryCode, userId, colleagues, teamMemberIds, teamScope, showHeader = true, showPadding = true, workingDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'], externalCurrentDate, onDateChange, hideNavigation = false, disableResponsive = false, headerLayout = 'default' }: CalendarClientProps) {
   const [internalDate, setInternalDate] = useState(new Date())
   
   // Use external date if provided, otherwise use internal state
@@ -657,14 +658,69 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
     <div className={showPadding ? "py-11" : ""}>
       {/* Page Header */}
       {showHeader && (
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex flex-col gap-2">
-            <h1 className="text-3xl font-semibold text-foreground">{t('title')}</h1>
-          </div>
-          <div className="flex items-center gap-3">
-            <LeaveRequestButton />
-          </div>
-        </div>
+        <>
+          {headerLayout === 'compact' ? (
+            /* Compact single-line header matching Figma design */
+            <div className="flex items-center justify-between mb-6">
+              {/* Left: Title */}
+              <h1 className="text-3xl font-semibold text-foreground">{t('title')}</h1>
+
+              {/* Center: Month Navigation */}
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handlePreviousMonth}
+                  onMouseEnter={() => prefetchAdjacentMonth(-1)}
+                  disabled={isLoading}
+                  className="h-8 w-8 opacity-50 hover:opacity-100 bg-card disabled:opacity-25"
+                  aria-label={`Previous month`}
+                >
+                  <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+                </Button>
+
+                <h2 className="text-base font-semibold min-w-[140px] text-center" aria-live="polite" aria-atomic="true">
+                  {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+                </h2>
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleNextMonth}
+                  onMouseEnter={() => prefetchAdjacentMonth(1)}
+                  disabled={isLoading}
+                  className="h-8 w-8 opacity-50 hover:opacity-100 bg-card disabled:opacity-25"
+                  aria-label={`Next month`}
+                >
+                  <ChevronRight className="h-4 w-4" aria-hidden="true" />
+                </Button>
+              </div>
+
+              {/* Right: Filter button + Leave Request button */}
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="outline"
+                  className="h-9"
+                  disabled
+                  aria-label={t('filter')}
+                >
+                  {t('filter')}
+                </Button>
+                <LeaveRequestButton />
+              </div>
+            </div>
+          ) : (
+            /* Default two-line header layout */
+            <div className="flex justify-between items-center mb-6">
+              <div className="flex flex-col gap-2">
+                <h1 className="text-3xl font-semibold text-foreground">{t('title')}</h1>
+              </div>
+              <div className="flex items-center gap-3">
+                <LeaveRequestButton />
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* Calendar */}
@@ -672,8 +728,8 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
         <CalendarSkeleton />
       ) : (
       <div className="flex flex-col gap-6">
-        {/* Month Navigation - Hide when hideNavigation is true */}
-        {!hideNavigation && (
+        {/* Month Navigation - Hide when hideNavigation is true OR when using compact layout */}
+        {!hideNavigation && headerLayout !== 'compact' && (
           <div className="flex items-center justify-between h-8" role="navigation" aria-label="Month navigation">
             <Button
               variant="ghost"

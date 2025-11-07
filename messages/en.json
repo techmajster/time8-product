@@ -573,6 +573,7 @@
       "saturday": "Saturday",
       "sunday": "Sunday"
     },
+    "filter": "Filter",
     "errors": {
       "failedToFetchSchedule": "Failed to fetch work schedule",
       "failedToFetchTeamMembers": "Failed to fetch team members list",

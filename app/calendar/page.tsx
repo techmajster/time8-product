@@ -226,6 +226,7 @@ export default async function CalendarPage() {
         teamScope={teamScope}
         workingDays={profile.organizations?.working_days || ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']}
         disableResponsive={true}
+        headerLayout="compact"
       />
     </AppLayout>
   )

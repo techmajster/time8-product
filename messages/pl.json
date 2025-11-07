@@ -575,6 +575,7 @@
       "saturday": "Sobota",
       "sunday": "Niedziela"
     },
+    "filter": "Filtruj",
     "errors": {
       "failedToFetchSchedule": "Nie udało się pobrać grafiku pracy",
       "failedToFetchTeamMembers": "Nie udało się pobrać listy pracowników",
