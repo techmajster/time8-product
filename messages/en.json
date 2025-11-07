@@ -317,6 +317,8 @@
       "myTeam": "My Team",
       "leaveRequests": "Leave Requests",
       "addAbsence": "Add Absence",
+      "schedule": "Schedule",
+      "changeRequests": "Change Requests",
       "administrativeSettings": "Administrative Settings",
       "users": "Users",
       "groups": "Groups"

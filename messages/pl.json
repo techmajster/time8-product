@@ -319,6 +319,8 @@
       "myTeam": "Mój zespół",
       "leaveRequests": "Wnioski urlopowe",
       "addAbsence": "Dodaj nieobecność",
+      "schedule": "Grafik",
+      "changeRequests": "Prośby o zmianę",
       "administrativeSettings": "Ustawienia administracyjne",
       "users": "Użytkownicy",
       "groups": "Grupy"

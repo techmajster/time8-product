@@ -2,13 +2,16 @@
 
 import * as React from "react"
 import {
+  BookUser,
   CalendarCheck2,
+  CalendarClock,
   CalendarDays,
   CalendarX,
-  Gauge,
+  CircleGauge,
   CircleHelp,
   FileSymlink,
-  Users,
+  FolderTree,
+  Settings,
 } from "lucide-react"
 import { UserRole, isManagerOrAdmin, isAdmin } from '@/lib/permissions'
 import { useTranslations } from 'next-intl'
@@ -56,7 +59,7 @@ export function AppSidebar({ organizationName, organizationLogo, organizationIni
     {
       title: t('items.dashboard'),
       url: "/dashboard",
-      icon: Gauge,
+      icon: CircleGauge,
       isActive: true,
     },
     {
@@ -76,7 +79,7 @@ export function AppSidebar({ organizationName, organizationLogo, organizationIni
     {
       title: t('items.myTeam'),
       url: "/team",
-      icon: Users,
+      icon: BookUser,
     },
     {
       title: t('items.leaveRequests'),
@@ -94,9 +97,15 @@ export function AppSidebar({ organizationName, organizationLogo, organizationIni
     },
     // Temporarily hidden - Schedule feature
     // {
-    //   title: 'Grafik',
+    //   title: t('items.schedule'),
     //   url: "/schedule",
     //   icon: CalendarDays,
+    // },
+    // Temporarily hidden - Change Requests feature
+    // {
+    //   title: t('items.changeRequests'),
+    //   url: "/change-requests",
+    //   icon: CalendarClock,
     // },
   ]
 
@@ -105,7 +114,7 @@ export function AppSidebar({ organizationName, organizationLogo, organizationIni
     {
       title: t('items.administrativeSettings'),
       url: "/admin/settings",
-      icon: Users,
+      icon: Settings,
     },
     {
       title: t('items.users'),
@@ -115,7 +124,7 @@ export function AppSidebar({ organizationName, organizationLogo, organizationIni
     {
       title: t('items.groups'),
       url: "/admin/groups",
-      icon: CalendarX,
+      icon: FolderTree,
     },
   ]
 
@@ -166,7 +175,7 @@ export function AppSidebar({ organizationName, organizationLogo, organizationIni
         
         <NavSecondary items={navSecondaryData} className="mt-auto" />
       </SidebarContent>
-      <SidebarFooter>
+      <SidebarFooter className="border-t border-sidebar-border">
         <NavUser user={userData} />
       </SidebarFooter>
     </Sidebar>
