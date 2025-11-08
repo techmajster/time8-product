@@ -12,6 +12,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog'
 import { MoreHorizontal } from 'lucide-react'
 import { refetchTeamManagement } from '@/lib/refetch-events'
 import { toast } from 'sonner'
@@ -39,6 +47,8 @@ interface PendingInvitationsSectionProps {
 
 export function PendingInvitationsSection({ invitations }: PendingInvitationsSectionProps) {
   const [loading, setLoading] = useState<string | null>(null)
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
+  const [invitationToCancel, setInvitationToCancel] = useState<Invitation | null>(null)
 
   const handleResendInvitation = async (invitation: Invitation) => {
     setLoading(invitation.id)
@@ -71,22 +81,31 @@ export function PendingInvitationsSection({ invitations }: PendingInvitationsSec
     }
   }
 
-  const handleCancelInvitation = async (invitation: Invitation) => {
-    setLoading(invitation.id)
+  const openCancelDialog = (invitation: Invitation) => {
+    setInvitationToCancel(invitation)
+    setIsCancelDialogOpen(true)
+  }
+
+  const confirmCancelInvitation = async () => {
+    if (!invitationToCancel) return
+
+    setLoading(invitationToCancel.id)
     try {
-      console.log('🗑️ Cancelling invitation for:', invitation.email)
-      
+      console.log('🗑️ Cancelling invitation for:', invitationToCancel.email)
+
       const response = await fetch('/api/cancel-invitation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ invitationId: invitation.id })
+        body: JSON.stringify({ invitationId: invitationToCancel.id })
       })
 
       const data = await response.json()
-      
+
       if (response.ok) {
         console.log('✅ Invitation cancelled successfully')
         toast.success('Zaproszenie zostało anulowane')
+        setIsCancelDialogOpen(false)
+        setInvitationToCancel(null)
         refetchTeamManagement()
       } else {
         console.error('❌ Failed to cancel invitation:', data)
@@ -235,8 +254,8 @@ export function PendingInvitationsSection({ invitations }: PendingInvitationsSec
                         >
                           Wyślij ponownie
                         </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={() => handleCancelInvitation(invitation)}
+                        <DropdownMenuItem
+                          onClick={() => openCancelDialog(invitation)}
                           disabled={loading === invitation.id}
                           className="cursor-pointer text-destructive focus:text-destructive"
                         >
@@ -251,6 +270,38 @@ export function PendingInvitationsSection({ invitations }: PendingInvitationsSec
           </Table>
         </CardContent>
       </Card>
+
+      {/* Cancel Invitation Confirmation Dialog */}
+      <Dialog open={isCancelDialogOpen} onOpenChange={(open) => {
+        setIsCancelDialogOpen(open)
+        if (!open) {
+          setInvitationToCancel(null)
+        }
+      }}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Czy na pewno chcesz anulować zaproszenie?</DialogTitle>
+            <DialogDescription>
+              Zaproszona osoba nie będzie mogła dołączyć do Twojego workspace
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={confirmCancelInvitation}
+              disabled={loading === invitationToCancel?.id}
+            >
+              Tak, anuluj zaproszenie
+            </Button>
+            <Button
+              onClick={() => setIsCancelDialogOpen(false)}
+              disabled={loading === invitationToCancel?.id}
+            >
+              Zamknij
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 } 

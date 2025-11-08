@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { FigmaTabs, FigmaTabsList, FigmaTabsTrigger, FigmaTabsContent } from '@/app/admin/team-management/components/FigmaTabs'
 import { Loader2, Plus, MoreHorizontal } from 'lucide-react'
 import { toast } from 'sonner'
 import { PendingInvitationsSection } from './PendingInvitationsSection'
@@ -106,10 +107,27 @@ export function TeamManagementClient({
   const [pendingRemovalUsers, setPendingRemovalUsers] = useState<PendingRemovalUser[]>(initialPendingUsers)
   const [archivedUsers, setArchivedUsers] = useState<ArchivedUser[]>(initialArchivedUsers)
 
+  // State for active tab (aktywni, zaproszeni, zarchiwizowani)
+  const [activeTab, setActiveTab] = useState('aktywni')
+
   // State for active team filter
   const [activeTeamFilter, setActiveTeamFilter] = useState('Wszyscy')
   const [loading, setLoading] = useState(false)
   const [isRefetching, setIsRefetching] = useState(false)
+
+  // Filter invitations by team
+  const filteredInvitations = activeTeamFilter === 'Wszyscy'
+    ? invitations
+    : invitations.filter(inv => inv.team_name === activeTeamFilter)
+
+  // Filter archived users by team
+  const filteredArchivedUsers = activeTeamFilter === 'Wszyscy'
+    ? archivedUsers
+    : archivedUsers.filter(user => {
+        // Find the user's team from the teams data
+        const member = teamMembers.find(m => m.id === user.id)
+        return member?.teams?.name === activeTeamFilter
+      })
 
   // Hooks for mutations
   const deleteAccountMutation = useDeleteAccount()
@@ -252,24 +270,19 @@ export function TeamManagementClient({
         <h1 className="text-3xl font-semibold text-foreground">Zarządzanie zespołami</h1>
       </div>
 
-      {/* Employees Section (no tabs anymore) */}
-      <div className="mt-6">
-          {/* Pending Invitations Section */}
-          <PendingInvitationsSection invitations={invitations} />
+      {/* Tab Navigation */}
+      <FigmaTabs value={activeTab} onValueChange={setActiveTab} className="w-full mt-6">
+        <div className="relative -mx-12 px-12">
+          <FigmaTabsList className="border-b-0">
+            <FigmaTabsTrigger value="aktywni">Aktywni</FigmaTabsTrigger>
+            <FigmaTabsTrigger value="zaproszeni">Zaproszeni</FigmaTabsTrigger>
+            <FigmaTabsTrigger value="zarchiwizowani">Zarchiwizowani</FigmaTabsTrigger>
+          </FigmaTabsList>
+          <div className="absolute bottom-0 left-0 right-0 h-px bg-border" />
+        </div>
 
-          {/* Pending Changes Section */}
-          <PendingChangesSection
-            users={pendingRemovalUsers}
-            onCancelRemoval={handleCancelRemoval}
-            className="mt-6"
-          />
-
-          {/* Archived Users Section */}
-          <ArchivedUsersSection
-            users={archivedUsers}
-            onReactivate={handleReactivateUser}
-            className="mt-6"
-          />
+        {/* Aktywni Tab */}
+        <FigmaTabsContent value="aktywni" className="mt-6">
 
           <div className="mb-4 mt-8 min-h-[60px] flex items-center">
             <div className="flex items-center justify-between w-full">
@@ -299,12 +312,11 @@ export function TeamManagementClient({
                 <Button variant="outline" size="sm">Export</Button>
                 <Button variant="outline" size="sm">Import</Button>
                 <Link href="/admin/team-management/add-employee">
-                  <Button 
-                    size="sm" 
-                    className=""
+                  <Button
+                    size="sm"
                   >
                     <Plus className="h-4 w-4 mr-2" />
-                    Dodaj pracownika
+                    Zaproś nowych użytkowników
                   </Button>
                 </Link>
               </div>
@@ -419,42 +431,99 @@ export function TeamManagementClient({
               </Table>
             </CardContent>
           </Card>
-        </div>
+        </FigmaTabsContent>
 
-      {/* Remove Employee Confirmation Dialog */}
-      <Dialog open={isRemoveDialogOpen} onOpenChange={setIsRemoveDialogOpen}>
-        <DialogContent>
+        {/* Zaproszeni Tab */}
+        <FigmaTabsContent value="zaproszeni" className="mt-6">
+          {/* Group Filter for Invitations */}
+          <div className="mb-6">
+            <div className="bg-muted relative rounded-lg p-[3px] flex">
+              {teamTabs.map((teamName: string) => (
+                <button
+                  key={teamName}
+                  onClick={() => setActiveTeamFilter(teamName)}
+                  className={`
+                    flex items-center justify-center px-2.5 py-2 rounded-lg text-sm font-normal leading-5 transition-all
+                    ${activeTeamFilter === teamName
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:bg-background/50'
+                    }
+                  `}
+                >
+                  {teamName}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <PendingInvitationsSection invitations={filteredInvitations} />
+        </FigmaTabsContent>
+
+        {/* Zarchiwizowani Tab */}
+        <FigmaTabsContent value="zarchiwizowani" className="mt-6">
+          {/* Pending Changes Section */}
+          <PendingChangesSection
+            users={pendingRemovalUsers}
+            onCancelRemoval={handleCancelRemoval}
+            className="mb-6"
+          />
+
+          {/* Group Filter for Archived Users */}
+          <div className="mb-6">
+            <div className="bg-muted relative rounded-lg p-[3px] flex">
+              {teamTabs.map((teamName: string) => (
+                <button
+                  key={teamName}
+                  onClick={() => setActiveTeamFilter(teamName)}
+                  className={`
+                    flex items-center justify-center px-2.5 py-2 rounded-lg text-sm font-normal leading-5 transition-all
+                    ${activeTeamFilter === teamName
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:bg-background/50'
+                    }
+                  `}
+                >
+                  {teamName}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <ArchivedUsersSection
+            users={filteredArchivedUsers}
+            onReactivate={handleReactivateUser}
+          />
+        </FigmaTabsContent>
+      </FigmaTabs>
+
+      {/* Archive Employee Confirmation Dialog */}
+      <Dialog open={isRemoveDialogOpen} onOpenChange={(open) => {
+        setIsRemoveDialogOpen(open)
+        if (!open) {
+          setMemberToRemove(null)
+        }
+      }}>
+        <DialogContent showCloseButton={false}>
           <DialogHeader>
-            <DialogTitle>Usuń pracownika</DialogTitle>
+            <DialogTitle>Czy na pewno chcesz dezaktywować użytkownika?</DialogTitle>
             <DialogDescription>
-              Czy na pewno chcesz usunąć pracownika {memberToRemove?.full_name || memberToRemove?.email} z organizacji?
-              {(memberToRemove?.role === 'Manager' || memberToRemove?.role === 'Admin') && (
-                <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-                  <p className="text-sm text-yellow-800">
-                    <strong>⚠️ Uwaga:</strong> Ten użytkownik jest obecnie <strong>{memberToRemove.role}</strong>. 
-                    Usunięcie go spowoduje utratę wszystkich jego uprawnień administracyjnych.
-                  </p>
-                </div>
-              )}
-              <br />
-              <strong className="text-red-600">Ta akcja jest nieodwracalna.</strong>
+              Użytkownik utraci dostęp do systemu oraz nie będzie uwzględniany w planowaniu grafiku.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button 
-              variant="outline" 
+            <Button
               onClick={() => setIsRemoveDialogOpen(false)}
               disabled={loading}
             >
-              Anuluj
+              Zamknij
             </Button>
-            <Button 
-              variant="destructive" 
+            <Button
+              variant="destructive"
               onClick={confirmRemoveEmployee}
               disabled={loading}
             >
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Usuń pracownika
+              Tak, archiwizuj użytkownika
             </Button>
           </DialogFooter>
         </DialogContent>

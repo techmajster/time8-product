@@ -1907,15 +1907,7 @@ export default function AdminSettingsClient({
       {/* Delete Leave Type Dialog */}
       <Dialog
         open={deleteDialogOpen}
-        onOpenChange={(open) => {
-          setDeleteDialogOpen(open)
-          // Ensure pointer-events is restored when dialog closes
-          if (!open) {
-            setTimeout(() => {
-              document.body.style.pointerEvents = ''
-            }, 50)
-          }
-        }}
+        onOpenChange={setDeleteDialogOpen}
       >
         <DialogContent className="max-w-md">
           <div className="absolute right-4 top-4 z-10">

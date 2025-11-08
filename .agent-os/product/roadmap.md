@@ -14,8 +14,12 @@
 - [Phase 2.9: React Query Pages](#phase-29-react-query-migration---high-traffic-pages--completed) - SSR optimization (Nov 3) ✅
 - [Phase 2.10: Query Optimization](#phase-210-react-query-migration---shared-data-optimization--completed) - Shared hooks (Nov 3) ✅
 - [Phase 2.11: Seat Management](#phase-211-lemon-squeezy-seat-management-with-grace-periods--completed) - Grace periods (Nov 5) ✅
-- [Phase 2.12: Leave Sheets Optimization](#phase-212-leave-request-sheets-optimization---in-progress) - Unified components + admin edit (Nov 5) 🎯
-- [Phase 2.13: Auto-Refresh Standardization](#phase-213-standardize-auto-refresh-pattern-across-application-) - Event-based refetch system (Nov 6) 📋
+- [Phase 2.12: Leave Sheets Optimization](#phase-212-leave-request-sheets-optimization---in-progress) - Unified components + admin edit (Nov 5) ✅
+- [Phase 2.13: Auto-Refresh Standardization](#phase-213-standardize-auto-refresh-pattern-across-application-) - Event-based refetch system (Nov 6) ✅
+- [Phase 2.14: Holiday API Integration](#phase-214-holiday-api-integration-) - External API sync for holidays 📋
+- [Phase 2.15: Bilingual Translation](#phase-215-complete-bilingual-translation-coverage-) - Complete PL/EN coverage 📋
+- [Phase 2.16: Dark Mode Fixes](#phase-216-dark-mode-styling-fixes-) - Theme consistency (Nov 6) ✅
+- [Phase 2.17: Team Management Redesign](#phase-217-team-management-interface-redesign-) - Tabs, sheets, dialogs per Figma 📋
 
 ### 🎯 Active Phases
 - [Phase 3: Design System](#phase-3-design-system-implementation-) - Figma integration & UI overhaul
@@ -1657,6 +1661,536 @@ format.dateTime(date, { dateStyle: 'medium' })
 - Onboarding screens: 20 minutes (optional)
 - Testing & validation: 30 minutes
 - **Total: 2 hours**
+
+---
+
+## Phase 2.17: Team Management Interface Redesign 📋
+
+**Goal:** Complete redesign of team management interface matching Figma specifications: tabbed navigation (Aktywni/Zaproszeni/Zarchiwizowani), sheet-based employee editing, updated dialogs, and simplified table structure
+**Success Criteria:** Tab system working with group filters, edit opens as 560px sheet, invitations in dedicated tab with pagination, all dialogs match Figma, responsive design
+**Priority:** HIGH (Major UX improvement and Figma compliance for core admin workflow)
+**Status:** 📋 Planned
+**Dependencies:** Phase 2.16 ✅
+**Estimated Effort:** 18-22 hours (2.5-3 days)
+
+**Figma Designs:**
+- [Edit Employee Sheet](https://www.figma.com/design/Xb0VKGqH8b7w6nXW3HoacI/time8.io?node-id=26160-240063)
+- [Invitations Tab](https://www.figma.com/design/Xb0VKGqH8b7w6nXW3HoacI/time8.io?node-id=26148-84140)
+- [Cancel Invitation Dialog](https://www.figma.com/design/Xb0VKGqH8b7w6nXW3HoacI/time8.io?node-id=26160-239908)
+- [Archive User Dialog](https://www.figma.com/design/Xb0VKGqH8b7w6nXW3HoacI/time8.io?node-id=26160-239909)
+
+### Current State Analysis
+
+**Current Implementation:**
+- **Structure:** Standalone sections stacked vertically (Pending Invitations → Pending Changes → Archived → Active Employees)
+- **Navigation:** `router.push()` to full-page edit at `/admin/team-management/edit-employee/[id]`
+- **Edit Page:** Multi-card layout with work schedule, team radio groups, leave balances table with used days
+- **Dialogs:** No confirmation for cancel invitation, different messaging for archive user
+- **Invitations:** Separate section always visible, 5 columns, no pagination
+
+**Figma Design Changes:**
+- **Structure:** Tabbed interface - Aktywni / Zaproszeni / Zarchiwizowani
+- **Navigation:** Sheet overlay (560px) from right side
+- **Edit Sheet:** Compact single-column form, team dropdown, leave approver selector, reset buttons
+- **Dialogs:** Confirmation for cancel invitation, updated archive messaging
+- **Invitations:** Dedicated tab with simplified 5-column table, pagination, status badges
+
+### Features - Organized by Efficient Build Order
+
+#### **Phase 1: Foundation** (5-6 hours) ✅ **COMPLETED**
+
+- [x] **1.1: Create Tab Navigation Component** `M` 🎯 HIGH PRIORITY ✅
+  - Replaced Radix Tabs with FigmaTabs component matching Figma design
+  - Implemented three tabs: Aktywni, Zaproszeni, Zarchiwizowani
+  - Added tab state management (default: Aktywni)
+  - Applied Figma styling with active state underline border
+  - Positioned below page header with full-width border separator
+  - Files: [TeamManagementClient.tsx:274-282](app/admin/team-management/components/TeamManagementClient.tsx#L274-L282), [FigmaTabs.tsx](app/admin/team-management/components/FigmaTabs.tsx)
+
+- [x] **1.2: Restructure TeamManagementClient for Tabs** `M` 🎯 HIGH PRIORITY ✅
+  - Wrapped all content in FigmaTabs container
+  - Moved PendingInvitationsSection into Zaproszeni tab with group filter
+  - Moved PendingChangesSection + ArchivedUsersSection into Zarchiwizowani tab
+  - Active employees table remains in Aktywni tab (default)
+  - Added group filter chips to ALL three tabs (Wszyscy + team names)
+  - Implemented filter logic for invitations and archived users
+  - Files: [TeamManagementClient.tsx:285-497](app/admin/team-management/components/TeamManagementClient.tsx#L285-L497)
+
+- [x] **1.3: Update Page Header** `S` ✅
+  - Renamed "Dodaj pracownika" → "Zaproś nowych użytkowników"
+  - Files: [TeamManagementClient.tsx:322](app/admin/team-management/components/TeamManagementClient.tsx#L322)
+  - Keep Export button styling
+  - Update button sizes per Figma
+
+- [ ] **1.4: Create Shared Group Filter Component** `S`
+  - Extract group filter chips to reusable component
+  - Apply to all three tabs
+  - Ensure filtering works in each tab context
+
+#### **Phase 2: Dialogs** (2 hours) ✅ **COMPLETED**
+
+- [x] **2.1: Add Cancel Invitation Confirmation Dialog** `S` ✅
+  - Created Dialog component with proper state management
+  - Title: "Czy na pewno chcesz anulować zaproszenie?"
+  - Description: "Zaproszona osoba nie będzie mogła dołączyć do Twojego workspace"
+  - Buttons: "Tak, anuluj zaproszenie" (outline) + "Zamknij" (primary)
+  - Wired to cancel action in invitations dropdown menu
+  - Added `openCancelDialog()` and `confirmCancelInvitation()` functions
+  - Files: [PendingInvitationsSection.tsx:275-299](app/admin/team-management/components/PendingInvitationsSection.tsx#L275-L299)
+
+- [x] **2.2: Update Archive User Dialog** `S` ✅
+  - Updated title: "Czy na pewno chcesz dezaktywować użytkownika?"
+  - Updated description: "Użytkownik utraci dostęp do systemu oraz nie będzie uwzględniany w planowaniu grafiku"
+  - Updated button text: "Tak, archiwizuj użytkownika" (destructive variant)
+  - Removed manager/admin warning box
+  - Removed "nieodwracalna" warning text
+  - Changed "Anuluj" button to "Zamknij"
+  - Files: [TeamManagementClient.tsx:499-526](app/admin/team-management/components/TeamManagementClient.tsx#L499-L526)
+
+#### **Phase 3: Edit Employee Sheet** (3 hours)
+
+- [ ] **3.1: Create EditEmployeeSheet Component** `M` 🎯 HIGH PRIORITY
+  - File: `app/admin/team-management/components/EditEmployeeSheet.tsx`
+  - Base on CreateTeamSheet.tsx pattern
+  - Sheet size="content" (560px)
+  - Header: "Szczegóły użytkownika"
+
+- [ ] **3.2: Section 1 - Dane użytkownika** `M`
+  - Status badge (green "Aktywny")
+  - Nazwa wyświetlana input
+  - Adres email input
+  - Data urodzenia date picker
+  - Rola select dropdown
+  - Grupa select dropdown (changed from radio group)
+
+- [ ] **3.3: Section 2 - Dostępny urlop rocznie** `M`
+  - Leave types table: Rodzaj urlopu | Liczba dni na start | Akcje
+  - Input fields for entitled days
+  - "Domyślne" button per leave type (with refresh icon)
+  - Remove "Wykorzystanych" column
+
+- [ ] **3.4: Section 3 - Osoba akceptująca urlop** `S`
+  - NEW: Select dropdown for leave approver
+  - Fetch managers/admins list
+  - Optional field (nullable)
+
+- [ ] **3.5: Integrate Sheet into TeamManagementClient** `S`
+  - Replace `router.push()` with `setIsEditSheetOpen(true)`
+  - Add state: `isEditSheetOpen`, `selectedEmployee`
+  - Pass data to sheet component
+  - Handle close and refresh
+
+#### **Phase 4: Invitations Tab** (3-4 hours)
+
+- [ ] **4.1: Simplify Invitations Table Structure** `M`
+  - Update columns: Imię i nazwisko | Akceptujący | Grupa | Status | Akcja
+  - Remove: Zespół, Zaproszony przez, Rola, Wygasa columns
+  - Add Status column with purple "Zaproszony" badge
+  - Add Akceptujący column (approver name)
+
+- [ ] **4.2: Add Pagination Component** `S`
+  - Implement pagination UI
+  - Show "X z Y wierszy" text
+  - Add prev/next controls
+  - Default page size: 10
+
+- [ ] **4.3: Update Empty States** `XS`
+  - Update text for tab context
+  - Ensure proper centering and styling
+
+- [ ] **4.4: Wire Group Filtering** `S`
+  - Apply shared group filter component
+  - Filter invitations by selected group
+  - Update counts dynamically
+
+#### **Phase 5: Integration & Testing** (3-4 hours)
+
+- [ ] **5.1: Remove Old Full-Page Route** `XS`
+  - Delete `app/admin/team-management/edit-employee/[id]/` directory
+  - Delete `EditEmployeePage.tsx` component
+  - Verify no broken links
+
+- [ ] **5.2: Update API Routes** `S`
+  - Review `/api/employees/[id]` PUT endpoint
+  - Add leave approver field handling
+  - Remove `used_days` from leave balance updates
+  - Add validation
+
+- [ ] **5.3: Data Fetching Updates** `S`
+  - Fetch leave approver list in page.tsx
+  - Pass to both sheet and table components
+  - Ensure all data available
+
+- [ ] **5.4: End-to-End Testing** `M`
+  - Test all three tabs
+  - Test sheet open/close
+  - Test edit form submission
+  - Test cancel invitation dialog
+  - Test archive dialog
+  - Test pagination
+  - Test group filters
+  - Test responsive design
+  - Verify data refresh after mutations
+
+### Files to Create
+
+1. `app/admin/team-management/components/EditEmployeeSheet.tsx` (new sheet component)
+
+### Files to Modify
+
+1. `app/admin/team-management/components/TeamManagementClient.tsx` (major: tabs, sheet integration)
+2. `app/admin/team-management/components/PendingInvitationsSection.tsx` (adapt for tab, simplify table)
+3. `components/admin/ArchivedUsersSection.tsx` (adapt for tab)
+4. `app/admin/team-management/page.tsx` (fetch leave approver data)
+5. `app/api/employees/[id]/route.ts` (handle leave approver field)
+
+### Files to Delete
+
+1. `app/admin/team-management/edit-employee/[id]/page.tsx`
+2. `app/admin/team-management/edit-employee/components/EditEmployeePage.tsx`
+
+### Impact
+
+- ✅ **Unified Interface:** All user states in one cohesive tabbed view
+- ✅ **Reduced Navigation:** Sheet pattern eliminates full-page context switches
+- ✅ **Improved Organization:** Clear separation of active/invited/archived users
+- ✅ **Better UX:** Confirmation dialogs prevent accidental actions
+- ✅ **Cleaner Tables:** Simplified columns with better information hierarchy
+- ✅ **New Feature:** Per-user leave approver assignment
+- ✅ **Figma Compliance:** Matches all 4 design specifications exactly
+
+---
+
+## Phase 2.18: Invite Users Dialog with Seat Visualization & LemonSqueezy Integration
+
+**Goal:** Replace the current add-employee page with a modern dialog component that provides real-time seat availability visualization, transparent LemonSqueezy pricing integration, and seamless upgrade flows when seat limits are reached.
+
+**Success Criteria:**
+- ✅ Reusable Dialog/Sheet component for inviting users can be triggered from multiple locations
+- ✅ Visual seat blocks clearly show Zajęte (occupied) vs Wolne (free) seats with dynamic scaling for different plan tiers
+- ✅ LemonSqueezy pricing integration displays per-seat costs and total pricing before payment
+- ✅ Upgrade flow seamlessly handles Plan Hobby (3 seats) → Pro (10+ seats) transitions
+- ✅ Pending invitations show payment status badges ("Opłacony" vs "+10.99 Euro")
+- ✅ Summary section accurately calculates additional costs for paid invitations
+- ✅ Success state with "Zaproszenia wysłane" confirmation after completion
+- ✅ "Already added" section shows existing pending/paid invitations that haven't accepted yet
+
+### Features
+
+#### Core Dialog Component System
+
+**1. InviteUsersDialog Component** `M`
+- Reusable Dialog/Sheet component built with shadcn/ui dialog primitives
+- Trigger from team management page, header quick actions, or onboarding flow
+- Controlled open/close state with proper cleanup on unmount
+- Responsive sizing: 600px width on desktop, full-screen on mobile
+- Proper z-index layering for multi-modal scenarios
+
+**2. Seat Visualization Blocks** `M`
+- Dynamic block generation based on plan tier (3 blocks for Hobby, scalable two-block layout for Pro with counts)
+- Visual states:
+  - "Zajęte" blocks (filled, darker background)
+  - "Wolne" blocks (outlined, lighter background)
+- **Hobby Plan:** Three individual blocks showing exact seat allocation (e.g., 2 Zajęte + 1 Wolny)
+- **Pro Plan:** Two-block layout with counts (e.g., "Zajęte: 8" + "Wolne: 2")
+- Real-time updates as user adds/removes invitations in the dialog
+- Smooth transitions when blocks change state
+
+**3. Email Input with Validation** `S`
+- Multi-email input field with comma/enter key separation
+- Real-time email format validation using regex pattern
+- Duplicate detection (check against existing members and pending invitations)
+- Visual feedback: green checkmarks for valid emails, red warnings for invalid/duplicate
+- Bulk paste support (handle multi-line clipboard content)
+- Clear all functionality
+
+#### LemonSqueezy Integration & Pricing
+
+**4. Real-Time Seat Calculation** `M`
+- Fetch current subscription data from `/app/api/billing/subscription/route.ts`
+- Use existing `calculateComprehensiveSeatInfo()` from `/lib/billing/seat-calculation.ts`
+- Calculate: `total_seats = paid_seats + 3_free_seats`
+- Determine: `seats_needed = new_invitations - available_seats`
+- Display pricing only when `seats_needed > 0`
+
+**5. Pricing Display Component** `M`
+- Fetch per-seat price from LemonSqueezy API using existing `/lib/lemon-squeezy/pricing.ts`
+- Show individual invitation line items with pricing badges:
+  - Green "Opłacony" badge for invitations within available seats
+  - Orange "+10.99 Euro" badge for invitations requiring payment
+- Summary section at bottom with total additional cost (e.g., "+32.97 Euro")
+- Currency formatting using existing helper functions
+- Clear cost breakdown before user commits to payment
+
+**6. Upgrade Alert Component** `S`
+- Warning alert when Plan Hobby limit reached (0/3 free seats)
+- Message: "Osiągnięto limit planu Hobby (3 użytkowników). Aby dodać więcej, zaktualizuj plan."
+- Single CTA button: "Zaktualizuj plan" → navigates to upgrade flow
+- Dismissible with explanation that invitations won't be sent until upgrade completes
+
+#### Payment & Invitation Flows
+
+**7. Multi-State Form Submission** `L`
+- **State 1: All invitations free** → Direct API call to `/app/api/team-management/invitations`
+  - Submit emails array
+  - Show success toast
+  - Navigate to success state ("Zaproszenia wysłane")
+
+- **State 2: Some/all invitations require payment** → LemonSqueezy checkout flow
+  - Calculate required seat quantity
+  - Create LemonSqueezy checkout session with updated seat count
+  - Redirect to LemonSqueezy payment page
+  - Handle return URL with payment confirmation
+  - Webhook processes payment → updates `organizations.paid_seats` → sends invitations automatically
+
+- **State 3: Upgrade from Hobby to Pro** → Special upgrade flow
+  - Navigate to `/onboarding/add-users?upgrade=true&current_org=${orgId}&seats=${recommendedSeats}`
+  - Use existing upgrade flow infrastructure
+  - Return to team management after upgrade completes
+
+**8. Success State Component** `S`
+- Clean centered layout with success icon
+- Message: "Zaproszenia wysłane"
+- Subtext: "Wszyscy zaproszeni użytkownicy otrzymali wiadomość e-mail z linkiem aktywacyjnym."
+- Single "Zamknij" button to close dialog
+- Auto-refresh parent data (pending invitations count, seat availability)
+
+**9. Already Added Section** `M`
+- Display existing pending/paid invitations that haven't been accepted yet
+- Show each invitation with:
+  - Email address
+  - Status badge ("Opłacony" or "Oczekuje")
+  - Timestamp (relative time: "2 dni temu")
+  - Remove button (cancel invitation)
+- Collapsible section with count in header (e.g., "Już dodano (3)")
+- Update seat calculations when invitations are removed
+
+#### Edge Cases & Error Handling
+
+**10. Error States & Validation** `S`
+- Network error handling with retry mechanism
+- Validation errors displayed inline (invalid email format, duplicate email)
+- Seat limit error with upgrade CTA
+- Payment failure handling with clear error messages
+- Timeout handling for LemonSqueezy API calls
+- Fallback to cached subscription data if API unavailable
+
+### Technical Specifications
+
+**API Endpoints:**
+- `GET /app/api/billing/subscription` - Fetch current subscription and seat info (existing)
+- `POST /app/api/team-management/invitations` - Create new invitations (existing)
+- `GET /app/api/team-management/invitations` - Fetch pending invitations (existing)
+- `DELETE /app/api/team-management/invitations/:id` - Cancel invitation (existing)
+- LemonSqueezy API: `/v1/checkouts` - Create checkout session for seat upgrades
+- LemonSqueezy API: `/v1/subscriptions/:id` - Fetch/update subscription
+
+**Database Schema (no changes required):**
+- Uses existing `invitations` table with `status` enum
+- Uses existing `organizations.paid_seats` for seat tracking
+- Uses existing `subscriptions` table for LemonSqueezy integration
+
+**Component Structure:**
+```
+components/admin/invite-users/
+  ├── InviteUsersDialog.tsx          (main dialog container)
+  ├── SeatVisualizationBlocks.tsx    (seat blocks component)
+  ├── EmailInputField.tsx            (multi-email input)
+  ├── InvitationList.tsx             (list of pending invitations with badges)
+  ├── PricingSummary.tsx             (cost breakdown)
+  ├── UpgradeAlert.tsx               (plan limit warning)
+  ├── AlreadyAddedSection.tsx        (existing pending invitations)
+  └── SuccessState.tsx               (completion message)
+```
+
+**State Management:**
+- Dialog open/closed state (controlled by parent component)
+- Email input array state
+- Current subscription data (fetched on dialog open)
+- Pending invitations (fetched on dialog open)
+- Form submission loading state
+- Validation errors object
+- Payment flow status (idle, processing, success, error)
+
+**Styling:**
+- Geist font family (SemiBold for headings, Regular for body, Medium for labels)
+- Color scheme:
+  - Zajęte blocks: Dark background (#E5E7EB or similar)
+  - Wolne blocks: Light outline (#D1D5DB)
+  - "Opłacony" badge: Green (#10B981)
+  - "+X Euro" badge: Orange/amber (#F59E0B)
+- Consistent spacing: 16px padding, 12px gaps between blocks
+- Smooth animations for state transitions (200ms ease-in-out)
+
+### Dependencies
+
+- Phase 2.0: Core LemonSqueezy integration infrastructure (webhook handling, subscription sync)
+- Phase 2.4: Seat management and invitation system foundation
+- Existing: `/lib/billing/seat-calculation.ts` for seat calculations
+- Existing: `/lib/lemon-squeezy/pricing.ts` for price fetching
+- Existing: `/app/api/billing/subscription/route.ts` for subscription data
+
+### Design States Reference
+
+**9 Design Screens Analyzed:**
+1. **Initial State (2/3 free):** Empty invitation list, 2 Zajęte + 1 Wolny blocks
+2. **1/3 free with 1 pending:** Shows "Plan Hobby" badge, 1 invitation added
+3. **0/3 free with 2 pending:** Limit reached, all blocks Zajęte
+4. **Success State:** "Zaproszenia wysłane" centered message with close button
+5. **Hobby Limit + Upgrade Flow:** 0/3 free, upgrade alert, pricing summary, "Przejdź do płatności" button
+6. **Pro Plan (2/10 free):** Scalable two-block layout showing "Zajęte: 8" and "Wolne: 2"
+7. **Pro Plan (0/10 free, paid):** All invitations show green "Opłacony" badges
+8. **Success State (alternate):** Another success confirmation variant
+9. **Pro Plan (mixed states):** 2 "Opłacony" + 3 pending "+10.99 Euro", summary showing "+32.97 Euro", footer text about payment required
+
+### Testing Checklist
+
+**Seat Calculation Tests:**
+- [ ] Verify correct seat counting for Hobby plan (3 total)
+- [ ] Verify correct seat counting for Pro plan (10+ total)
+- [ ] Test seat block rendering for different occupancy levels
+- [ ] Verify "Zajęte" vs "Wolne" block states update correctly
+- [ ] Test real-time updates as emails are added/removed
+
+**Pricing Integration Tests:**
+- [ ] Verify per-seat price fetched correctly from LemonSqueezy
+- [ ] Test "Opłacony" badge appears for invitations within available seats
+- [ ] Test "+X Euro" badge appears for invitations requiring payment
+- [ ] Verify pricing summary calculates total correctly
+- [ ] Test currency formatting (PLN/Euro)
+
+**Payment Flow Tests:**
+- [ ] Test free invitation flow (within seat limit)
+- [ ] Test paid invitation flow (exceeds seat limit)
+- [ ] Test Hobby → Pro upgrade flow
+- [ ] Verify LemonSqueezy checkout session creation
+- [ ] Test payment success webhook handling
+- [ ] Test payment failure handling
+
+**Email Validation Tests:**
+- [ ] Test single email validation
+- [ ] Test bulk email input (comma-separated)
+- [ ] Test paste multi-line emails
+- [ ] Verify duplicate email detection
+- [ ] Test invalid email format error display
+
+**Edge Cases:**
+- [ ] Test network failure handling
+- [ ] Test API timeout scenarios
+- [ ] Verify dialog cleanup on unmount
+- [ ] Test rapid open/close dialog cycles
+- [ ] Test concurrent invitation attempts
+- [ ] Verify proper error boundaries
+
+**UI/UX Tests:**
+- [ ] Test responsive layout (desktop, tablet, mobile)
+- [ ] Verify smooth animations during state transitions
+- [ ] Test keyboard navigation (tab order, enter to submit)
+- [ ] Test screen reader accessibility
+- [ ] Verify proper z-index layering with other modals
+- [ ] Test "Already Added" section expand/collapse
+
+### Implementation Notes
+
+**Integration Points:**
+- Dialog can be triggered from:
+  1. Team Management page (floating action button)
+  2. Header quick actions dropdown
+  3. Onboarding flow (existing `/onboarding/add-users` route)
+  4. Empty state CTAs in team list
+
+**Code Reuse:**
+- Leverage existing seat calculation logic from Phase 2.4
+- Use existing LemonSqueezy client and pricing functions
+- Reuse invitation API endpoints with minor enhancements
+- Adapt upgrade flow from onboarding (`/onboarding/add-users`)
+
+**Performance Considerations:**
+- Debounce email validation (300ms delay)
+- Optimize seat block rendering for Pro plans with many seats
+- Cache subscription data for 60 seconds to reduce API calls
+- Implement optimistic UI updates for invitation submission
+
+**Migration Strategy:**
+1. Build new InviteUsersDialog component alongside existing add-employee page
+2. Test thoroughly in development with LemonSqueezy test mode
+3. Gradually replace references to `/admin/team-management/add-employee` with dialog triggers
+4. Deprecate add-employee page after 2-week monitoring period
+5. Remove old page files and routes in future cleanup phase
+
+**Open Questions:**
+1. Should we support team selection in the invite dialog, or default to organization-level invitations?
+2. Should the "Already Added" section be paginated if there are 50+ pending invitations?
+3. Should we add a "Resend invitation" action for pending invitations older than 7 days?
+4. Should we show estimated monthly cost increase prominently in the summary (e.g., "Your monthly bill will increase by €32.97")?
+
+### Impact
+
+- ✅ **Modern UI:** Complete visual overhaul matching latest Figma specifications
+- ✅ **Better Information Architecture:** Three-tab system organizes user states clearly
+- ✅ **Improved Density:** 52px rows allow more users visible at once
+- ✅ **Visual Clarity:** Status badges provide instant user state recognition
+- ✅ **Improved UX:** Sheet pattern is less disruptive than full-page navigation
+- ✅ **Simplified UI:** Removed unnecessary work schedule options
+- ✅ **New Feature:** Leave approver assignment per employee
+- ✅ **Cleaner Navigation:** No page navigation for quick edits
+- ✅ **Consistent Pattern:** Matches other sheet-based workflows in app
+- ✅ **Design System Alignment:** Integrated with Phase 3 design token system
+
+### Files to Modify
+
+1. ✏️ **Create:** `app/admin/team-management/components/EditEmployeeSheet.tsx` (new component)
+2. ✏️ **Update:** `app/admin/team-management/components/TeamManagementClient.tsx` (replace router.push with sheet)
+3. ✏️ **Update:** `app/admin/team-management/page.tsx` (add leave approver data fetching)
+4. ✏️ **Review:** `app/api/employees/[id]/route.ts` (handle new leave approver field)
+5. 🗑️ **Remove:** `app/admin/team-management/edit-employee/[id]/page.tsx` (old full-page route)
+6. 🗑️ **Remove:** `app/admin/team-management/edit-employee/components/EditEmployeePage.tsx` (old component)
+
+### Key Design Differences
+
+**Removed Features:**
+- ❌ Work schedule card (Traditional/Irregular/Shift)
+- ❌ "Used days" input for leave balances
+- ❌ Radio group styling for teams
+- ❌ "Add new team" inline creation button
+- ❌ Multiple card containers
+
+**New Features:**
+- ✅ Status badge (green "Aktywny")
+- ✅ Leave approver select dropdown
+- ✅ "Domyślne" reset button per leave type
+- ✅ Simplified team selection (dropdown instead of radio group)
+
+### Estimated Effort
+
+**Part 1: Team Management Page Redesign**
+- Table column restructure (5 columns): 2 hours
+- Three-tab navigation system: 2 hours
+- Status column and badges: 1 hour
+- Typography and styling updates: 1.5 hours
+- Button updates: 30 minutes
+- Remove leave balance queries: 30 minutes
+- Adapt components for tabs: 1.5 hours
+
+**Part 2: Edit Employee Sheet**
+- Create EditEmployeeSheet component: 3 hours
+- Update TeamManagementClient integration: 1 hour
+- Update data fetching logic: 1 hour
+- API route updates: 30 minutes
+- Remove old page route: 15 minutes
+
+**Part 3: Integration & Testing**
+- End-to-end workflow testing: 2 hours
+- Dark mode verification: 30 minutes
+- Responsive testing: 30 minutes
+- CRUD operations validation: 1 hour
+
+**Total: ~19 hours (2-3 days) - LARGE effort**
+
+**Breakdown:**
+- Part 1 (Page Redesign): 9 hours
+- Part 2 (Edit Sheet): 5.75 hours
+- Part 3 (Testing): 4 hours
 
 ---
 
