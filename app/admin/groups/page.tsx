@@ -123,7 +123,8 @@ export default async function GroupsPage() {
       email: userProfile?.email || '',
       full_name: userProfile?.full_name,
       role: userOrg.role,
-      avatar_url: userProfile?.avatar_url
+      avatar_url: userProfile?.avatar_url,
+      team_id: null
     }
   }) || []
 

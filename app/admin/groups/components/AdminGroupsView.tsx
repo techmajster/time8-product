@@ -199,6 +199,7 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
               <TableRow>
                 <TableHead className="font-medium text-muted-foreground">Nazwa</TableHead>
                 <TableHead className="font-medium text-muted-foreground">Opis</TableHead>
+                <TableHead className="font-medium text-muted-foreground">Kierownik grupy</TableHead>
                 <TableHead className="font-medium text-muted-foreground text-right">Liczba pracowników</TableHead>
                 <TableHead className="font-medium text-muted-foreground text-right">Akcje</TableHead>
               </TableRow>
@@ -219,6 +220,31 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
                       <div className="text-sm text-foreground">
                         {team.description || '—'}
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      {team.manager ? (
+                        <div className="flex items-center gap-3">
+                          <Avatar className="size-8">
+                            <AvatarImage src={team.manager.avatar_url || undefined} />
+                            <AvatarFallback className="text-sm">
+                              {team.manager.full_name
+                                ? team.manager.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase()
+                                : team.manager.email.charAt(0).toUpperCase()
+                              }
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex flex-col">
+                            <div className="text-sm font-medium text-foreground leading-5">
+                              {team.manager.full_name || team.manager.email}
+                            </div>
+                            <div className="text-xs text-muted-foreground leading-4">
+                              {team.manager.email}
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-sm text-muted-foreground">—</div>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="text-foreground font-medium">
