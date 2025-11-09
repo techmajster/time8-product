@@ -1,11 +1,13 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { useTranslations } from 'next-intl'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
@@ -16,6 +18,7 @@ import { toast } from 'sonner'
 import { ManageTeamMembersSheet } from '@/app/admin/team-management/components/ManageTeamMembersSheet'
 import { CreateTeamSheet } from '@/app/admin/team-management/components/CreateTeamSheet'
 import { useRouter } from 'next/navigation'
+import { refetchTeamManagement, REFETCH_TEAM_MANAGEMENT } from '@/lib/refetch-events'
 
 interface TeamMember {
   id: string
@@ -40,6 +43,7 @@ interface AdminGroupsViewProps {
 
 export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
   const router = useRouter()
+  const t = useTranslations('groups')
 
   // State for team editing
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null)
@@ -47,16 +51,40 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [isMembersSheetOpen, setIsMembersSheetOpen] = useState(false)
   const [isTeamDetailsOpen, setIsTeamDetailsOpen] = useState(false)
+  const [membersSheetOrigin, setMembersSheetOrigin] = useState<'table' | 'details' | null>(null)
   const [loading, setLoading] = useState(false)
 
   // State for team deletion confirmation
   const [isDeleteTeamDialogOpen, setIsDeleteTeamDialogOpen] = useState(false)
   const [teamToDelete, setTeamToDelete] = useState<Team | null>(null)
+
+  // State for team members in details sheet
+  const [detailsTeamMembers, setDetailsTeamMembers] = useState<TeamMember[]>([])
+  const [loadingMembers, setLoadingMembers] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     manager_id: ''
   })
+
+  // Listen for refetch events to refresh data
+  useEffect(() => {
+    const handleRefetch = () => {
+      router.refresh()
+    }
+
+    window.addEventListener(REFETCH_TEAM_MANAGEMENT, handleRefetch)
+    return () => window.removeEventListener(REFETCH_TEAM_MANAGEMENT, handleRefetch)
+  }, [router])
+
+  // Update team members when details sheet opens or team changes
+  useEffect(() => {
+    if (isTeamDetailsOpen && selectedTeam) {
+      // Filter members from the teamMembers prop instead of fetching from API
+      const members = teamMembers.filter(member => member.team_id === selectedTeam.id)
+      setDetailsTeamMembers(members)
+    }
+  }, [isTeamDetailsOpen, selectedTeam?.id, teamMembers])
 
   // Team editing functions
   const resetForm = () => {
@@ -97,8 +125,8 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
       setSelectedTeam(null)
       resetForm()
 
-      // TODO: Implement proper state refresh instead of page reload
-      window.location.reload()
+      // Trigger event-driven refetch
+      refetchTeamManagement()
 
     } catch (error) {
       console.error('Error updating team:', error)
@@ -132,8 +160,8 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
       setIsDeleteTeamDialogOpen(false)
       setTeamToDelete(null)
 
-      // TODO: Implement proper state refresh instead of page reload
-      window.location.reload()
+      // Trigger event-driven refetch
+      refetchTeamManagement()
 
     } catch (error) {
       console.error('Error deleting team:', error)
@@ -154,15 +182,11 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
   }
 
   // Team member management functions
-  const openMembersSheet = (team: Team) => {
+  const openMembersSheet = (team: Team, origin: 'table' | 'details' = 'table') => {
     setSelectedTeam(team)
+    setMembersSheetOrigin(origin)
     setIsTeamDetailsOpen(false) // Close details sheet if open
     setIsMembersSheetOpen(true)
-  }
-
-  const handleTeamUpdated = () => {
-    // TODO: Implement proper state refresh instead of page reload
-    window.location.reload()
   }
 
   // Get potential managers (admins and managers)
@@ -174,7 +198,7 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
     <div className="py-11 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-semibold text-foreground">Grupy</h1>
+        <h1 className="text-3xl font-semibold text-foreground">{t('title')}</h1>
         <Button
           size="sm"
           onClick={() => {
@@ -184,23 +208,24 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
           disabled={loading}
         >
           <SquarePlus />
-          Dodaj grupę
+          {t('addGroup')}
         </Button>
       </div>
 
       {/* Groups Table */}
       {teams.length === 0 ? (
         <div className="text-center py-4 text-muted-foreground text-sm border rounded-lg">
-          Brak zespołów
+          {t('noTeams')}
         </div>
       ) : (
         <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="font-medium text-muted-foreground">Nazwa</TableHead>
-                <TableHead className="font-medium text-muted-foreground">Opis</TableHead>
-                <TableHead className="font-medium text-muted-foreground text-right">Liczba pracowników</TableHead>
-                <TableHead className="font-medium text-muted-foreground text-right">Akcje</TableHead>
+                <TableHead className="font-medium text-muted-foreground">{t('name')}</TableHead>
+                <TableHead className="font-medium text-muted-foreground">{t('table.description')}</TableHead>
+                <TableHead className="font-medium text-muted-foreground">{t('table.groupManager')}</TableHead>
+                <TableHead className="font-medium text-muted-foreground text-right">{t('table.employeeCount')}</TableHead>
+                <TableHead className="font-medium text-muted-foreground text-right">{t('actions')}</TableHead>
               </TableRow>
             </TableHeader>
               <TableBody>
@@ -220,6 +245,31 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
                         {team.description || '—'}
                       </div>
                     </TableCell>
+                    <TableCell>
+                      {team.manager ? (
+                        <div className="flex items-center gap-3">
+                          <Avatar className="size-8">
+                            <AvatarImage src={team.manager.avatar_url || undefined} />
+                            <AvatarFallback className="text-sm">
+                              {team.manager.full_name
+                                ? team.manager.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase()
+                                : team.manager.email.charAt(0).toUpperCase()
+                              }
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex flex-col">
+                            <div className="text-sm font-medium text-foreground leading-5">
+                              {team.manager.full_name || team.manager.email}
+                            </div>
+                            <div className="text-xs text-muted-foreground leading-4">
+                              {team.manager.email}
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-sm text-muted-foreground">—</div>
+                      )}
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="text-foreground font-medium">
                         {team.member_count || 0}
@@ -238,17 +288,17 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => openEditDialog(team)}>
-                            Edytuj grupę
+                            {t('dropdown.editGroup')}
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => openMembersSheet(team)}>
-                            Zarządzaj członkami
+                            {t('dropdown.manageMembers')}
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             onClick={() => handleDeleteTeam(team)}
                             className="text-destructive"
                           >
-                            Usuń grupę
+                            {t('dropdown.deleteGroup')}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -264,7 +314,6 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
         open={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
         teamMembers={teamMembers}
-        onTeamCreated={() => window.location.reload()}
       />
 
       {/* Edit Team Sheet */}
@@ -280,7 +329,7 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
                 {/* Dialog Header */}
                 <div className="flex flex-col gap-1.5 w-full">
                   <SheetTitle className="text-xl font-semibold text-foreground">
-                    Edytuj grupę
+                    {t('editSheet.title')}
                   </SheetTitle>
                 </div>
 
@@ -294,7 +343,7 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
                   {/* Nazwa grupy */}
                   <div className="flex flex-col gap-2">
                     <Label className="text-sm font-medium text-foreground">
-                      Nazwa grupy
+                      {t('editSheet.nameLabel')}
                     </Label>
                     <Input
                       id="edit-name"
@@ -305,24 +354,24 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
                     />
                   </div>
 
-                  {/* Opis grupy */}
+                  {/* Opis */}
                   <div className="flex flex-col gap-2">
                     <Label className="text-sm font-medium text-foreground">
-                      Opis grupy
+                      {t('editSheet.descriptionLabel')}
                     </Label>
                     <Textarea
                       id="edit-description"
                       value={formData.description}
                       onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                      placeholder="Opcjonalny opis grupy"
+                      placeholder={t('editSheet.descriptionPlaceholder')}
                       className="min-h-[60px] border shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] resize-none"
                     />
                   </div>
 
-                  {/* Wybierz managera grupy */}
+                  {/* Kierownik grupy */}
                   <div className="flex flex-col gap-2">
                     <Label className="text-sm font-medium text-foreground">
-                      Wybierz managera grupy
+                      {t('editSheet.managerLabel')}
                     </Label>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -353,7 +402,7 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
                               ) : null
                             })()
                           ) : (
-                            <span className="text-muted-foreground">Wybierz menedżera grupy</span>
+                            <span className="text-muted-foreground">{t('editSheet.managerPlaceholder')}</span>
                           )}
                           <ChevronDownIcon className="size-4 opacity-50" />
                         </Button>
@@ -368,7 +417,7 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
                               <span className="text-xs text-muted-foreground">—</span>
                             </div>
                             <div className="flex flex-col">
-                              <div className="text-sm font-medium">Brak przypisanego menedżera</div>
+                              <div className="text-sm font-medium">{t('editSheet.noManager')}</div>
                             </div>
                           </div>
                         </DropdownMenuItem>
@@ -418,7 +467,7 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
                   className="h-9"
                   disabled={loading}
                 >
-                  Usuń grupę
+                  {t('editSheet.delete')}
                 </Button>
                 <div className="flex-1" />
                 <Button
@@ -426,7 +475,7 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
                   onClick={() => setIsEditDialogOpen(false)}
                   className="h-9"
                 >
-                  Anuluj
+                  {t('editSheet.cancel')}
                 </Button>
                 <Button
                   onClick={handleUpdateTeam}
@@ -434,7 +483,7 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
                   className="h-9"
                 >
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Zaktualizuj grupę
+                  {t('editSheet.save')}
                 </Button>
               </div>
             </div>
@@ -445,10 +494,23 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
       {/* Manage Team Members Sheet */}
       <ManageTeamMembersSheet
         open={isMembersSheetOpen}
-        onOpenChange={setIsMembersSheetOpen}
+        onOpenChange={(open) => {
+          setIsMembersSheetOpen(open)
+          // Only re-open details sheet if it was opened from details sheet
+          if (!open && selectedTeam && membersSheetOrigin === 'details') {
+            setIsTeamDetailsOpen(true)
+          }
+          // Reset origin when closing
+          if (!open) {
+            setMembersSheetOrigin(null)
+          }
+        }}
         selectedTeam={selectedTeam}
         teamMembers={teamMembers}
-        onTeamUpdated={handleTeamUpdated}
+        onTeamUpdated={() => {
+          // Refetch will update the teamMembers prop from the server
+          refetchTeamManagement()
+        }}
       />
 
       {/* Team Details Sheet */}
@@ -464,7 +526,7 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
                 {/* Dialog Header */}
                 <div className="flex flex-col gap-1.5 w-full">
                   <SheetTitle className="text-xl font-semibold text-foreground">
-                    Szczegóły grupy
+                    {t('detailsSheet.title')}
                   </SheetTitle>
                 </div>
 
@@ -478,79 +540,113 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
                     {/* Nazwa grupy */}
                     <div className="flex flex-col gap-2">
                       <div className="text-sm font-medium text-foreground">
-                        Nazwa grupy
+                        {t('detailsSheet.name')}
                       </div>
                       <div className="text-xl font-semibold text-foreground leading-7">
                         {selectedTeam.name}
                       </div>
                     </div>
 
-                    {/* Opis grupy */}
+                    {/* Opis */}
                     <div className="flex flex-col gap-2">
                       <div className="text-sm font-medium text-foreground">
-                        Opis grupy
+                        {t('detailsSheet.description')}
                       </div>
                       <div className="text-base font-normal text-foreground leading-6">
-                        {selectedTeam.description || 'brak'}
+                        {selectedTeam.description || t('detailsSheet.noDescription')}
                       </div>
                     </div>
 
-                    {/* Manager grupy */}
+                    {/* Separator */}
+                    <div className="w-full">
+                      <div className="h-px bg-border w-full" />
+                    </div>
+
+                    {/* Członkowie grupy */}
                     <div className="flex flex-col gap-2">
                       <div className="text-sm font-medium text-foreground">
-                        Manager grupy
+                        {t('detailsSheet.groupMembers')}
                       </div>
-                      {selectedTeam.manager ? (
-                        <div className="flex items-center gap-4">
-                          <Avatar className="size-10">
-                            <AvatarImage src={selectedTeam.manager.avatar_url || undefined} />
-                            <AvatarFallback className="text-sm font-normal">
-                              {selectedTeam.manager.full_name ? selectedTeam.manager.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : selectedTeam.manager.email.charAt(0).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex flex-col">
-                            <div className="text-sm font-medium text-foreground leading-5">
-                              {selectedTeam.manager.full_name || selectedTeam.manager.email}
-                            </div>
-                            <div className="text-sm font-normal text-muted-foreground leading-5">
-                              {selectedTeam.manager.email}
-                            </div>
-                          </div>
+                      {loadingMembers ? (
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Loader2 className="size-4 animate-spin" />
+                          <span className="text-sm">{t('detailsSheet.loadingMembers')}</span>
                         </div>
+                      ) : detailsTeamMembers.length === 0 ? (
+                        <div className="text-base text-muted-foreground">{t('detailsSheet.noMembers')}</div>
                       ) : (
-                        <div className="text-base font-normal text-foreground leading-6">
-                          brak
+                        <div className="flex flex-col gap-3">
+                          {detailsTeamMembers.map((member) => (
+                            <div key={member.id} className="flex items-center gap-3">
+                              <Avatar className="size-10">
+                                <AvatarImage src={member.avatar_url || undefined} />
+                                <AvatarFallback className="text-sm">
+                                  {member.full_name
+                                    ? member.full_name.split(' ').map(n => n[0]).join('').toUpperCase()
+                                    : member.email.charAt(0).toUpperCase()
+                                  }
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex flex-col flex-1">
+                                <div className="text-sm font-medium text-foreground leading-5">
+                                  {member.full_name || member.email}
+                                </div>
+                                <div className="text-sm text-muted-foreground leading-5">
+                                  {member.email}
+                                </div>
+                              </div>
+                              {member.id === selectedTeam?.manager?.id ? (
+                                <div className="px-2 py-1 rounded-md bg-primary/10 text-primary text-xs font-medium">
+                                  {t('detailsSheet.roles.manager')}
+                                </div>
+                              ) : (
+                                <div className="px-2 py-1 rounded-md bg-muted text-muted-foreground text-xs font-medium">
+                                  {t('detailsSheet.roles.employee')}
+                                </div>
+                              )}
+                            </div>
+                          ))}
                         </div>
                       )}
-                    </div>
-
-                    {/* Członkowie grupy - count only */}
-                    <div className="flex flex-col gap-2">
-                      <div className="text-sm font-medium text-foreground">
-                        Członkowie grupy
-                      </div>
-                      <div className="text-xl font-semibold text-foreground leading-7">
-                        {selectedTeam.member_count || 0}
-                      </div>
                     </div>
                   </div>
                 )}
               </div>
 
+              {/* Separator */}
+              <div className="w-full px-6">
+                <div className="h-px bg-border w-full" />
+              </div>
+
               {/* Footer - Fixed at Bottom */}
-              <div className="flex flex-row gap-2 items-center justify-end w-full p-6 pt-0 bg-background">
+              <div className="flex flex-row gap-2 items-center w-full p-6 pt-6 bg-background">
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    if (selectedTeam) {
+                      handleDeleteTeam(selectedTeam)
+                      setIsTeamDetailsOpen(false)
+                    }
+                  }}
+                  className="h-9"
+                  disabled={loading}
+                >
+                  {t('detailsSheet.delete')}
+                </Button>
+                <div className="flex-1" />
                 <Button
                   variant="outline"
                   onClick={() => {
                     if (selectedTeam) {
-                      openMembersSheet(selectedTeam)
+                      openMembersSheet(selectedTeam, 'details')
                     }
                   }}
                   className="h-9"
                 >
-                  Zarządzaj członkami
+                  {t('detailsSheet.manageMembers')}
                 </Button>
                 <Button
+                  variant="outline"
                   onClick={() => {
                     if (selectedTeam) {
                       openEditDialog(selectedTeam)
@@ -559,7 +655,7 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
                   }}
                   className="h-9"
                 >
-                  Edytuj grupę
+                  {t('detailsSheet.edit')}
                 </Button>
               </div>
             </div>
@@ -568,43 +664,34 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
       </Sheet>
 
       {/* Delete Team Confirmation Dialog */}
-      <Dialog open={isDeleteTeamDialogOpen} onOpenChange={setIsDeleteTeamDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Usuń grupę</DialogTitle>
-            <DialogDescription>
-              Czy na pewno chcesz usunąć grupę "{teamToDelete?.name}"?
-              {teamToDelete?.member_count && teamToDelete.member_count > 0 && (
-                <>
-                  <br />
-                  <br />
-                  Członkowie grupy ({teamToDelete.member_count}) zostaną automatycznie przeniesieni do stanu "bez zespołu".
-                </>
-              )}
-              <br />
-              <br />
-              <strong>Ta akcja jest nieodwracalna.</strong>
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsDeleteTeamDialogOpen(false)}
-              disabled={loading}
-            >
-              Anuluj
-            </Button>
+      <AlertDialog open={isDeleteTeamDialogOpen} onOpenChange={setIsDeleteTeamDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('deleteDialog.title')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('deleteDialog.description')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
             <Button
               variant="destructive"
               onClick={confirmDeleteTeam}
               disabled={loading}
+              className="h-9"
             >
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Usuń grupę
+              {t('deleteDialog.confirm')}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <Button
+              onClick={() => setIsDeleteTeamDialogOpen(false)}
+              disabled={loading}
+              className="h-9"
+            >
+              {t('deleteDialog.cancel')}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

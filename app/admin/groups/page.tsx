@@ -68,7 +68,7 @@ export default async function GroupsPage() {
   // Use admin client for fetching teams data
   const supabaseAdmin = createAdminClient()
 
-  // Get all teams for the organization
+  // Get all teams for the organization with member counts (optimized single query)
   const { data: teams } = await supabaseAdmin
     .from('teams')
     .select(`
@@ -81,34 +81,31 @@ export default async function GroupsPage() {
         id,
         email,
         full_name,
-        avatar_url
+        avatar_url,
+        role
+      ),
+      user_organizations!team_id (
+        count
       )
     `)
     .eq('organization_id', profile.organization_id)
+    .eq('user_organizations.is_active', true)
     .order('name')
 
-  // Get team member counts
-  const teamsWithCounts = await Promise.all(
-    (teams || []).map(async (team) => {
-      const { count } = await supabaseAdmin
-        .from('user_organizations')
-        .select('*', { count: 'exact', head: true })
-        .eq('team_id', team.id)
-        .eq('is_active', true)
+  // Transform response to include member_count property
+  const teamsWithCounts = (teams || []).map(team => ({
+    ...team,
+    member_count: team.user_organizations?.[0]?.count || 0,
+    user_organizations: undefined
+  }))
 
-      return {
-        ...team,
-        member_count: count || 0
-      }
-    })
-  )
-
-  // Get all potential managers (users with manager or admin role in this org)
-  const { data: potentialManagers } = await supabaseAdmin
+  // Get all organization members with their team assignments
+  const { data: allOrgMembers } = await supabaseAdmin
     .from('user_organizations')
     .select(`
       user_id,
       role,
+      team_id,
       profiles!user_organizations_user_id_fkey (
         id,
         email,
@@ -118,16 +115,16 @@ export default async function GroupsPage() {
     `)
     .eq('organization_id', profile.organization_id)
     .eq('is_active', true)
-    .in('role', ['manager', 'admin'])
 
-  const teamMembers = potentialManagers?.map(userOrg => {
+  const teamMembers = allOrgMembers?.map(userOrg => {
     const userProfile = Array.isArray(userOrg.profiles) ? userOrg.profiles[0] : userOrg.profiles
     return {
       id: userProfile?.id || userOrg.user_id,
       email: userProfile?.email || '',
       full_name: userProfile?.full_name,
       role: userOrg.role,
-      avatar_url: userProfile?.avatar_url
+      avatar_url: userProfile?.avatar_url,
+      team_id: userOrg.team_id
     }
   }) || []
 
