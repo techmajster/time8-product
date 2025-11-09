@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -16,6 +16,7 @@ import { toast } from 'sonner'
 import { ManageTeamMembersSheet } from '@/app/admin/team-management/components/ManageTeamMembersSheet'
 import { CreateTeamSheet } from '@/app/admin/team-management/components/CreateTeamSheet'
 import { useRouter } from 'next/navigation'
+import { refetchTeamManagement, REFETCH_TEAM_MANAGEMENT } from '@/lib/refetch-events'
 
 interface TeamMember {
   id: string
@@ -58,6 +59,16 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
     manager_id: ''
   })
 
+  // Listen for refetch events to refresh data
+  useEffect(() => {
+    const handleRefetch = () => {
+      router.refresh()
+    }
+
+    window.addEventListener(REFETCH_TEAM_MANAGEMENT, handleRefetch)
+    return () => window.removeEventListener(REFETCH_TEAM_MANAGEMENT, handleRefetch)
+  }, [router])
+
   // Team editing functions
   const resetForm = () => {
     setFormData({
@@ -97,8 +108,8 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
       setSelectedTeam(null)
       resetForm()
 
-      // TODO: Implement proper state refresh instead of page reload
-      window.location.reload()
+      // Trigger event-driven refetch
+      refetchTeamManagement()
 
     } catch (error) {
       console.error('Error updating team:', error)
@@ -132,8 +143,8 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
       setIsDeleteTeamDialogOpen(false)
       setTeamToDelete(null)
 
-      // TODO: Implement proper state refresh instead of page reload
-      window.location.reload()
+      // Trigger event-driven refetch
+      refetchTeamManagement()
 
     } catch (error) {
       console.error('Error deleting team:', error)
@@ -158,11 +169,6 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
     setSelectedTeam(team)
     setIsTeamDetailsOpen(false) // Close details sheet if open
     setIsMembersSheetOpen(true)
-  }
-
-  const handleTeamUpdated = () => {
-    // TODO: Implement proper state refresh instead of page reload
-    window.location.reload()
   }
 
   // Get potential managers (admins and managers)
@@ -290,7 +296,6 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
         open={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
         teamMembers={teamMembers}
-        onTeamCreated={() => window.location.reload()}
       />
 
       {/* Edit Team Sheet */}
@@ -474,7 +479,6 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
         onOpenChange={setIsMembersSheetOpen}
         selectedTeam={selectedTeam}
         teamMembers={teamMembers}
-        onTeamUpdated={handleTeamUpdated}
       />
 
       {/* Team Details Sheet */}

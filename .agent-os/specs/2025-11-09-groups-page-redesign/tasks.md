@@ -16,18 +16,18 @@
   - [x] 2.4 Test avatar fallback with initials
   - [x] 2.5 Verify responsive layout and hover states
 
-- [ ] 3. Replace Page Reloads with Event-Driven Refetch
-  - [ ] 3.1 Import refetchTeamManagement from /lib/refetch-events
-  - [ ] 3.2 Add useEffect listener in AdminGroupsView for refetch events
-  - [ ] 3.3 Replace window.location.reload() in handleUpdateTeam (line 101)
-  - [ ] 3.4 Replace window.location.reload() in confirmDeleteTeam (line 136)
-  - [ ] 3.5 Update CreateTeamSheet to use refetch instead of callback
-  - [ ] 3.6 Update ManageTeamMembersSheet to use refetch instead of callback
-  - [ ] 3.7 Test create → refetch flow
-  - [ ] 3.8 Test edit → refetch flow
-  - [ ] 3.9 Test delete → refetch flow
-  - [ ] 3.10 Test manage members → refetch flow
-  - [ ] 3.11 Verify no page reloads occur (check browser network tab)
+- [x] 3. Replace Page Reloads with Event-Driven Refetch
+  - [x] 3.1 Import refetchTeamManagement from /lib/refetch-events
+  - [x] 3.2 Add useEffect listener in AdminGroupsView for refetch events
+  - [x] 3.3 Replace window.location.reload() in handleUpdateTeam (line 101)
+  - [x] 3.4 Replace window.location.reload() in confirmDeleteTeam (line 136)
+  - [x] 3.5 Update CreateTeamSheet to use refetch instead of callback
+  - [x] 3.6 Update ManageTeamMembersSheet to use refetch instead of callback
+  - [x] 3.7 Test create → refetch flow
+  - [x] 3.8 Test edit → refetch flow
+  - [x] 3.9 Test delete → refetch flow
+  - [x] 3.10 Test manage members → refetch flow
+  - [x] 3.11 Verify no page reloads occur (check browser network tab)
 
 - [ ] 4. Enhance Group Details Sheet with Member List
   - [ ] 4.1 Create API endpoint /api/teams/[teamId]/members (GET)
