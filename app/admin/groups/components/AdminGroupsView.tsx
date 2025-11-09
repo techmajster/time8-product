@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { useTranslations } from 'next-intl'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -42,6 +43,7 @@ interface AdminGroupsViewProps {
 
 export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
   const router = useRouter()
+  const t = useTranslations('groups')
 
   // State for team editing
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null)
@@ -196,7 +198,7 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
     <div className="py-11 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-semibold text-foreground">Grupy</h1>
+        <h1 className="text-3xl font-semibold text-foreground">{t('title')}</h1>
         <Button
           size="sm"
           onClick={() => {
@@ -206,24 +208,24 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
           disabled={loading}
         >
           <SquarePlus />
-          Dodaj grupę
+          {t('addGroup')}
         </Button>
       </div>
 
       {/* Groups Table */}
       {teams.length === 0 ? (
         <div className="text-center py-4 text-muted-foreground text-sm border rounded-lg">
-          Brak zespołów
+          {t('noTeams')}
         </div>
       ) : (
         <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="font-medium text-muted-foreground">Nazwa</TableHead>
-                <TableHead className="font-medium text-muted-foreground">Opis</TableHead>
-                <TableHead className="font-medium text-muted-foreground">Kierownik grupy</TableHead>
-                <TableHead className="font-medium text-muted-foreground text-right">Liczba pracowników</TableHead>
-                <TableHead className="font-medium text-muted-foreground text-right">Akcje</TableHead>
+                <TableHead className="font-medium text-muted-foreground">{t('name')}</TableHead>
+                <TableHead className="font-medium text-muted-foreground">{t('table.description')}</TableHead>
+                <TableHead className="font-medium text-muted-foreground">{t('table.groupManager')}</TableHead>
+                <TableHead className="font-medium text-muted-foreground text-right">{t('table.employeeCount')}</TableHead>
+                <TableHead className="font-medium text-muted-foreground text-right">{t('actions')}</TableHead>
               </TableRow>
             </TableHeader>
               <TableBody>
@@ -286,17 +288,17 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => openEditDialog(team)}>
-                            Edytuj grupę
+                            {t('dropdown.editGroup')}
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => openMembersSheet(team)}>
-                            Zarządzaj członkami
+                            {t('dropdown.manageMembers')}
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             onClick={() => handleDeleteTeam(team)}
                             className="text-destructive"
                           >
-                            Usuń grupę
+                            {t('dropdown.deleteGroup')}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -327,7 +329,7 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
                 {/* Dialog Header */}
                 <div className="flex flex-col gap-1.5 w-full">
                   <SheetTitle className="text-xl font-semibold text-foreground">
-                    Edytuj grupę
+                    {t('editSheet.title')}
                   </SheetTitle>
                 </div>
 
@@ -341,7 +343,7 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
                   {/* Nazwa grupy */}
                   <div className="flex flex-col gap-2">
                     <Label className="text-sm font-medium text-foreground">
-                      Nazwa grupy
+                      {t('editSheet.nameLabel')}
                     </Label>
                     <Input
                       id="edit-name"
@@ -355,13 +357,13 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
                   {/* Opis */}
                   <div className="flex flex-col gap-2">
                     <Label className="text-sm font-medium text-foreground">
-                      Opis
+                      {t('editSheet.descriptionLabel')}
                     </Label>
                     <Textarea
                       id="edit-description"
                       value={formData.description}
                       onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                      placeholder="Opcjonalny opis grupy"
+                      placeholder={t('editSheet.descriptionPlaceholder')}
                       className="min-h-[60px] border shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] resize-none"
                     />
                   </div>
@@ -369,7 +371,7 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
                   {/* Kierownik grupy */}
                   <div className="flex flex-col gap-2">
                     <Label className="text-sm font-medium text-foreground">
-                      Kierownik grupy
+                      {t('editSheet.managerLabel')}
                     </Label>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -400,7 +402,7 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
                               ) : null
                             })()
                           ) : (
-                            <span className="text-muted-foreground">Wybierz menedżera grupy</span>
+                            <span className="text-muted-foreground">{t('editSheet.managerPlaceholder')}</span>
                           )}
                           <ChevronDownIcon className="size-4 opacity-50" />
                         </Button>
@@ -415,7 +417,7 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
                               <span className="text-xs text-muted-foreground">—</span>
                             </div>
                             <div className="flex flex-col">
-                              <div className="text-sm font-medium">Brak przypisanego menedżera</div>
+                              <div className="text-sm font-medium">{t('editSheet.noManager')}</div>
                             </div>
                           </div>
                         </DropdownMenuItem>
@@ -465,7 +467,7 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
                   className="h-9"
                   disabled={loading}
                 >
-                  Usuń grupę
+                  {t('editSheet.delete')}
                 </Button>
                 <div className="flex-1" />
                 <Button
@@ -473,7 +475,7 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
                   onClick={() => setIsEditDialogOpen(false)}
                   className="h-9"
                 >
-                  Anuluj
+                  {t('editSheet.cancel')}
                 </Button>
                 <Button
                   onClick={handleUpdateTeam}
@@ -481,7 +483,7 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
                   className="h-9"
                 >
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Zapisz grupę
+                  {t('editSheet.save')}
                 </Button>
               </div>
             </div>
@@ -524,7 +526,7 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
                 {/* Dialog Header */}
                 <div className="flex flex-col gap-1.5 w-full">
                   <SheetTitle className="text-xl font-semibold text-foreground">
-                    Szczegóły grupy
+                    {t('detailsSheet.title')}
                   </SheetTitle>
                 </div>
 
@@ -538,7 +540,7 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
                     {/* Nazwa grupy */}
                     <div className="flex flex-col gap-2">
                       <div className="text-sm font-medium text-foreground">
-                        Nazwa grupy
+                        {t('detailsSheet.name')}
                       </div>
                       <div className="text-xl font-semibold text-foreground leading-7">
                         {selectedTeam.name}
@@ -548,10 +550,10 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
                     {/* Opis */}
                     <div className="flex flex-col gap-2">
                       <div className="text-sm font-medium text-foreground">
-                        Opis
+                        {t('detailsSheet.description')}
                       </div>
                       <div className="text-base font-normal text-foreground leading-6">
-                        {selectedTeam.description || 'brak'}
+                        {selectedTeam.description || t('detailsSheet.noDescription')}
                       </div>
                     </div>
 
@@ -563,15 +565,15 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
                     {/* Członkowie grupy */}
                     <div className="flex flex-col gap-2">
                       <div className="text-sm font-medium text-foreground">
-                        Członkowie grupy
+                        {t('detailsSheet.groupMembers')}
                       </div>
                       {loadingMembers ? (
                         <div className="flex items-center gap-2 text-muted-foreground">
                           <Loader2 className="size-4 animate-spin" />
-                          <span className="text-sm">Ładowanie członków...</span>
+                          <span className="text-sm">{t('detailsSheet.loadingMembers')}</span>
                         </div>
                       ) : detailsTeamMembers.length === 0 ? (
-                        <div className="text-base text-muted-foreground">Brak członków</div>
+                        <div className="text-base text-muted-foreground">{t('detailsSheet.noMembers')}</div>
                       ) : (
                         <div className="flex flex-col gap-3">
                           {detailsTeamMembers.map((member) => (
@@ -595,11 +597,11 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
                               </div>
                               {member.id === selectedTeam?.manager?.id ? (
                                 <div className="px-2 py-1 rounded-md bg-primary/10 text-primary text-xs font-medium">
-                                  Kierownik
+                                  {t('detailsSheet.roles.manager')}
                                 </div>
                               ) : (
                                 <div className="px-2 py-1 rounded-md bg-muted text-muted-foreground text-xs font-medium">
-                                  Pracownik
+                                  {t('detailsSheet.roles.employee')}
                                 </div>
                               )}
                             </div>
@@ -629,7 +631,7 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
                   className="h-9"
                   disabled={loading}
                 >
-                  Usuń grupę
+                  {t('detailsSheet.delete')}
                 </Button>
                 <div className="flex-1" />
                 <Button
@@ -641,7 +643,7 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
                   }}
                   className="h-9"
                 >
-                  Zarządzaj członkami
+                  {t('detailsSheet.manageMembers')}
                 </Button>
                 <Button
                   variant="outline"
@@ -653,7 +655,7 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
                   }}
                   className="h-9"
                 >
-                  Edytuj
+                  {t('detailsSheet.edit')}
                 </Button>
               </div>
             </div>
@@ -665,9 +667,9 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
       <AlertDialog open={isDeleteTeamDialogOpen} onOpenChange={setIsDeleteTeamDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Czy na pewno chcesz usunąć tę grupę?</AlertDialogTitle>
+            <AlertDialogTitle>{t('deleteDialog.title')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Użytkownicy z tej grupy nie będą przypisani do żadnej grupy
+              {t('deleteDialog.description')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -678,14 +680,14 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
               className="h-9"
             >
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Usuń
+              {t('deleteDialog.confirm')}
             </Button>
             <Button
               onClick={() => setIsDeleteTeamDialogOpen(false)}
               disabled={loading}
               className="h-9"
             >
-              Zamknij
+              {t('deleteDialog.cancel')}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>

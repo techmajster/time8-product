@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet'
 import { Input } from '@/components/ui/input'
@@ -34,6 +35,7 @@ interface CreateTeamSheetProps {
 }
 
 export function CreateTeamSheet({ open, onOpenChange, teamMembers, onTeamCreated }: CreateTeamSheetProps) {
+  const t = useTranslations('groups')
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
@@ -105,9 +107,9 @@ export function CreateTeamSheet({ open, onOpenChange, teamMembers, onTeamCreated
           <div className="flex flex-col h-full">
             <div className="flex flex-col gap-6 p-6 flex-1 overflow-y-auto">
               <div className="flex flex-col gap-1.5 w-full">
-                <SheetTitle className="text-xl font-semibold text-foreground">Dodaj nową grupę</SheetTitle>
+                <SheetTitle className="text-xl font-semibold text-foreground">{t('createSheet.title')}</SheetTitle>
                 <SheetDescription className="text-sm text-muted-foreground">
-                  Utwórz nową grupę w swojej organizacji
+                  {t('createSheet.subtitle')}
                 </SheetDescription>
               </div>
 
@@ -117,29 +119,29 @@ export function CreateTeamSheet({ open, onOpenChange, teamMembers, onTeamCreated
               {/* Form */}
               <form onSubmit={(e) => { e.preventDefault(); handleCreateTeam() }} className="space-y-6 flex-1">
                 <div className="space-y-2">
-                  <Label htmlFor="create-name" className="text-sm font-medium">Nazwa grupy</Label>
+                  <Label htmlFor="create-name" className="text-sm font-medium">{t('createSheet.nameLabel')}</Label>
                   <Input
                     id="create-name"
                     value={formData.name}
                     onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="Wprowadź nazwę grupy"
+                    placeholder={t('createSheet.namePlaceholder')}
                   />
                 </div>
-                
+
                 <div className="space-y-2">
-                  <Label htmlFor="create-description" className="text-sm font-medium">Opis</Label>
+                  <Label htmlFor="create-description" className="text-sm font-medium">{t('createSheet.descriptionLabel')}</Label>
                   <Textarea
                     id="create-description"
                     value={formData.description}
                     onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="Wpisz"
+                    placeholder={t('createSheet.descriptionPlaceholder')}
                     className="min-h-[60px] resize-none"
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">
-                    Kierownik grupy <span className="text-muted-foreground">(Opcjonalny)</span>
+                    {t('createSheet.managerLabel')} <span className="text-muted-foreground">{t('createSheet.managerOptional')}</span>
                   </Label>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -170,7 +172,7 @@ export function CreateTeamSheet({ open, onOpenChange, teamMembers, onTeamCreated
                             ) : null
                           })()
                         ) : (
-                          <span className="text-muted-foreground">Wybierz</span>
+                          <span className="text-muted-foreground">{t('createSheet.managerPlaceholder')}</span>
                         )}
                         <ChevronDownIcon className="size-4 opacity-50" />
                       </Button>
@@ -185,7 +187,7 @@ export function CreateTeamSheet({ open, onOpenChange, teamMembers, onTeamCreated
                             <span className="text-xs text-muted-foreground">—</span>
                           </div>
                           <div className="flex flex-col">
-                            <div className="text-sm font-medium">Brak przypisanego menedżera</div>
+                            <div className="text-sm font-medium">{t('createSheet.noManager')}</div>
                           </div>
                         </div>
                       </DropdownMenuItem>
@@ -224,12 +226,12 @@ export function CreateTeamSheet({ open, onOpenChange, teamMembers, onTeamCreated
             
             {/* Footer - Fixed at Bottom */}
             <div className="flex flex-row gap-2 items-center justify-between w-full p-6 pt-0 bg-background">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => onOpenChange(false)}
                 className="h-9"
               >
-                Anuluj
+                {t('createSheet.cancel')}
               </Button>
               <Button
                 onClick={handleCreateTeam}
@@ -237,7 +239,7 @@ export function CreateTeamSheet({ open, onOpenChange, teamMembers, onTeamCreated
                 className="h-9"
               >
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Dodaj grupę
+                {t('createSheet.create')}
               </Button>
             </div>
           </div>

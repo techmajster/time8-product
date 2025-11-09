@@ -993,5 +993,101 @@
       "of": "of",
       "rows": "rows"
     }
+  },
+  "groups": {
+    "title": "Groups",
+    "addGroup": "Add Group",
+    "editGroup": "Edit Group",
+    "saveGroup": "Save Group",
+    "deleteGroup": "Delete Group",
+    "manageMembers": "Manage Members",
+    "groupDetails": "Group Details",
+    "addNewGroup": "Add New Group",
+    "noTeams": "No teams",
+    "name": "Name",
+    "actions": "Actions",
+    "table": {
+      "description": "Description",
+      "groupManager": "Group Manager",
+      "employeeCount": "Employee Count"
+    },
+    "dropdown": {
+      "editGroup": "Edit Group",
+      "manageMembers": "Manage Members",
+      "deleteGroup": "Delete Group"
+    },
+    "editSheet": {
+      "title": "Edit Group",
+      "nameLabel": "Enter group name",
+      "descriptionLabel": "Enter group description",
+      "descriptionPlaceholder": "Group description",
+      "managerLabel": "Select group manager",
+      "managerPlaceholder": "Select",
+      "noManager": "No assigned manager",
+      "cancel": "Cancel",
+      "save": "Save Group",
+      "delete": "Delete Group"
+    },
+    "createSheet": {
+      "title": "Add New Group",
+      "subtitle": "Create a new group in your organization",
+      "nameLabel": "Group Name",
+      "namePlaceholder": "Enter group name",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Type here",
+      "managerLabel": "Group Manager",
+      "managerOptional": "(Optional)",
+      "managerPlaceholder": "Select",
+      "noManager": "No assigned manager",
+      "cancel": "Cancel",
+      "create": "Add Group"
+    },
+    "detailsSheet": {
+      "title": "Group Details",
+      "basicInfo": "Basic Information",
+      "name": "Group Name",
+      "description": "Description",
+      "noDescription": "none",
+      "manager": "Group Manager",
+      "noManager": "No assigned manager",
+      "groupMembers": "Group Members",
+      "noMembers": "No members",
+      "loadingMembers": "Loading members...",
+      "close": "Close",
+      "edit": "Edit",
+      "manageMembers": "Manage Members",
+      "delete": "Delete Group",
+      "roles": {
+        "manager": "Manager",
+        "employee": "Employee"
+      }
+    },
+    "membersSheet": {
+      "title": "Member Management",
+      "currentMembers": "Members of {name}",
+      "availableMembers": "Available",
+      "noCurrentMembers": "This group doesn't have any members yet",
+      "noAvailableMembers": "All available members are already assigned to teams",
+      "cancel": "Cancel",
+      "saveChanges": "Save Changes",
+      "roles": {
+        "manager": "Manager",
+        "employee": "Employee"
+      }
+    },
+    "deleteDialog": {
+      "title": "Are you sure you want to delete this group?",
+      "description": "Users from this group will not be assigned to any group",
+      "cancel": "Close",
+      "confirm": "Delete"
+    },
+    "notifications": {
+      "groupCreated": "Group created successfully",
+      "groupUpdated": "Group updated successfully",
+      "groupDeleted": "Group deleted",
+      "membersUpdated": "Team updated successfully",
+      "error": "An error occurred"
+    },
+    "noLastName": "No last name"
   }
 } 

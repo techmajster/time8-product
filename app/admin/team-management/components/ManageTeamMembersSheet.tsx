@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { useTranslations } from 'next-intl'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -51,6 +52,7 @@ export function ManageTeamMembersSheet({
   teamMembers,
   onTeamUpdated
 }: ManageTeamMembersSheetProps) {
+  const t = useTranslations('groups')
   const [loading, setLoading] = useState(false)
   const [pendingChanges, setPendingChanges] = useState<{
     toAdd: string[]
@@ -168,7 +170,7 @@ export function ManageTeamMembersSheet({
             {/* Header */}
             <div className="flex flex-col gap-1.5 p-6 pb-0">
               <SheetTitle className="text-xl font-semibold text-foreground">
-                Zarządzanie członkami
+                {t('membersSheet.title')}
               </SheetTitle>
             </div>
 
@@ -178,7 +180,7 @@ export function ManageTeamMembersSheet({
                 {/* Current Team Members Table */}
                 <div className="flex flex-col gap-3">
                   <div className="text-sm font-medium text-foreground">
-                    Członkowie gupy {selectedTeam?.name}
+                    {t('membersSheet.currentMembers', { name: selectedTeam?.name })}
                   </div>
                   <div className="overflow-hidden">
                     {displayCurrentMembers.length > 0 ? (
@@ -201,7 +203,7 @@ export function ManageTeamMembersSheet({
                                 </Avatar>
                                 <div className="flex flex-col flex-1 min-w-0">
                                   <div className="text-sm font-medium text-foreground truncate">
-                                    {member.full_name || 'Bez nazwiska'}
+                                    {member.full_name || t('noLastName')}
                                   </div>
                                   <div className="text-sm text-muted-foreground truncate">
                                     {member.email}
@@ -214,7 +216,7 @@ export function ManageTeamMembersSheet({
                                     ? 'bg-primary text-primary-foreground'
                                     : 'bg-background border border-border text-foreground'
                                 }`}>
-                                  {member.id === selectedTeam?.manager?.id ? 'Kierownik' : 'Pracownik'}
+                                  {member.id === selectedTeam?.manager?.id ? t('membersSheet.roles.manager') : t('membersSheet.roles.employee')}
                                 </div>
                                 <Button
                                   variant="outline"
@@ -231,7 +233,7 @@ export function ManageTeamMembersSheet({
                       </div>
                     ) : (
                       <div className="text-sm text-muted-foreground py-8 text-center">
-                        Ta grupa nie ma jeszcze członków
+                        {t('membersSheet.noCurrentMembers')}
                       </div>
                     )}
                   </div>
@@ -240,7 +242,7 @@ export function ManageTeamMembersSheet({
                 {/* Available Members Table */}
                 <div className="flex flex-col gap-3">
                   <div className="text-sm font-medium text-foreground">
-                    Dostępni
+                    {t('membersSheet.availableMembers')}
                   </div>
                   <div className="overflow-hidden">
                     {displayAvailableMembers.length > 0 ? (
@@ -263,7 +265,7 @@ export function ManageTeamMembersSheet({
                                 </Avatar>
                                 <div className="flex flex-col flex-1 min-w-0">
                                   <div className="text-sm font-medium text-foreground truncate">
-                                    {member.full_name || 'Bez nazwiska'}
+                                    {member.full_name || t('noLastName')}
                                   </div>
                                   <div className="text-sm text-muted-foreground truncate">
                                     {member.email}
@@ -272,7 +274,7 @@ export function ManageTeamMembersSheet({
                               </div>
                               <div className="flex items-center gap-3">
                                 <div className="px-2 py-1 rounded-md bg-background border border-border text-foreground text-xs font-semibold">
-                                  Pracownik
+                                  {t('membersSheet.roles.employee')}
                                 </div>
                                 <Button
                                   size="icon"
@@ -288,7 +290,7 @@ export function ManageTeamMembersSheet({
                       </div>
                     ) : (
                       <div className="text-sm text-muted-foreground py-8 text-center">
-                        Wszyscy dostępni członkowie są już przypisani do zespołów
+                        {t('membersSheet.noAvailableMembers')}
                       </div>
                     )}
                   </div>
@@ -303,7 +305,7 @@ export function ManageTeamMembersSheet({
                 onClick={() => onOpenChange(false)}
                 className="h-9"
               >
-                Anuluj
+                {t('membersSheet.cancel')}
               </Button>
               <Button
                 onClick={handleUpdateTeam}
@@ -311,7 +313,7 @@ export function ManageTeamMembersSheet({
                 className="h-9"
               >
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Zapisz zmiany
+                {t('membersSheet.saveChanges')}
               </Button>
             </div>
           </div>

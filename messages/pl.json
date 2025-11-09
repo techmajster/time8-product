@@ -995,5 +995,101 @@
       "of": "z",
       "rows": "wierszy"
     }
+  },
+  "groups": {
+    "title": "Grupy",
+    "addGroup": "Dodaj grupę",
+    "editGroup": "Edytuj grupę",
+    "saveGroup": "Zapisz grupę",
+    "deleteGroup": "Usuń grupę",
+    "manageMembers": "Zarządzaj członkami",
+    "groupDetails": "Szczegóły grupy",
+    "addNewGroup": "Dodaj nową grupę",
+    "noTeams": "Brak zespołów",
+    "name": "Nazwa",
+    "actions": "Akcje",
+    "table": {
+      "description": "Opis",
+      "groupManager": "Kierownik grupy",
+      "employeeCount": "Liczba pracowników"
+    },
+    "dropdown": {
+      "editGroup": "Edytuj grupę",
+      "manageMembers": "Zarządzaj członkami",
+      "deleteGroup": "Usuń grupę"
+    },
+    "editSheet": {
+      "title": "Edytuj grupę",
+      "nameLabel": "Wprowadź nazwę grupy",
+      "descriptionLabel": "Wprowadź opis grupy",
+      "descriptionPlaceholder": "Opis grupy",
+      "managerLabel": "Wybierz kierownika grupy",
+      "managerPlaceholder": "Wybierz",
+      "noManager": "Brak przypisanego menedżera",
+      "cancel": "Anuluj",
+      "save": "Zapisz grupę",
+      "delete": "Usuń grupę"
+    },
+    "createSheet": {
+      "title": "Dodaj nową grupę",
+      "subtitle": "Utwórz nową grupę w swojej organizacji",
+      "nameLabel": "Nazwa grupy",
+      "namePlaceholder": "Wprowadź nazwę grupy",
+      "descriptionLabel": "Opis",
+      "descriptionPlaceholder": "Wpisz",
+      "managerLabel": "Kierownik grupy",
+      "managerOptional": "(Opcjonalny)",
+      "managerPlaceholder": "Wybierz",
+      "noManager": "Brak przypisanego menedżera",
+      "cancel": "Anuluj",
+      "create": "Dodaj grupę"
+    },
+    "detailsSheet": {
+      "title": "Szczegóły grupy",
+      "basicInfo": "Podstawowe informacje",
+      "name": "Nazwa grupy",
+      "description": "Opis",
+      "noDescription": "brak",
+      "manager": "Kierownik grupy",
+      "noManager": "Brak przypisanego menedżera",
+      "groupMembers": "Członkowie grupy",
+      "noMembers": "Brak członków",
+      "loadingMembers": "Ładowanie członków...",
+      "close": "Zamknij",
+      "edit": "Edytuj",
+      "manageMembers": "Zarządzaj członkami",
+      "delete": "Usuń grupę",
+      "roles": {
+        "manager": "Kierownik",
+        "employee": "Pracownik"
+      }
+    },
+    "membersSheet": {
+      "title": "Zarządzanie członkami",
+      "currentMembers": "Członkowie gupy {name}",
+      "availableMembers": "Dostępni",
+      "noCurrentMembers": "Ta grupa nie ma jeszcze członków",
+      "noAvailableMembers": "Wszyscy dostępni członkowie są już przypisani do zespołów",
+      "cancel": "Anuluj",
+      "saveChanges": "Zapisz zmiany",
+      "roles": {
+        "manager": "Kierownik",
+        "employee": "Pracownik"
+      }
+    },
+    "deleteDialog": {
+      "title": "Czy na pewno chcesz usunąć tę grupę?",
+      "description": "Użytkownicy z tej grupy nie będą przypisani do żadnej grupy",
+      "cancel": "Zamknij",
+      "confirm": "Usuń"
+    },
+    "notifications": {
+      "groupCreated": "Grupa została pomyślnie utworzona",
+      "groupUpdated": "Grupa została zaktualizowana pomyślnie",
+      "groupDeleted": "Grupa została usunięta",
+      "membersUpdated": "Zespół został zaktualizowany pomyślnie",
+      "error": "Wystąpił błąd"
+    },
+    "noLastName": "Bez nazwiska"
   }
 } 
