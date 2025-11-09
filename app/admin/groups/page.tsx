@@ -68,7 +68,7 @@ export default async function GroupsPage() {
   // Use admin client for fetching teams data
   const supabaseAdmin = createAdminClient()
 
-  // Get all teams for the organization
+  // Get all teams for the organization with member counts (optimized single query)
   const { data: teams } = await supabaseAdmin
     .from('teams')
     .select(`
@@ -81,27 +81,23 @@ export default async function GroupsPage() {
         id,
         email,
         full_name,
-        avatar_url
+        avatar_url,
+        role
+      ),
+      user_organizations!team_id (
+        count
       )
     `)
     .eq('organization_id', profile.organization_id)
+    .eq('user_organizations.is_active', true)
     .order('name')
 
-  // Get team member counts
-  const teamsWithCounts = await Promise.all(
-    (teams || []).map(async (team) => {
-      const { count } = await supabaseAdmin
-        .from('user_organizations')
-        .select('*', { count: 'exact', head: true })
-        .eq('team_id', team.id)
-        .eq('is_active', true)
-
-      return {
-        ...team,
-        member_count: count || 0
-      }
-    })
-  )
+  // Transform response to include member_count property
+  const teamsWithCounts = (teams || []).map(team => ({
+    ...team,
+    member_count: team.user_organizations?.[0]?.count || 0,
+    user_organizations: undefined
+  }))
 
   // Get all potential managers (users with manager or admin role in this org)
   const { data: potentialManagers } = await supabaseAdmin
