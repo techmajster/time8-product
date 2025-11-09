@@ -58,7 +58,7 @@ export async function GET() {
     const supabaseAdmin = createAdminClient()
     const organizationId = userOrg.organization_id
 
-    // Get team members
+    // Get team members with birth_date and approver_id
     const { data: rawTeamMembers } = await supabaseAdmin
       .from('user_organizations')
       .select(`
@@ -67,11 +67,13 @@ export async function GET() {
         role,
         team_id,
         is_active,
+        approver_id,
         profiles!user_organizations_user_id_fkey (
           id,
           email,
           full_name,
-          avatar_url
+          avatar_url,
+          birth_date
         ),
         teams!user_organizations_team_id_fkey (
           id,
@@ -137,7 +139,9 @@ export async function GET() {
         full_name: profile?.full_name,
         role: userOrg.role,
         avatar_url: profile?.avatar_url,
+        birth_date: profile?.birth_date,
         team_id: userOrg.team_id,
+        approver_id: userOrg.approver_id,
         teams: teamDetails ? {
           id: teamDetails.id,
           name: teamDetails.name,
@@ -279,13 +283,44 @@ export async function GET() {
       role: au.role
     })) || []
 
+    // Get leave types for the organization
+    const { data: leaveTypes } = await supabaseAdmin
+      .from('leave_types')
+      .select('*')
+      .eq('organization_id', organizationId)
+      .order('name')
+
+    // Get approvers (managers and admins)
+    const { data: approversData } = await supabaseAdmin
+      .from('user_organizations')
+      .select(`
+        user_id,
+        role,
+        profiles!user_organizations_user_id_fkey (
+          id,
+          full_name,
+          email
+        )
+      `)
+      .eq('organization_id', organizationId)
+      .eq('is_active', true)
+      .in('role', ['manager', 'admin'])
+
+    const approvers = approversData?.map((item: any) => ({
+      id: item.profiles.id,
+      full_name: item.profiles.full_name,
+      email: item.profiles.email
+    })) || []
+
     return NextResponse.json({
       teamMembers,
       teams: teamsWithDetails || [],
       leaveBalances: leaveBalances || [],
       invitations: invitations || [],
       pendingRemovalUsers: transformedPendingUsers,
-      archivedUsers: transformedArchivedUsers
+      archivedUsers: transformedArchivedUsers,
+      leaveTypes: leaveTypes || [],
+      approvers: approvers
     })
 
   } catch (error) {

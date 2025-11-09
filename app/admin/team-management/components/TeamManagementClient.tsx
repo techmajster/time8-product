@@ -3,16 +3,20 @@
 import React, { useState, useEffect } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { FigmaTabs, FigmaTabsList, FigmaTabsTrigger, FigmaTabsContent } from '@/app/admin/team-management/components/FigmaTabs'
-import { Loader2, Plus, MoreHorizontal } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Loader2, Plus, MoreHorizontal, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from 'lucide-react'
 import { toast } from 'sonner'
 import { PendingInvitationsSection } from './PendingInvitationsSection'
 import { PendingChangesSection } from '@/components/admin/PendingChangesSection'
-import { ArchivedUsersSection } from '@/components/admin/ArchivedUsersSection'
+import { ArchivedUsersSection } from './ArchivedUsersSection'
+import { UserDetailSheet } from './UserDetailSheet'
+import { EditEmployeeSheet } from './EditEmployeeSheet'
 import { useDeleteAccount, useCancelRemoval, useReactivateUser } from '@/hooks/use-team-mutations'
 import { REFETCH_TEAM_MANAGEMENT } from '@/lib/refetch-events'
 
@@ -25,7 +29,9 @@ interface TeamMember {
   full_name: string | null
   role: string
   avatar_url: string | null
+  birth_date: string | null
   team_id: string | null
+  approver_id: string | null
   teams?: {
     id: string
     name: string
@@ -37,6 +43,7 @@ interface LeaveBalance {
   id: string
   user_id: string
   leave_type_id: string
+  entitled_days: number
   remaining_days: number
   leave_types: {
     id: string
@@ -80,6 +87,19 @@ interface PendingRemovalUser {
   role: string
 }
 
+interface LeaveType {
+  id: string
+  name: string
+  requires_balance: boolean
+  default_days?: number
+}
+
+interface Approver {
+  id: string
+  full_name: string | null
+  email: string
+}
+
 interface TeamManagementClientProps {
   teamMembers?: TeamMember[]
   teams?: any[]
@@ -87,6 +107,8 @@ interface TeamManagementClientProps {
   invitations?: Invitation[]
   pendingRemovalUsers?: PendingRemovalUser[]
   archivedUsers?: ArchivedUser[]
+  leaveTypes?: LeaveType[]
+  approvers?: Approver[]
 }
 
 export function TeamManagementClient({
@@ -95,7 +117,9 @@ export function TeamManagementClient({
   leaveBalances: initialLeaveBalances = [],
   invitations: initialInvitations = [],
   pendingRemovalUsers: initialPendingUsers = [],
-  archivedUsers: initialArchivedUsers = []
+  archivedUsers: initialArchivedUsers = [],
+  leaveTypes: initialLeaveTypes = [],
+  approvers: initialApprovers = []
 }: TeamManagementClientProps) {
   const router = useRouter()
 
@@ -106,6 +130,8 @@ export function TeamManagementClient({
   const [invitations, setInvitations] = useState<Invitation[]>(initialInvitations)
   const [pendingRemovalUsers, setPendingRemovalUsers] = useState<PendingRemovalUser[]>(initialPendingUsers)
   const [archivedUsers, setArchivedUsers] = useState<ArchivedUser[]>(initialArchivedUsers)
+  const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>(initialLeaveTypes)
+  const [approvers, setApprovers] = useState<Approver[]>(initialApprovers)
 
   // State for active tab (aktywni, zaproszeni, zarchiwizowani)
   const [activeTab, setActiveTab] = useState('aktywni')
@@ -115,19 +141,20 @@ export function TeamManagementClient({
   const [loading, setLoading] = useState(false)
   const [isRefetching, setIsRefetching] = useState(false)
 
+  // Pagination state for Aktywni tab
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+
+  // State for user detail and edit sheets
+  const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false)
+  const [isEditSheetOpen, setIsEditSheetOpen] = useState(false)
+  const [selectedEmployee, setSelectedEmployee] = useState<TeamMember | null>(null)
+
   // Filter invitations by team
   const filteredInvitations = activeTeamFilter === 'Wszyscy'
     ? invitations
     : invitations.filter(inv => inv.team_name === activeTeamFilter)
 
-  // Filter archived users by team
-  const filteredArchivedUsers = activeTeamFilter === 'Wszyscy'
-    ? archivedUsers
-    : archivedUsers.filter(user => {
-        // Find the user's team from the teams data
-        const member = teamMembers.find(m => m.id === user.id)
-        return member?.teams?.name === activeTeamFilter
-      })
 
   // Hooks for mutations
   const deleteAccountMutation = useDeleteAccount()
@@ -148,6 +175,8 @@ export function TeamManagementClient({
       setInvitations(data.invitations || [])
       setPendingRemovalUsers(data.pendingRemovalUsers || [])
       setArchivedUsers(data.archivedUsers || [])
+      setLeaveTypes(data.leaveTypes || [])
+      setApprovers(data.approvers || [])
     } catch (error) {
       console.error('Error fetching team management data:', error)
       toast.error('Nie udało się załadować danych zespołu')
@@ -172,11 +201,27 @@ export function TeamManagementClient({
 
   // Create team filter tabs - "Wszyscy" + actual teams
   const teamTabs = ['Wszyscy', ...teams.map(team => team.name)]
-  
-    // Filter team members based on active tab
-  const filteredTeamMembers = activeTeamFilter === 'Wszyscy' 
-    ? teamMembers 
+
+  // Filter team members based on active tab
+  const filteredTeamMembers = activeTeamFilter === 'Wszyscy'
+    ? teamMembers
     : teamMembers.filter(member => member.teams?.name === activeTeamFilter)
+
+  // Pagination calculations for Aktywni tab (use filtered team members)
+  const totalItems = filteredTeamMembers.length
+  const totalPages = Math.ceil(totalItems / pageSize)
+  const startIndex = (currentPage - 1) * pageSize
+  const endIndex = startIndex + pageSize
+  const paginatedTeamMembers = filteredTeamMembers.slice(startIndex, endIndex)
+  const displayStart = totalItems === 0 ? 0 : startIndex + 1
+  const displayEnd = Math.min(endIndex, totalItems)
+
+  // Reset to page 1 if current page exceeds total pages
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(1)
+    }
+  }, [currentPage, totalPages])
 
   const getLeaveBalance = (userId: string, leaveTypeName: string): number => {
     const balance = leaveBalances.find(b => 
@@ -208,24 +253,47 @@ export function TeamManagementClient({
     return member.teams?.name || 'Brak grupy'
   }
 
-  const getManagerName = (member: TeamMember): string => {
-    // Get the manager from the team data
-    if (member.teams && member.team_id) {
-      const team = teams.find(t => t.id === member.team_id)
-      return team?.manager?.full_name || 'Brak menedżera'
+  const getApproverName = (member: TeamMember): string => {
+    // Get the approver from the approvers list
+    if (member.approver_id) {
+      const approver = approvers.find(a => a.id === member.approver_id)
+      return approver?.full_name || 'Brak akceptującego'
     }
-    return 'Brak grupy'
+    return 'Brak akceptującego'
   }
 
   // Employee management functions
+  const handleViewDetails = (member: TeamMember) => {
+    setSelectedEmployee(member)
+    setIsDetailSheetOpen(true)
+  }
+
   const handleEditEmployee = (member: TeamMember) => {
-    // Navigate to edit employee page using Next.js router
-    router.push(`/admin/team-management/edit-employee/${member.id}`)
+    setSelectedEmployee(member)
+    setIsEditSheetOpen(true)
+  }
+
+  const handleEditFromDetail = () => {
+    // Transition from detail sheet to edit sheet
+    // Don't clear selectedEmployee - keep it for the edit sheet
+    setIsDetailSheetOpen(false)
+    setIsEditSheetOpen(true)
   }
 
   const handleRemoveEmployee = (member: TeamMember) => {
     setMemberToRemove(member)
     setIsRemoveDialogOpen(true)
+  }
+
+  const handleArchiveFromDetail = () => {
+    // Close detail sheet and open archive dialog
+    if (selectedEmployee) {
+      setIsDetailSheetOpen(false)
+      setTimeout(() => {
+        setMemberToRemove(selectedEmployee)
+        setIsRemoveDialogOpen(true)
+      }, 100)
+    }
   }
 
   const confirmRemoveEmployee = async () => {
@@ -265,9 +333,18 @@ export function TeamManagementClient({
 
   return (
     <div className="py-11 space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-semibold text-foreground">Zarządzanie zespołami</h1>
+      {/* Header - Inline with action buttons */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-semibold text-foreground">Użytkownicy</h1>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm">Export</Button>
+          <Link href="/admin/team-management/add-employee">
+            <Button size="sm">
+              <Plus className="h-4 w-4 mr-2" />
+              Zaproś nowych użytkowników
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Tab Navigation */}
@@ -282,79 +359,63 @@ export function TeamManagementClient({
         </div>
 
         {/* Aktywni Tab */}
-        <FigmaTabsContent value="aktywni" className="mt-6">
+        <FigmaTabsContent value="aktywni" className="mt-0">
 
-          <div className="mb-4 mt-8 min-h-[60px] flex items-center">
-            <div className="flex items-center justify-between w-full">
-              <div className="flex items-center gap-4">
-                <h2 className="text-lg font-medium">Lista pracowników</h2>
-                
-                {/* Custom Figma-style tabs for team filtering */}
-                <div className="bg-muted relative rounded-lg p-[3px] flex">
-                  {teamTabs.map((teamName: string) => (
-                    <button
-                      key={teamName}
-                      onClick={() => setActiveTeamFilter(teamName)}
-                      className={`
-                        flex items-center justify-center px-2.5 py-2 rounded-lg text-sm font-normal leading-5 transition-all
-                        ${activeTeamFilter === teamName 
-                          ? 'bg-background text-foreground shadow-sm' 
-                          : 'text-muted-foreground hover:bg-background/50'
-                        }
-                      `}
-                    >
-                      {teamName}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm">Export</Button>
-                <Button variant="outline" size="sm">Import</Button>
-                <Link href="/admin/team-management/add-employee">
-                  <Button
-                    size="sm"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Zaproś nowych użytkowników
-                  </Button>
-                </Link>
-              </div>
+          <div className="mb-6 mt-6">
+            {/* Custom Figma-style tabs for team filtering */}
+            <div className="bg-muted relative rounded-lg p-[3px] flex w-fit">
+              {teamTabs.map((teamName: string) => (
+                <button
+                  key={teamName}
+                  onClick={() => {
+                    setActiveTeamFilter(teamName)
+                    setCurrentPage(1) // Reset to first page when changing filter
+                  }}
+                  className={`
+                    flex items-center justify-center px-2.5 py-2 rounded-lg text-sm font-normal leading-5 transition-all
+                    ${activeTeamFilter === teamName
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:bg-background/50'
+                    }
+                  `}
+                >
+                  {teamName}
+                </button>
+              ))}
             </div>
           </div>
 
-          <Card>
-            <CardContent className="py-0">
-              <Table>
+          <div>
+            <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="font-medium text-muted-foreground w-full min-w-0">Pracownik</TableHead>
+                    <TableHead className="font-medium text-muted-foreground w-full min-w-0">Imię i nazwisko</TableHead>
                     <TableHead className="font-medium text-muted-foreground min-w-64">Grupa</TableHead>
-                    <TableHead className="font-medium text-muted-foreground min-w-64">Manager</TableHead>
-                    <TableHead className="font-medium text-muted-foreground text-right min-w-40">Pozostały urlop</TableHead>
-                    <TableHead className="font-medium text-muted-foreground text-right min-w-40">Urlop NŻ</TableHead>
+                    <TableHead className="font-medium text-muted-foreground min-w-64">Akceptujący</TableHead>
+                    <TableHead className="font-medium text-muted-foreground text-center min-w-32">Status</TableHead>
                     <TableHead className="font-medium text-muted-foreground text-right min-w-24">Akcje</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredTeamMembers.length === 0 ? (
+                  {paginatedTeamMembers.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="h-16 text-center">
+                      <TableCell colSpan={5} className="h-16 text-center">
                         <div className="text-muted-foreground">
-                          {activeTeamFilter === 'Wszyscy' 
-                            ? 'Brak pracowników w organizacji' 
+                          {activeTeamFilter === 'Wszyscy'
+                            ? 'Brak pracowników w organizacji'
                             : `Brak pracowników w zespole ${activeTeamFilter}`
                           }
                         </div>
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredTeamMembers.map((member) => {
-                      const vacationDays = getLeaveBalance(member.id, 'Urlop wypoczynkowy')
-                      const parentalDays = getLeaveBalance(member.id, 'Urlop NŻ') || getLeaveBalance(member.id, 'Urlop na żądanie')
-                      
+                    paginatedTeamMembers.map((member) => {
                       return (
-                        <TableRow key={member.id} className="h-[72px]">
+                        <TableRow
+                          key={member.id}
+                          className="h-[72px] cursor-pointer hover:bg-accent/50"
+                          onClick={() => handleViewDetails(member)}
+                        >
                           <TableCell>
                             <div className="flex items-center gap-3">
                               <Avatar className="size-10">
@@ -380,25 +441,23 @@ export function TeamManagementClient({
                           </TableCell>
                           <TableCell>
                             <div className="font-medium text-foreground">
-                              {getManagerName(member)}
+                              {getApproverName(member)}
                             </div>
                           </TableCell>
-                          <TableCell className="text-right">
-                            <div className="text-foreground">
-                              {vacationDays > 0 ? `${vacationDays} dni` : 'Brak danych'}
-                            </div>
+                          <TableCell className="text-center">
+                            <Badge
+                              variant="default"
+                              className="bg-green-600 text-white border-transparent"
+                            >
+                              Aktywny
+                            </Badge>
                           </TableCell>
-                          <TableCell className="text-right">
-                            <div className="text-foreground">
-                              {parentalDays > 0 ? `${parentalDays} dni` : 'Brak danych'}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right">
+                          <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm" 
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
                                   className="h-8 w-8 p-0"
                                   disabled={loading}
                                 >
@@ -406,19 +465,19 @@ export function TeamManagementClient({
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="w-48">
-                                <DropdownMenuItem 
+                                <DropdownMenuItem
                                   onClick={() => handleEditEmployee(member)}
                                   disabled={loading}
                                   className="cursor-pointer"
                                 >
-                                  Edytuj pracownika
+                                  Edytuj
                                 </DropdownMenuItem>
-                                <DropdownMenuItem 
+                                <DropdownMenuItem
                                   onClick={() => handleRemoveEmployee(member)}
                                   disabled={loading}
                                   className="cursor-pointer text-destructive focus:text-destructive"
                                 >
-                                  Usuń pracownika
+                                  Dezaktywować użytkownika
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -429,68 +488,106 @@ export function TeamManagementClient({
                   )}
                 </TableBody>
               </Table>
-            </CardContent>
-          </Card>
+
+            {/* Pagination Controls */}
+            <div className="flex items-center justify-between py-4">
+              {/* Left: X z Y wierszy */}
+              <div className="text-sm text-muted-foreground">
+                {displayStart} z {totalItems} wierszy
+              </div>
+
+              {/* Right: Wierszy na stronie dropdown + Page navigation */}
+              <div className="flex items-center gap-6">
+                {/* Wierszy na stronie dropdown */}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Wierszy na stronie:</span>
+                  <Select
+                    value={pageSize.toString()}
+                    onValueChange={(value) => {
+                      setPageSize(Number(value))
+                      setCurrentPage(1) // Reset to first page when changing page size
+                    }}
+                  >
+                    <SelectTrigger className="w-[70px] h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="10">10</SelectItem>
+                      <SelectItem value="20">20</SelectItem>
+                      <SelectItem value="50">50</SelectItem>
+                      <SelectItem value="100">100</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Page navigation */}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">
+                    Strona {currentPage} z {totalPages}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      onClick={() => setCurrentPage(1)}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronsLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      onClick={() => setCurrentPage(currentPage - 1)}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      onClick={() => setCurrentPage(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      onClick={() => setCurrentPage(totalPages)}
+                      disabled={currentPage === totalPages}
+                    >
+                      <ChevronsRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </FigmaTabsContent>
 
         {/* Zaproszeni Tab */}
-        <FigmaTabsContent value="zaproszeni" className="mt-6">
-          {/* Group Filter for Invitations */}
-          <div className="mb-6">
-            <div className="bg-muted relative rounded-lg p-[3px] flex">
-              {teamTabs.map((teamName: string) => (
-                <button
-                  key={teamName}
-                  onClick={() => setActiveTeamFilter(teamName)}
-                  className={`
-                    flex items-center justify-center px-2.5 py-2 rounded-lg text-sm font-normal leading-5 transition-all
-                    ${activeTeamFilter === teamName
-                      ? 'bg-background text-foreground shadow-sm'
-                      : 'text-muted-foreground hover:bg-background/50'
-                    }
-                  `}
-                >
-                  {teamName}
-                </button>
-              ))}
-            </div>
+        <FigmaTabsContent value="zaproszeni" className="mt-0">
+          <div className="mt-6">
+            <PendingInvitationsSection invitations={invitations} teams={teams} />
           </div>
-
-          <PendingInvitationsSection invitations={filteredInvitations} />
         </FigmaTabsContent>
 
         {/* Zarchiwizowani Tab */}
-        <FigmaTabsContent value="zarchiwizowani" className="mt-6">
+        <FigmaTabsContent value="zarchiwizowani" className="mt-0">
           {/* Pending Changes Section */}
           <PendingChangesSection
             users={pendingRemovalUsers}
             onCancelRemoval={handleCancelRemoval}
-            className="mb-6"
+            className="mb-6 mt-6"
           />
 
-          {/* Group Filter for Archived Users */}
-          <div className="mb-6">
-            <div className="bg-muted relative rounded-lg p-[3px] flex">
-              {teamTabs.map((teamName: string) => (
-                <button
-                  key={teamName}
-                  onClick={() => setActiveTeamFilter(teamName)}
-                  className={`
-                    flex items-center justify-center px-2.5 py-2 rounded-lg text-sm font-normal leading-5 transition-all
-                    ${activeTeamFilter === teamName
-                      ? 'bg-background text-foreground shadow-sm'
-                      : 'text-muted-foreground hover:bg-background/50'
-                    }
-                  `}
-                >
-                  {teamName}
-                </button>
-              ))}
-            </div>
-          </div>
-
           <ArchivedUsersSection
-            users={filteredArchivedUsers}
+            users={archivedUsers}
+            teams={teams}
             onReactivate={handleReactivateUser}
           />
         </FigmaTabsContent>
@@ -528,6 +625,37 @@ export function TeamManagementClient({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* User Detail Sheet */}
+      <UserDetailSheet
+        isOpen={isDetailSheetOpen}
+        onClose={() => {
+          setIsDetailSheetOpen(false)
+          setSelectedEmployee(null)
+        }}
+        employee={selectedEmployee}
+        leaveBalances={leaveBalances}
+        approvers={approvers}
+        onEdit={handleEditFromDetail}
+        onArchive={handleArchiveFromDetail}
+      />
+
+      {/* Edit Employee Sheet */}
+      <EditEmployeeSheet
+        isOpen={isEditSheetOpen}
+        onClose={() => {
+          setIsEditSheetOpen(false)
+          setSelectedEmployee(null)
+        }}
+        employee={selectedEmployee}
+        teams={teams}
+        leaveTypes={leaveTypes}
+        approvers={approvers}
+        leaveBalances={leaveBalances}
+        onSuccess={() => {
+          fetchData()
+        }}
+      />
 
     </div>
   )

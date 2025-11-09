@@ -77,6 +77,17 @@ const SheetContent = React.forwardRef<
       <SheetPrimitive.Content
         ref={ref}
         data-slot="sheet-content"
+        onPointerDownOutside={() => {
+          // Fix: Radix Dialog leaves pointer-events: none on body when clicking outside
+          // This setTimeout ensures body cleanup happens after Radix's internal handlers
+          setTimeout(() => {
+            document.body.style.pointerEvents = ''
+          }, 0)
+        }}
+        onCloseAutoFocus={() => {
+          // Additional safety: ensure cleanup when sheet fully closes
+          document.body.style.pointerEvents = ''
+        }}
         className={cn(
           "bg-background border border-border rounded-lg shadow-lg data-[state=open]:animate-in data-[state=closed]:animate-out fixed z-50 flex flex-col gap-4 transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500",
           side === "right" &&

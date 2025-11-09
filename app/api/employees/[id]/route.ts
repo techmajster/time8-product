@@ -100,15 +100,15 @@ export async function DELETE(
     console.log('✅ Employee removed via seat management system:', {
       userId: id,
       organizationId,
-      scheduledRemoval: result.data?.removal_effective_date
+      scheduledRemoval: result.data?.removalEffectiveDate
     })
 
     return NextResponse.json({
       success: true,
-      message: result.data?.removal_effective_date
-        ? `Employee will be removed on ${new Date(result.data.removal_effective_date).toLocaleDateString()}`
+      message: result.data?.removalEffectiveDate
+        ? `Employee will be removed on ${new Date(result.data.removalEffectiveDate).toLocaleDateString()}`
         : 'Employee successfully removed from organization',
-      removal_effective_date: result.data?.removal_effective_date
+      removal_effective_date: result.data?.removalEffectiveDate
     })
 
   } catch (error) {
@@ -145,7 +145,38 @@ export async function PUT(
     const supabaseAdmin = await createAdminClient()
 
     const body = await request.json()
-    const { email, full_name, birth_date, role: employeeRole, team_id, leave_balance_overrides } = body
+    const { email, full_name, birth_date, role: employeeRole, team_id, approver_id, leave_balance_overrides } = body
+
+    // Validation: Require approver_id
+    if (!approver_id) {
+      return NextResponse.json({
+        error: 'Osoba akceptująca urlop jest wymagana'
+      }, { status: 400 })
+    }
+
+    // Get employee's current role to validate self-approval rules
+    const { data: employeeOrg } = await supabaseAdmin
+      .from('user_organizations')
+      .select('role')
+      .eq('user_id', id)
+      .eq('organization_id', organizationId)
+      .eq('is_active', true)
+      .single()
+
+    if (!employeeOrg) {
+      return NextResponse.json({
+        error: 'Employee not found in this organization'
+      }, { status: 404 })
+    }
+
+    // Validation: Manager cannot self-approve, but admin can
+    if (approver_id === id && employeeOrg.role === 'manager') {
+      return NextResponse.json({
+        error: 'Manager nie może być swoim własnym akceptującym'
+      }, { status: 400 })
+    }
+
+    // Admin can self-approve (allowed - their requests are auto-approved)
 
     // Update profile in profiles table
     if (email || full_name || birth_date) {
@@ -166,10 +197,11 @@ export async function PUT(
     }
 
     // Update user organization data
-    if (employeeRole !== undefined || team_id !== undefined) {
+    if (employeeRole !== undefined || team_id !== undefined || approver_id !== undefined) {
       const orgUpdates: any = {}
       if (employeeRole !== undefined) orgUpdates.role = employeeRole
       if (team_id !== undefined) orgUpdates.team_id = team_id
+      if (approver_id !== undefined) orgUpdates.approver_id = approver_id
 
       const { error: orgError } = await supabaseAdmin
         .from('user_organizations')
@@ -202,7 +234,7 @@ export async function PUT(
         // Get previous value for audit trail
         const { data: existingBalance } = await supabaseAdmin
           .from('leave_balances')
-          .select('entitled_days')
+          .select('entitled_days, used_days')
           .eq('user_id', id)
           .eq('leave_type_id', leave_type_id)
           .eq('organization_id', organizationId)

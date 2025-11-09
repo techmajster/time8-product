@@ -13,15 +13,43 @@ export function NotificationBell() {
 
   // Fetch unread count
   const fetchUnreadCount = useCallback(async () => {
+    // Only fetch in browser environment
+    if (typeof window === 'undefined') {
+      return
+    }
+
     try {
-      const response = await fetch('/api/notifications?unread_only=true&limit=1')
+      setIsLoading(true)
+      const response = await fetch('/api/notifications?unread_only=true&limit=1', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      })
+
       if (!response.ok) {
-        throw new Error('Failed to fetch unread count')
+        // Don't throw for 401/403 - user might not be authenticated yet
+        if (response.status === 401 || response.status === 403) {
+          setUnreadCount(0)
+          return
+        }
+        throw new Error(`Failed to fetch unread count: ${response.status}`)
       }
+
       const data = await response.json()
       setUnreadCount(data.unread_count || 0)
     } catch (error) {
+      // Silently handle network errors - don't spam console
+      if (error instanceof TypeError && error.message === 'Failed to fetch') {
+        // Network error - likely temporary, will retry on next interval
+        return
+      }
       console.error('Error fetching unread count:', error)
+      // Reset to 0 on error to avoid showing stale data
+      setUnreadCount(0)
+    } finally {
+      setIsLoading(false)
     }
   }, [])
 

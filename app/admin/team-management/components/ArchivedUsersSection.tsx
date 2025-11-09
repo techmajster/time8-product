@@ -21,24 +21,16 @@ import {
   DialogTitle
 } from '@/components/ui/dialog'
 import { MoreHorizontal, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from 'lucide-react'
-import { refetchTeamManagement } from '@/lib/refetch-events'
 import { toast } from 'sonner'
 
-interface Invitation {
+interface ArchivedUser {
   id: string
   email: string
-  full_name?: string | null
-  birth_date?: string | null
+  full_name: string | null
+  avatar_url?: string | null
   role: string
-  status: string
-  created_at: string
-  expires_at: string
-  invitation_code?: string
-  invited_by: string
   team_id?: string | null
-  inviter_name: string
-  inviter_email: string
-  team_name: string
+  team_name?: string
 }
 
 interface Team {
@@ -47,15 +39,16 @@ interface Team {
   color?: string
 }
 
-interface PendingInvitationsSectionProps {
-  invitations: Invitation[]
+interface ArchivedUsersSectionProps {
+  users: ArchivedUser[]
   teams: Team[]
+  onReactivate?: (userId: string) => Promise<void>
 }
 
-export function PendingInvitationsSection({ invitations, teams }: PendingInvitationsSectionProps) {
+export function ArchivedUsersSection({ users, teams, onReactivate }: ArchivedUsersSectionProps) {
   const [loading, setLoading] = useState<string | null>(null)
-  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
-  const [invitationToCancel, setInvitationToCancel] = useState<Invitation | null>(null)
+  const [isReactivateDialogOpen, setIsReactivateDialogOpen] = useState(false)
+  const [userToReactivate, setUserToReactivate] = useState<ArchivedUser | null>(null)
 
   // Team filter state
   const [activeTeamFilter, setActiveTeamFilter] = useState('Wszyscy')
@@ -64,81 +57,48 @@ export function PendingInvitationsSection({ invitations, teams }: PendingInvitat
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
 
-  const handleResendInvitation = async (invitation: Invitation) => {
-    setLoading(invitation.id)
-    try {
-      console.log('🔄 Resending invitation for:', invitation.email)
-      
-      const response = await fetch('/api/resend-invitation', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          invitationId: invitation.id,
-          email: invitation.email 
-        })
-      })
+  const openReactivateDialog = (user: ArchivedUser) => {
+    setUserToReactivate(user)
+    setIsReactivateDialogOpen(true)
+  }
 
-      const data = await response.json()
-      
-      if (response.ok) {
-        console.log('✅ Invitation resent successfully')
-        toast.success('Zaproszenie zostało wysłane ponownie')
-      } else {
-        console.error('❌ Failed to resend invitation:', data)
-        toast.error(data.error || 'Nie udało się wysłać zaproszenia ponownie')
-      }
+  const confirmReactivate = async () => {
+    if (!userToReactivate || !onReactivate) return
+
+    setLoading(userToReactivate.id)
+    try {
+      console.log('🔄 Reactivating user:', userToReactivate.email)
+
+      await onReactivate(userToReactivate.id)
+
+      console.log('✅ User reactivated successfully')
+      toast.success('Użytkownik został przywrócony')
+      setIsReactivateDialogOpen(false)
+      setUserToReactivate(null)
     } catch (error) {
-      console.error('❌ Error resending invitation:', error)
-      toast.error('Wystąpił błąd podczas wysyłania zaproszenia')
+      console.error('❌ Error reactivating user:', error)
+      toast.error('Wystąpił błąd podczas przywracania użytkownika')
     } finally {
       setLoading(null)
     }
   }
 
-  const openCancelDialog = (invitation: Invitation) => {
-    setInvitationToCancel(invitation)
-    setIsCancelDialogOpen(true)
-  }
-
-  const confirmCancelInvitation = async () => {
-    if (!invitationToCancel) return
-
-    setLoading(invitationToCancel.id)
-    try {
-      console.log('🗑️ Cancelling invitation for:', invitationToCancel.email)
-
-      const response = await fetch('/api/cancel-invitation', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ invitationId: invitationToCancel.id })
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        console.log('✅ Invitation cancelled successfully')
-        toast.success('Zaproszenie zostało anulowane')
-        setIsCancelDialogOpen(false)
-        setInvitationToCancel(null)
-        refetchTeamManagement()
-      } else {
-        console.error('❌ Failed to cancel invitation:', data)
-        toast.error(data.error || 'Nie udało się anulować zaproszenia')
+  const getUserInitials = (user: ArchivedUser) => {
+    if (user.full_name) {
+      const nameParts = user.full_name.trim().split(' ')
+      if (nameParts.length >= 2) {
+        return (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase()
       }
-    } catch (error) {
-      console.error('❌ Error cancelling invitation:', error)
-      toast.error('Wystąpił błąd podczas anulowania zaproszenia')
-    } finally {
-      setLoading(null)
+      return user.full_name.substring(0, 2).toUpperCase()
     }
-  }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('pl-PL', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    })
+    // Fallback to email if no full_name
+    const localPart = user.email.split('@')[0]
+    const parts = localPart.split(/[.\-_]/)
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase()
+    }
+    return localPart.substring(0, 2).toUpperCase()
   }
 
   const getRoleDisplayName = (role: string) => {
@@ -150,47 +110,20 @@ export function PendingInvitationsSection({ invitations, teams }: PendingInvitat
     }
   }
 
-  const getInviteeInitials = (invitation: Invitation) => {
-    if (invitation.full_name) {
-      const nameParts = invitation.full_name.trim().split(' ')
-      if (nameParts.length >= 2) {
-        return (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase()
-      }
-      return invitation.full_name.substring(0, 2).toUpperCase()
-    }
-    
-    // Fallback to email if no full_name
-    const localPart = invitation.email.split('@')[0]
-    const parts = localPart.split(/[.\-_]/)
-    if (parts.length >= 2) {
-      return (parts[0][0] + parts[1][0]).toUpperCase()
-    }
-    return localPart.substring(0, 2).toUpperCase()
-  }
-
-  const getInviteeName = (email: string) => {
-    const localPart = email.split('@')[0]
-    const parts = localPart.split(/[.\-_]/)
-    if (parts.length >= 2) {
-      return parts.map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(' ')
-    }
-    return localPart.charAt(0).toUpperCase() + localPart.slice(1)
-  }
-
   // Team filter tabs
   const teamTabs = ['Wszyscy', ...teams.map(t => t.name)]
 
-  // Filter invitations by team
-  const filteredInvitations = activeTeamFilter === 'Wszyscy'
-    ? invitations
-    : invitations.filter(inv => inv.team_name === activeTeamFilter)
+  // Filter users by team
+  const filteredUsers = activeTeamFilter === 'Wszyscy'
+    ? users
+    : users.filter(user => user.team_name === activeTeamFilter)
 
-  // Pagination calculations (use filtered invitations)
-  const totalItems = filteredInvitations.length
+  // Pagination calculations (use filtered users)
+  const totalItems = filteredUsers.length
   const totalPages = Math.ceil(totalItems / pageSize)
   const startIndex = (currentPage - 1) * pageSize
   const endIndex = startIndex + pageSize
-  const paginatedInvitations = filteredInvitations.slice(startIndex, endIndex)
+  const paginatedUsers = filteredUsers.slice(startIndex, endIndex)
   const displayStart = totalItems === 0 ? 0 : startIndex + 1
   const displayEnd = Math.min(endIndex, totalItems)
 
@@ -201,17 +134,10 @@ export function PendingInvitationsSection({ invitations, teams }: PendingInvitat
     }
   }, [currentPage, totalPages])
 
-  // Always show section for debugging - you can change this later
-  console.log('📋 PendingInvitationsSection - invitations count:', invitations.length)
-  console.log('📋 PendingInvitationsSection - invitations data:', invitations)
-
-  if (invitations.length === 0) {
+  if (users.length === 0) {
     return (
-      <div className="space-y-4">
-        <h3 className="text-lg font-medium mb-8">Oczekujące zaproszenia</h3>
-        <div className="text-center py-4 text-muted-foreground text-sm border rounded-lg">
-          Brak oczekujących zaproszeń
-        </div>
+      <div className="text-center py-4 text-muted-foreground text-sm border rounded-lg">
+        Brak zarchiwizowanych użytkowników
       </div>
     )
   }
@@ -219,28 +145,30 @@ export function PendingInvitationsSection({ invitations, teams }: PendingInvitat
   return (
     <div>
       {/* Group Filter Tabs */}
-      <div className="mb-6">
-        <div className="bg-muted relative rounded-lg p-[3px] flex w-fit">
-          {teamTabs.map((teamName: string) => (
-            <button
-              key={teamName}
-              onClick={() => {
-                setActiveTeamFilter(teamName)
-                setCurrentPage(1) // Reset to first page when changing filter
-              }}
-              className={`
-                flex items-center justify-center px-2.5 py-2 rounded-lg text-sm font-normal leading-5 transition-all
-                ${activeTeamFilter === teamName
-                  ? 'bg-background text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:bg-background/50'
-                }
-              `}
-            >
-              {teamName}
-            </button>
-          ))}
+      {teams.length > 0 && (
+        <div className="mb-6">
+          <div className="bg-muted relative rounded-lg p-[3px] flex w-fit">
+            {teamTabs.map((teamName: string) => (
+              <button
+                key={teamName}
+                onClick={() => {
+                  setActiveTeamFilter(teamName)
+                  setCurrentPage(1) // Reset to first page when changing filter
+                }}
+                className={`
+                  flex items-center justify-center px-2.5 py-2 rounded-lg text-sm font-normal leading-5 transition-all
+                  ${activeTeamFilter === teamName
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:bg-background/50'
+                  }
+                `}
+              >
+                {teamName}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       <div>
         <Table>
@@ -248,28 +176,29 @@ export function PendingInvitationsSection({ invitations, teams }: PendingInvitat
               <TableRow>
                 <TableHead className="font-medium text-muted-foreground w-full min-w-0">Imię i nazwisko</TableHead>
                 <TableHead className="font-medium text-muted-foreground min-w-64">Grupa</TableHead>
-                <TableHead className="font-medium text-muted-foreground min-w-64">Akceptujący</TableHead>
+                <TableHead className="font-medium text-muted-foreground min-w-32">Rola</TableHead>
                 <TableHead className="font-medium text-muted-foreground text-center min-w-32">Status</TableHead>
                 <TableHead className="font-medium text-muted-foreground text-right min-w-24">Akcje</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedInvitations.map((invitation) => (
-                <TableRow key={invitation.id} className="h-[72px]">
+              {paginatedUsers.map((user) => (
+                <TableRow key={user.id} className="h-[72px]">
                   {/* Column 1: Imię i nazwisko (name + email stacked) */}
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <Avatar className="size-10">
+                        <AvatarImage src={user.avatar_url || undefined} />
                         <AvatarFallback className="text-sm font-medium">
-                          {getInviteeInitials(invitation)}
+                          {getUserInitials(user)}
                         </AvatarFallback>
                       </Avatar>
                       <div>
                         <div className="font-medium text-foreground">
-                          {invitation.full_name || getInviteeName(invitation.email)}
+                          {user.full_name || user.email}
                         </div>
                         <div className="text-sm text-muted-foreground">
-                          {invitation.email}
+                          {user.email}
                         </div>
                       </div>
                     </div>
@@ -278,24 +207,24 @@ export function PendingInvitationsSection({ invitations, teams }: PendingInvitat
                   {/* Column 2: Grupa (team name) */}
                   <TableCell>
                     <div className="font-medium text-foreground">
-                      {invitation.team_name}
+                      {user.team_name || '—'}
                     </div>
                   </TableCell>
 
-                  {/* Column 3: Akceptujący (approver name) */}
+                  {/* Column 3: Rola */}
                   <TableCell>
                     <div className="font-medium text-foreground">
-                      {invitation.inviter_name}
+                      {getRoleDisplayName(user.role)}
                     </div>
                   </TableCell>
 
-                  {/* Column 4: Status (purple "Zaproszony" badge) */}
+                  {/* Column 4: Status (red "Zarchiwizowany" badge) */}
                   <TableCell className="text-center">
                     <Badge
                       variant="default"
-                      className="bg-purple-600 text-white border-transparent"
+                      className="bg-red-600 text-white border-transparent"
                     >
-                      Zaproszony
+                      Zarchiwizowany
                     </Badge>
                   </TableCell>
 
@@ -307,25 +236,18 @@ export function PendingInvitationsSection({ invitations, teams }: PendingInvitat
                           variant="ghost"
                           size="sm"
                           className="h-8 w-8 p-0"
-                          disabled={loading === invitation.id}
+                          disabled={loading === user.id}
                         >
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-48">
                         <DropdownMenuItem
-                          onClick={() => handleResendInvitation(invitation)}
-                          disabled={loading === invitation.id}
+                          onClick={() => openReactivateDialog(user)}
+                          disabled={loading === user.id}
                           className="cursor-pointer"
                         >
-                          Wyślij ponownie
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => openCancelDialog(invitation)}
-                          disabled={loading === invitation.id}
-                          className="cursor-pointer text-destructive focus:text-destructive"
-                        >
-                          Anuluj
+                          Przywróć użytkownika
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -414,31 +336,31 @@ export function PendingInvitationsSection({ invitations, teams }: PendingInvitat
         </div>
       </div>
 
-      {/* Cancel Invitation Confirmation Dialog */}
-      <Dialog open={isCancelDialogOpen} onOpenChange={(open) => {
-        setIsCancelDialogOpen(open)
+      {/* Reactivate User Confirmation Dialog */}
+      <Dialog open={isReactivateDialogOpen} onOpenChange={(open) => {
+        setIsReactivateDialogOpen(open)
         if (!open) {
-          setInvitationToCancel(null)
+          setUserToReactivate(null)
         }
       }}>
         <DialogContent showCloseButton={false}>
           <DialogHeader>
-            <DialogTitle>Czy na pewno chcesz anulować zaproszenie?</DialogTitle>
+            <DialogTitle>Czy na pewno chcesz przywrócić użytkownika?</DialogTitle>
             <DialogDescription>
-              Zaproszona osoba nie będzie mogła dołączyć do Twojego workspace
+              Użytkownik odzyska dostęp do systemu
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={confirmCancelInvitation}
-              disabled={loading === invitationToCancel?.id}
+              onClick={confirmReactivate}
+              disabled={loading === userToReactivate?.id}
             >
-              Tak, anuluj zaproszenie
+              Tak, przywróć użytkownika
             </Button>
             <Button
-              onClick={() => setIsCancelDialogOpen(false)}
-              disabled={loading === invitationToCancel?.id}
+              onClick={() => setIsReactivateDialogOpen(false)}
+              disabled={loading === userToReactivate?.id}
             >
               Zamknij
             </Button>
@@ -447,4 +369,4 @@ export function PendingInvitationsSection({ invitations, teams }: PendingInvitat
       </Dialog>
     </div>
   )
-} 
+}

@@ -30,7 +30,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { SubscriptionWidget } from '@/components/admin/SubscriptionWidget'
 import { PendingChangesSection } from '@/components/admin/PendingChangesSection'
-import { ArchivedUsersSection } from '@/components/admin/ArchivedUsersSection'
+import { ArchivedUsersSection } from '@/app/admin/team-management/components/ArchivedUsersSection'
 import { REFETCH_SETTINGS, REFETCH_TEAM_MANAGEMENT } from '@/lib/refetch-events'
 
 interface LeaveType {

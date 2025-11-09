@@ -86,11 +86,13 @@ export default async function AdminTeamManagementPage() {
       role,
       team_id,
       is_active,
+      approver_id,
       profiles!user_organizations_user_id_fkey (
         id,
         email,
         full_name,
-        avatar_url
+        avatar_url,
+        birth_date
       ),
       teams!user_organizations_team_id_fkey (
         id,
@@ -138,53 +140,72 @@ export default async function AdminTeamManagementPage() {
 
   console.log('🏢 Teams query result:', { teams, teamsError })
 
-  // Get manager details for teams and member counts
-  const teamsWithDetails = teams ? await Promise.all(
-    teams.map(async (team) => {
-      // Get manager details if manager_id exists
-      let manager = null
-      if (team.manager_id) {
-        const { data: managerProfile } = await supabaseAdmin
-          .from('profiles')
-          .select('id, full_name, email')
-          .eq('id', team.manager_id)
-          .single()
-        manager = managerProfile
-      }
+  // Task 4: Optimize performance - Fix N+1 queries by batching
+  // Instead of querying each manager individually, batch query all managers
+  const teamsWithDetails = teams ? await (async () => {
+    // Task 4.1: Extract unique manager IDs from teams array
+    const managerIds = teams
+      .map(team => team.manager_id)
+      .filter((id): id is string => id !== null)
 
-      // Get member count for this team
-      const { count: memberCount } = await supabaseAdmin
-        .from('user_organizations')
-        .select('*', { count: 'exact', head: true })
-        .eq('team_id', team.id)
-        .eq('organization_id', profile.organization_id)
-        .eq('is_active', true)
+    // Task 4.2 & 4.3: Batch query all team managers and build lookup dictionary
+    const managerLookup: Record<string, any> = {}
+    if (managerIds.length > 0) {
+      const { data: managers } = await supabaseAdmin
+        .from('profiles')
+        .select('id, full_name, email')
+        .in('id', managerIds)
 
-      return {
-        ...team,
-        manager,
-        members: [], // We'll populate this if needed
-        member_count: memberCount || 0
+      managers?.forEach(manager => {
+        managerLookup[manager.id] = manager
+      })
+    }
+
+    // Task 4.4 & 4.5: Batch query team member counts and build dictionary
+    const memberCountLookup: Record<string, number> = {}
+    const teamIds = teams.map(team => team.id)
+
+    const { data: memberCounts } = await supabaseAdmin
+      .from('user_organizations')
+      .select('team_id')
+      .in('team_id', teamIds)
+      .eq('organization_id', profile.organization_id)
+      .eq('is_active', true)
+
+    // Count members per team
+    memberCounts?.forEach(record => {
+      if (record.team_id) {
+        memberCountLookup[record.team_id] = (memberCountLookup[record.team_id] || 0) + 1
       }
     })
-  ) : []
+
+    // Task 4.6: Replace individual queries with dictionary lookups
+    return teams.map(team => ({
+      ...team,
+      manager: team.manager_id ? managerLookup[team.manager_id] || null : null,
+      members: [],
+      member_count: memberCountLookup[team.id] || 0
+    }))
+  })() : []
 
   console.log('🏢 Teams with details:', teamsWithDetails)
 
   // Transform the employee data to match the expected interface and populate team details
   const teamMembers = rawTeamMembers?.map(userOrg => {
     const profile = Array.isArray(userOrg.profiles) ? userOrg.profiles[0] : userOrg.profiles
-    
+
     // Find the team details from our teamsWithDetails array
     const teamDetails = userOrg.team_id ? teamsWithDetails.find(t => t.id === userOrg.team_id) : null
-    
+
     return {
       id: userOrg.user_id, // Use user_id to match what edit page expects
       email: profile?.email || '',
       full_name: profile?.full_name,
       role: userOrg.role,
       avatar_url: profile?.avatar_url,
+      birth_date: profile?.birth_date,
       team_id: userOrg.team_id,
+      approver_id: userOrg.approver_id,
       teams: teamDetails ? {
         id: teamDetails.id,
         name: teamDetails.name,
@@ -373,6 +394,35 @@ export default async function AdminTeamManagementPage() {
     role: au.role
   })) || []
 
+  // Get leave types for the organization
+  const { data: leaveTypes } = await supabaseAdmin
+    .from('leave_types')
+    .select('*')
+    .eq('organization_id', profile.organization_id)
+    .order('name')
+
+  // Get approvers (managers and admins)
+  const { data: approversData } = await supabaseAdmin
+    .from('user_organizations')
+    .select(`
+      user_id,
+      role,
+      profiles!user_organizations_user_id_fkey (
+        id,
+        full_name,
+        email
+      )
+    `)
+    .eq('organization_id', profile.organization_id)
+    .eq('is_active', true)
+    .in('role', ['manager', 'admin'])
+
+  const approvers = approversData?.map((item: any) => ({
+    id: item.profiles.id,
+    full_name: item.profiles.full_name,
+    email: item.profiles.email
+  })) || []
+
   return (
     <AppLayout>
       <TeamManagementClient
@@ -382,6 +432,8 @@ export default async function AdminTeamManagementPage() {
         invitations={invitations || []}
         pendingRemovalUsers={transformedPendingUsers}
         archivedUsers={transformedArchivedUsers}
+        leaveTypes={leaveTypes || []}
+        approvers={approvers}
       />
     </AppLayout>
   )
