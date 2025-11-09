@@ -9,12 +9,12 @@
   - [x] 1.4 Verify single query in server logs
   - [x] 1.5 Test with org containing 0, 1, and 90+ teams
 
-- [ ] 2. Add Manager Column to Main Table
-  - [ ] 2.1 Add "Kierownik grupy" TableHead between Opis and Liczba pracowników
-  - [ ] 2.2 Create manager cell component with avatar + name + email
-  - [ ] 2.3 Handle null manager with "—" placeholder
-  - [ ] 2.4 Test avatar fallback with initials
-  - [ ] 2.5 Verify responsive layout and hover states
+- [x] 2. Add Manager Column to Main Table
+  - [x] 2.1 Add "Kierownik grupy" TableHead between Opis and Liczba pracowników
+  - [x] 2.2 Create manager cell component with avatar + name + email
+  - [x] 2.3 Handle null manager with "—" placeholder
+  - [x] 2.4 Test avatar fallback with initials
+  - [x] 2.5 Verify responsive layout and hover states
 
 - [ ] 3. Replace Page Reloads with Event-Driven Refetch
   - [ ] 3.1 Import refetchTeamManagement from /lib/refetch-events
