@@ -87,16 +87,16 @@
   - [x] 8.3 Test create flow end-to-end
   - [x] 8.4 Match Figma spacing and layout
 
-- [ ] 9. End-to-End Testing and Verification
-  - [ ] 9.1 Test complete create flow: open sheet → fill form → submit → verify refetch
+- [x] 9. End-to-End Testing and Verification
+  - [x] 9.1 Test complete create flow: open sheet → fill form → submit → verify refetch
   - [x] 9.2 Test complete view flow: click row → see details → verify member list
-  - [ ] 9.3 Test complete edit flow: details → edit → save → verify refetch
-  - [ ] 9.4 Test complete delete flow: open dialog → confirm → verify refetch
+  - [x] 9.3 Test complete edit flow: details → edit → save → verify refetch
+  - [x] 9.4 Test complete delete flow: open dialog → confirm → verify refetch
   - [x] 9.5 Test manage members flow: open sheet → add/remove → save → verify refetch
   - [x] 9.6 Verify N+1 query fixed (check server logs for single query)
   - [x] 9.7 Test with null manager display
   - [x] 9.8 Test with empty group (no members)
-  - [ ] 9.9 Test with large group (10+ members, verify scroll)
+  - [x] 9.9 Test with large group (10+ members, verify scroll)
   - [x] 9.10 Verify all sheets match Figma pixel-perfect
-  - [ ] 9.11 Test hover states and transitions
-  - [ ] 9.12 Verify no console errors or warnings
+  - [x] 9.11 Test hover states and transitions
+  - [x] 9.12 Verify no console errors or warnings
