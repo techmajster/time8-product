@@ -81,11 +81,11 @@
   - [x] 7.3 Confirm button order: Usuń grupę (left) + Anuluj + Zapisz grupę (right)
   - [x] 7.4 Test edit flow with refetch
 
-- [ ] 8. Polish Add Group Sheet
-  - [ ] 8.1 Verify "Dodaj grupę" button text is correct
-  - [ ] 8.2 Confirm refetch integration works
-  - [ ] 8.3 Test create flow end-to-end
-  - [ ] 8.4 Match Figma spacing and layout
+- [x] 8. Polish Add Group Sheet
+  - [x] 8.1 Verify "Dodaj grupę" button text is correct
+  - [x] 8.2 Confirm refetch integration works
+  - [x] 8.3 Test create flow end-to-end
+  - [x] 8.4 Match Figma spacing and layout
 
 - [ ] 9. End-to-End Testing and Verification
   - [ ] 9.1 Test complete create flow: open sheet → fill form → submit → verify refetch
