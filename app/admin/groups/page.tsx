@@ -99,12 +99,13 @@ export default async function GroupsPage() {
     user_organizations: undefined
   }))
 
-  // Get all potential managers (users with manager or admin role in this org)
-  const { data: potentialManagers } = await supabaseAdmin
+  // Get all organization members with their team assignments
+  const { data: allOrgMembers } = await supabaseAdmin
     .from('user_organizations')
     .select(`
       user_id,
       role,
+      team_id,
       profiles!user_organizations_user_id_fkey (
         id,
         email,
@@ -114,9 +115,8 @@ export default async function GroupsPage() {
     `)
     .eq('organization_id', profile.organization_id)
     .eq('is_active', true)
-    .in('role', ['manager', 'admin'])
 
-  const teamMembers = potentialManagers?.map(userOrg => {
+  const teamMembers = allOrgMembers?.map(userOrg => {
     const userProfile = Array.isArray(userOrg.profiles) ? userOrg.profiles[0] : userOrg.profiles
     return {
       id: userProfile?.id || userOrg.user_id,
@@ -124,7 +124,7 @@ export default async function GroupsPage() {
       full_name: userProfile?.full_name,
       role: userOrg.role,
       avatar_url: userProfile?.avatar_url,
-      team_id: null
+      team_id: userOrg.team_id
     }
   }) || []
 

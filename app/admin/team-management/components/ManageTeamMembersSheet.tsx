@@ -1,12 +1,10 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Separator } from '@/components/ui/separator'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Plus, Minus } from 'lucide-react'
 import { toast } from 'sonner'
 import { refetchTeamManagement } from '@/lib/refetch-events'
 
@@ -46,19 +44,18 @@ interface ManageTeamMembersSheetProps {
   onTeamUpdated?: () => void
 }
 
-export function ManageTeamMembersSheet({ 
-  open, 
-  onOpenChange, 
-  selectedTeam, 
+export function ManageTeamMembersSheet({
+  open,
+  onOpenChange,
+  selectedTeam,
   teamMembers,
-  onTeamUpdated 
+  onTeamUpdated
 }: ManageTeamMembersSheetProps) {
   const [loading, setLoading] = useState(false)
   const [pendingChanges, setPendingChanges] = useState<{
     toAdd: string[]
     toRemove: string[]
   }>({ toAdd: [], toRemove: [] })
-  const [showUnsavedDialog, setShowUnsavedDialog] = useState(false)
 
   // Get current team members and available members
   const currentTeamMembers = teamMembers.filter(member => member.team_id === selectedTeam?.id)
@@ -93,28 +90,6 @@ export function ManageTeamMembersSheet({
       toRemove: [...prev.toRemove, memberId],
       toAdd: prev.toAdd.filter(id => id !== memberId)
     }))
-  }
-
-  const handleUndoAdd = (memberId: string) => {
-    setPendingChanges(prev => ({
-      ...prev,
-      toAdd: prev.toAdd.filter(id => id !== memberId)
-    }))
-  }
-
-  const handleUndoRemove = (memberId: string) => {
-    setPendingChanges(prev => ({
-      ...prev,
-      toRemove: prev.toRemove.filter(id => id !== memberId)
-    }))
-  }
-
-  const handleCloseSheet = () => {
-    if (hasChanges) {
-      setShowUnsavedDialog(true)
-    } else {
-      onOpenChange(false)
-    }
   }
 
   const handleUpdateTeam = async () => {
@@ -168,238 +143,180 @@ export function ManageTeamMembersSheet({
     }
   }
 
-  // Get display lists with pending changes applied
-  const displayCurrentMembers = currentTeamMembers.filter(member => 
+  // Apply pending changes to display
+  const displayCurrentMembers = currentTeamMembers.filter(member =>
     !pendingChanges.toRemove.includes(member.id)
+  ).concat(
+    teamMembers.filter(member => pendingChanges.toAdd.includes(member.id))
   )
-  const displayAvailableMembers = availableMembers.filter(member => 
+
+  const displayAvailableMembers = availableMembers.filter(member =>
     !pendingChanges.toAdd.includes(member.id)
-  )
-  const membersToAdd = teamMembers.filter(member => 
-    pendingChanges.toAdd.includes(member.id)
-  )
-  const membersToRemove = currentTeamMembers.filter(member => 
-    pendingChanges.toRemove.includes(member.id)
+  ).concat(
+    currentTeamMembers.filter(member => pendingChanges.toRemove.includes(member.id))
   )
 
   return (
-    <>
-      <Sheet open={open} onOpenChange={handleCloseSheet}>
-        <SheetContent 
-          side="right" 
-          size="content"
-          className="overflow-y-auto"
-        >
-          <div className="bg-background relative rounded-lg h-full">
-            <div className="flex flex-col h-full">
-              {/* Header */}
-              <div className="flex flex-col gap-1.5 p-6 pb-0">
-                <SheetTitle className="text-xl font-semibold text-foreground">
-                  Zarządzaj zespołem
-                </SheetTitle>
-                <SheetDescription className="text-sm text-muted-foreground">
-                  Dodaj lub usuń członków z grupy {selectedTeam?.name}
-                </SheetDescription>
-              </div>
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        side="right"
+        size="content"
+        className="overflow-y-auto"
+      >
+        <div className="bg-background relative rounded-lg h-full">
+          <div className="flex flex-col h-full">
+            {/* Header */}
+            <div className="flex flex-col gap-1.5 p-6 pb-0">
+              <SheetTitle className="text-xl font-semibold text-foreground">
+                Zarządzanie członkami
+              </SheetTitle>
+            </div>
 
-              {/* Content */}
-              <div className="flex-1 overflow-y-auto px-6 py-8">
-                <div className="flex flex-col gap-8">
-                  {/* Current Team Members */}
-                  <div className="flex flex-col gap-3">
-                    <div className="text-sm font-medium text-foreground">
-                      Członkowie grupy
-                    </div>
-                    <div className="flex flex-col gap-4">
-                      {displayCurrentMembers.length > 0 ? (
-                        displayCurrentMembers.map((member) => (
-                          <div key={member.id} className="flex items-center gap-4">
-                            <Avatar className="size-10">
-                              <AvatarImage src={member.avatar_url || undefined} />
-                              <AvatarFallback className="text-sm font-normal text-foreground">
-                                {getUserInitials(member)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1 min-w-0">
-                              <div className="text-sm font-medium text-foreground truncate">
-                                {member.full_name || 'Bez nazwiska'}
-                              </div>
-                              <div className="text-sm text-muted-foreground truncate">
-                                {member.email}
-                              </div>
-                            </div>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleRemoveMember(member.id)}
-                              className="h-8 px-3 text-xs"
-                            >
-                              Usuń
-                            </Button>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="text-sm text-muted-foreground py-4">
-                          Ta grupa nie ma jeszcze członków
-                        </div>
-                      )}
-
-                      {/* Show members pending removal with undo option */}
-                      {membersToRemove.map((member) => (
-                        <div key={`removing-${member.id}`} className="flex items-center gap-4 opacity-50">
-                          <Avatar className="size-10">
-                            <AvatarImage src={member.avatar_url || undefined} />
-                            <AvatarFallback className="text-sm font-normal text-foreground">
-                              {getUserInitials(member)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium text-foreground truncate line-through">
-                              {member.full_name || 'Bez nazwiska'}
-                            </div>
-                            <div className="text-sm text-muted-foreground truncate">
-                              {member.email}
-                            </div>
-                          </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleUndoRemove(member.id)}
-                            className="h-8 px-3 text-xs"
-                          >
-                            Cofnij
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto px-6 py-8">
+              <div className="flex flex-col gap-8">
+                {/* Current Team Members Table */}
+                <div className="flex flex-col gap-3">
+                  <div className="text-sm font-medium text-foreground">
+                    Członkowie gupy {selectedTeam?.name}
                   </div>
+                  <div className="overflow-hidden">
+                    {displayCurrentMembers.length > 0 ? (
+                      <div className="divide-y border-y">
+                        {displayCurrentMembers.map((member) => {
+                          const isPendingRemoval = pendingChanges.toRemove.includes(member.id)
+                          const isPendingAdd = pendingChanges.toAdd.includes(member.id)
 
-                  {/* Separator */}
-                  <Separator />
-
-                  {/* Available Members */}
-                  <div className="flex flex-col gap-3">
-                    <div className="text-sm font-medium text-foreground">
-                      Dostępni
-                    </div>
-                    <div className="flex flex-col gap-4">
-                      {displayAvailableMembers.length > 0 ? (
-                        displayAvailableMembers.map((member) => (
-                          <div key={member.id} className="flex items-center gap-4">
-                            <Avatar className="size-10">
-                              <AvatarImage src={member.avatar_url || undefined} />
-                              <AvatarFallback className="text-sm font-normal text-foreground">
-                                {getUserInitials(member)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1 min-w-0">
-                              <div className="text-sm font-medium text-foreground truncate">
-                                {member.full_name || 'Bez nazwiska'}
-                              </div>
-                              <div className="text-sm text-muted-foreground truncate">
-                                {member.email}
-                              </div>
-                            </div>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleAddMember(member.id)}
-                              className="h-8 px-3 text-xs bg-muted"
+                          return (
+                            <div
+                              key={member.id}
+                              className={`flex items-center h-[52px] px-2 ${isPendingRemoval || isPendingAdd ? 'bg-muted/50' : 'bg-background'}`}
                             >
-                              Dodaj
-                            </Button>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="text-sm text-muted-foreground py-4">
-                          Wszyscy dostępni członkowie są już przypisani do zespołów
-                        </div>
-                      )}
+                              <div className="flex items-center gap-3 flex-1">
+                                <Avatar className="size-10">
+                                  <AvatarImage src={member.avatar_url || undefined} />
+                                  <AvatarFallback className="text-sm font-normal text-foreground">
+                                    {getUserInitials(member)}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="flex flex-col flex-1 min-w-0">
+                                  <div className="text-sm font-medium text-foreground truncate">
+                                    {member.full_name || 'Bez nazwiska'}
+                                  </div>
+                                  <div className="text-sm text-muted-foreground truncate">
+                                    {member.email}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <div className={`px-2 py-1 rounded-md text-xs font-semibold ${
+                                  member.id === selectedTeam?.manager?.id
+                                    ? 'bg-primary text-primary-foreground'
+                                    : 'bg-background border border-border text-foreground'
+                                }`}>
+                                  {member.id === selectedTeam?.manager?.id ? 'Kierownik' : 'Pracownik'}
+                                </div>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="size-9"
+                                  onClick={() => isPendingRemoval ? setPendingChanges(prev => ({ ...prev, toRemove: prev.toRemove.filter(id => id !== member.id) })) : handleRemoveMember(member.id)}
+                                >
+                                  <Minus className="size-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    ) : (
+                      <div className="text-sm text-muted-foreground py-8 text-center">
+                        Ta grupa nie ma jeszcze członków
+                      </div>
+                    )}
+                  </div>
+                </div>
 
-                      {/* Show members pending addition with undo option */}
-                      {membersToAdd.map((member) => (
-                        <div key={`adding-${member.id}`} className="flex items-center gap-4 opacity-50">
-                          <Avatar className="size-10">
-                            <AvatarImage src={member.avatar_url || undefined} />
-                            <AvatarFallback className="text-sm font-normal text-foreground">
-                              {getUserInitials(member)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium text-foreground truncate">
-                              {member.full_name || 'Bez nazwiska'} (oczekuje)
+                {/* Available Members Table */}
+                <div className="flex flex-col gap-3">
+                  <div className="text-sm font-medium text-foreground">
+                    Dostępni
+                  </div>
+                  <div className="overflow-hidden">
+                    {displayAvailableMembers.length > 0 ? (
+                      <div className="divide-y border-y">
+                        {displayAvailableMembers.map((member) => {
+                          const isPendingAdd = pendingChanges.toAdd.includes(member.id)
+                          const isPendingRemoval = pendingChanges.toRemove.includes(member.id)
+
+                          return (
+                            <div
+                              key={member.id}
+                              className={`flex items-center h-[52px] px-2 ${isPendingAdd || isPendingRemoval ? 'bg-muted/50' : 'bg-background'}`}
+                            >
+                              <div className="flex items-center gap-3 flex-1">
+                                <Avatar className="size-10">
+                                  <AvatarImage src={member.avatar_url || undefined} />
+                                  <AvatarFallback className="text-sm font-normal text-foreground">
+                                    {getUserInitials(member)}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="flex flex-col flex-1 min-w-0">
+                                  <div className="text-sm font-medium text-foreground truncate">
+                                    {member.full_name || 'Bez nazwiska'}
+                                  </div>
+                                  <div className="text-sm text-muted-foreground truncate">
+                                    {member.email}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <div className="px-2 py-1 rounded-md bg-background border border-border text-foreground text-xs font-semibold">
+                                  Pracownik
+                                </div>
+                                <Button
+                                  size="icon"
+                                  className="size-9"
+                                  onClick={() => isPendingAdd ? setPendingChanges(prev => ({ ...prev, toAdd: prev.toAdd.filter(id => id !== member.id) })) : handleAddMember(member.id)}
+                                >
+                                  <Plus className="size-4" />
+                                </Button>
+                              </div>
                             </div>
-                            <div className="text-sm text-muted-foreground truncate">
-                              {member.email}
-                            </div>
-                          </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleUndoAdd(member.id)}
-                            className="h-8 px-3 text-xs"
-                          >
-                            Cofnij
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
+                          )
+                        })}
+                      </div>
+                    ) : (
+                      <div className="text-sm text-muted-foreground py-8 text-center">
+                        Wszyscy dostępni członkowie są już przypisani do zespołów
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
+            </div>
 
-              {/* Footer */}
-              <div className="flex flex-row gap-2 items-center justify-between w-full p-6 pt-0 bg-background">
-                <Button 
-                  variant="outline"
-                  onClick={handleCloseSheet}
-                  className="h-9"
-                >
-                  Anuluj
-                </Button>
-                <Button 
-                  onClick={handleUpdateTeam}
-                  disabled={!hasChanges || loading}
-                  className="h-9"
-                >
-                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Zaktualizuj grupę
-                </Button>
-              </div>
+            {/* Footer */}
+            <div className="flex flex-row gap-2 items-center justify-between w-full p-6 pt-0 bg-background">
+              <Button
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                className="h-9"
+              >
+                Anuluj
+              </Button>
+              <Button
+                onClick={handleUpdateTeam}
+                disabled={!hasChanges || loading}
+                className="h-9"
+              >
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Zapisz zmiany
+              </Button>
             </div>
           </div>
-        </SheetContent>
-      </Sheet>
-
-      {/* Unsaved Changes Dialog */}
-      <Dialog open={showUnsavedDialog} onOpenChange={setShowUnsavedDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Niezapisane zmiany</DialogTitle>
-            <DialogDescription>
-              Masz niezapisane zmiany. Czy na pewno chcesz zamknąć panel bez ich zapisania?
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setShowUnsavedDialog(false)}
-            >
-              Pozostań
-            </Button>
-            <Button 
-              variant="destructive"
-              onClick={() => {
-                setShowUnsavedDialog(false)
-                setPendingChanges({ toAdd: [], toRemove: [] })
-                onOpenChange(false)
-              }}
-            >
-              Odrzuć zmiany
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+        </div>
+      </SheetContent>
+    </Sheet>
   )
-} 
+}

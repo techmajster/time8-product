@@ -29,53 +29,74 @@
   - [x] 3.10 Test manage members → refetch flow
   - [x] 3.11 Verify no page reloads occur (check browser network tab)
 
-- [ ] 4. Enhance Group Details Sheet with Member List
-  - [ ] 4.1 Create API endpoint /api/teams/[teamId]/members (GET)
-  - [ ] 4.2 Add authorization check (admin/owner only)
-  - [ ] 4.3 Fetch team members with user details
-  - [ ] 4.4 Add teamMembers state in AdminGroupsView
-  - [ ] 4.5 Add loadingMembers state
-  - [ ] 4.6 Create fetchTeamMembers function
-  - [ ] 4.7 Call fetchTeamMembers when sheet opens
-  - [ ] 4.8 Add "Członkowie grupy" section to details sheet
-  - [ ] 4.9 Render member list with avatars
-  - [ ] 4.10 Add role badges (Kierownik for manager, Pracownik for others)
-  - [ ] 4.11 Add loading state with Loader2 spinner
-  - [ ] 4.12 Add empty state for groups with no members
-  - [ ] 4.13 Match Figma spacing and layout exactly
-  - [ ] 4.14 Test with 0, 1, and 10+ members
+- [x] 4. Enhance Group Details Sheet with Member List
+  - [x] 4.1 Create API endpoint /api/teams/[teamId]/members (GET)
+  - [x] 4.2 Add authorization check (admin/owner only)
+  - [x] 4.3 Fetch team members with user details
+  - [x] 4.4 Add teamMembers state in AdminGroupsView
+  - [x] 4.5 Add loadingMembers state
+  - [x] 4.6 Create fetchTeamMembers function
+  - [x] 4.7 Call fetchTeamMembers when sheet opens
+  - [x] 4.8 Add "Członkowie grupy" section to details sheet
+  - [x] 4.9 Render member list with avatars
+  - [x] 4.10 Add role badges (Kierownik for manager, Pracownik for others)
+  - [x] 4.11 Add loading state with Loader2 spinner
+  - [x] 4.12 Add empty state for groups with no members
+  - [x] 4.13 Match Figma spacing and layout exactly
+  - [x] 4.14 Test with 0, 1, and 10+ members
 
-- [ ] 5. Update Delete Confirmation Dialog
-  - [ ] 5.1 Change DialogTitle to "Czy na pewno chcesz usunąć tę grupę?"
-  - [ ] 5.2 Update DialogDescription to "Użytkownicy z tej grupy nie będą przypisani do żadnej grupy"
-  - [ ] 5.3 Remove member count conditional text
-  - [ ] 5.4 Change cancel button text to "Zamknij"
-  - [ ] 5.5 Change delete button text to "Usuń"
-  - [ ] 5.6 Verify button order: Zamknij (outline) + Usuń (destructive)
-  - [ ] 5.7 Match Figma spacing and typography
+- [x] 5. Fix Group Management Data Fetching Logic
+  - [x] 5.1 Update page.tsx teamMembers query to remove role filter (remove `.in('role', ['manager', 'admin'])`)
+  - [x] 5.2 Add `team_id` to the select query in page.tsx
+  - [x] 5.3 Change teamMembers mapping to use actual team_id from database (change `team_id: null` to `team_id: userOrg.team_id`)
+  - [x] 5.4 Verify database integrity - check existing team members have correct team_id values
+  - [x] 5.5 Test group details sheet shows all members (not just 1)
+  - [x] 5.6 Test manage members sheet shows manager in "Członkowie grupy" table
+  - [x] 5.7 Test manage members sheet shows all available users in "Dostępni" table
+  - [x] 5.8 Test adding members persists correctly after save
+  - [x] 5.9 Test removing members persists correctly after save
 
-- [ ] 6. Update Edit Group Sheet
-  - [ ] 6.1 Change button text from "Zaktualizuj grupę" to "Zapisz grupę"
-  - [ ] 6.2 Verify footer layout matches Figma
-  - [ ] 6.3 Confirm button order: Usuń grupę (left) + Anuluj + Zapisz grupę (right)
-  - [ ] 6.4 Test edit flow with refetch
+- [x] 5a. Fix Navigation Flow Between Sheets
+  - [x] 5a.1 Add origin tracking state to track where manage members sheet was opened from
+  - [x] 5a.2 Update openMembersSheet to accept origin parameter ('table' | 'details')
+  - [x] 5a.3 Update table dropdown to call openMembersSheet with default 'table' origin
+  - [x] 5a.4 Update details sheet button to call openMembersSheet with 'details' origin
+  - [x] 5a.5 Implement conditional logic in onOpenChange to only re-open details sheet if origin was 'details'
+  - [x] 5a.6 Test navigation: opening from table should not redirect to details on close
+  - [x] 5a.7 Test navigation: opening from details should re-open details on close
+  - [x] 5a.8 Remove diagnostic logging
 
-- [ ] 7. Polish Add Group Sheet
-  - [ ] 7.1 Verify "Dodaj grupę" button text is correct
-  - [ ] 7.2 Confirm refetch integration works
-  - [ ] 7.3 Test create flow end-to-end
-  - [ ] 7.4 Match Figma spacing and layout
+- [ ] 6. Update Delete Confirmation Dialog
+  - [ ] 6.1 Change DialogTitle to "Czy na pewno chcesz usunąć tę grupę?"
+  - [ ] 6.2 Update DialogDescription to "Użytkownicy z tej grupy nie będą przypisani do żadnej grupy"
+  - [ ] 6.3 Remove member count conditional text
+  - [ ] 6.4 Change cancel button text to "Zamknij"
+  - [ ] 6.5 Change delete button text to "Usuń"
+  - [ ] 6.6 Verify button order: Zamknij (outline) + Usuń (destructive)
+  - [ ] 6.7 Match Figma spacing and typography
 
-- [ ] 8. End-to-End Testing and Verification
-  - [ ] 8.1 Test complete create flow: open sheet → fill form → submit → verify refetch
-  - [ ] 8.2 Test complete view flow: click row → see details → verify member list
-  - [ ] 8.3 Test complete edit flow: details → edit → save → verify refetch
-  - [ ] 8.4 Test complete delete flow: open dialog → confirm → verify refetch
-  - [ ] 8.5 Test manage members flow: open sheet → add/remove → save → verify refetch
-  - [ ] 8.6 Verify N+1 query fixed (check server logs for single query)
-  - [ ] 8.7 Test with null manager display
-  - [ ] 8.8 Test with empty group (no members)
-  - [ ] 8.9 Test with large group (10+ members, verify scroll)
-  - [ ] 8.10 Verify all sheets match Figma pixel-perfect
-  - [ ] 8.11 Test hover states and transitions
-  - [ ] 8.12 Verify no console errors or warnings
+- [ ] 7. Update Edit Group Sheet
+  - [ ] 7.1 Change button text from "Zaktualizuj grupę" to "Zapisz grupę"
+  - [ ] 7.2 Verify footer layout matches Figma
+  - [ ] 7.3 Confirm button order: Usuń grupę (left) + Anuluj + Zapisz grupę (right)
+  - [ ] 7.4 Test edit flow with refetch
+
+- [ ] 8. Polish Add Group Sheet
+  - [ ] 8.1 Verify "Dodaj grupę" button text is correct
+  - [ ] 8.2 Confirm refetch integration works
+  - [ ] 8.3 Test create flow end-to-end
+  - [ ] 8.4 Match Figma spacing and layout
+
+- [ ] 9. End-to-End Testing and Verification
+  - [ ] 9.1 Test complete create flow: open sheet → fill form → submit → verify refetch
+  - [ ] 9.2 Test complete view flow: click row → see details → verify member list
+  - [ ] 9.3 Test complete edit flow: details → edit → save → verify refetch
+  - [ ] 9.4 Test complete delete flow: open dialog → confirm → verify refetch
+  - [ ] 9.5 Test manage members flow: open sheet → add/remove → save → verify refetch
+  - [ ] 9.6 Verify N+1 query fixed (check server logs for single query)
+  - [ ] 9.7 Test with null manager display
+  - [ ] 9.8 Test with empty group (no members)
+  - [ ] 9.9 Test with large group (10+ members, verify scroll)
+  - [ ] 9.10 Verify all sheets match Figma pixel-perfect
+  - [ ] 9.11 Test hover states and transitions
+  - [ ] 9.12 Verify no console errors or warnings

@@ -2,6 +2,88 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { authenticateAndGetOrgContext, isManagerOrAdmin } from '@/lib/auth-utils-v2'
 
+// GET /api/teams/[id]/members - Get team members
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id: teamId } = await params
+    const auth = await authenticateAndGetOrgContext()
+    if (!auth.success) {
+      return auth.error
+    }
+
+    const { context } = auth
+    const { organization, role } = context
+    const organizationId = organization.id
+
+    // Only admins and owners can view team members
+    if (!['admin', 'owner'].includes(role)) {
+      return NextResponse.json(
+        { error: 'Forbidden' },
+        { status: 403 }
+      )
+    }
+
+    const supabase = await createClient()
+
+    // Fetch team members with user details
+    const { data: members, error } = await supabase
+      .from('user_organizations')
+      .select(`
+        user_id,
+        role,
+        team_id,
+        profiles!user_organizations_user_id_fkey (
+          id,
+          email,
+          full_name,
+          avatar_url
+        )
+      `)
+      .eq('team_id', teamId)
+      .eq('organization_id', organizationId)
+      .eq('is_active', true)
+
+    if (error) {
+      console.error('Error fetching team members:', error)
+      return NextResponse.json(
+        { error: error.message },
+        { status: 500 }
+      )
+    }
+
+    console.log('[API] Fetched members:', {
+      teamId,
+      count: members?.length,
+      members: members
+    })
+
+    // Transform data to match expected format
+    const transformedMembers = members?.map((m: any) => {
+      const profile = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles
+      return {
+        id: profile?.id,
+        email: profile?.email,
+        full_name: profile?.full_name,
+        avatar_url: profile?.avatar_url,
+        role: m.role
+      }
+    }) || []
+
+    console.log('[API] Transformed members:', transformedMembers.length)
+
+    return NextResponse.json({ members: transformedMembers })
+  } catch (error) {
+    console.error('Team members GET API error:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+
 // POST /api/teams/[id]/members - Add member to team
 export async function POST(
   request: NextRequest,
@@ -56,6 +138,7 @@ export async function POST(
       .eq('is_active', true)
       .select(`
         user_id,
+        team_id,
         profiles!user_organizations_user_id_fkey (
           id, full_name, email, role, avatar_url
         )

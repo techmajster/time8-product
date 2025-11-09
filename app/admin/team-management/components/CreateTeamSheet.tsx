@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Loader2, ChevronDownIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { refetchTeamManagement } from '@/lib/refetch-events'
@@ -126,41 +127,50 @@ export function CreateTeamSheet({ open, onOpenChange, teamMembers, onTeamCreated
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="create-description" className="text-sm font-medium">Opis grupy</Label>
+                  <Label htmlFor="create-description" className="text-sm font-medium">Opis</Label>
                   <Textarea
                     id="create-description"
                     value={formData.description}
                     onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="Opcjonalny opis grupy"
+                    placeholder="Wpisz"
                     className="min-h-[60px] resize-none"
                   />
                 </div>
                 
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">Wybierz managera grupy</Label>
+                  <Label className="text-sm font-medium">
+                    Kierownik grupy <span className="text-muted-foreground">(Opcjonalny)</span>
+                  </Label>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
                         variant="outline"
-                        className="w-full justify-between h-auto min-h-9 px-3 py-2"
+                        className="w-full justify-between h-12 px-3 py-2 border shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]"
                       >
                         {formData.manager_id && formData.manager_id !== 'none' ? (
                           (() => {
                             const selectedManager = potentialManagers.find(m => m.id === formData.manager_id)
                             return selectedManager ? (
                               <div className="flex items-center gap-2">
-                                <div className="w-6 h-6 bg-muted rounded-full flex items-center justify-center text-xs font-medium">
-                                  {selectedManager.full_name ? selectedManager.full_name.split(' ').map(n => n[0]).join('').toUpperCase() : selectedManager.email.charAt(0).toUpperCase()}
-                                </div>
-                                <div className="flex flex-col items-start">
-                                  <span className="font-medium text-sm">{selectedManager.full_name || selectedManager.email}</span>
-                                  <span className="text-xs text-muted-foreground">{selectedManager.email}</span>
+                                <Avatar className="size-8">
+                                  <AvatarImage src={selectedManager.avatar_url || undefined} />
+                                  <AvatarFallback className="text-sm font-normal">
+                                    {selectedManager.full_name ? selectedManager.full_name.split(' ').map(n => n[0]).join('').toUpperCase() : selectedManager.email.charAt(0).toUpperCase()}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="flex flex-col text-left">
+                                  <div className="text-sm font-medium text-foreground leading-5">
+                                    {selectedManager.full_name || selectedManager.email}
+                                  </div>
+                                  <div className="text-xs font-normal text-muted-foreground leading-4">
+                                    {selectedManager.email}
+                                  </div>
                                 </div>
                               </div>
                             ) : null
                           })()
                         ) : (
-                          <span className="text-muted-foreground">Wybierz managera grupy</span>
+                          <span className="text-muted-foreground">Wybierz</span>
                         )}
                         <ChevronDownIcon className="size-4 opacity-50" />
                       </Button>
@@ -170,8 +180,13 @@ export function CreateTeamSheet({ open, onOpenChange, teamMembers, onTeamCreated
                         onClick={() => setFormData(prev => ({ ...prev, manager_id: 'none' }))}
                         className="cursor-pointer"
                       >
-                        <div className="flex flex-col">
-                          <span className="font-medium">Brak przypisanego menedżera</span>
+                        <div className="flex items-center gap-2">
+                          <div className="size-8 bg-muted rounded-full flex items-center justify-center">
+                            <span className="text-xs text-muted-foreground">—</span>
+                          </div>
+                          <div className="flex flex-col">
+                            <div className="text-sm font-medium">Brak przypisanego menedżera</div>
+                          </div>
                         </div>
                       </DropdownMenuItem>
                       {potentialManagers.length > 0 && <DropdownMenuSeparator />}
@@ -182,12 +197,19 @@ export function CreateTeamSheet({ open, onOpenChange, teamMembers, onTeamCreated
                             className="cursor-pointer"
                           >
                             <div className="flex items-center gap-2">
-                              <div className="w-6 h-6 bg-muted rounded-full flex items-center justify-center text-xs font-medium">
-                                {manager.full_name ? manager.full_name.split(' ').map(n => n[0]).join('').toUpperCase() : manager.email.charAt(0).toUpperCase()}
-                              </div>
+                              <Avatar className="size-8">
+                                <AvatarImage src={manager.avatar_url || undefined} />
+                                <AvatarFallback className="text-sm font-normal">
+                                  {manager.full_name ? manager.full_name.split(' ').map(n => n[0]).join('').toUpperCase() : manager.email.charAt(0).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
                               <div className="flex flex-col">
-                                <span className="font-medium text-sm">{manager.full_name || manager.email}</span>
-                                <span className="text-xs text-muted-foreground">{manager.email}</span>
+                                <div className="text-sm font-medium text-foreground">
+                                  {manager.full_name || manager.email}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {manager.email}
+                                </div>
                               </div>
                             </div>
                           </DropdownMenuItem>
@@ -209,13 +231,13 @@ export function CreateTeamSheet({ open, onOpenChange, teamMembers, onTeamCreated
               >
                 Anuluj
               </Button>
-              <Button 
-                onClick={handleCreateTeam} 
+              <Button
+                onClick={handleCreateTeam}
                 disabled={loading || !formData.name.trim()}
                 className="h-9"
               >
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Utwórz grupę
+                Dodaj grupę
               </Button>
             </div>
           </div>
