@@ -89,14 +89,14 @@
 
 - [ ] 9. End-to-End Testing and Verification
   - [ ] 9.1 Test complete create flow: open sheet → fill form → submit → verify refetch
-  - [ ] 9.2 Test complete view flow: click row → see details → verify member list
+  - [x] 9.2 Test complete view flow: click row → see details → verify member list
   - [ ] 9.3 Test complete edit flow: details → edit → save → verify refetch
   - [ ] 9.4 Test complete delete flow: open dialog → confirm → verify refetch
-  - [ ] 9.5 Test manage members flow: open sheet → add/remove → save → verify refetch
-  - [ ] 9.6 Verify N+1 query fixed (check server logs for single query)
-  - [ ] 9.7 Test with null manager display
-  - [ ] 9.8 Test with empty group (no members)
+  - [x] 9.5 Test manage members flow: open sheet → add/remove → save → verify refetch
+  - [x] 9.6 Verify N+1 query fixed (check server logs for single query)
+  - [x] 9.7 Test with null manager display
+  - [x] 9.8 Test with empty group (no members)
   - [ ] 9.9 Test with large group (10+ members, verify scroll)
-  - [ ] 9.10 Verify all sheets match Figma pixel-perfect
+  - [x] 9.10 Verify all sheets match Figma pixel-perfect
   - [ ] 9.11 Test hover states and transitions
   - [ ] 9.12 Verify no console errors or warnings
