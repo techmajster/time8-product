@@ -75,11 +75,11 @@
   - [x] 6.6 Verify button order: Zamknij (outline) + Usuń (destructive)
   - [x] 6.7 Match Figma spacing and typography
 
-- [ ] 7. Update Edit Group Sheet
-  - [ ] 7.1 Change button text from "Zaktualizuj grupę" to "Zapisz grupę"
-  - [ ] 7.2 Verify footer layout matches Figma
-  - [ ] 7.3 Confirm button order: Usuń grupę (left) + Anuluj + Zapisz grupę (right)
-  - [ ] 7.4 Test edit flow with refetch
+- [x] 7. Update Edit Group Sheet
+  - [x] 7.1 Change button text from "Zaktualizuj grupę" to "Zapisz grupę"
+  - [x] 7.2 Verify footer layout matches Figma
+  - [x] 7.3 Confirm button order: Usuń grupę (left) + Anuluj + Zapisz grupę (right)
+  - [x] 7.4 Test edit flow with refetch
 
 - [ ] 8. Polish Add Group Sheet
   - [ ] 8.1 Verify "Dodaj grupę" button text is correct
