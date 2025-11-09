@@ -66,14 +66,14 @@
   - [x] 5a.7 Test navigation: opening from details should re-open details on close
   - [x] 5a.8 Remove diagnostic logging
 
-- [ ] 6. Update Delete Confirmation Dialog
-  - [ ] 6.1 Change DialogTitle to "Czy na pewno chcesz usunąć tę grupę?"
-  - [ ] 6.2 Update DialogDescription to "Użytkownicy z tej grupy nie będą przypisani do żadnej grupy"
-  - [ ] 6.3 Remove member count conditional text
-  - [ ] 6.4 Change cancel button text to "Zamknij"
-  - [ ] 6.5 Change delete button text to "Usuń"
-  - [ ] 6.6 Verify button order: Zamknij (outline) + Usuń (destructive)
-  - [ ] 6.7 Match Figma spacing and typography
+- [x] 6. Update Delete Confirmation Dialog
+  - [x] 6.1 Change DialogTitle to "Czy na pewno chcesz usunąć tę grupę?"
+  - [x] 6.2 Update DialogDescription to "Użytkownicy z tej grupy nie będą przypisani do żadnej grupy"
+  - [x] 6.3 Remove member count conditional text
+  - [x] 6.4 Change cancel button text to "Zamknij"
+  - [x] 6.5 Change delete button text to "Usuń"
+  - [x] 6.6 Verify button order: Zamknij (outline) + Usuń (destructive)
+  - [x] 6.7 Match Figma spacing and typography
 
 - [ ] 7. Update Edit Group Sheet
   - [ ] 7.1 Change button text from "Zaktualizuj grupę" to "Zapisz grupę"
