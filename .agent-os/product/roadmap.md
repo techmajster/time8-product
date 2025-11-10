@@ -20,8 +20,10 @@
 - [Phase 2.15: Bilingual Translation](#phase-215-complete-bilingual-translation-coverage-) - Complete PL/EN coverage 📋
 - [Phase 2.16: Dark Mode Fixes](#phase-216-dark-mode-styling-fixes-) - Theme consistency (Nov 6) ✅
 - [Phase 2.17: Team Management Redesign](#phase-217-team-management-interface-redesign-) - Tabs, sheets, dialogs per Figma 📋
+- [Phase 2.18: Invite Users Dialog](#phase-218-invite-users-dialog-with-seat-visualization--lemonsqueezy-integration) - Seat visualization with LemonSqueezy 📋
 
 ### 🎯 Active Phases
+- [Phase 2.19: Pricing & Seat Calculation Fix](#phase-219-lemonsqueezy-pricing--seat-calculation-fix-) - Fix critical billing issues 🔧
 - [Phase 3: Design System](#phase-3-design-system-implementation-) - Figma integration & UI overhaul
 
 ### 📋 Planned Phases
@@ -2191,6 +2193,106 @@ components/admin/invite-users/
 - Part 1 (Page Redesign): 9 hours
 - Part 2 (Edit Sheet): 5.75 hours
 - Part 3 (Testing): 4 hours
+
+---
+
+## Phase 2.19: LemonSqueezy Pricing & Seat Calculation Fix 🔧
+
+**Goal:** Fix critical pricing fetch failures and seat calculation inconsistencies across admin and onboarding pages
+
+**Success Criteria:**
+- Correct pricing fetched from LemonSqueezy (10 PLN monthly, 96 PLN yearly for graduated tier 4+)
+- Clear distinction between "free tier seats (3)" vs "available empty seats"
+- Accurate seat counts displayed across all pages
+- Free tier shows "X/3 free seats used", paid tier shows "X/Y seats used (3 free + Z paid)"
+
+**Status:** Planned
+
+**Priority:** Critical - Affects billing accuracy and user experience
+
+**Affected Pages:**
+- Admin Team Management
+- Admin Settings (Billing Tab)
+- Onboarding Add Users
+- Invite Users Dialog
+
+### Features
+
+- [ ] **Fix Pricing API Fetch** - Replace deprecated SDK function with REST API `M`
+  - Replace deprecated `fetchVariantPricing()` with `getVariantPrice()` in `getDynamicPricing()`
+  - Ensure graduated pricing tiers (10 PLN, 96 PLN) are fetched correctly from LemonSqueezy API
+  - Remove or deprecate old SDK-based fetch function
+  - Verify API calls succeed and return correct tier 4+ pricing
+
+- [ ] **Fix Seat Calculation API Response** - Clear terminology for seat types `S`
+  - Rename confusing `freeSeats` field to `availableSeats` in seat-info API response
+  - Add explicit `freeTierSeats: 3` field for clarity
+  - Document distinction between "tier threshold" vs "empty seats"
+  - Update TypeScript interfaces for seat info
+
+- [ ] **Update Invite Users Dialog** - Correct seat display and fallbacks `S`
+  - Use `availableSeats` instead of confusing `freeSeats` terminology
+  - Fix hardcoded fallback pricing (10.99 EUR → 10.00 PLN)
+  - Update display text: "Masz X/Y wolnych miejsc w Twoim planie"
+  - Handle API failures gracefully with correct fallbacks
+
+- [ ] **Fix Admin Settings Billing Tab** - Proper free tier handling `M`
+  - Fix free tier display (remove "3 total seats" cap)
+  - Show "X/3 free seats used" for free tier orgs
+  - Show "X/Y seats used (3 free + Z paid)" for paid tier orgs
+  - Update seat usage calculation logic
+
+- [ ] **Update Team Management Component** - Adapt to corrected API `S`
+  - Adapt to corrected API field names (`availableSeats` vs `freeSeats`)
+  - Ensure seat counts match billing reality
+  - Test with free and paid tier scenarios
+
+- [ ] **Update Environment Variables** - Fix fallback pricing `XS`
+  - Fix `.env.example` fallback prices: 12.99 → 10.00, 10.83 → 8.00
+  - Document graduated pricing model in comments
+  - Ensure consistency across all env files
+
+- [ ] **Add Graduated Pricing Explanation** - User education `S`
+  - Add help tooltips explaining "First 3 seats FREE, 4+ users pay for ALL seats"
+  - Show pricing examples in UI
+  - Update onboarding messaging
+
+- [ ] **Comprehensive Testing** - Verify all scenarios `M`
+  - Test free tier (0-3 users): pricing and seat display
+  - Test paid tier (4+ users): correct billing for ALL seats
+  - Test pending invitations counting
+  - Test users marked for removal handling
+  - Verify all 4 affected pages show consistent data
+
+### Dependencies
+- Phase 2.6 (Subscription Enhancement) ✅
+- Phase 2.11 (Seat Management) ✅
+- Phase 2.18 (Invite Users Dialog) ✅
+
+### Technical Details
+
+**Root Causes:**
+1. `getDynamicPricing()` uses deprecated SDK function instead of REST API
+2. API response field `freeSeats` conflates two concepts (tier threshold vs empty seats)
+3. Free tier calculation incorrectly caps at 3 total seats instead of showing 3 free seats
+4. Hardcoded fallback values don't match actual LemonSqueezy pricing
+
+**Files to Modify:**
+- `lib/lemon-squeezy/pricing.ts`
+- `app/api/organizations/[organizationId]/seat-info/route.ts`
+- `components/invitations/invite-users-dialog.tsx`
+- `app/admin/settings/components/AdminSettingsClient.tsx`
+- `app/admin/team-management/components/TeamManagementClient.tsx`
+- `.env.example`
+
+**Estimated Effort:** ~8-10 hours (1-2 days) - MEDIUM effort
+
+**Breakdown:**
+- Pricing API fix: 2 hours
+- Seat calculation API: 1.5 hours
+- Component updates: 3 hours
+- Environment variables: 0.5 hour
+- Testing: 2-3 hours
 
 ---
 
