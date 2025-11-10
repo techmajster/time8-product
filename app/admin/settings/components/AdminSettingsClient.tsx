@@ -614,16 +614,17 @@ export default function AdminSettingsClient({
     if (!subscriptionData?.seat_info) {
       // Free tier calculation
       const currentEmployees = users.length || 0
-      const freeSeats = 3
+      const FREE_TIER_LIMIT = 3  // Maximum users for free tier
       return {
         used: currentEmployees,
-        total: freeSeats,
-        remaining: Math.max(0, freeSeats - currentEmployees),
-        percentage: Math.min(100, (currentEmployees / freeSeats) * 100),
-        freeSeats,
+        total: FREE_TIER_LIMIT,  // Free tier allows up to 3 users
+        remaining: Math.max(0, FREE_TIER_LIMIT - currentEmployees),
+        percentage: Math.min(100, (currentEmployees / FREE_TIER_LIMIT) * 100),
+        freeTierSeats: FREE_TIER_LIMIT,  // Tier threshold
         paidSeats: 0,
         pendingInvitations: 0,
-        activeMembers: currentEmployees
+        activeMembers: currentEmployees,
+        isFreeTier: true  // Flag to help with conditional rendering
       }
     }
 
@@ -631,7 +632,7 @@ export default function AdminSettingsClient({
       total_seats,
       current_employees,
       seats_remaining,
-      free_seats,
+      free_tier_seats = 3,  // New field from API
       paid_seats,
       pending_invitations = 0
     } = subscriptionData.seat_info
@@ -644,10 +645,11 @@ export default function AdminSettingsClient({
       total: total_seats,
       remaining: seats_remaining,
       percentage: Math.min(100, (totalUsed / total_seats) * 100),
-      freeSeats: free_seats,
+      freeTierSeats: free_tier_seats,  // Tier threshold (always 3)
       paidSeats: paid_seats,
       pendingInvitations: pending_invitations,
-      activeMembers: current_employees
+      activeMembers: current_employees,
+      isFreeTier: false
     }
   }
 
@@ -1675,11 +1677,13 @@ export default function AdminSettingsClient({
           />
 
           {/* Archived Users Section */}
-          <ArchivedUsersSection
-            users={archivedUsers}
-            onReactivate={handleReactivateUser}
-            className="mt-6"
-          />
+          <div className="mt-6">
+            <ArchivedUsersSection
+              users={archivedUsers}
+              teams={teams}
+              onReactivate={handleReactivateUser}
+            />
+          </div>
 
         </FigmaTabsContent>
 

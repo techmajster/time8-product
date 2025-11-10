@@ -100,9 +100,11 @@ export async function getVariantPrice(variantId: string): Promise<{
 
 /**
  * Fetch variant pricing from Lemon Squeezy API
- * @deprecated Use getVariantPrice() for more detailed information
+ * @deprecated Use getVariantPrice() for more detailed information. This function uses
+ * the old SDK which doesn't properly fetch graduated pricing tiers.
  */
 async function fetchVariantPricing(variantId: string) {
+  console.warn('fetchVariantPricing() is deprecated. Use getVariantPrice() instead.')
   try {
     initializeLemonSqueezy()
     const variant = await getVariant(variantId)
@@ -127,6 +129,7 @@ async function fetchVariantPricing(variantId: string) {
 
 /**
  * Get dynamic pricing information from Lemon Squeezy
+ * Uses REST API directly to fetch graduated pricing tiers
  */
 export async function getDynamicPricing(): Promise<PricingInfo> {
   const monthlyVariantId = process.env.LEMONSQUEEZY_MONTHLY_VARIANT_ID!
@@ -136,10 +139,10 @@ export async function getDynamicPricing(): Promise<PricingInfo> {
   console.log('   Monthly variant:', monthlyVariantId)
   console.log('   Yearly variant:', yearlyVariantId)
 
-  // Fetch pricing for both variants
+  // Fetch pricing for both variants using REST API (correctly handles graduated pricing)
   const [monthlyPricing, yearlyPricing] = await Promise.all([
-    fetchVariantPricing(monthlyVariantId),
-    fetchVariantPricing(yearlyVariantId)
+    getVariantPrice(monthlyVariantId),
+    getVariantPrice(yearlyVariantId)
   ])
 
   console.log('📊 API Response:', {
@@ -162,7 +165,7 @@ export async function getDynamicPricing(): Promise<PricingInfo> {
     return fallbackPricing
   }
 
-  console.log('✅ Using LemonSqueezy API pricing')
+  console.log('✅ Using LemonSqueezy API pricing (graduated tier 4+ prices)')
 
   return {
     monthlyPricePerSeat: monthlyPricing.price,
