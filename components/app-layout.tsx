@@ -131,11 +131,10 @@ export async function AppLayout({ children }: AppLayoutProps) {
           user_id,
           role,
           team_id,
-          profiles!inner(id, email, full_name, avatar_url)
+          profiles!user_organizations_user_id_fkey(id, email, full_name, avatar_url)
         `)
         .eq('organization_id', profile.organization_id)
         .eq('is_active', true)
-        .order('profiles(full_name)', { ascending: true })
 
       // Filter based on role
       if (profile.role === 'manager') {
@@ -157,17 +156,24 @@ export async function AppLayout({ children }: AppLayoutProps) {
           employeesQuery = employeesQuery.eq('user_id', user.id)
         }
       } else if (profile.role === 'admin') {
-        // Admins see everyone except themselves
-        employeesQuery = employeesQuery.neq('user_id', user.id)
+        // Admins can see everyone (including themselves to add their own absences)
+        // No filter needed - they see all users in the organization
       }
 
-      const { data: employeesData } = await employeesQuery
+
+      const { data: employeesData, error: employeesError } = await employeesQuery
+      
+      if (employeesError) {
+        console.error('❌ app-layout.tsx - Error loading employees:', employeesError)
+      }
       
       console.log('🔍 app-layout.tsx - Preloading employees:', {
         hasManagerAccess,
         userRole: profile.role,
         userId: user.id,
+        organizationId: profile.organization_id,
         employeesCount: employeesData?.length,
+        error: employeesError,
         employeesData
       })
       
@@ -182,6 +188,11 @@ export async function AppLayout({ children }: AppLayoutProps) {
           role: item.role,
           team_id: item.team_id
         }
+      }).sort((a, b) => {
+        // Sort by full_name alphabetically
+        const nameA = a.full_name?.toLowerCase() || ''
+        const nameB = b.full_name?.toLowerCase() || ''
+        return nameA.localeCompare(nameB)
       }) || []
     }
   }
