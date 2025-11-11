@@ -98,6 +98,7 @@ export async function validateWebhookRequest(
     // Check webhook secret configuration
     const webhookSecret = process.env.LEMONSQUEEZY_WEBHOOK_SECRET;
     if (!webhookSecret) {
+      console.error('🔒 [Webhook Validation] Failed: Webhook secret not configured');
       return {
         isValid: false,
         error: 'Webhook secret not configured'
@@ -105,8 +106,19 @@ export async function validateWebhookRequest(
     }
 
     // Extract signature from header
+    const rawSignatureHeader = request.headers.get('X-Signature') || request.headers.get('x-signature');
     const signature = extractSignatureFromHeader(request);
+
+    console.log('🔍 [Webhook Validation] Signature check:', {
+      rawHeader: rawSignatureHeader,
+      extractedSignature: signature ? `${signature.substring(0, 10)}...` : null,
+      hasSignature: !!signature
+    });
+
     if (!signature) {
+      console.error('🔒 [Webhook Validation] Failed: Missing or malformed webhook signature', {
+        rawHeader: rawSignatureHeader
+      });
       return {
         isValid: false,
         error: 'Missing webhook signature'
@@ -115,10 +127,27 @@ export async function validateWebhookRequest(
 
     // Get request body
     const body = await request.text();
-    
+
+    console.log('📦 [Webhook Validation] Body received:', {
+      bodyLength: body.length,
+      bodyPreview: body.substring(0, 100)
+    });
+
     // Verify signature
     const isSignatureValid = verifyWebhookSignature(body, signature, webhookSecret);
+
+    console.log('🔐 [Webhook Validation] Signature verification:', {
+      isValid: isSignatureValid,
+      signatureLength: signature.length,
+      secretConfigured: !!webhookSecret,
+      secretLength: webhookSecret.length
+    });
+
     if (!isSignatureValid) {
+      console.error('🔒 [Webhook Validation] Failed: Invalid webhook signature', {
+        receivedSignature: `${signature.substring(0, 10)}...`,
+        bodyLength: body.length
+      });
       return {
         isValid: false,
         error: 'Invalid webhook signature'
@@ -130,19 +159,38 @@ export async function validateWebhookRequest(
     try {
       payload = JSON.parse(body);
     } catch (error) {
+      console.error('🔒 [Webhook Validation] Failed: Invalid JSON payload', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        bodyPreview: body.substring(0, 200)
+      });
       return {
         isValid: false,
         error: 'Invalid JSON payload'
       };
     }
 
+    console.log('📋 [Webhook Validation] Parsed payload:', {
+      eventName: payload?.meta?.event_name,
+      subscriptionId: payload?.data?.id,
+      testMode: payload?.meta?.test_mode
+    });
+
     // Validate timestamp if present
     if (!validateWebhookTimestamp(payload)) {
+      console.error('🔒 [Webhook Validation] Failed: Webhook timestamp too old', {
+        timestamp: payload?.meta?.timestamp,
+        now: Date.now()
+      });
       return {
         isValid: false,
         error: 'Webhook timestamp too old (possible replay attack)'
       };
     }
+
+    console.log('✅ [Webhook Validation] Success:', {
+      eventName: payload?.meta?.event_name,
+      subscriptionId: payload?.data?.id
+    });
 
     return {
       isValid: true,
@@ -150,7 +198,7 @@ export async function validateWebhookRequest(
     };
 
   } catch (error) {
-    console.error('Webhook validation error:', error);
+    console.error('❌ [Webhook Validation] Exception:', error);
     return {
       isValid: false,
       error: `Validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`

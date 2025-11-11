@@ -150,6 +150,7 @@ describe('Webhook Subscription Event Processing', () => {
   describe('subscription.created event', () => {
 
     it('should create new subscription and customer records', async () => {
+      const organizationId = 'test-org-id';
       // Mock customer lookup (not found)
       mockSupabaseSingle.mockResolvedValueOnce({
         data: null,
@@ -185,6 +186,7 @@ describe('Webhook Subscription Event Processing', () => {
     });
 
     it('should use existing customer if found', async () => {
+      const organizationId = 'test-org-id';
       // Mock existing customer found
       mockSupabaseSingle.mockResolvedValueOnce({
         data: testCustomerData,
@@ -213,19 +215,54 @@ describe('Webhook Subscription Event Processing', () => {
       // Mock existing customer
       mockSupabaseSingle
         .mockResolvedValueOnce({ data: testCustomerData, error: null })
-        .mockResolvedValueOnce({ 
-          data: { id: 'subscription-id', quantity: 5 }, 
-          error: null 
+        .mockResolvedValueOnce({
+          data: { id: 'subscription-id', quantity: 5 },
+          error: null
         });
 
       const { processSubscriptionCreated } = await import('@/app/api/webhooks/lemonsqueezy/handlers');
-      
+
       await processSubscriptionCreated(mockSubscriptionCreatedPayload);
-      
+
       // Should update organization with paid_seats = quantity
       expect(mockSupabaseUpdate).toHaveBeenCalledWith({
         paid_seats: 5
       });
+    });
+
+    it('should set current_seats equal to quantity for new subscriptions', async () => {
+      // Mock existing customer found
+      mockSupabaseSingle.mockResolvedValueOnce({
+        data: testCustomerData,
+        error: null
+      });
+
+      // Mock successful subscription creation
+      mockSupabaseSingle.mockResolvedValueOnce({
+        data: {
+          id: 'new-subscription-id',
+          organization_id: testCustomerData.organization_id,
+          customer_id: testCustomerData.id,
+          quantity: 5,
+          current_seats: 5  // Should be set on creation
+        },
+        error: null
+      });
+
+      const { processSubscriptionCreated } = await import('@/app/api/webhooks/lemonsqueezy/handlers');
+
+      const result = await processSubscriptionCreated(mockSubscriptionCreatedPayload);
+
+      expect(result.success).toBe(true);
+
+      // Verify that insert was called with current_seats
+      expect(mockSupabaseInsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          organization_id: testCustomerData.organization_id,
+          quantity: 5,
+          current_seats: 5  // Must be set for immediate access
+        })
+      );
     });
 
     it('should handle database errors gracefully', async () => {
@@ -266,11 +303,8 @@ describe('Webhook Subscription Event Processing', () => {
   });
 
   describe('subscription.updated event', () => {
-    beforeEach(async () => {
-      organizationId = await createTestOrganization('Test Billing Org Updated');
-    });
-
     it('should update existing subscription', async () => {
+      const organizationId = 'test-org-id';
       // Mock existing subscription found
       mockSupabaseSingle.mockResolvedValueOnce({
         data: {
@@ -294,11 +328,13 @@ describe('Webhook Subscription Event Processing', () => {
       const { processSubscriptionUpdated } = await import('@/app/api/webhooks/lemonsqueezy/handlers');
       
       const result = await processSubscriptionUpdated(mockSubscriptionUpdatedPayload);
-      
+
       expect(result.success).toBe(true);
       expect(mockSupabaseUpdate).toHaveBeenCalledWith({
         status: 'active',
         quantity: 8,
+        current_seats: 8,  // Should sync current_seats with quantity
+        lemonsqueezy_variant_id: 11111,
         renews_at: '2025-01-01T00:00:00Z',
         ends_at: null,
         trial_ends_at: null,
@@ -307,6 +343,7 @@ describe('Webhook Subscription Event Processing', () => {
     });
 
     it('should update organization paid_seats when quantity changes', async () => {
+      const organizationId = 'test-org-id';
       // Mock existing subscription
       mockSupabaseSingle.mockResolvedValueOnce({
         data: {
@@ -348,6 +385,7 @@ describe('Webhook Subscription Event Processing', () => {
     });
 
     it('should handle status changes correctly', async () => {
+      const organizationId = 'test-org-id';
       const pausedPayload = {
         ...mockSubscriptionUpdatedPayload,
         data: {
@@ -370,22 +408,281 @@ describe('Webhook Subscription Event Processing', () => {
       });
 
       const { processSubscriptionUpdated } = await import('@/app/api/webhooks/lemonsqueezy/handlers');
-      
+
       const result = await processSubscriptionUpdated(pausedPayload);
-      
+
       expect(result.success).toBe(true);
       expect(mockSupabaseUpdate).toHaveBeenCalledWith(
         expect.objectContaining({ status: 'paused' })
       );
     });
+
+    it('should always sync current_seats with quantity on manual LemonSqueezy updates', async () => {
+      // Scenario: Admin manually changes quantity from 9 to 7 in LemonSqueezy dashboard
+      // This update should immediately sync to the app
+      const organizationId = 'test-org-id';
+
+      const manualUpdatePayload = {
+        meta: {
+          event_name: 'subscription_updated',
+          event_id: 'evt_manual_update_001'
+        },
+        data: {
+          id: '12345',
+          type: 'subscriptions',
+          attributes: {
+            status: 'active',
+            quantity: 7,  // Manually changed in dashboard
+            renews_at: '2025-01-01T00:00:00Z',
+            ends_at: null,
+            trial_ends_at: null,
+            customer_id: 67890,
+            variant_id: 11111
+          }
+        }
+      };
+
+      // Mock existing subscription with different quantity
+      mockSupabaseSingle.mockResolvedValueOnce({
+        data: {
+          id: 'subscription-id',
+          organization_id: organizationId,
+          lemonsqueezy_subscription_id: '12345',
+          quantity: 9,  // Old quantity
+          current_seats: 9,  // Old current_seats
+          lemonsqueezy_variant_id: 11111
+        },
+        error: null
+      });
+
+      // Mock successful update
+      mockSupabaseSelect.mockResolvedValueOnce({
+        data: [{
+          id: 'subscription-id',
+          quantity: 7,
+          current_seats: 7
+        }],
+        error: null
+      });
+
+      const { processSubscriptionUpdated } = await import('@/app/api/webhooks/lemonsqueezy/handlers');
+
+      const result = await processSubscriptionUpdated(manualUpdatePayload);
+
+      expect(result.success).toBe(true);
+
+      // Verify subscription was updated with synced current_seats
+      expect(mockSupabaseUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          quantity: 7,
+          current_seats: 7,  // Should ALWAYS sync with quantity
+          status: 'active'
+        })
+      );
+
+      // Verify organization paid_seats was updated
+      expect(mockSupabaseFrom).toHaveBeenCalledWith('organizations');
+      expect(mockSupabaseUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({ paid_seats: 7 })
+      );
+    });
+
+    it('should update organization even when only variant changes (not quantity)', async () => {
+      // Scenario: Admin changes from monthly to yearly plan with same seat count
+      // This should still update organization to recalculate paid_seats
+      const organizationId = 'test-org-id';
+
+      const variantChangePayload = {
+        meta: {
+          event_name: 'subscription_updated',
+          event_id: 'evt_variant_change_001'
+        },
+        data: {
+          id: '12345',
+          type: 'subscriptions',
+          attributes: {
+            status: 'active',
+            quantity: 5,  // Same quantity
+            renews_at: '2026-01-01T00:00:00Z',  // New renewal date (yearly)
+            ends_at: null,
+            trial_ends_at: null,
+            customer_id: 67890,
+            variant_id: 22222  // Changed variant
+          }
+        }
+      };
+
+      // Mock existing subscription with different variant
+      mockSupabaseSingle.mockResolvedValueOnce({
+        data: {
+          id: 'subscription-id',
+          organization_id: organizationId,
+          lemonsqueezy_subscription_id: '12345',
+          quantity: 5,  // Same quantity
+          current_seats: 5,
+          lemonsqueezy_variant_id: 11111  // Old variant
+        },
+        error: null
+      });
+
+      // Mock successful update
+      mockSupabaseSelect.mockResolvedValueOnce({
+        data: [{
+          id: 'subscription-id',
+          lemonsqueezy_variant_id: 22222
+        }],
+        error: null
+      });
+
+      const { processSubscriptionUpdated } = await import('@/app/api/webhooks/lemonsqueezy/handlers');
+
+      const result = await processSubscriptionUpdated(variantChangePayload);
+
+      expect(result.success).toBe(true);
+
+      // Verify organization paid_seats was updated even though quantity didn't change
+      expect(mockSupabaseFrom).toHaveBeenCalledWith('organizations');
+      expect(mockSupabaseUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({ paid_seats: 5 })
+      );
+    });
+
+    it('should update organization even when only dates change (not quantity or variant)', async () => {
+      // Scenario: Subscription renews with no changes - only renews_at date updates
+      // This should STILL update organization to ensure sync
+      const organizationId = 'test-org-id';
+
+      const dateOnlyChangePayload = {
+        meta: {
+          event_name: 'subscription_updated',
+          event_id: 'evt_date_change_001'
+        },
+        data: {
+          id: '12345',
+          type: 'subscriptions',
+          attributes: {
+            status: 'active',
+            quantity: 5,  // Same
+            renews_at: '2025-02-01T00:00:00Z',  // Only this changed
+            ends_at: null,
+            trial_ends_at: null,
+            customer_id: 67890,
+            variant_id: 11111  // Same
+          }
+        }
+      };
+
+      // Mock existing subscription - only date different
+      mockSupabaseSingle.mockResolvedValueOnce({
+        data: {
+          id: 'subscription-id',
+          organization_id: organizationId,
+          lemonsqueezy_subscription_id: '12345',
+          quantity: 5,
+          current_seats: 5,
+          lemonsqueezy_variant_id: 11111,
+          renews_at: '2025-01-01T00:00:00Z'  // Old date
+        },
+        error: null
+      });
+
+      // Mock successful update
+      mockSupabaseSelect.mockResolvedValueOnce({
+        data: [{
+          id: 'subscription-id',
+          renews_at: '2025-02-01T00:00:00Z'
+        }],
+        error: null
+      });
+
+      const { processSubscriptionUpdated } = await import('@/app/api/webhooks/lemonsqueezy/handlers');
+
+      const result = await processSubscriptionUpdated(dateOnlyChangePayload);
+
+      expect(result.success).toBe(true);
+
+      // Verify organization was STILL updated (no conditional logic)
+      expect(mockSupabaseFrom).toHaveBeenCalledWith('organizations');
+      expect(mockSupabaseUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          paid_seats: 5,
+          subscription_tier: 'active'
+        })
+      );
+    });
+
+    it('should always sync current_seats even for zero quantity subscriptions', async () => {
+      // Edge case: Subscription exists but quantity is 0 (cancelled but not deleted)
+      const organizationId = 'test-org-id';
+      const zeroQuantityPayload = {
+        meta: {
+          event_name: 'subscription_updated',
+          event_id: 'evt_zero_qty_001'
+        },
+        data: {
+          id: '12345',
+          type: 'subscriptions',
+          attributes: {
+            status: 'active',
+            quantity: 0,
+            renews_at: null,
+            ends_at: null,
+            trial_ends_at: null,
+            customer_id: 67890,
+            variant_id: 11111
+          }
+        }
+      };
+
+      mockSupabaseSingle.mockResolvedValueOnce({
+        data: {
+          id: 'subscription-id',
+          organization_id: organizationId,
+          lemonsqueezy_subscription_id: '12345',
+          quantity: 5,
+          current_seats: 5,
+          lemonsqueezy_variant_id: 11111
+        },
+        error: null
+      });
+
+      mockSupabaseSelect.mockResolvedValueOnce({
+        data: [{
+          id: 'subscription-id',
+          quantity: 0,
+          current_seats: 0
+        }],
+        error: null
+      });
+
+      const { processSubscriptionUpdated } = await import('@/app/api/webhooks/lemonsqueezy/handlers');
+
+      const result = await processSubscriptionUpdated(zeroQuantityPayload);
+
+      expect(result.success).toBe(true);
+
+      // Verify current_seats synced to 0
+      expect(mockSupabaseUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          quantity: 0,
+          current_seats: 0,
+          status: 'active'
+        })
+      );
+
+      // Verify organization set to free tier
+      expect(mockSupabaseUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          paid_seats: 0,
+          subscription_tier: 'free'
+        })
+      );
+    });
   });
 
   describe('subscription.cancelled event', () => {
-    beforeEach(async () => {
-      organizationId = await createTestOrganization('Test Billing Org Cancelled');
-    });
-
     it('should cancel subscription and reset paid_seats to 0', async () => {
+      const organizationId = 'test-org-id';
       // Mock existing subscription
       mockSupabaseSingle.mockResolvedValueOnce({
         data: {
@@ -412,9 +709,11 @@ describe('Webhook Subscription Event Processing', () => {
       
       expect(result.success).toBe(true);
       
-      // Should update subscription status
+      // Should update subscription status and reset seats to 0
       expect(mockSupabaseUpdate).toHaveBeenCalledWith({
         status: 'cancelled',
+        quantity: 0,              // Reset to 0
+        current_seats: 0,         // Reset to 0
         ends_at: '2024-12-31T23:59:59Z',
         renews_at: null,
         updated_at: expect.any(String)
@@ -426,6 +725,7 @@ describe('Webhook Subscription Event Processing', () => {
     });
 
     it('should handle subscription at end of billing period', async () => {
+      const organizationId = 'test-org-id';
       const endedPayload = {
         ...mockSubscriptionCancelledPayload,
         data: {
@@ -458,6 +758,7 @@ describe('Webhook Subscription Event Processing', () => {
     });
 
     it('should handle already cancelled subscription', async () => {
+      const organizationId = 'test-org-id';
       // Mock subscription already cancelled
       mockSupabaseSingle.mockResolvedValueOnce({
         data: {
@@ -479,13 +780,11 @@ describe('Webhook Subscription Event Processing', () => {
 
   describe('Event Logging', () => {
     it('should log successful events', async () => {
-      organizationId = await createTestOrganization('Test Logging Org');
-      
       mockSupabaseSingle
         .mockResolvedValueOnce({ data: testCustomerData, error: null })
-        .mockResolvedValueOnce({ 
-          data: { id: 'subscription-id' }, 
-          error: null 
+        .mockResolvedValueOnce({
+          data: { id: 'subscription-id' },
+          error: null
         });
 
       const { processSubscriptionCreated } = await import('@/app/api/webhooks/lemonsqueezy/handlers');
@@ -613,11 +912,8 @@ describe('Webhook Subscription Event Processing', () => {
       }
     };
 
-    beforeEach(async () => {
-      organizationId = await createTestOrganization('Test Payment Failed Org');
-    });
-
     it('should process payment_failed event and update subscription status', async () => {
+      const organizationId = 'test-org-id';
       // Mock existing subscription found
       mockSupabaseSingle.mockResolvedValueOnce({
         data: {
@@ -699,11 +995,8 @@ describe('Webhook Subscription Event Processing', () => {
       }
     };
 
-    beforeEach(async () => {
-      organizationId = await createTestOrganization('Test Paused Org');
-    });
-
     it('should process paused event and update subscription status', async () => {
+      const organizationId = 'test-org-id';
       // Mock existing subscription found
       mockSupabaseSingle.mockResolvedValueOnce({
         data: {
@@ -771,11 +1064,8 @@ describe('Webhook Subscription Event Processing', () => {
       }
     };
 
-    beforeEach(async () => {
-      organizationId = await createTestOrganization('Test Resumed Org');
-    });
-
     it('should process resumed event and reactivate subscription', async () => {
+      const organizationId = 'test-org-id';
       // Mock existing subscription found
       mockSupabaseSingle.mockResolvedValueOnce({
         data: {
@@ -823,6 +1113,7 @@ describe('Webhook Subscription Event Processing', () => {
     });
 
     it('should update organization paid_seats when subscription resumed', async () => {
+      const organizationId = 'test-org-id';
       // Mock existing subscription
       mockSupabaseSingle.mockResolvedValueOnce({
         data: {
@@ -846,6 +1137,176 @@ describe('Webhook Subscription Event Processing', () => {
       // Should update organization with seats when resumed
       expect(mockSupabaseFrom).toHaveBeenCalledWith('organizations');
       expect(mockSupabaseUpdate).toHaveBeenCalledWith({ paid_seats: 5 });
+    });
+  });
+
+  describe('subscription_payment_success event - immediate upgrades', () => {
+    const mockPaymentSuccessPayload = {
+      meta: {
+        event_name: 'subscription_payment_success',
+        event_id: 'evt_payment_success_001'
+      },
+      data: {
+        id: '12345',
+        type: 'subscriptions',
+        attributes: {
+          status: 'active',
+          quantity: 10,
+          renews_at: '2025-01-01T00:00:00Z',
+          ends_at: null,
+          trial_ends_at: null,
+          customer_id: 67890,
+          variant_id: 11111
+        }
+      }
+    };
+
+    it('should grant current_seats after immediate upgrade payment confirmation', async () => {
+      const organizationId = 'test-org-id';
+      // Scenario: User upgraded from 9 to 10 seats, quantity already updated, current_seats still at 9
+      mockSupabaseSingle.mockResolvedValueOnce({
+        data: {
+          id: 'subscription-id',
+          organization_id: organizationId,
+          lemonsqueezy_subscription_id: '12345',
+          quantity: 10,  // Already updated by API call
+          current_seats: 9,  // Still at old value, waiting for payment confirmation
+          pending_seats: null,  // No pending changes (immediate upgrade)
+          lemonsqueezy_quantity_synced: null
+        },
+        error: null
+      });
+
+      // Mock successful update
+      mockSupabaseSelect.mockResolvedValueOnce({
+        data: [{
+          id: 'subscription-id',
+          current_seats: 10,
+          quantity: 10
+        }],
+        error: null
+      });
+
+      const { processSubscriptionPaymentSuccess } = await import('@/app/api/webhooks/lemonsqueezy/handlers');
+
+      const result = await processSubscriptionPaymentSuccess(mockPaymentSuccessPayload);
+
+      expect(result.success).toBe(true);
+
+      // Should update current_seats to match quantity (grant access after payment)
+      expect(mockSupabaseUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          current_seats: 10,
+          quantity: 10,
+          status: 'active'
+        })
+      );
+
+      // Should update organization paid_seats
+      expect(mockSupabaseFrom).toHaveBeenCalledWith('organizations');
+      expect(mockSupabaseUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({ paid_seats: 10 })
+      );
+    });
+
+    it('should handle deferred downgrade at renewal (existing behavior)', async () => {
+      const organizationId = 'test-org-id';
+      // Scenario: User scheduled downgrade from 10 to 7 seats, applying at renewal
+      mockSupabaseSingle.mockResolvedValueOnce({
+        data: {
+          id: 'subscription-id',
+          organization_id: organizationId,
+          lemonsqueezy_subscription_id: '12345',
+          quantity: 10,
+          current_seats: 10,
+          pending_seats: 7,  // Scheduled downgrade
+          lemonsqueezy_quantity_synced: true
+        },
+        error: null
+      });
+
+      // Mock successful update
+      mockSupabaseSelect
+        .mockResolvedValueOnce({
+          data: [],  // No users to archive
+          error: null
+        })
+        .mockResolvedValueOnce({
+          data: [{
+            id: 'subscription-id',
+            current_seats: 7,
+            quantity: 7
+          }],
+          error: null
+        });
+
+      const { processSubscriptionPaymentSuccess } = await import('@/app/api/webhooks/lemonsqueezy/handlers');
+
+      const result = await processSubscriptionPaymentSuccess(mockPaymentSuccessPayload);
+
+      expect(result.success).toBe(true);
+
+      // Should apply pending_seats change
+      expect(mockSupabaseUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          current_seats: 7,
+          quantity: 7,
+          pending_seats: null
+        })
+      );
+    });
+
+    it('should do nothing if no pending changes and seats already match', async () => {
+      const organizationId = 'test-org-id';
+      // Scenario: Renewal payment success but no changes needed
+      mockSupabaseSingle.mockResolvedValueOnce({
+        data: {
+          id: 'subscription-id',
+          organization_id: organizationId,
+          lemonsqueezy_subscription_id: '12345',
+          quantity: 10,
+          current_seats: 10,  // Already matches
+          pending_seats: null,
+          lemonsqueezy_quantity_synced: null
+        },
+        error: null
+      });
+
+      const { processSubscriptionPaymentSuccess } = await import('@/app/api/webhooks/lemonsqueezy/handlers');
+
+      const result = await processSubscriptionPaymentSuccess(mockPaymentSuccessPayload);
+
+      expect(result.success).toBe(true);
+      expect(result.data?.message).toContain('No pending changes to apply');
+    });
+
+    it('should handle payment failure scenario gracefully', async () => {
+      // Scenario: Subscription not found (edge case)
+      mockSupabaseSingle.mockResolvedValueOnce({
+        data: null,
+        error: null
+      });
+
+      const { processSubscriptionPaymentSuccess } = await import('@/app/api/webhooks/lemonsqueezy/handlers');
+
+      const result = await processSubscriptionPaymentSuccess(mockPaymentSuccessPayload);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Subscription not found');
+    });
+
+    it('should prevent double-processing via idempotency', async () => {
+      const { isEventAlreadyProcessed } = await import('@/app/api/webhooks/lemonsqueezy/handlers');
+
+      // Mock event already processed
+      mockSupabaseSingle.mockResolvedValueOnce({
+        data: { id: 'existing-event-id' },
+        error: null
+      });
+
+      const alreadyProcessed = await isEventAlreadyProcessed('evt_payment_success_001');
+
+      expect(alreadyProcessed).toBe(true);
     });
   });
 });
