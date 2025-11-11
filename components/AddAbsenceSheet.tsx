@@ -190,8 +190,8 @@ const AddAbsenceSheetContent = forwardRef<{ resetForm: () => void }, AddAbsenceS
   const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([])
   const [leaveBalances, setLeaveBalances] = useState<LeaveBalance[]>([])
   const [overlapUsers, setOverlapUsers] = useState<OverlapUser[]>([])
-  const [employeesLoaded, setEmployeesLoaded] = useState(!!preloadedEmployees)
-  const [organizationId, setOrganizationId] = useState<string>('')
+  const [employeesLoaded, setEmployeesLoaded] = useState((preloadedEmployees?.length ?? 0) > 0)
+  const [organizationId, setOrganizationId] = useState<string>(activeOrganizationId || '')
   
   const [formData, setFormData] = useState({
     employee_id: '',

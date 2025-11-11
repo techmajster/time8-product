@@ -22,10 +22,23 @@ export function calculateRequiredPaidSeats(currentEmployees: number): number {
 }
 
 /**
- * Calculate total available seats (free + paid)
+ * Calculate total available seats for graduated pricing model
+ *
+ * GRADUATED PRICING MODEL:
+ * - Tier 1 (1-3 users): FREE - paidSeats = 0, totalSeats = 3
+ * - Tier 2 (4+ users): Pay for ALL seats - paidSeats = totalUsers, totalSeats = paidSeats
+ *
+ * Example:
+ * - 2 users: paidSeats = 0, returns 3 (free tier)
+ * - 9 users: paidSeats = 9, returns 9 (paid tier - the 3 free seats are INCLUDED, not ADDITIONAL)
+ *
+ * Note: The FREE_SEATS constant (3) represents a pricing tier threshold,
+ * not additional capacity on top of paid seats.
  */
 export function calculateTotalSeats(paidSeats: number): number {
-  return paidSeats + BILLING_CONSTANTS.FREE_SEATS;
+  // If organization has paid seats (4+ users), total capacity = paid seats
+  // If organization has no paid seats (0-3 users), capacity = free tier limit
+  return paidSeats > 0 ? paidSeats : BILLING_CONSTANTS.FREE_SEATS;
 }
 
 /**

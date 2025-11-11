@@ -58,14 +58,37 @@ export async function GET(request: NextRequest) {
 
     const localSub = subscription as LocalSubscription;
 
-    // Generate customer portal URL
-    // Lemon Squeezy customer portal URLs follow the pattern:
-    // https://[store-slug].lemonsqueezy.com/billing?subscription=[subscription_id]
-    const portalUrl = `https://billing.lemonsqueezy.com/subscription/${localSub.lemonsqueezy_subscription_id}`;
+    // Fetch the signed customer portal URL from LemonSqueezy API
+    const lsResponse = await fetch(
+      `https://api.lemonsqueezy.com/v1/subscriptions/${localSub.lemonsqueezy_subscription_id}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${process.env.LEMONSQUEEZY_API_KEY}`,
+          'Accept': 'application/vnd.api+json'
+        }
+      }
+    );
+
+    if (!lsResponse.ok) {
+      throw new Error(`LemonSqueezy API failed: ${lsResponse.status}`);
+    }
+
+    const lsData = await lsResponse.json();
+    const customerPortalUrl = lsData.data.attributes.urls?.customer_portal;
+
+    if (!customerPortalUrl) {
+      return NextResponse.json(
+        {
+          error: 'Customer portal URL not available',
+          message: 'Could not retrieve customer portal URL from LemonSqueezy'
+        },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({
       success: true,
-      portal_url: portalUrl,
+      portal_url: customerPortalUrl,
       subscription_id: localSub.lemonsqueezy_subscription_id,
       subscription_status: localSub.status
     });
@@ -131,17 +154,37 @@ export async function POST(request: NextRequest) {
 
     const localSub = subscription as LocalSubscription;
 
-    // Generate customer portal URL with optional return URL
-    let portalUrl = `https://billing.lemonsqueezy.com/subscription/${localSub.lemonsqueezy_subscription_id}`;
-    
-    if (return_url) {
-      const encodedReturnUrl = encodeURIComponent(return_url);
-      portalUrl += `?return_url=${encodedReturnUrl}`;
+    // Fetch the signed customer portal URL from LemonSqueezy API
+    const lsResponse = await fetch(
+      `https://api.lemonsqueezy.com/v1/subscriptions/${localSub.lemonsqueezy_subscription_id}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${process.env.LEMONSQUEEZY_API_KEY}`,
+          'Accept': 'application/vnd.api+json'
+        }
+      }
+    );
+
+    if (!lsResponse.ok) {
+      throw new Error(`LemonSqueezy API failed: ${lsResponse.status}`);
+    }
+
+    const lsData = await lsResponse.json();
+    const customerPortalUrl = lsData.data.attributes.urls?.customer_portal;
+
+    if (!customerPortalUrl) {
+      return NextResponse.json(
+        {
+          error: 'Customer portal URL not available',
+          message: 'Could not retrieve customer portal URL from LemonSqueezy'
+        },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({
       success: true,
-      portal_url: portalUrl,
+      portal_url: customerPortalUrl,
       subscription_id: localSub.lemonsqueezy_subscription_id,
       subscription_status: localSub.status,
       return_url: return_url || null

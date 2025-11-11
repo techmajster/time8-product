@@ -1,0 +1,64 @@
+{
+  "jsonapi": {
+    "version": "1.0"
+  },
+  "links": {
+    "self": "https://api.lemonsqueezy.com/v1/variants/972635"
+  },
+  "data": {
+    "type": "variants",
+    "id": "972635",
+    "attributes": {
+      "price": 12999,
+      "is_subscription": true,
+      "interval": "year",
+      "interval_count": 1,
+      "has_free_trial": false,
+      "trial_interval": "day",
+      "trial_interval_count": 30,
+      "pay_what_you_want": false,
+      "min_price": 0,
+      "suggested_price": 0,
+      "product_id": 621389,
+      "name": "Yearly - Per User (Save 20%)",
+      "slug": "6dc80cea-18e9-48c5-9e8b-1b132ce0565b",
+      "description": "<p>120 PLN per user per year - only 8 PLN/month!</p>",
+      "links": [],
+      "has_license_keys": false,
+      "license_activation_limit": 5,
+      "is_license_limit_unlimited": false,
+      "license_length_value": 1,
+      "license_length_unit": "years",
+      "is_license_length_unlimited": false,
+      "sort": 3,
+      "status": "published",
+      "status_formatted": "Published",
+      "created_at": "2025-08-28T09:21:33.000000Z",
+      "updated_at": "2025-11-03T09:15:03.000000Z",
+      "test_mode": true
+    },
+    "relationships": {
+      "product": {
+        "links": {
+          "related": "https://api.lemonsqueezy.com/v1/variants/972635/product",
+          "self": "https://api.lemonsqueezy.com/v1/variants/972635/relationships/product"
+        }
+      },
+      "files": {
+        "links": {
+          "related": "https://api.lemonsqueezy.com/v1/variants/972635/files",
+          "self": "https://api.lemonsqueezy.com/v1/variants/972635/relationships/files"
+        }
+      },
+      "price-model": {
+        "links": {
+          "related": "https://api.lemonsqueezy.com/v1/variants/972635/price-model",
+          "self": "https://api.lemonsqueezy.com/v1/variants/972635/relationships/price-model"
+        }
+      }
+    },
+    "links": {
+      "self": "https://api.lemonsqueezy.com/v1/variants/972635"
+    }
+  }
+}

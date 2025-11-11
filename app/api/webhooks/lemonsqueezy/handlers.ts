@@ -317,6 +317,17 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
       return { success: false, error };
     }
 
+    // Log before state for comprehensive debugging
+    console.log(`📊 [Webhook] subscription_created - Before:`, {
+      subscriptionId,
+      organizationId: customer.organization_id,
+      customerId: customer.id,
+      status,
+      quantity,
+      variant_id,
+      correlationId: meta.event_id
+    });
+
     // Create subscription record
     const { data: subscription, error: subscriptionError } = await supabase
       .from('subscriptions')
@@ -327,6 +338,7 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
         lemonsqueezy_variant_id: variant_id || null,
         status,
         quantity,
+        current_seats: quantity,  // Grant immediate access for new subscriptions
         renews_at: renews_at || null,
         ends_at: ends_at || null,
         trial_ends_at: trial_ends_at || null
@@ -343,7 +355,23 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
     // Update organization subscription (paid seats + tier)
     await updateOrganizationSubscription(supabase, customer.organization_id, quantity, status);
 
-    // Log successful processing
+    // Log after state for comprehensive debugging
+    console.log(`✅ [Webhook] subscription_created - After:`, {
+      subscriptionId,
+      organizationId: customer.organization_id,
+      customerId: customer.id,
+      status,
+      quantity,
+      current_seats: quantity,
+      variant_id,
+      paid_seats: quantity > 3 ? quantity : 0,
+      subscription_tier: status === 'active' && quantity > 0 ? 'active' : 'free',
+      renewsAt: renews_at,
+      endsAt: ends_at,
+      trialEndsAt: trial_ends_at,
+      correlationId: meta.event_id
+    });
+
     await logBillingEvent(meta.event_name, meta.event_id, payload, 'processed');
 
     return {
@@ -418,12 +446,25 @@ export async function processSubscriptionUpdated(payload: any): Promise<EventRes
       return { success: false, error };
     }
 
+    // Log before state for comprehensive debugging
+    console.log(`📊 [Webhook] subscription_updated - Before:`, {
+      subscriptionId,
+      quantity: existingSubscription.quantity,
+      current_seats: existingSubscription.current_seats,
+      variant_id: existingSubscription.lemonsqueezy_variant_id,
+      status: existingSubscription.status,
+      correlationId: meta.event_id
+    });
+
     // Update subscription
+    // IMPORTANT: When LemonSqueezy sends subscription_updated, sync BOTH quantity AND current_seats
+    // This ensures direct updates from LemonSqueezy dashboard immediately reflect in the UI
     const { data: updatedSubscription, error: updateError } = await supabase
       .from('subscriptions')
       .update({
         status,
         quantity,
+        current_seats: quantity,  // Sync current_seats with quantity for direct LS updates
         lemonsqueezy_variant_id: variant_id || null,
         renews_at: renews_at || null,
         ends_at: ends_at || null,
@@ -439,28 +480,46 @@ export async function processSubscriptionUpdated(payload: any): Promise<EventRes
       return { success: false, error };
     }
 
-    // Update organization subscription if EITHER quantity OR variant changed
-    // This is critical for detecting plan changes (e.g., monthly→yearly with same seat count)
+    // ALWAYS update organization subscription - no conditional logic
+    // This ensures that ANY subscription update from LemonSqueezy syncs to the database
+    // Critical for manual dashboard updates, renewals, status changes, etc.
+    await updateOrganizationSubscription(supabase, existingSubscription.organization_id, quantity, status);
+
+    // Log changes for comprehensive debugging
     const variantChanged = existingSubscription.lemonsqueezy_variant_id !== variant_id;
     const quantityChanged = existingSubscription.quantity !== quantity;
+    const statusChanged = existingSubscription.status !== status;
 
-    if (variantChanged || quantityChanged) {
-      await updateOrganizationSubscription(supabase, existingSubscription.organization_id, quantity, status);
-
-      // Log changes for debugging
-      if (variantChanged) {
-        console.log(
-          `[Billing] Variant changed for subscription ${subscriptionId}: ` +
-          `${existingSubscription.lemonsqueezy_variant_id} → ${variant_id}`
-        );
-      }
-      if (quantityChanged) {
-        console.log(
-          `[Billing] Quantity changed for subscription ${subscriptionId}: ` +
-          `${existingSubscription.quantity} → ${quantity} seats`
-        );
-      }
+    if (variantChanged) {
+      console.log(
+        `✅ [Webhook] Variant changed for subscription ${subscriptionId}: ` +
+        `${existingSubscription.lemonsqueezy_variant_id} → ${variant_id}`
+      );
     }
+    if (quantityChanged) {
+      console.log(
+        `✅ [Webhook] Quantity changed for subscription ${subscriptionId}: ` +
+        `${existingSubscription.quantity} → ${quantity} seats`
+      );
+    }
+    if (statusChanged) {
+      console.log(
+        `✅ [Webhook] Status changed for subscription ${subscriptionId}: ` +
+        `${existingSubscription.status} → ${status}`
+      );
+    }
+
+    // Log after state for comprehensive debugging
+    console.log(`✅ [Webhook] subscription_updated - After:`, {
+      subscriptionId,
+      quantity,
+      current_seats: quantity,
+      variant_id,
+      status,
+      paid_seats: quantity > 3 ? quantity : 0,
+      subscription_tier: status === 'active' && quantity > 0 ? 'active' : 'free',
+      correlationId: meta.event_id
+    });
 
     // Log successful processing
     await logBillingEvent(meta.event_name, meta.event_id, payload, 'processed');
@@ -531,13 +590,27 @@ export async function processSubscriptionCancelled(payload: any): Promise<EventR
       return { success: false, error };
     }
 
+    // Log before state for comprehensive debugging
+    console.log(`📊 [Webhook] subscription_cancelled - Before:`, {
+      subscriptionId,
+      organizationId: existingSubscription.organization_id,
+      status: existingSubscription.status,
+      quantity: existingSubscription.quantity,
+      current_seats: existingSubscription.current_seats,
+      renews_at: existingSubscription.renews_at,
+      correlationId: meta.event_id
+    });
+
     // Update subscription to cancelled/expired status
+    // IMPORTANT: Reset quantity and current_seats to 0 for cancelled subscriptions
     const { data: updatedSubscription, error: updateError } = await supabase
       .from('subscriptions')
       .update({
         status,
+        quantity: 0,             // Reset quantity to 0
+        current_seats: 0,        // Reset current_seats to 0
         ends_at: ends_at || null,
-        renews_at: null, // Cancelled subscriptions don't renew
+        renews_at: null,         // Cancelled subscriptions don't renew
         updated_at: new Date().toISOString()
       })
       .eq('lemonsqueezy_subscription_id', subscriptionId)
@@ -551,6 +624,20 @@ export async function processSubscriptionCancelled(payload: any): Promise<EventR
 
     // Reset organization subscription to free tier
     await updateOrganizationSubscription(supabase, existingSubscription.organization_id, 0, status);
+
+    // Log after state for comprehensive debugging
+    console.log(`✅ [Webhook] subscription_cancelled - After:`, {
+      subscriptionId,
+      organizationId: existingSubscription.organization_id,
+      status,
+      quantity: 0,              // Reset to 0
+      current_seats: 0,         // Reset to 0
+      paid_seats: 0,            // Organization reset to free tier
+      subscription_tier: 'free',
+      ends_at: ends_at || null,
+      renews_at: null,
+      correlationId: meta.event_id
+    });
 
     // Log successful processing
     await logBillingEvent(meta.event_name, meta.event_id, payload, 'processed');
@@ -620,6 +707,16 @@ export async function processSubscriptionPaymentFailed(payload: any): Promise<Ev
       return { success: false, error };
     }
 
+    // Log before state for comprehensive debugging
+    console.log(`📊 [Webhook] subscription_payment_failed - Before:`, {
+      subscriptionId,
+      organizationId: existingSubscription.organization_id,
+      status: existingSubscription.status,
+      quantity: existingSubscription.quantity,
+      current_seats: existingSubscription.current_seats,
+      correlationId: meta.event_id
+    });
+
     // Update subscription status to past_due
     const { data: updatedSubscription, error: updateError } = await supabase
       .from('subscriptions')
@@ -635,6 +732,17 @@ export async function processSubscriptionPaymentFailed(payload: any): Promise<Ev
       await logBillingEvent(meta.event_name, meta.event_id, payload, 'failed', error);
       return { success: false, error };
     }
+
+    // Log after state for comprehensive debugging
+    console.log(`⚠️ [Webhook] subscription_payment_failed - After:`, {
+      subscriptionId,
+      organizationId: existingSubscription.organization_id,
+      status,
+      quantity: existingSubscription.quantity,
+      current_seats: existingSubscription.current_seats,
+      note: 'Payment failed - subscription marked as past_due',
+      correlationId: meta.event_id
+    });
 
     // Log successful processing
     await logBillingEvent(meta.event_name, meta.event_id, payload, 'processed');
@@ -704,6 +812,17 @@ export async function processSubscriptionPaused(payload: any): Promise<EventResu
       return { success: false, error };
     }
 
+    // Log before state for comprehensive debugging
+    console.log(`📊 [Webhook] subscription_paused - Before:`, {
+      subscriptionId,
+      organizationId: existingSubscription.organization_id,
+      status: existingSubscription.status,
+      quantity: existingSubscription.quantity,
+      current_seats: existingSubscription.current_seats,
+      renews_at: existingSubscription.renews_at,
+      correlationId: meta.event_id
+    });
+
     // Update subscription to paused status
     const { data: updatedSubscription, error: updateError } = await supabase
       .from('subscriptions')
@@ -720,6 +839,18 @@ export async function processSubscriptionPaused(payload: any): Promise<EventResu
       await logBillingEvent(meta.event_name, meta.event_id, payload, 'failed', error);
       return { success: false, error };
     }
+
+    // Log after state for comprehensive debugging
+    console.log(`⏸️ [Webhook] subscription_paused - After:`, {
+      subscriptionId,
+      organizationId: existingSubscription.organization_id,
+      status,
+      quantity: existingSubscription.quantity,
+      current_seats: existingSubscription.current_seats,
+      renews_at: null,
+      note: 'Subscription paused - no renewal date',
+      correlationId: meta.event_id
+    });
 
     // Log successful processing
     await logBillingEvent(meta.event_name, meta.event_id, payload, 'processed');
@@ -789,6 +920,17 @@ export async function processSubscriptionResumed(payload: any): Promise<EventRes
       return { success: false, error };
     }
 
+    // Log before state for comprehensive debugging
+    console.log(`📊 [Webhook] subscription_resumed - Before:`, {
+      subscriptionId,
+      organizationId: existingSubscription.organization_id,
+      status: existingSubscription.status,
+      quantity: existingSubscription.quantity,
+      current_seats: existingSubscription.current_seats,
+      renews_at: existingSubscription.renews_at,
+      correlationId: meta.event_id
+    });
+
     // Update subscription to active status
     const { data: updatedSubscription, error: updateError } = await supabase
       .from('subscriptions')
@@ -808,6 +950,20 @@ export async function processSubscriptionResumed(payload: any): Promise<EventRes
 
     // Restore organization subscription with seats
     await updateOrganizationSubscription(supabase, existingSubscription.organization_id, quantity, status);
+
+    // Log after state for comprehensive debugging
+    console.log(`▶️ [Webhook] subscription_resumed - After:`, {
+      subscriptionId,
+      organizationId: existingSubscription.organization_id,
+      status,
+      quantity,
+      current_seats: existingSubscription.current_seats,
+      paid_seats: quantity > 3 ? quantity : 0,
+      subscription_tier: status === 'active' && quantity > 0 ? 'active' : 'free',
+      renews_at: renews_at || null,
+      note: 'Subscription resumed - active again',
+      correlationId: meta.event_id
+    });
 
     // Log successful processing
     await logBillingEvent(meta.event_name, meta.event_id, payload, 'processed');
@@ -837,8 +993,22 @@ export async function processSubscriptionResumed(payload: any): Promise<EventRes
 /**
  * Processes subscription_payment_success event
  *
- * This handler applies pending seat changes when a subscription renews.
- * It is part of Layer 2 of the multi-layer billing guarantee system.
+ * This handler supports TWO different payment confirmation patterns:
+ *
+ * 1. **Immediate Upgrades** (adding seats mid-cycle):
+ *    - User paid NOW via Subscription Items API
+ *    - `quantity` already updated in database (what user is paying for)
+ *    - `current_seats` NOT yet updated (waiting for payment confirmation)
+ *    - No `pending_seats` set (immediate upgrade pattern)
+ *    - This webhook confirms payment succeeded → grant access
+ *
+ * 2. **Deferred Downgrades** (removing seats at renewal):
+ *    - User scheduled downgrade for next renewal
+ *    - `pending_seats` contains the target seat count
+ *    - `current_seats` stays at current value until renewal
+ *    - This webhook fires at renewal → apply pending change
+ *
+ * This is part of Layer 2 of the multi-layer billing guarantee system.
  */
 export async function processSubscriptionPaymentSuccess(payload: any): Promise<EventResult> {
   try {
@@ -880,119 +1050,197 @@ export async function processSubscriptionPaymentSuccess(payload: any): Promise<E
       return { success: false, error };
     }
 
-    // Check if there are pending seat changes to apply
+    // Log before state for debugging
+    console.log(`📊 [Webhook] subscription_payment_success - Before:`, {
+      subscriptionId,
+      quantity: existingSubscription.quantity,
+      current_seats: existingSubscription.current_seats,
+      pending_seats: existingSubscription.pending_seats,
+      correlationId: meta.event_id
+    });
+
+    // Determine which pattern to use
     const hasPendingChanges = existingSubscription.pending_seats !== null;
+    const needsImmediateUpgrade = !hasPendingChanges && existingSubscription.current_seats !== existingSubscription.quantity;
     const alreadySynced = existingSubscription.lemonsqueezy_quantity_synced === true;
 
-    if (!hasPendingChanges) {
-      // No pending changes - just update renews_at and return success
-      await supabase
+    // Pattern 1: Immediate Upgrade (no pending_seats, but seats mismatch)
+    if (needsImmediateUpgrade) {
+      const previousSeats = existingSubscription.current_seats;
+      const newSeats = existingSubscription.quantity;
+
+      console.log(`✅ [Webhook] Immediate upgrade payment confirmed for subscription ${subscriptionId}: ${previousSeats} → ${newSeats} seats`);
+
+      // Update subscription: grant access by syncing current_seats with quantity
+      const { data: updatedSubscription, error: updateError } = await supabase
         .from('subscriptions')
         .update({
+          current_seats: newSeats,  // Grant access now that payment is confirmed
+          status,
           renews_at: renews_at || null,
           updated_at: new Date().toISOString()
         })
-        .eq('lemonsqueezy_subscription_id', subscriptionId);
+        .eq('lemonsqueezy_subscription_id', subscriptionId)
+        .select()
+        .single();
 
-      await logBillingEvent(meta.event_name, meta.event_id, payload, 'processed', 'No pending changes to apply');
-      console.log(`[Webhook] subscription_payment_success: No pending changes for subscription ${subscriptionId}`);
+      if (updateError) {
+        const error = `Failed to grant seats after payment confirmation: ${updateError.message}`;
+        await logBillingEvent(meta.event_name, meta.event_id, payload, 'failed', error);
+        return { success: false, error };
+      }
+
+      // Update organization paid_seats
+      await updateOrganizationSubscription(supabase, existingSubscription.organization_id, newSeats, status);
+
+      // Log successful processing
+      await logBillingEvent(
+        meta.event_name,
+        meta.event_id,
+        payload,
+        'processed',
+        `Immediate upgrade confirmed: ${previousSeats} → ${newSeats} seats`
+      );
+
+      console.log(`✅ [Webhook] subscription_payment_success - After (immediate upgrade):`, {
+        subscriptionId,
+        quantity: newSeats,
+        current_seats: newSeats,
+        paid_seats: newSeats,
+        correlationId: meta.event_id
+      });
 
       return {
         success: true,
         data: {
           subscription: existingSubscription.id,
           organization: existingSubscription.organization_id,
-          message: 'No pending changes to apply'
+          previousSeats,
+          newSeats,
+          upgradeType: 'immediate'
         }
       };
     }
 
-    if (alreadySynced && hasPendingChanges) {
-      // Already synced by cron job - just apply the changes locally
-      console.log(`[Webhook] subscription_payment_success: Changes already synced to Lemon Squeezy, applying locally for subscription ${subscriptionId}`);
-    }
+    // Pattern 2: Deferred Downgrade (has pending_seats)
+    if (hasPendingChanges) {
+      if (alreadySynced) {
+        console.log(`[Webhook] subscription_payment_success: Changes already synced to Lemon Squeezy, applying locally for subscription ${subscriptionId}`);
+      }
 
-    // Apply pending seat changes
-    const previousSeats = existingSubscription.current_seats;
-    const newSeats = existingSubscription.pending_seats;
+      const previousSeats = existingSubscription.current_seats;
+      const newSeats = existingSubscription.pending_seats;
 
-    console.log(`[Webhook] Applied pending seat change for subscription ${subscriptionId}: ${previousSeats} → ${newSeats} seats`);
+      console.log(`✅ [Webhook] Applying deferred seat change for subscription ${subscriptionId}: ${previousSeats} → ${newSeats} seats`);
 
-    // Update subscription: apply pending changes
-    const { data: updatedSubscription, error: updateError } = await supabase
-      .from('subscriptions')
-      .update({
+      // Update subscription: apply pending changes
+      const { data: updatedSubscription, error: updateError } = await supabase
+        .from('subscriptions')
+        .update({
+          current_seats: newSeats,
+          pending_seats: null,
+          lemonsqueezy_quantity_synced: true,
+          quantity: newSeats,
+          status,
+          renews_at: renews_at || null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('lemonsqueezy_subscription_id', subscriptionId)
+        .select()
+        .single();
+
+      if (updateError) {
+        const error = `Failed to apply pending seat changes: ${updateError.message}`;
+        await logBillingEvent(meta.event_name, meta.event_id, payload, 'failed', error);
+        return { success: false, error };
+      }
+
+      // Archive users marked as pending_removal
+      const { data: usersToArchive, error: usersError } = await supabase
+        .from('user_organizations')
+        .select('user_id, removal_effective_date')
+        .eq('organization_id', existingSubscription.organization_id)
+        .eq('status', 'pending_removal')
+        .not('removal_effective_date', 'is', null);
+
+      let archivedCount = 0;
+
+      if (usersError) {
+        console.error(`[Webhook] Failed to fetch users for archival: ${usersError.message}`);
+      } else if (usersToArchive && usersToArchive.length > 0) {
+        console.log(`[Webhook] Archiving ${usersToArchive.length} users marked as pending_removal`);
+
+        // Update all users to archived status using composite key
+        const { error: archiveError } = await supabase
+          .from('user_organizations')
+          .update({
+            status: 'archived',
+            updated_at: new Date().toISOString()
+          })
+          .eq('organization_id', existingSubscription.organization_id)
+          .in('user_id', usersToArchive.map(u => u.user_id));
+
+        if (archiveError) {
+          console.error(`[Webhook] Failed to archive users: ${archiveError.message}`);
+        } else {
+          archivedCount = usersToArchive.length;
+          console.log(`[Webhook] Successfully archived ${archivedCount} users`);
+        }
+      }
+
+      // Update organization subscription with new seat count
+      await updateOrganizationSubscription(supabase, existingSubscription.organization_id, newSeats, status);
+
+      // Log successful processing
+      await logBillingEvent(
+        meta.event_name,
+        meta.event_id,
+        payload,
+        'processed',
+        `Deferred downgrade applied: ${previousSeats} → ${newSeats} seats, archived ${archivedCount} users`
+      );
+
+      console.log(`✅ [Webhook] subscription_payment_success - After (deferred downgrade):`, {
+        subscriptionId,
+        quantity: newSeats,
         current_seats: newSeats,
         pending_seats: null,
-        lemonsqueezy_quantity_synced: true,
-        quantity: newSeats,
-        status,
+        usersArchived: archivedCount,
+        correlationId: meta.event_id
+      });
+
+      return {
+        success: true,
+        data: {
+          subscription: existingSubscription.id,
+          organization: existingSubscription.organization_id,
+          previousSeats,
+          newSeats,
+          usersArchived: archivedCount,
+          upgradeType: 'deferred'
+        }
+      };
+    }
+
+    // Pattern 3: No changes needed (renewal payment with no seat changes)
+    console.log(`[Webhook] subscription_payment_success: No pending changes for subscription ${subscriptionId}`);
+
+    await supabase
+      .from('subscriptions')
+      .update({
         renews_at: renews_at || null,
         updated_at: new Date().toISOString()
       })
-      .eq('lemonsqueezy_subscription_id', subscriptionId)
-      .select()
-      .single();
+      .eq('lemonsqueezy_subscription_id', subscriptionId);
 
-    if (updateError) {
-      const error = `Failed to apply pending seat changes: ${updateError.message}`;
-      await logBillingEvent(meta.event_name, meta.event_id, payload, 'failed', error);
-      return { success: false, error };
-    }
-
-    // Archive users marked as pending_removal
-    const { data: usersToArchive, error: usersError } = await supabase
-      .from('user_organizations')
-      .select('user_id, removal_effective_date')
-      .eq('organization_id', existingSubscription.organization_id)
-      .eq('status', 'pending_removal')
-      .not('removal_effective_date', 'is', null);
-
-    let archivedCount = 0;
-
-    if (usersError) {
-      console.error(`[Webhook] Failed to fetch users for archival: ${usersError.message}`);
-    } else if (usersToArchive && usersToArchive.length > 0) {
-      console.log(`[Webhook] Archiving ${usersToArchive.length} users marked as pending_removal`);
-
-      // Update all users to archived status using composite key
-      const { error: archiveError } = await supabase
-        .from('user_organizations')
-        .update({
-          status: 'archived',
-          updated_at: new Date().toISOString()
-        })
-        .eq('organization_id', existingSubscription.organization_id)
-        .in('user_id', usersToArchive.map(u => u.user_id));
-
-      if (archiveError) {
-        console.error(`[Webhook] Failed to archive users: ${archiveError.message}`);
-      } else {
-        archivedCount = usersToArchive.length;
-        console.log(`[Webhook] Successfully archived ${archivedCount} users`);
-      }
-    }
-
-    // Update organization subscription with new seat count
-    await updateOrganizationSubscription(supabase, existingSubscription.organization_id, newSeats, status);
-
-    // Log successful processing
-    await logBillingEvent(
-      meta.event_name,
-      meta.event_id,
-      payload,
-      'processed',
-      `Applied pending seat change: ${previousSeats} → ${newSeats} seats, archived ${archivedCount} users`
-    );
+    await logBillingEvent(meta.event_name, meta.event_id, payload, 'processed', 'No pending changes to apply');
 
     return {
       success: true,
       data: {
         subscription: existingSubscription.id,
         organization: existingSubscription.organization_id,
-        previousSeats,
-        newSeats,
-        usersArchived: archivedCount
+        message: 'No pending changes to apply'
       }
     };
 

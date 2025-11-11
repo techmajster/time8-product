@@ -20,8 +20,10 @@
 - [Phase 2.15: Bilingual Translation](#phase-215-complete-bilingual-translation-coverage-) - Complete PL/EN coverage 📋
 - [Phase 2.16: Dark Mode Fixes](#phase-216-dark-mode-styling-fixes-) - Theme consistency (Nov 6) ✅
 - [Phase 2.17: Team Management Redesign](#phase-217-team-management-interface-redesign-) - Tabs, sheets, dialogs per Figma 📋
+- [Phase 2.18: Invite Users Dialog](#phase-218-invite-users-dialog-with-seat-visualization--lemonsqueezy-integration) - Seat visualization with LemonSqueezy 📋
 
 ### 🎯 Active Phases
+- [Phase 2.19: Pricing & Seat Calculation Fix](#phase-219-lemonsqueezy-pricing--seat-calculation-fix-) - Fix critical billing issues 🔧
 - [Phase 3: Design System](#phase-3-design-system-implementation-) - Figma integration & UI overhaul
 
 ### 📋 Planned Phases
@@ -2191,6 +2193,230 @@ components/admin/invite-users/
 - Part 1 (Page Redesign): 9 hours
 - Part 2 (Edit Sheet): 5.75 hours
 - Part 3 (Testing): 4 hours
+
+---
+
+## Phase 2.19: LemonSqueezy Pricing & Seat Calculation Fix 🔧
+
+**Goal:** Fix critical pricing fetch failures and seat calculation inconsistencies across admin and onboarding pages
+
+**Success Criteria:**
+- Correct pricing fetched from LemonSqueezy (10 PLN monthly, 96 PLN yearly for graduated tier 4+)
+- Clear distinction between "free tier seats (3)" vs "available empty seats"
+- Accurate seat counts displayed across all pages
+- Free tier shows "X/3 free seats used", paid tier shows "X/Y seats used (3 free + Z paid)"
+
+**Status:** Planned
+
+**Priority:** Critical - Affects billing accuracy and user experience
+
+**Affected Pages:**
+- Admin Team Management
+- Admin Settings (Billing Tab)
+- Onboarding Add Users
+- Invite Users Dialog
+
+### Features
+
+- [ ] **Fix Pricing API Fetch** - Replace deprecated SDK function with REST API `M`
+  - Replace deprecated `fetchVariantPricing()` with `getVariantPrice()` in `getDynamicPricing()`
+  - Ensure graduated pricing tiers (10 PLN, 96 PLN) are fetched correctly from LemonSqueezy API
+  - Remove or deprecate old SDK-based fetch function
+  - Verify API calls succeed and return correct tier 4+ pricing
+
+- [ ] **Fix Seat Calculation API Response** - Clear terminology for seat types `S`
+  - Rename confusing `freeSeats` field to `availableSeats` in seat-info API response
+  - Add explicit `freeTierSeats: 3` field for clarity
+  - Document distinction between "tier threshold" vs "empty seats"
+  - Update TypeScript interfaces for seat info
+
+- [ ] **Update Invite Users Dialog** - Correct seat display and fallbacks `S`
+  - Use `availableSeats` instead of confusing `freeSeats` terminology
+  - Fix hardcoded fallback pricing (10.99 EUR → 10.00 PLN)
+  - Update display text: "Masz X/Y wolnych miejsc w Twoim planie"
+  - Handle API failures gracefully with correct fallbacks
+
+- [ ] **Fix Admin Settings Billing Tab** - Proper free tier handling `M`
+  - Fix free tier display (remove "3 total seats" cap)
+  - Show "X/3 free seats used" for free tier orgs
+  - Show "X/Y seats used (3 free + Z paid)" for paid tier orgs
+  - Update seat usage calculation logic
+
+- [ ] **Update Team Management Component** - Adapt to corrected API `S`
+  - Adapt to corrected API field names (`availableSeats` vs `freeSeats`)
+  - Ensure seat counts match billing reality
+  - Test with free and paid tier scenarios
+
+- [ ] **Update Environment Variables** - Fix fallback pricing `XS`
+  - Fix `.env.example` fallback prices: 12.99 → 10.00, 10.83 → 8.00
+  - Document graduated pricing model in comments
+  - Ensure consistency across all env files
+
+- [ ] **Add Graduated Pricing Explanation** - User education `S`
+  - Add help tooltips explaining "First 3 seats FREE, 4+ users pay for ALL seats"
+  - Show pricing examples in UI
+  - Update onboarding messaging
+
+- [ ] **Comprehensive Testing** - Verify all scenarios `M`
+  - Test free tier (0-3 users): pricing and seat display
+  - Test paid tier (4+ users): correct billing for ALL seats
+  - Test pending invitations counting
+  - Test users marked for removal handling
+  - Verify all 4 affected pages show consistent data
+
+### Dependencies
+- Phase 2.6 (Subscription Enhancement) ✅
+- Phase 2.11 (Seat Management) ✅
+- Phase 2.18 (Invite Users Dialog) ✅
+
+### Technical Details
+
+**Root Causes:**
+1. `getDynamicPricing()` uses deprecated SDK function instead of REST API
+2. API response field `freeSeats` conflates two concepts (tier threshold vs empty seats)
+3. Free tier calculation incorrectly caps at 3 total seats instead of showing 3 free seats
+4. Hardcoded fallback values don't match actual LemonSqueezy pricing
+
+**Files to Modify:**
+- `lib/lemon-squeezy/pricing.ts`
+- `app/api/organizations/[organizationId]/seat-info/route.ts`
+- `components/invitations/invite-users-dialog.tsx`
+- `app/admin/settings/components/AdminSettingsClient.tsx`
+- `app/admin/team-management/components/TeamManagementClient.tsx`
+- `.env.example`
+
+**Estimated Effort:** ~8-10 hours (1-2 days) - MEDIUM effort
+
+**Breakdown:**
+- Pricing API fix: 2 hours
+- Seat calculation API: 1.5 hours
+- Component updates: 3 hours
+- Environment variables: 0.5 hour
+- Testing: 2-3 hours
+
+---
+
+## Phase 2.20: LemonSqueezy Subscription & Payment Flow Fix 🔐
+
+**Goal:** Fix critical payment bypass vulnerability and ensure all subscription updates sync correctly between LemonSqueezy and the application database
+
+**Success Criteria:**
+- No seats granted without payment confirmation via webhook
+- Users with existing subscriptions pay only for additional seats (prorated)
+- Manual LemonSqueezy dashboard updates sync to app within seconds
+- All webhook events properly logged for debugging
+- Complete test coverage for upgrade/downgrade/manual update scenarios
+
+**Status:** Planned
+
+**Priority:** CRITICAL - Security vulnerability (payment bypass) and data sync failures
+
+**Spec:** `.agent-os/specs/2025-11-11-lemonsqueezy-subscription-sync-fix/`
+
+### Features
+
+- [ ] **Add subscription_payment_success Webhook Handler** - Confirm payment before granting access `S`
+  - Implement missing `processSubscriptionPaymentSuccess()` handler
+  - Update `current_seats` only after payment webhook confirms
+  - Trigger sending of queued invitations after payment succeeds
+  - Add comprehensive logging with correlation IDs
+  - Test with LemonSqueezy test mode and production
+
+- [ ] **Fix Invite Dialog Payment Flow** - Use Subscription Items API for upgrades `M`
+  - Replace new checkout creation with Subscription Items API call
+  - Detect existing active subscriptions
+  - Call `/api/billing/update-subscription-quantity` for immediate upgrades
+  - Queue invitations to send after payment confirmation
+  - Add "Processing payment..." UI state
+  - Handle payment failures gracefully
+
+- [ ] **Fix update-subscription-quantity Endpoint** - Remove payment bypass vulnerability `S`
+  - Remove immediate `current_seats` update (security fix)
+  - Update only `quantity` field (what user is paying for)
+  - Store queued invitations in session or temporary table
+  - Return "Processing payment..." message
+  - Wait for webhook confirmation before granting access
+
+- [ ] **Fix subscription_created Webhook** - Set current_seats on new subscriptions `XS`
+  - Add `current_seats: totalUsers` to subscription insert
+  - New subscriptions from checkout get immediate access (already paid)
+  - Add logging for subscription creation events
+
+- [ ] **Remove Conditional from subscription_updated Webhook** - Always sync manual updates `S`
+  - Remove `if (variantChanged || quantityChanged)` condition
+  - Always sync `current_seats = quantity` on subscription_updated
+  - Ensures manual LemonSqueezy dashboard updates reflect in app
+  - Add comprehensive before/after logging
+
+- [ ] **Fix Cron Job Database Sync** - Update DB after LemonSqueezy API calls `S`
+  - After successful LemonSqueezy API call, update local database
+  - Sync `quantity` and `current_seats` with `pending_seats`
+  - Update `organizations.paid_seats`
+  - Don't rely solely on webhooks for cron-initiated changes
+
+- [ ] **Add Comprehensive Webhook Logging** - Debug payment and sync issues `XS`
+  - Add before/after logging to all webhook handlers
+  - Include correlation IDs (event_id) in all logs
+  - Log payment flow tracking from API call to seat grant
+  - Add performance metrics
+
+- [ ] **End-to-End Testing** - Verify all subscription flows `M`
+  - Test upgrade: 9 seats → 10 seats (prorated charge, payment confirmation)
+  - Test downgrade: 10 seats → 7 seats (deferred to renewal via pending_seats)
+  - Test manual LemonSqueezy update (immediate sync to app)
+  - Test payment failure (no seat access granted)
+  - Test new subscription checkout (immediate access after payment)
+  - Verify webhook idempotency and concurrent processing
+
+- [ ] **Security Audit & Verification** - Ensure no payment bypass vulnerabilities `S`
+  - Verify seats not granted before payment confirmation
+  - Test with declined credit card scenarios
+  - Review all seat update code paths
+  - Document payment flow architecture
+  - Verify webhook signature validation
+
+### Dependencies
+- Phase 2.11 (Seat Management with Grace Periods) ✅
+- Phase 2.18 (Invite Users Dialog) ✅
+- Phase 2.19 (LemonSqueezy Pricing Fix) 📋
+
+### Technical Details
+
+**Root Causes Identified:**
+1. **Payment Bypass:** `/api/billing/update-subscription-quantity` updates `current_seats` immediately after LemonSqueezy API returns, but payment processes asynchronously
+2. **Missing Webhook Handler:** No `subscription_payment_success` handler to confirm payment
+3. **Conditional Webhook Logic:** `subscription_updated` only fires if quantity changes, blocking manual updates
+4. **Cron Job Gap:** Cron syncs to LemonSqueezy but doesn't update local database
+5. **Invite Dialog Flow:** Creates NEW checkout instead of using Subscription Items API for upgrades
+
+**Architecture Pattern (Preserve):**
+- **Immediate Upgrades:** Use Subscription Items API + payment_success webhook
+- **Deferred Downgrades:** Use existing `pending_seats` pattern + renewal webhook
+- Two patterns serve different business needs (users expect different behavior)
+
+**Files to Modify:**
+- `app/api/billing/update-subscription-quantity/route.ts` - Fix payment security
+- `app/api/webhooks/lemonsqueezy/handlers.ts` - Add payment_success handler, fix subscription_created, remove conditional
+- `app/api/webhooks/lemonsqueezy/route.ts` - Add case for subscription_payment_success
+- `components/invitations/invite-users-dialog.tsx` - Replace checkout with Subscription Items API
+- `app/api/cron/apply-pending-subscription-changes/route.ts` - Add database sync after API call
+
+**LemonSqueezy API Integration:**
+- Use Subscription Items PATCH API: `/v1/subscription-items/{id}`
+- Parameters: `quantity`, `invoice_immediately: true`, `disable_prorations: false`
+- API returns immediately (sync), payment happens asynchronously
+- Wait for `subscription_payment_success` webhook before granting access
+
+**Estimated Effort:** ~12-16 hours (2-3 days) - MEDIUM effort
+
+**Breakdown:**
+- Add payment_success webhook handler: 3 hours
+- Fix update-subscription-quantity endpoint: 2 hours
+- Update invite dialog flow: 3 hours
+- Fix other webhook handlers: 2 hours
+- Fix cron job sync: 1.5 hours
+- Add logging: 1 hour
+- Testing & security audit: 3-4 hours
 
 ---
 

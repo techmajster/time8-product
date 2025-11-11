@@ -81,6 +81,16 @@ export async function POST(request: NextRequest) {
     // Process each subscription
     for (const subscription of subscriptionsNeedingUpdate) {
       try {
+        // Log before state for debugging
+        console.log(`📊 [Cron] Processing subscription - Before:`, {
+          subscriptionId: subscription.lemonsqueezy_subscription_id,
+          organizationId: subscription.organization_id,
+          current_seats: subscription.current_seats,
+          quantity: subscription.quantity,
+          pending_seats: subscription.pending_seats,
+          renews_at: subscription.renews_at
+        })
+
         // Update Lemon Squeezy subscription quantity
         const response = await fetch(
           `https://api.lemonsqueezy.com/v1/subscription-items/${subscription.lemonsqueezy_subscription_item_id}`,
@@ -111,18 +121,53 @@ export async function POST(request: NextRequest) {
 
         const lemonSqueezyData = await response.json()
 
-        // Mark as synced in database
+        console.log(`✅ [Cron] LemonSqueezy API call successful for subscription ${subscription.lemonsqueezy_subscription_id}`)
+
+        // Update local database to sync with LemonSqueezy
+        // IMPORTANT: Update quantity (what user will be charged) but NOT current_seats (wait for payment webhook)
         const { error: updateError } = await supabase
           .from('subscriptions')
           .update({
+            quantity: subscription.pending_seats,  // Sync quantity with LemonSqueezy
             lemonsqueezy_quantity_synced: true,
             updated_at: new Date().toISOString()
+            // Note: pending_seats remains so webhook knows to apply changes
+            // Note: current_seats NOT updated - wait for payment confirmation
           })
           .eq('id', subscription.id)
 
         if (updateError) {
           throw new Error(`Database update failed: ${updateError.message}`)
         }
+
+        // Update organization paid_seats to reflect the upcoming change
+        // This ensures billing calculations are accurate
+        const FREE_TIER_LIMIT = 3
+        const newPaidSeats = subscription.pending_seats > FREE_TIER_LIMIT ? subscription.pending_seats : 0
+
+        const { error: orgUpdateError } = await supabase
+          .from('organizations')
+          .update({
+            paid_seats: newPaidSeats,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', subscription.organization_id)
+
+        if (orgUpdateError) {
+          console.error(`⚠️ [Cron] Failed to update organization paid_seats:`, orgUpdateError)
+          // Don't throw - organization update failure shouldn't block the job
+        }
+
+        // Log after state for debugging
+        console.log(`✅ [Cron] Database updated - After:`, {
+          subscriptionId: subscription.lemonsqueezy_subscription_id,
+          organizationId: subscription.organization_id,
+          current_seats: subscription.current_seats,  // Unchanged (waiting for payment)
+          quantity: subscription.pending_seats,  // Updated to match LemonSqueezy
+          pending_seats: subscription.pending_seats,  // Remains for webhook
+          paid_seats: newPaidSeats,
+          renews_at: subscription.renews_at
+        })
 
         // Create info alert for admin dashboard (database only)
         await sendInfoAlert(

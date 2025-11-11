@@ -88,12 +88,21 @@ export async function GET(request: NextRequest) {
 
     const pendingInvitations = pendingInvitationsCount || 0;
 
-    // Check subscription based on database fields
-    if (orgDetails.subscription_tier === 'free' || orgDetails.paid_seats === 0) {
+    // Get subscription record from database FIRST (contains stored Lemon Squeezy subscription ID)
+    // Include all subscription statuses for display
+    const { data: subscriptionRecord, error: subError } = await supabase
+      .from('subscriptions')
+      .select('lemonsqueezy_subscription_id, status, trial_ends_at')
+      .eq('organization_id', organizationId)
+      .in('status', ['active', 'on_trial', 'paused', 'past_due', 'cancelled', 'expired', 'unpaid'])
+      .single();
+
+    // If no subscription record found AND no paid seats, return free tier
+    if ((subError || !subscriptionRecord) && orgDetails.paid_seats === 0) {
       // Return free tier with comprehensive seat calculation
       const seatInfo = calculateComprehensiveSeatInfo(
         0, // 0 paid seats
-        currentMembersCount,
+        currentMembers,
         pendingInvitations
       );
 
@@ -114,15 +123,6 @@ export async function GET(request: NextRequest) {
         }
       });
     }
-
-    // Get subscription record from database (contains stored Lemon Squeezy subscription ID)
-    // Include all subscription statuses for display
-    const { data: subscriptionRecord, error: subError } = await supabase
-      .from('subscriptions')
-      .select('lemonsqueezy_subscription_id, status, trial_ends_at')
-      .eq('organization_id', organizationId)
-      .in('status', ['active', 'on_trial', 'paused', 'past_due', 'cancelled', 'expired', 'unpaid'])
-      .single();
 
     if (subError || !subscriptionRecord) {
       console.error('❌ No subscription record found:', subError);
