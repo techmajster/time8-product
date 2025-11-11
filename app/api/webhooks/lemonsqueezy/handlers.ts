@@ -81,17 +81,57 @@ export async function isEventAlreadyProcessed(eventId: string): Promise<boolean>
 
 /**
  * Validates subscription payload structure
+ * Note: event_id is optional in some webhooks, quantity may be undefined for cancelled subscriptions
  */
 function validateSubscriptionPayload(payload: any): boolean {
+  // Check if payload has basic structure
+  if (!payload || !payload.data) {
+    console.error('❌ [Validation] Missing payload or payload.data');
+    return false;
+  }
+
+  // Check meta object exists
+  if (!payload.meta) {
+    console.error('❌ [Validation] Missing payload.meta');
+    return false;
+  }
+
+  // Check required fields
+  const hasEventName = !!payload.meta.event_name;
+  const hasDataId = !!payload.data.id;
+  const hasAttributes = !!payload.data.attributes;
+  const hasStatus = typeof payload.data.attributes?.status === 'string';
+
+  console.log('🔍 [Validation] Payload structure check:', {
+    hasEventName,
+    hasDataId,
+    hasAttributes,
+    hasStatus,
+    eventName: payload.meta?.event_name,
+    dataId: payload.data?.id,
+    status: payload.data?.attributes?.status
+  });
+
   return (
-    payload?.meta?.event_name &&
-    payload?.meta?.event_id &&
-    payload?.data?.id &&
-    payload?.data?.attributes &&
-    typeof payload.data.attributes.status === 'string' &&
-    typeof payload.data.attributes.quantity === 'number' &&
-    typeof payload.data.attributes.customer_id === 'number'
+    hasEventName &&
+    hasDataId &&
+    hasAttributes &&
+    hasStatus
+    // Note: event_id, quantity, and customer_id are optional depending on webhook type
   );
+}
+
+/**
+ * Ensures event_id exists, generates one if not provided by LemonSqueezy
+ */
+function ensureEventId(payload: any): string {
+  if (payload?.meta?.event_id) {
+    return payload.meta.event_id;
+  }
+  // Generate fallback event_id if not provided
+  const eventName = payload?.meta?.event_name || 'unknown';
+  const subscriptionId = payload?.data?.id || 'unknown';
+  return `${eventName}-${subscriptionId}-${Date.now()}`;
 }
 
 /**
@@ -555,9 +595,10 @@ export async function processSubscriptionCancelled(payload: any): Promise<EventR
     // Validate payload structure
     if (!validateSubscriptionPayload(payload)) {
       const error = 'Invalid payload structure for subscription.cancelled event';
+      const eventId = ensureEventId(payload);
       await logBillingEvent(
         payload?.meta?.event_name || 'subscription_cancelled',
-        payload?.meta?.event_id || 'unknown',
+        eventId,
         payload,
         'failed',
         error
@@ -569,16 +610,19 @@ export async function processSubscriptionCancelled(payload: any): Promise<EventR
     const { id: subscriptionId, attributes } = data;
     const { status, ends_at } = attributes;
 
+    // Ensure event_id exists
+    const eventId = ensureEventId(payload);
+
     // Check if event already processed
-    if (await isEventAlreadyProcessed(meta.event_id)) {
-      await logBillingEvent(meta.event_name, meta.event_id, payload, 'skipped', 'Event already processed');
+    if (await isEventAlreadyProcessed(eventId)) {
+      await logBillingEvent(meta.event_name, eventId, payload, 'skipped', 'Event already processed');
       return { success: true, data: { message: 'Event already processed' } };
     }
 
     const supabase = createAdminClient();
 
     // Find existing subscription
-    const { data: existingSubscription, error: findError } = await supabase
+    const { data: existingSubscription, error: findError} = await supabase
       .from('subscriptions')
       .select('*')
       .eq('lemonsqueezy_subscription_id', subscriptionId)
@@ -586,7 +630,7 @@ export async function processSubscriptionCancelled(payload: any): Promise<EventR
 
     if (findError || !existingSubscription) {
       const error = 'Subscription not found for cancellation';
-      await logBillingEvent(meta.event_name, meta.event_id, payload, 'failed', error);
+      await logBillingEvent(meta.event_name, eventId, payload, 'failed', error);
       return { success: false, error };
     }
 
@@ -598,7 +642,7 @@ export async function processSubscriptionCancelled(payload: any): Promise<EventR
       quantity: existingSubscription.quantity,
       current_seats: existingSubscription.current_seats,
       renews_at: existingSubscription.renews_at,
-      correlationId: meta.event_id
+      correlationId: eventId
     });
 
     // Update subscription to cancelled/expired status
@@ -618,7 +662,7 @@ export async function processSubscriptionCancelled(payload: any): Promise<EventR
 
     if (updateError) {
       const error = `Subscription cancellation failed: ${updateError.message}`;
-      await logBillingEvent(meta.event_name, meta.event_id, payload, 'failed', error);
+      await logBillingEvent(meta.event_name, eventId, payload, 'failed', error);
       return { success: false, error };
     }
 
@@ -636,11 +680,11 @@ export async function processSubscriptionCancelled(payload: any): Promise<EventR
       subscription_tier: 'free',
       ends_at: ends_at || null,
       renews_at: null,
-      correlationId: meta.event_id
+      correlationId: eventId
     });
 
     // Log successful processing
-    await logBillingEvent(meta.event_name, meta.event_id, payload, 'processed');
+    await logBillingEvent(meta.event_name, eventId, payload, 'processed');
 
     return {
       success: true,
