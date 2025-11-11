@@ -17,6 +17,7 @@ import { PendingChangesSection } from '@/components/admin/PendingChangesSection'
 import { ArchivedUsersSection } from './ArchivedUsersSection'
 import { UserDetailSheet } from './UserDetailSheet'
 import { EditEmployeeSheet } from './EditEmployeeSheet'
+import { InviteUsersDialog, SeatInfo } from '@/components/invitations/invite-users-dialog'
 import { useDeleteAccount, useCancelRemoval, useReactivateUser } from '@/hooks/use-team-mutations'
 import { REFETCH_TEAM_MANAGEMENT } from '@/lib/refetch-events'
 
@@ -101,6 +102,8 @@ interface Approver {
 }
 
 interface TeamManagementClientProps {
+  organizationId: string
+  organizationName: string
   teamMembers?: TeamMember[]
   teams?: any[]
   leaveBalances?: LeaveBalance[]
@@ -112,6 +115,8 @@ interface TeamManagementClientProps {
 }
 
 export function TeamManagementClient({
+  organizationId,
+  organizationName,
   teamMembers: initialTeamMembers = [],
   teams: initialTeams = [],
   leaveBalances: initialLeaveBalances = [],
@@ -150,6 +155,11 @@ export function TeamManagementClient({
   const [isEditSheetOpen, setIsEditSheetOpen] = useState(false)
   const [selectedEmployee, setSelectedEmployee] = useState<TeamMember | null>(null)
 
+  // State for invite users sheet
+  const [isInviteSheetOpen, setIsInviteSheetOpen] = useState(false)
+  const [seatInfo, setSeatInfo] = useState<SeatInfo | null>(null)
+  const [isFetchingSeatInfo, setIsFetchingSeatInfo] = useState(false)
+
   // Filter invitations by team
   const filteredInvitations = activeTeamFilter === 'Wszyscy'
     ? invitations
@@ -182,6 +192,25 @@ export function TeamManagementClient({
       toast.error('Nie udało się załadować danych zespołu')
     } finally {
       setIsRefetching(false)
+    }
+  }
+
+  // Fetch seat info function
+  const fetchSeatInfo = async () => {
+    if (isFetchingSeatInfo) return
+    setIsFetchingSeatInfo(true)
+    try {
+      const response = await fetch(`/api/organizations/${organizationId}/seat-info`)
+      if (response.ok) {
+        const data = await response.json()
+        setSeatInfo(data)
+      } else {
+        console.error('Failed to fetch seat info')
+      }
+    } catch (error) {
+      console.error('Error fetching seat info:', error)
+    } finally {
+      setIsFetchingSeatInfo(false)
     }
   }
 
@@ -338,12 +367,16 @@ export function TeamManagementClient({
         <h1 className="text-3xl font-semibold text-foreground">Użytkownicy</h1>
         <div className="flex gap-2">
           <Button variant="outline" size="sm">Export</Button>
-          <Link href="/admin/team-management/add-employee">
-            <Button size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Zaproś nowych użytkowników
-            </Button>
-          </Link>
+          <Button
+            size="sm"
+            onClick={() => {
+              fetchSeatInfo()
+              setIsInviteSheetOpen(true)
+            }}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Zaproś nowych użytkowników
+          </Button>
         </div>
       </div>
 
@@ -654,6 +687,20 @@ export function TeamManagementClient({
         leaveBalances={leaveBalances}
         onSuccess={() => {
           fetchData()
+        }}
+      />
+
+      {/* Invite Users Sheet */}
+      <InviteUsersDialog
+        open={isInviteSheetOpen}
+        onOpenChange={setIsInviteSheetOpen}
+        organizationId={organizationId}
+        organizationName={organizationName}
+        seatInfo={seatInfo}
+        activeMembers={filteredTeamMembers}
+        onInviteSent={() => {
+          fetchData() // Refresh user list
+          fetchSeatInfo() // Refresh seat info
         }}
       />
 

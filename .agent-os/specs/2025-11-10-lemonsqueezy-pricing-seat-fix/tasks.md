@@ -1,30 +1,42 @@
 # Spec Tasks
 
+## Critical Bugs Fixed (Production Issues)
+
+- [x] **Webhook Handler Bug:** Fixed `subscription_updated` to sync `current_seats` with `quantity`
+  - **Issue:** When user updated seats in LemonSqueezy (6→9), webhook updated `quantity` but NOT `current_seats`, causing UI to show stale data
+  - **Fix:** Added `current_seats: quantity` to subscription update in `handlers.ts` line 429
+  - **Impact:** Future LemonSqueezy updates will now immediately reflect in the UI
+
+- [x] **Seat Calculation Bug:** Fixed `calculateTotalSeats()` for graduated pricing model
+  - **Issue:** Function added 3 free seats to ALL subscriptions (`paidSeats + 3`), causing incorrect totals (e.g., 9 paid → 12 total instead of 9)
+  - **Fix:** Changed logic to `paidSeats > 0 ? paidSeats : 3` in `seat-calculation.ts` line 38-41
+  - **Impact:** Seat counts now match LemonSqueezy's graduated pricing (BB8 Studio now shows 2/9 instead of 5/12)
+
 ## Tasks
 
-- [ ] 1. Fix Pricing API to Use REST Instead of SDK
-  - [ ] 1.1 Write tests for `getVariantPrice()` fetching graduated pricing
-  - [ ] 1.2 Update `getDynamicPricing()` to call `getVariantPrice()` instead of `fetchVariantPricing()`
-  - [ ] 1.3 Verify correct pricing returned (10 PLN monthly, 96 PLN yearly)
-  - [ ] 1.4 Mark `fetchVariantPricing()` as deprecated with comment
-  - [ ] 1.5 Test fallback behavior when API fails
-  - [ ] 1.6 Verify all tests pass
+- [x] 1. Fix Pricing API to Use REST Instead of SDK
+  - [x] 1.1 Write tests for `getVariantPrice()` fetching graduated pricing
+  - [x] 1.2 Update `getDynamicPricing()` to call `getVariantPrice()` instead of `fetchVariantPricing()`
+  - [x] 1.3 Verify correct pricing returned (10 PLN monthly, 96 PLN yearly)
+  - [x] 1.4 Mark `fetchVariantPricing()` as deprecated with comment
+  - [x] 1.5 Test fallback behavior when API fails
+  - [x] 1.6 Verify all tests pass
 
-- [ ] 2. Restructure Seat Info API Response
-  - [ ] 2.1 Write tests for seat-info API with new field names
-  - [ ] 2.2 Update API response to use `availableSeats` instead of `freeSeats`
-  - [ ] 2.3 Add `freeTierSeats: 3` field to response
-  - [ ] 2.4 Update TypeScript interface for API response (if exists)
-  - [ ] 2.5 Document the distinction in code comments
-  - [ ] 2.6 Verify all tests pass
+- [x] 2. Restructure Seat Info API Response
+  - [x] 2.1 Write tests for seat-info API with new field names
+  - [x] 2.2 Update API response to use `availableSeats` instead of `freeSeats`
+  - [x] 2.3 Add `freeTierSeats: 3` field to response
+  - [x] 2.4 Update TypeScript interface for API response (if exists)
+  - [x] 2.5 Document the distinction in code comments
+  - [x] 2.6 Verify all tests pass
 
-- [ ] 3. Update Invite Users Dialog Component
-  - [ ] 3.1 Write tests for dialog component with correct pricing
-  - [ ] 3.2 Fix hardcoded fallback values (10.99 EUR → 10.00 PLN)
-  - [ ] 3.3 Rename `freeSeats` variable to `availableSeats`
-  - [ ] 3.4 Update display text from `freeSeats` to `availableSeats`
-  - [ ] 3.5 Test dialog displays correct seat counts and pricing
-  - [ ] 3.6 Verify all tests pass
+- [x] 3. Update Invite Users Dialog Component
+  - [x] 3.1 Write tests for dialog component with correct pricing
+  - [x] 3.2 Fix hardcoded fallback values (10.99 EUR → 10.00 PLN)
+  - [x] 3.3 Rename `freeSeats` variable to `availableSeats`
+  - [x] 3.4 Update display text from `freeSeats` to `availableSeats`
+  - [x] 3.5 Test dialog displays correct seat counts and pricing
+  - [x] 3.6 Verify all tests pass
 
 - [ ] 4. Fix Admin Settings Billing Tab
   - [ ] 4.1 Write tests for seat usage calculation (free and paid tiers)

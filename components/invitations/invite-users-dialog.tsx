@@ -68,6 +68,7 @@ export function InviteUsersDialog({
   const [error, setError] = React.useState<string | null>(null)
   const [pricePerSeat, setPricePerSeat] = React.useState<number>(10.00) // Default fallback - correct PLN price
   const [currency, setCurrency] = React.useState<string>('PLN') // Default fallback - correct currency
+  const [paymentStatus, setPaymentStatus] = React.useState<'idle' | 'processing' | 'success' | 'failed'>('idle')
 
   // Calculate how many seats are occupied and available
   const occupiedSeats = seatInfo ? seatInfo.currentSeats : 0
@@ -176,82 +177,66 @@ export function InviteUsersDialog({
   const handleGoToPayment = async () => {
     setIsLoading(true)
     setError(null)
+    setPaymentStatus('processing')
 
     try {
-      // Store queued invitations in session storage
-      sessionStorage.setItem(
-        'queued_invitations',
-        JSON.stringify({
-          organizationId,
-          invitations: queuedInvitations.map(inv => ({
-            email: inv.email,
-            role: 'employee'
-          }))
-        })
-      )
-
       // Calculate required seats
       const requiredSeats = occupiedSeats + queuedInvitations.length
 
       // Check if organization has an existing active subscription
-      // If yes, redirect to customer portal to upgrade seats
-      // If no, create new checkout for initial subscription
       const subscriptionResponse = await fetch('/api/billing/subscription')
       const subscriptionData = await subscriptionResponse.json()
 
-      // If subscription exists and is active, update subscription quantity via API
+      // If subscription exists and is active, use Subscription Items API for immediate upgrade
       if (subscriptionResponse.ok && subscriptionData.subscription && subscriptionData.subscription.status === 'active') {
-        // Update subscription quantity directly via API (works in test mode)
-        const updateResponse = await fetch('/api/billing/update-subscription-quantity', {
+        // 🔒 SECURITY FIX: Use update-subscription-quantity endpoint
+        // This uses LemonSqueezy Subscription Items API for immediate prorated charges
+        // Seats will be granted only after subscription_payment_success webhook confirms payment
+        const response = await fetch('/api/billing/update-subscription-quantity', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
             new_quantity: requiredSeats,
-            invoice_immediately: true
+            invoice_immediately: true,
+            queued_invitations: queuedInvitations.map(inv => ({
+              email: inv.email,
+              role: 'employee'
+            }))
           })
         })
 
-        const updateData = await updateResponse.json()
+        const data = await response.json()
 
-        if (!updateResponse.ok) {
-          throw new Error(updateData.error || 'Nie udało się zaktualizować subskrypcji')
+        if (!response.ok) {
+          throw new Error(data.error || 'Nie udało się zaktualizować subskrypcji')
         }
 
-        // Success - subscription updated, now send invitations
-        alert(`Subskrypcja została zaktualizowana!\n\nLiczba miejsc zwiększona z ${seatInfo?.paidSeats || 0} do ${requiredSeats}.\n\nTeraz wysyłamy zaproszenia...`)
-
-        // Now send the invitations
-        const inviteResponse = await fetch(
-          `/api/organizations/${organizationId}/invitations`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              invitations: queuedInvitations.map(inv => ({
-                email: inv.email,
-                role: 'employee'
-              }))
-            })
-          }
-        )
-
-        const inviteData = await inviteResponse.json()
-
-        if (!inviteResponse.ok) {
-          throw new Error(inviteData.error || 'Nie udało się wysłać zaproszeń')
-        }
-
-        // Success - clear queue and notify parent
+        // Payment is being processed - show success message
+        // Invitations will be sent automatically by subscription_payment_success webhook
+        setPaymentStatus('success')
         setQueuedInvitations([])
+
+        // Show success message explaining what will happen
+        alert(`Płatność jest przetwarzana.\n\nZaproszenia zostaną wysłane automatycznie po potwierdzeniu płatności.\n\nTo może potrwać kilka sekund.`)
+
         onInviteSent?.()
         onOpenChange(false)
-        return
       } else {
         // No active subscription - create new checkout for initial subscription
+        // Store queued invitations in session storage for after checkout
+        sessionStorage.setItem(
+          'queued_invitations',
+          JSON.stringify({
+            organizationId,
+            invitations: queuedInvitations.map(inv => ({
+              email: inv.email,
+              role: 'employee'
+            }))
+          })
+        )
+
         const response = await fetch('/api/billing/create-checkout', {
           method: 'POST',
           headers: {
@@ -287,6 +272,7 @@ export function InviteUsersDialog({
       }
     } catch (err: any) {
       setError(err.message)
+      setPaymentStatus('failed')
       setIsLoading(false)
     }
   }
@@ -443,8 +429,32 @@ export function InviteUsersDialog({
                       </div>
                     </div>
 
+                    {/* Payment Processing Status */}
+                    {paymentStatus === 'processing' && (
+                      <div className="space-y-2 px-4 py-3 bg-blue-50 border border-blue-200 rounded-md">
+                        <p className="text-sm font-medium text-blue-900">
+                          ⏳ Przetwarzanie płatności...
+                        </p>
+                        <p className="text-xs text-blue-700">
+                          Zaproszenia zostaną wysłane automatycznie po potwierdzeniu płatności.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Payment Failed Status */}
+                    {paymentStatus === 'failed' && error && (
+                      <div className="space-y-2 px-4 py-3 bg-red-50 border border-red-200 rounded-md">
+                        <p className="text-sm font-medium text-red-900">
+                          ❌ Błąd płatności
+                        </p>
+                        <p className="text-xs text-red-700">
+                          {error}
+                        </p>
+                      </div>
+                    )}
+
                     {/* Payment Notice */}
-                    {needsPayment && (
+                    {needsPayment && paymentStatus === 'idle' && (
                       <div className="space-y-4">
                         <p className="text-sm font-medium text-muted-foreground">
                           Wszystkie zaproszenia zostaną wysłane po opłaceniu

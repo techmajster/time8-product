@@ -53,9 +53,37 @@ export async function POST(request: NextRequest) {
     const { payload } = validation;
     const eventType = payload?.meta?.event_name;
     const eventId = payload?.meta?.event_id;
+    const subscriptionId = payload?.data?.id;
+    const quantity = payload?.data?.attributes?.quantity;
+    const status = payload?.data?.attributes?.status;
 
-    // Log webhook receipt
-    console.log(`Received webhook: ${eventType} (${eventId})`);
+    // Log webhook receipt with payment flow tracking
+    console.log(`🔔 [Webhook] Received: ${eventType}`, {
+      eventId,
+      subscriptionId,
+      quantity,
+      status,
+      timestamp: new Date().toISOString(),
+      correlationId: eventId
+    });
+
+    // Track payment-related events for flow analysis
+    const isPaymentEvent = [
+      'subscription_payment_success',
+      'subscription_payment_failed',
+      'subscription_created',
+      'subscription_updated'
+    ].includes(eventType);
+
+    if (isPaymentEvent) {
+      console.log(`💰 [Payment Flow] Event: ${eventType}`, {
+        subscriptionId,
+        quantity,
+        status,
+        correlationId: eventId,
+        note: 'Payment-related event being processed'
+      });
+    }
 
     // Process event based on type
     let result;
@@ -113,8 +141,32 @@ export async function POST(request: NextRequest) {
     // Handle processing result
     if (result.success) {
       const processingTime = Date.now() - startTime;
-      console.log(`Webhook ${eventType} processed successfully in ${processingTime}ms`);
-      
+
+      // Performance metrics logging
+      console.log(`⚡ [Performance] Webhook processed:`, {
+        eventType,
+        eventId,
+        processingTime: `${processingTime}ms`,
+        correlationId: eventId,
+        timestamp: new Date().toISOString()
+      });
+
+      console.log(`✅ [Webhook] ${eventType} processed successfully in ${processingTime}ms`, {
+        eventId,
+        correlationId: eventId,
+        data: result.data
+      });
+
+      // Payment flow completion logging
+      if (isPaymentEvent) {
+        console.log(`💳 [Payment Flow] Completed: ${eventType}`, {
+          subscriptionId,
+          correlationId: eventId,
+          processingTime: `${processingTime}ms`,
+          result: 'success'
+        });
+      }
+
       return NextResponse.json(
         {
           message: 'Webhook processed successfully',
@@ -126,8 +178,26 @@ export async function POST(request: NextRequest) {
         { status: 200 }
       );
     } else {
-      console.error(`Webhook ${eventType} processing failed:`, result.error);
-      
+      const processingTime = Date.now() - startTime;
+
+      console.error(`❌ [Webhook] ${eventType} processing failed:`, {
+        eventId,
+        correlationId: eventId,
+        error: result.error,
+        processingTime: `${processingTime}ms`
+      });
+
+      // Payment flow failure logging
+      if (isPaymentEvent) {
+        console.error(`⚠️ [Payment Flow] Failed: ${eventType}`, {
+          subscriptionId,
+          correlationId: eventId,
+          error: result.error,
+          processingTime: `${processingTime}ms`,
+          result: 'failed'
+        });
+      }
+
       return NextResponse.json(
         {
           error: 'Webhook processing failed',

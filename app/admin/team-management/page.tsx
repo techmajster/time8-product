@@ -426,6 +426,8 @@ export default async function AdminTeamManagementPage() {
   return (
     <AppLayout>
       <TeamManagementClient
+        organizationId={profile.organization_id}
+        organizationName={profile.organizations.name}
         teamMembers={teamMembers}
         teams={teamsWithDetails || []}
         leaveBalances={leaveBalances as any || []}

@@ -12,6 +12,10 @@ import { authenticateAndGetOrgContext } from '@/lib/auth-utils-v2';
 interface UpdateQuantityRequest {
   new_quantity: number;
   invoice_immediately?: boolean;
+  queued_invitations?: Array<{
+    email: string;
+    role: string;
+  }>;
 }
 
 /**
@@ -40,7 +44,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { new_quantity, invoice_immediately = true } = body;
+    const { new_quantity, invoice_immediately = true, queued_invitations = [] } = body;
 
     // Validate new_quantity
     if (!new_quantity || new_quantity < 1) {
@@ -106,12 +110,17 @@ export async function POST(request: NextRequest) {
       subscription.lemonsqueezy_subscription_item_id = subscriptionItemId;
     }
 
-    console.log(`📊 Updating subscription quantity:`, {
+    // Generate correlation ID for tracking payment flow
+    const correlationId = `upgrade-${organizationId}-${Date.now()}`;
+
+    console.log(`💰 [Payment Flow] Starting quantity update:`, {
+      correlationId,
       subscription_id: subscription.lemonsqueezy_subscription_id,
       subscription_item_id: subscription.lemonsqueezy_subscription_item_id,
       current_quantity: subscription.current_seats,
       new_quantity,
-      invoice_immediately
+      invoice_immediately,
+      organizationId
     });
 
     // Update subscription item quantity via LemonSqueezy API
@@ -140,7 +149,13 @@ export async function POST(request: NextRequest) {
 
     if (!updateResponse.ok) {
       const errorData = await updateResponse.json();
-      console.error('❌ LemonSqueezy update failed:', errorData);
+      console.error('❌ [Payment Flow] LemonSqueezy API update failed:', {
+        correlationId,
+        subscription_id: subscription.lemonsqueezy_subscription_id,
+        subscription_item_id: subscription.lemonsqueezy_subscription_item_id,
+        error: errorData,
+        status: updateResponse.status
+      });
       return NextResponse.json(
         {
           error: 'Failed to update subscription quantity',
@@ -151,30 +166,55 @@ export async function POST(request: NextRequest) {
     }
 
     const updatedData = await updateResponse.json();
-    console.log('✅ Subscription quantity updated:', updatedData.data.attributes.quantity);
+    console.log('✅ [Payment Flow] LemonSqueezy API call successful:', {
+      correlationId,
+      subscription_id: subscription.lemonsqueezy_subscription_id,
+      new_quantity: updatedData.data.attributes.quantity,
+      note: 'Awaiting payment confirmation webhook'
+    });
 
-    // Update local database
+    // 🔒 SECURITY: Update quantity but NOT current_seats
+    // current_seats will be updated by subscription_payment_success webhook after payment confirmation
     await supabase
       .from('subscriptions')
       .update({
         quantity: new_quantity,
-        current_seats: new_quantity
+        updated_at: new Date().toISOString()
       })
       .eq('organization_id', organizationId);
 
-    // Also update organization paid_seats
-    await supabase
-      .from('organizations')
-      .update({
-        paid_seats: new_quantity
-      })
-      .eq('id', organizationId);
+    // Store queued invitations if provided (to be sent after payment confirmation)
+    if (queued_invitations.length > 0) {
+      console.log(`📋 [Payment Flow] Storing queued invitations:`, {
+        correlationId,
+        count: queued_invitations.length,
+        subscription_id: subscription.lemonsqueezy_subscription_id,
+        note: 'Will be sent after payment confirmation'
+      });
+
+      // Store invitations temporarily - they'll be sent by subscription_payment_success webhook
+      await supabase
+        .from('subscriptions')
+        .update({
+          queued_invitations: queued_invitations as any // JSONB column
+        })
+        .eq('organization_id', organizationId);
+    }
+
+    console.log(`⏳ [Payment Flow] Awaiting webhook confirmation:`, {
+      correlationId,
+      subscription_id: subscription.lemonsqueezy_subscription_id,
+      new_quantity,
+      note: 'subscription_payment_success webhook will grant seats'
+    });
 
     return NextResponse.json({
       success: true,
+      payment_status: 'processing',
       new_quantity,
       subscription_id: subscription.lemonsqueezy_subscription_id,
-      message: 'Subscription quantity updated successfully'
+      message: 'Payment processing. Seats will be granted after payment confirmation.',
+      correlationId // Include for tracking
     });
 
   } catch (error) {

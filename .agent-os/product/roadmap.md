@@ -2296,6 +2296,130 @@ components/admin/invite-users/
 
 ---
 
+## Phase 2.20: LemonSqueezy Subscription & Payment Flow Fix 🔐
+
+**Goal:** Fix critical payment bypass vulnerability and ensure all subscription updates sync correctly between LemonSqueezy and the application database
+
+**Success Criteria:**
+- No seats granted without payment confirmation via webhook
+- Users with existing subscriptions pay only for additional seats (prorated)
+- Manual LemonSqueezy dashboard updates sync to app within seconds
+- All webhook events properly logged for debugging
+- Complete test coverage for upgrade/downgrade/manual update scenarios
+
+**Status:** Planned
+
+**Priority:** CRITICAL - Security vulnerability (payment bypass) and data sync failures
+
+**Spec:** `.agent-os/specs/2025-11-11-lemonsqueezy-subscription-sync-fix/`
+
+### Features
+
+- [ ] **Add subscription_payment_success Webhook Handler** - Confirm payment before granting access `S`
+  - Implement missing `processSubscriptionPaymentSuccess()` handler
+  - Update `current_seats` only after payment webhook confirms
+  - Trigger sending of queued invitations after payment succeeds
+  - Add comprehensive logging with correlation IDs
+  - Test with LemonSqueezy test mode and production
+
+- [ ] **Fix Invite Dialog Payment Flow** - Use Subscription Items API for upgrades `M`
+  - Replace new checkout creation with Subscription Items API call
+  - Detect existing active subscriptions
+  - Call `/api/billing/update-subscription-quantity` for immediate upgrades
+  - Queue invitations to send after payment confirmation
+  - Add "Processing payment..." UI state
+  - Handle payment failures gracefully
+
+- [ ] **Fix update-subscription-quantity Endpoint** - Remove payment bypass vulnerability `S`
+  - Remove immediate `current_seats` update (security fix)
+  - Update only `quantity` field (what user is paying for)
+  - Store queued invitations in session or temporary table
+  - Return "Processing payment..." message
+  - Wait for webhook confirmation before granting access
+
+- [ ] **Fix subscription_created Webhook** - Set current_seats on new subscriptions `XS`
+  - Add `current_seats: totalUsers` to subscription insert
+  - New subscriptions from checkout get immediate access (already paid)
+  - Add logging for subscription creation events
+
+- [ ] **Remove Conditional from subscription_updated Webhook** - Always sync manual updates `S`
+  - Remove `if (variantChanged || quantityChanged)` condition
+  - Always sync `current_seats = quantity` on subscription_updated
+  - Ensures manual LemonSqueezy dashboard updates reflect in app
+  - Add comprehensive before/after logging
+
+- [ ] **Fix Cron Job Database Sync** - Update DB after LemonSqueezy API calls `S`
+  - After successful LemonSqueezy API call, update local database
+  - Sync `quantity` and `current_seats` with `pending_seats`
+  - Update `organizations.paid_seats`
+  - Don't rely solely on webhooks for cron-initiated changes
+
+- [ ] **Add Comprehensive Webhook Logging** - Debug payment and sync issues `XS`
+  - Add before/after logging to all webhook handlers
+  - Include correlation IDs (event_id) in all logs
+  - Log payment flow tracking from API call to seat grant
+  - Add performance metrics
+
+- [ ] **End-to-End Testing** - Verify all subscription flows `M`
+  - Test upgrade: 9 seats → 10 seats (prorated charge, payment confirmation)
+  - Test downgrade: 10 seats → 7 seats (deferred to renewal via pending_seats)
+  - Test manual LemonSqueezy update (immediate sync to app)
+  - Test payment failure (no seat access granted)
+  - Test new subscription checkout (immediate access after payment)
+  - Verify webhook idempotency and concurrent processing
+
+- [ ] **Security Audit & Verification** - Ensure no payment bypass vulnerabilities `S`
+  - Verify seats not granted before payment confirmation
+  - Test with declined credit card scenarios
+  - Review all seat update code paths
+  - Document payment flow architecture
+  - Verify webhook signature validation
+
+### Dependencies
+- Phase 2.11 (Seat Management with Grace Periods) ✅
+- Phase 2.18 (Invite Users Dialog) ✅
+- Phase 2.19 (LemonSqueezy Pricing Fix) 📋
+
+### Technical Details
+
+**Root Causes Identified:**
+1. **Payment Bypass:** `/api/billing/update-subscription-quantity` updates `current_seats` immediately after LemonSqueezy API returns, but payment processes asynchronously
+2. **Missing Webhook Handler:** No `subscription_payment_success` handler to confirm payment
+3. **Conditional Webhook Logic:** `subscription_updated` only fires if quantity changes, blocking manual updates
+4. **Cron Job Gap:** Cron syncs to LemonSqueezy but doesn't update local database
+5. **Invite Dialog Flow:** Creates NEW checkout instead of using Subscription Items API for upgrades
+
+**Architecture Pattern (Preserve):**
+- **Immediate Upgrades:** Use Subscription Items API + payment_success webhook
+- **Deferred Downgrades:** Use existing `pending_seats` pattern + renewal webhook
+- Two patterns serve different business needs (users expect different behavior)
+
+**Files to Modify:**
+- `app/api/billing/update-subscription-quantity/route.ts` - Fix payment security
+- `app/api/webhooks/lemonsqueezy/handlers.ts` - Add payment_success handler, fix subscription_created, remove conditional
+- `app/api/webhooks/lemonsqueezy/route.ts` - Add case for subscription_payment_success
+- `components/invitations/invite-users-dialog.tsx` - Replace checkout with Subscription Items API
+- `app/api/cron/apply-pending-subscription-changes/route.ts` - Add database sync after API call
+
+**LemonSqueezy API Integration:**
+- Use Subscription Items PATCH API: `/v1/subscription-items/{id}`
+- Parameters: `quantity`, `invoice_immediately: true`, `disable_prorations: false`
+- API returns immediately (sync), payment happens asynchronously
+- Wait for `subscription_payment_success` webhook before granting access
+
+**Estimated Effort:** ~12-16 hours (2-3 days) - MEDIUM effort
+
+**Breakdown:**
+- Add payment_success webhook handler: 3 hours
+- Fix update-subscription-quantity endpoint: 2 hours
+- Update invite dialog flow: 3 hours
+- Fix other webhook handlers: 2 hours
+- Fix cron job sync: 1.5 hours
+- Add logging: 1 hour
+- Testing & security audit: 3-4 hours
+
+---
+
 ## Phase 3: Design System Implementation 🎨
 
 **Goal:** Complete visual overhaul using Figma designs and modern component library
