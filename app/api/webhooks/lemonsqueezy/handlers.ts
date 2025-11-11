@@ -84,11 +84,39 @@ export async function isEventAlreadyProcessed(eventId: string): Promise<boolean>
  * Note: event_id is optional in some webhooks, quantity may be undefined for cancelled subscriptions
  */
 function validateSubscriptionPayload(payload: any): boolean {
+  // Check if payload has basic structure
+  if (!payload || !payload.data) {
+    console.error('❌ [Validation] Missing payload or payload.data');
+    return false;
+  }
+
+  // Check meta object exists
+  if (!payload.meta) {
+    console.error('❌ [Validation] Missing payload.meta');
+    return false;
+  }
+
+  // Check required fields
+  const hasEventName = !!payload.meta.event_name;
+  const hasDataId = !!payload.data.id;
+  const hasAttributes = !!payload.data.attributes;
+  const hasStatus = typeof payload.data.attributes?.status === 'string';
+
+  console.log('🔍 [Validation] Payload structure check:', {
+    hasEventName,
+    hasDataId,
+    hasAttributes,
+    hasStatus,
+    eventName: payload.meta?.event_name,
+    dataId: payload.data?.id,
+    status: payload.data?.attributes?.status
+  });
+
   return (
-    payload?.meta?.event_name &&
-    payload?.data?.id &&
-    payload?.data?.attributes &&
-    typeof payload.data.attributes.status === 'string'
+    hasEventName &&
+    hasDataId &&
+    hasAttributes &&
+    hasStatus
     // Note: event_id, quantity, and customer_id are optional depending on webhook type
   );
 }
