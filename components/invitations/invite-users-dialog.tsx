@@ -193,28 +193,72 @@ export function InviteUsersDialog({
       // Calculate required seats
       const requiredSeats = occupiedSeats + queuedInvitations.length
 
-      // Create checkout session
-      const response = await fetch('/api/billing/create-checkout', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          organizationId,
-          userCount: requiredSeats,
-          billingCycle: 'monthly',
-          variantId: '972634' // Monthly variant
+      // Check if organization has an existing active subscription
+      // If yes, redirect to customer portal to upgrade seats
+      // If no, create new checkout for initial subscription
+      const subscriptionResponse = await fetch('/api/billing/subscription')
+      const subscriptionData = await subscriptionResponse.json()
+
+      // If subscription exists and is active, redirect to customer portal to upgrade
+      if (subscriptionResponse.ok && subscriptionData.subscription && subscriptionData.subscription.status === 'active') {
+        // Redirect to LemonSqueezy customer portal to update subscription quantity
+        const portalResponse = await fetch('/api/billing/customer-portal', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            return_url: `${window.location.origin}/admin/team-management`
+          })
         })
-      })
 
-      const data = await response.json()
+        console.log('🔍 Portal request - return_url:', `${window.location.origin}/admin/team-management`)
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Nie udało się utworzyć sesji płatności')
+        const portalData = await portalResponse.json()
+
+        if (!portalResponse.ok) {
+          throw new Error(portalData.error || 'Nie udało się uzyskać dostępu do portalu płatności')
+        }
+
+        // Show info message about what user needs to do
+        alert(`Zostaniesz przekierowany do portalu płatności LemonSqueezy.\n\nAby dodać ${queuedInvitations.length} nowych użytkowników, zwiększ liczbę miejsc z ${seatInfo?.paidSeats || 0} do ${requiredSeats}.\n\nPo zaktualizowaniu subskrypcji, wróć tutaj aby wysłać zaproszenia.`)
+
+        window.location.href = portalData.portal_url
+      } else {
+        // No active subscription - create new checkout for initial subscription
+        const response = await fetch('/api/billing/create-checkout', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            variant_id: process.env.NEXT_PUBLIC_LEMONSQUEEZY_MONTHLY_VARIANT_ID || '972634',
+            organization_data: {
+              id: organizationId,
+              name: organizationName,
+              slug: organizationName.toLowerCase().replace(/\s+/g, '-'),
+              country_code: 'PL'
+            },
+            user_count: requiredSeats,
+            tier: 'monthly',
+            return_url: `${window.location.origin}/onboarding/payment-success`,
+            failure_url: `${window.location.origin}/admin/team-management`
+          })
+        })
+
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Nie udało się utworzyć sesji płatności')
+        }
+
+        // Redirect to checkout
+        if (data.checkout_url) {
+          window.location.href = data.checkout_url
+        } else {
+          throw new Error('Nie otrzymano adresu URL płatności')
+        }
       }
-
-      // Redirect to checkout
-      window.location.href = data.checkoutUrl
     } catch (err: any) {
       setError(err.message)
       setIsLoading(false)
