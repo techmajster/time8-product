@@ -338,10 +338,11 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
     const supabase = createAdminClient();
 
     // Find customer record, passing custom data from checkout
+    // Note: custom_data is in meta object, not attributes
     const { data: customer, error: customerError } = await findOrCreateCustomer(
       supabase,
       customer_id.toString(),
-      attributes.custom_data || null,
+      meta.custom_data || null,
       attributes.user_email
     );
 
