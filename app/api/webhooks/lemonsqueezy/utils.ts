@@ -52,20 +52,16 @@ export function verifyWebhookSignature(
  * Extracts signature from X-Signature header
  */
 export function extractSignatureFromHeader(request: NextRequest): string | null {
-  const signatureHeader = request.headers.get('X-Signature') || 
+  const signatureHeader = request.headers.get('X-Signature') ||
                          request.headers.get('x-signature');
-  
+
   if (!signatureHeader) {
     return null;
   }
 
-  // Lemon Squeezy sends signatures in format "sha256=<hex_signature>"
-  if (signatureHeader.startsWith('sha256=')) {
-    return signatureHeader.substring(7);
-  }
-
-  // Return null for malformed headers
-  return null;
+  // LemonSqueezy sends the signature as raw hex digest (no prefix)
+  // Just return the header value directly
+  return signatureHeader;
 }
 
 /**
