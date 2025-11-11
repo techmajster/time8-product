@@ -199,31 +199,57 @@ export function InviteUsersDialog({
       const subscriptionResponse = await fetch('/api/billing/subscription')
       const subscriptionData = await subscriptionResponse.json()
 
-      // If subscription exists and is active, redirect to customer portal to upgrade
+      // If subscription exists and is active, update subscription quantity via API
       if (subscriptionResponse.ok && subscriptionData.subscription && subscriptionData.subscription.status === 'active') {
-        // Redirect to LemonSqueezy customer portal to update subscription quantity
-        const portalResponse = await fetch('/api/billing/customer-portal', {
+        // Update subscription quantity directly via API (works in test mode)
+        const updateResponse = await fetch('/api/billing/update-subscription-quantity', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            return_url: `${window.location.origin}/admin/team-management`
+            new_quantity: requiredSeats,
+            invoice_immediately: true
           })
         })
 
-        console.log('🔍 Portal request - return_url:', `${window.location.origin}/admin/team-management`)
+        const updateData = await updateResponse.json()
 
-        const portalData = await portalResponse.json()
-
-        if (!portalResponse.ok) {
-          throw new Error(portalData.error || 'Nie udało się uzyskać dostępu do portalu płatności')
+        if (!updateResponse.ok) {
+          throw new Error(updateData.error || 'Nie udało się zaktualizować subskrypcji')
         }
 
-        // Show info message about what user needs to do
-        alert(`Zostaniesz przekierowany do portalu płatności LemonSqueezy.\n\nAby dodać ${queuedInvitations.length} nowych użytkowników, zwiększ liczbę miejsc z ${seatInfo?.paidSeats || 0} do ${requiredSeats}.\n\nPo zaktualizowaniu subskrypcji, wróć tutaj aby wysłać zaproszenia.`)
+        // Success - subscription updated, now send invitations
+        alert(`Subskrypcja została zaktualizowana!\n\nLiczba miejsc zwiększona z ${seatInfo?.paidSeats || 0} do ${requiredSeats}.\n\nTeraz wysyłamy zaproszenia...`)
 
-        window.location.href = portalData.portal_url
+        // Now send the invitations
+        const inviteResponse = await fetch(
+          `/api/organizations/${organizationId}/invitations`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              invitations: queuedInvitations.map(inv => ({
+                email: inv.email,
+                role: 'employee'
+              }))
+            })
+          }
+        )
+
+        const inviteData = await inviteResponse.json()
+
+        if (!inviteResponse.ok) {
+          throw new Error(inviteData.error || 'Nie udało się wysłać zaproszeń')
+        }
+
+        // Success - clear queue and notify parent
+        setQueuedInvitations([])
+        onInviteSent?.()
+        onOpenChange(false)
+        return
       } else {
         // No active subscription - create new checkout for initial subscription
         const response = await fetch('/api/billing/create-checkout', {
