@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
     // Fetch active subscription for organization
     const { data: subscription, error: subError } = await supabase
       .from('subscriptions')
-      .select('lemonsqueezy_subscription_id, lemonsqueezy_variant_id, status, current_seats')
+      .select('lemonsqueezy_subscription_id, lemonsqueezy_subscription_item_id, lemonsqueezy_variant_id, status, current_seats')
       .eq('organization_id', organizationId)
       .in('status', ['active', 'on_trial'])
       .single();
@@ -145,11 +145,74 @@ export async function POST(request: NextRequest) {
     }
 
     const updatedData = await updateResponse.json();
-    console.log('✅ [Billing Period Change] LemonSqueezy API call successful:', {
+    console.log('✅ [Billing Period Change] Variant change successful:', {
       correlationId,
       subscription_id: subscription.lemonsqueezy_subscription_id,
       new_variant_id: updatedData.data.attributes.variant_id,
-      billing_period,
+      billing_period
+    });
+
+    // CRITICAL: LemonSqueezy resets quantity to 1 when changing variants
+    // We must restore the original quantity using the subscription-items endpoint
+    const subscriptionItemId = subscription.lemonsqueezy_subscription_item_id ||
+      updatedData.data.attributes.first_subscription_item?.id;
+
+    if (!subscriptionItemId) {
+      console.error('❌ [Billing Period Change] No subscription_item_id found');
+      return NextResponse.json(
+        { error: 'Cannot restore quantity: subscription_item_id not found' },
+        { status: 500 }
+      );
+    }
+
+    console.log(`🔄 [Billing Period Change] Restoring quantity to ${subscription.current_seats}...`, {
+      correlationId,
+      subscription_item_id: subscriptionItemId,
+      original_seats: subscription.current_seats
+    });
+
+    // Restore the original quantity via subscription-items endpoint
+    const quantityResponse = await fetch(
+      `https://api.lemonsqueezy.com/v1/subscription-items/${subscriptionItemId}`,
+      {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${process.env.LEMONSQUEEZY_API_KEY}`,
+          'Accept': 'application/vnd.api+json',
+          'Content-Type': 'application/vnd.api+json'
+        },
+        body: JSON.stringify({
+          data: {
+            type: 'subscription-items',
+            id: subscriptionItemId.toString(),
+            attributes: {
+              quantity: subscription.current_seats,
+              invoice_immediately: true,
+              disable_prorations: false
+            }
+          }
+        })
+      }
+    );
+
+    if (!quantityResponse.ok) {
+      const errorData = await quantityResponse.json();
+      console.error('❌ [Billing Period Change] Failed to restore quantity:', {
+        correlationId,
+        subscription_item_id: subscriptionItemId,
+        error: errorData,
+        status: quantityResponse.status
+      });
+      return NextResponse.json(
+        { error: 'Failed to restore seat quantity', details: errorData },
+        { status: quantityResponse.status }
+      );
+    }
+
+    console.log('✅ [Billing Period Change] Quantity restored:', {
+      correlationId,
+      subscription_id: subscription.lemonsqueezy_subscription_id,
+      quantity: subscription.current_seats,
       note: 'Awaiting payment confirmation webhook'
     });
 
@@ -166,6 +229,7 @@ export async function POST(request: NextRequest) {
       correlationId,
       subscription_id: subscription.lemonsqueezy_subscription_id,
       new_billing_period: billing_period,
+      restored_quantity: subscription.current_seats,
       note: 'subscription_payment_success webhook will confirm'
     });
 
