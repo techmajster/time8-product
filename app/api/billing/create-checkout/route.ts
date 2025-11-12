@@ -223,43 +223,50 @@ export async function POST(request: NextRequest) {
       total_users: user_count,
       paid_seats: paidSeats
     });
-    
+
+    // Log the complete payload for debugging
+    const checkoutPayload = {
+      checkoutData: {
+        name: organization_data.name,
+        email: `noreply+${Date.now()}@time8.io`,
+        custom: {
+          organization_id: organization_data.id || '',
+          organization_name: organization_data.name,
+          user_count,
+          paid_seats: paidSeats,
+          tier
+        },
+        variantQuantities: [
+          {
+            variantId: parseInt(variant_id),
+            quantity: user_count
+          }
+        ]
+      },
+      productOptions: {
+        name: `Leave Management for ${organization_data.name}`,
+        description: `Monthly subscription for ${user_count} users - includes 3 free seats`,
+        redirectUrl: return_url || `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/onboarding/payment-success`,
+        receiptThankYouNote: 'Thank you for subscribing to our leave management system!'
+      },
+      checkoutOptions: {
+        embed: false,
+        media: true,
+        logo: true
+      },
+      expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+      testMode: process.env.NODE_ENV !== 'production',
+      preview: false
+    };
+
+    console.log('📦 Full checkout payload:', JSON.stringify(checkoutPayload, null, 2));
+    console.log('🏪 Store ID:', process.env.LEMONSQUEEZY_STORE_ID);
+    console.log('🎫 Variant ID:', variant_id);
+
     const checkout = await createCheckout(
       process.env.LEMONSQUEEZY_STORE_ID!,
       variant_id,
-      {
-        checkoutData: {
-          name: organization_data.name,
-          email: `noreply+${Date.now()}@time8.io`,
-          custom: {
-            organization_id: organization_data.id || '',
-            organization_name: organization_data.name,
-            user_count,
-            paid_seats: paidSeats,
-            tier
-          },
-          variantQuantities: [
-            {
-              variantId: parseInt(variant_id),
-              quantity: user_count
-            }
-          ]
-        },
-        productOptions: {
-          name: `Leave Management for ${organization_data.name}`,
-          description: `Monthly subscription for ${user_count} users - includes 3 free seats`,
-          redirectUrl: return_url || `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/onboarding/payment-success`,
-          receiptThankYouNote: 'Thank you for subscribing to our leave management system!'
-        },
-        checkoutOptions: {
-          embed: false,
-          media: true,
-          logo: true
-        },
-        expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-        testMode: process.env.NODE_ENV !== 'production',
-        preview: false
-      }
+      checkoutPayload
     );
 
     if (checkout.error) {
