@@ -40,16 +40,59 @@ function PaymentSuccessPageContent() {
       // Check if this is an upgrade flow
       const isUpgrade = searchParams.get('upgrade') === 'true'
 
-      // Handle upgrade flow - redirect to dashboard
+      // Handle upgrade flow - poll for webhook confirmation
       if (isUpgrade) {
-        console.log('🔄 Upgrade successful, redirecting to dashboard')
+        const orgId = searchParams.get('org_id')
+        if (!orgId) {
+          console.error('No organization ID provided for upgrade')
+          setError('Invalid upgrade request')
+          setIsLoading(false)
+          return
+        }
+
+        console.log('🔄 Upgrade initiated, waiting for payment confirmation...')
         setSubscriptionData({ status: 'processing', upgraded: true })
         setIsLoading(false)
-        
-        // Redirect to dashboard after 2 seconds
-        setTimeout(() => {
-          router.push('/dashboard')
-        }, 2000)
+
+        // Poll subscription status to wait for webhook confirmation
+        let pollAttempts = 0
+        const maxPollAttempts = 30 // 30 seconds max
+
+        const pollSubscription = async () => {
+          try {
+            const response = await fetch(`/api/billing/subscription?organization_id=${orgId}`)
+            const result = await response.json()
+
+            pollAttempts++
+
+            if (response.ok && result.subscription) {
+              console.log('✅ Payment confirmed! Subscription updated:', result.subscription)
+              setSubscriptionData({ ...result.subscription, upgraded: true, confirmed: true })
+
+              // Redirect to dashboard after showing success
+              setTimeout(() => {
+                router.push('/dashboard')
+              }, 2000)
+              return
+            }
+
+            // Continue polling if not confirmed yet and haven't exceeded max attempts
+            if (pollAttempts < maxPollAttempts) {
+              setTimeout(pollSubscription, 1000) // Poll every 1 second
+            } else {
+              console.warn('⏱️ Polling timeout - payment may still be processing')
+              setSubscriptionData({ status: 'timeout', upgraded: true })
+            }
+          } catch (error) {
+            console.error('Error polling subscription:', error)
+            if (pollAttempts < maxPollAttempts) {
+              setTimeout(pollSubscription, 1000)
+            }
+          }
+        }
+
+        // Start polling
+        pollSubscription()
         return
       }
 
@@ -260,20 +303,51 @@ function PaymentSuccessPageContent() {
       {/* Centered content */}
       <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
         <div className="flex flex-col gap-8 items-center p-16">
-          <CircleCheck className="size-16 text-foreground stroke-[1.33]" />
-          <div className="flex flex-col gap-3 items-center">
-            <h1 className="text-3xl font-bold leading-9 text-center text-foreground">
-              {subscriptionData?.upgraded ? t('success.titleUpgraded') : t('success.title')}
-            </h1>
-            <p className="text-sm text-muted-foreground text-center leading-5">
-              {subscriptionData?.upgraded 
-                ? t('success.descriptionUpgraded')
-                : t('success.description')}
-            </p>
-          </div>
-          <Button onClick={handleContinue}>
-            {t('success.button')}
-          </Button>
+          {subscriptionData?.upgraded && !subscriptionData?.confirmed ? (
+            <>
+              <Loader2 className="size-16 animate-spin text-muted-foreground" />
+              <div className="flex flex-col gap-3 items-center">
+                <h1 className="text-3xl font-bold leading-9 text-center text-foreground">
+                  Processing Payment...
+                </h1>
+                <p className="text-sm text-muted-foreground text-center leading-5">
+                  Please wait while we confirm your payment.
+                </p>
+              </div>
+            </>
+          ) : subscriptionData?.status === 'timeout' ? (
+            <>
+              <XCircle className="size-16 text-warning stroke-[1.33]" />
+              <div className="flex flex-col gap-3 items-center">
+                <h1 className="text-3xl font-bold leading-9 text-center text-foreground">
+                  Payment Processing
+                </h1>
+                <p className="text-sm text-muted-foreground text-center leading-5 max-w-md">
+                  Your payment is still being processed. This may take a few minutes. You can continue to your dashboard.
+                </p>
+              </div>
+              <Button onClick={handleContinue}>
+                Continue to Dashboard
+              </Button>
+            </>
+          ) : (
+            <>
+              <CircleCheck className="size-16 text-foreground stroke-[1.33]" />
+              <div className="flex flex-col gap-3 items-center">
+                <h1 className="text-3xl font-bold leading-9 text-center text-foreground">
+                  {subscriptionData?.upgraded ? t('success.titleUpgraded') : t('success.title')}
+                </h1>
+                <p className="text-sm text-muted-foreground text-center leading-5">
+                  {subscriptionData?.upgraded
+                    ? t('success.descriptionUpgraded')
+                    : t('success.description')}
+                </p>
+              </div>
+              <Button onClick={handleContinue}>
+                {t('success.button')}
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </div>
