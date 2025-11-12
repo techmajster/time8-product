@@ -119,6 +119,7 @@ export async function POST(request: NextRequest) {
             id: subscription.lemonsqueezy_subscription_id.toString(),
             attributes: {
               variant_id: parseInt(new_variant_id),
+              quantity: subscription.current_seats, // Preserve current seat count
               invoice_immediately: true // Charge immediately for the change
             }
           }
