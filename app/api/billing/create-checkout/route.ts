@@ -197,26 +197,6 @@ export async function POST(request: NextRequest) {
       quantity: user_count
     }, null, 2));
 
-    // Use simple format for volume pricing
-    const checkoutPayload = {
-      checkoutOptions: {
-        name: organization_data.name,
-        email: `noreply+${Date.now()}@time8.io`,
-        custom: {
-          organization_data: JSON.stringify(organization_data),
-          user_count: user_count.toString(),
-          paid_seats: paidSeats.toString(),
-          tier
-        }
-      },
-      productOptions: {
-        name: `Leave Management for ${organization_data.name}`,
-        description: `Monthly subscription for ${user_count} users - includes 3 free seats`,
-        redirectUrl: return_url || `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/onboarding/payment-success`,
-        receiptThankYouNote: 'Thank you for subscribing to our leave management system!'
-      }
-    };
-
     console.log('🔧 Using correct Lemon Squeezy format:', {
       variant_id: parseInt(variant_id),
       quantity: user_count,
@@ -224,7 +204,7 @@ export async function POST(request: NextRequest) {
       paid_seats: paidSeats
     });
 
-    // Log the complete payload for debugging
+    // Log the complete payload for debugging with correct camelCase field names
     const checkoutPayload = {
       checkoutData: {
         name: organization_data.name,
