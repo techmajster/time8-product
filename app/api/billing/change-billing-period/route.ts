@@ -118,9 +118,9 @@ export async function POST(request: NextRequest) {
             type: 'subscriptions',
             id: subscription.lemonsqueezy_subscription_id.toString(),
             attributes: {
-              variant_id: parseInt(new_variant_id),
-              quantity: subscription.current_seats, // Preserve current seat count
-              invoice_immediately: true // Charge immediately for the change
+              variant_id: parseInt(new_variant_id)
+              // Note: LemonSqueezy automatically preserves quantity when changing variants
+              // Quantity changes must use /subscription-items endpoint, not /subscriptions
             }
           }
         })
