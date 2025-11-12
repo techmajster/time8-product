@@ -205,17 +205,24 @@ export async function POST(request: NextRequest) {
     });
 
     // Log the complete payload for debugging with correct camelCase field names
+    // Build custom data - only include organization_id if it exists
+    const customData: Record<string, string> = {
+      organization_name: organization_data.name,
+      user_count: user_count.toString(),
+      paid_seats: paidSeats.toString(),
+      tier
+    };
+
+    // Only add organization_id if it exists (for upgrades)
+    if (organization_data.id) {
+      customData.organization_id = organization_data.id;
+    }
+
     const checkoutPayload = {
       checkoutData: {
         name: organization_data.name,
         email: `noreply+${Date.now()}@time8.io`,
-        custom: {
-          organization_id: organization_data.id || '',
-          organization_name: organization_data.name,
-          user_count: user_count.toString(),
-          paid_seats: paidSeats.toString(),
-          tier
-        },
+        custom: customData,
         variantQuantities: [
           {
             variantId: parseInt(variant_id),
