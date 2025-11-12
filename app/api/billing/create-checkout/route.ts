@@ -212,8 +212,8 @@ export async function POST(request: NextRequest) {
         custom: {
           organization_id: organization_data.id || '',
           organization_name: organization_data.name,
-          user_count,
-          paid_seats: paidSeats,
+          user_count: user_count.toString(),
+          paid_seats: paidSeats.toString(),
           tier
         },
         variantQuantities: [
