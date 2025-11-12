@@ -9,7 +9,7 @@ import { Loader2, ArrowLeft } from 'lucide-react'
 import { DecorativeBackground } from '@/components/auth/DecorativeBackground'
 import { LanguageDropdown } from '@/components/auth/LanguageDropdown'
 import { OnboardingLogo } from '@/components/OnboardingLogo'
-import { getDynamicPricing, calculatePricing, type PricingInfo } from '@/lib/lemon-squeezy/pricing'
+import { calculatePricing, type PricingInfo } from '@/lib/lemon-squeezy/pricing'
 
 function ChangeBillingPeriodContent() {
   const t = useTranslations('onboarding.createWorkspace')
@@ -81,9 +81,27 @@ function ChangeBillingPeriodContent() {
       setCurrentTier(isMonthly ? 'monthly' : 'annual')
       setSelectedTier(isMonthly ? 'annual' : 'monthly') // Default to opposite
 
-      // Fetch pricing
-      const pricing = await getDynamicPricing()
-      setPricingInfo(pricing)
+      // Fetch pricing from server-side API endpoint
+      // This ensures LEMONSQUEEZY_API_KEY is never exposed to the client
+      try {
+        const response = await fetch('/api/billing/pricing', {
+          cache: 'no-cache',
+          headers: {
+            'Cache-Control': 'no-cache'
+          }
+        })
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch pricing: ${response.status}`)
+        }
+
+        const result = await response.json()
+        setPricingInfo(result.pricing)
+      } catch (error: any) {
+        console.error('Pricing fetch error:', error)
+        setPricingInfo(null)
+      }
+
       setIsLoading(false)
     }
 
