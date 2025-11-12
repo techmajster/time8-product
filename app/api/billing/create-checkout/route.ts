@@ -149,17 +149,6 @@ export async function POST(request: NextRequest) {
       pricing_tier: tier
     });
 
-
-    // Prepare custom data for webhook processing (as string for Lemon Squeezy)
-    const customData = JSON.stringify({
-      organization_data,
-      user_count,
-      paid_seats: paidSeats,
-      tier,
-      ...(return_url && { return_url }),
-      ...(failure_url && { failure_url })
-    });
-
     // Log the complete payload for debugging with correct camelCase field names
     console.log('🛒 Creating checkout with quantity:', {
       store_id: process.env.LEMONSQUEEZY_STORE_ID,
