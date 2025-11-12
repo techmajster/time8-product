@@ -138,7 +138,26 @@ function AddUsersPageContent() {
         currency: 'PLN'
       }
     }
-    
+
+    // For upgrades, don't apply free tier - pay for all seats
+    if (isUpgradeFlow) {
+      const monthlyPerSeat = pricingInfo.monthlyPricePerSeat
+      const annualPerSeat = pricingInfo.annualPricePerSeat
+      const monthlyTotal = userCount * monthlyPerSeat
+      const annualTotal = userCount * annualPerSeat * 12
+
+      return {
+        isFree: false,
+        totalUsers: userCount,
+        paidSeats: userCount, // All seats are paid in upgrades
+        monthlyTotal,
+        annualTotal,
+        monthlyPerSeat,
+        annualPerSeat,
+        currency: pricingInfo.currency
+      }
+    }
+
     return calculatePricing(userCount, pricingInfo)
   }
 
@@ -206,7 +225,36 @@ function AddUsersPageContent() {
         }
       }
 
-      // Paid tier: create checkout session with organization data
+      // Handle upgrade flow differently - use update-subscription-quantity API
+      if (isUpgradeFlow) {
+        console.log('🔄 Upgrade flow: updating subscription quantity via API')
+
+        const response = await fetch('/api/billing/update-subscription-quantity', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            new_quantity: userCount,
+            invoice_immediately: true
+          })
+        })
+
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to update subscription')
+        }
+
+        // Show success message
+        console.log('✅ Subscription update initiated, awaiting payment confirmation')
+
+        // Redirect to success page
+        router.push('/admin/settings?tab=billing&updated=true')
+        return
+      }
+
+      // Paid tier (new workspace): create checkout session with organization data
       // Use dynamic variant IDs from pricing info
       if (!pricingInfo) {
         throw new Error('Pricing information not loaded')
