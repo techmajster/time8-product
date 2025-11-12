@@ -477,6 +477,15 @@ export default function AdminSettingsClient({
     window.location.href = `/onboarding/add-users?upgrade=true&current_org=${currentOrganization?.id}&seats=${currentSeats}`
   }
 
+  // Handle billing period change
+  const handleChangeBillingPeriod = () => {
+    if (!currentOrganization?.id) return
+
+    // Redirect to billing period change page
+    const currentSeats = getSeatUsage().total
+    window.location.href = `/onboarding/change-billing-period?current_org=${currentOrganization?.id}&seats=${currentSeats}`
+  }
+
   // Handle customer portal access for billing issues
   const handleOpenCustomerPortal = async () => {
     if (!currentOrganization?.id) return
@@ -1407,14 +1416,26 @@ export default function AdminSettingsClient({
                     {t('subscriptionDescription')}
                   </CardDescription>
                 </div>
-                <Button 
-                  variant="secondary" 
-                  size="sm" 
-                  className="h-9"
-                  onClick={handleManageSeatSubscription}
-                >
-                  {t('manageSeatSubscription')}
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="h-9"
+                    onClick={handleManageSeatSubscription}
+                  >
+                    {t('manageSeatSubscription')}
+                  </Button>
+                  {subscriptionData && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-9"
+                      onClick={handleChangeBillingPeriod}
+                    >
+                      Change Billing Period
+                    </Button>
+                  )}
+                </div>
               </div>
             </CardHeader>
             <CardContent className="pt-0 pb-6 space-y-6">
