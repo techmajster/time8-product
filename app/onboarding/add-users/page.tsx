@@ -250,7 +250,7 @@ function AddUsersPageContent() {
         console.log('✅ Subscription update initiated, awaiting payment confirmation')
 
         // Redirect to payment success page to wait for webhook confirmation
-        router.push(`/onboarding/payment-success?upgrade=true&org_id=${currentOrgParam}`)
+        router.push(`/onboarding/payment-success?upgrade=true&org_id=${organizationData.id}`)
         return
       }
 
