@@ -179,25 +179,37 @@ async function findOrCreateCustomer(
   let organization = null;
   let organizationData = null;
 
-  // First, parse organization_data from custom fields
-  try {
-    organizationData = typeof customData.organization_data === 'string' 
-      ? JSON.parse(customData.organization_data)
-      : customData.organization_data;
-    
-    console.log('📋 Parsed organization data:', organizationData);
-  } catch (error) {
-    console.error('❌ Failed to parse organization_data:', error);
-    return {
-      data: null,
-      error: { message: 'Invalid organization data in checkout custom fields' }
-    };
-  }
+  // Parse organization_data from custom fields - support both old and new formats
+  // Old format: organization_data as nested object/JSON string
+  // New format: organization_id and organization_name as flat fields
+  if (customData.organization_data) {
+    // Old format: organization_data as nested object
+    try {
+      organizationData = typeof customData.organization_data === 'string'
+        ? JSON.parse(customData.organization_data)
+        : customData.organization_data;
 
-  if (!organizationData) {
+      console.log('📋 Parsed organization data (nested format):', organizationData);
+    } catch (error) {
+      console.error('❌ Failed to parse organization_data:', error);
+      return {
+        data: null,
+        error: { message: 'Invalid organization data in checkout custom fields' }
+      };
+    }
+  } else if (customData.organization_id || customData.organization_name) {
+    // New format: flat structure with organization_id and organization_name
+    organizationData = {
+      id: customData.organization_id,
+      name: customData.organization_name,
+      slug: customData.organization_name?.toLowerCase().replace(/\s+/g, '-')
+    };
+    console.log('📋 Using flat organization data format:', organizationData);
+  } else {
+    // Neither format found
     return {
       data: null,
-      error: { message: 'No organization_data found in checkout custom fields' }
+      error: { message: 'No organization data found in checkout custom fields' }
     };
   }
 
@@ -1082,15 +1094,45 @@ export async function processSubscriptionPaymentSuccess(payload: any): Promise<E
 
     const supabase = createAdminClient();
 
-    // Find existing subscription
-    const { data: existingSubscription, error: findError } = await supabase
-      .from('subscriptions')
-      .select('*')
-      .eq('lemonsqueezy_subscription_id', subscriptionId)
-      .single();
+    // Find existing subscription with retry logic to handle race conditions
+    // The subscription_payment_success webhook may arrive before subscription_created completes
+    let existingSubscription = null;
+    let retryCount = 0;
+    const maxRetries = 3;
+    const retryDelay = 2000; // 2 seconds base delay
 
-    if (findError || !existingSubscription) {
-      const error = 'Subscription not found for payment success event';
+    while (!existingSubscription && retryCount < maxRetries) {
+      const { data, error: findError } = await supabase
+        .from('subscriptions')
+        .select('*')
+        .eq('lemonsqueezy_subscription_id', subscriptionId)
+        .single();
+
+      if (data) {
+        existingSubscription = data;
+        if (retryCount > 0) {
+          console.log(`✅ Subscription found after ${retryCount} retries`);
+        }
+        break;
+      }
+
+      if (findError && findError.code !== 'PGRST116') {
+        // Real error, not just "not found" (PGRST116)
+        const error = `Subscription lookup error: ${findError.message}`;
+        await logBillingEvent(meta.event_name, meta.event_id, payload, 'failed', error);
+        return { success: false, error };
+      }
+
+      retryCount++;
+      if (retryCount < maxRetries) {
+        const delay = retryDelay * retryCount; // Exponential backoff: 2s, 4s, 6s
+        console.log(`⏳ Subscription ${subscriptionId} not found yet, retry ${retryCount}/${maxRetries} in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+
+    if (!existingSubscription) {
+      const error = `Subscription not found for payment success event after ${maxRetries} retries`;
       await logBillingEvent(meta.event_name, meta.event_id, payload, 'failed', error);
       return { success: false, error };
     }
