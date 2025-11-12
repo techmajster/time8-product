@@ -1172,7 +1172,6 @@ export async function processSubscriptionPaymentSuccess(payload: any): Promise<E
         .update({
           current_seats: newSeats,  // Grant access now that payment is confirmed
           status,
-          renews_at: renews_at || null,
           updated_at: new Date().toISOString()
         })
         .eq('lemonsqueezy_subscription_id', subscriptionId)
@@ -1237,7 +1236,6 @@ export async function processSubscriptionPaymentSuccess(payload: any): Promise<E
           lemonsqueezy_quantity_synced: true,
           quantity: newSeats,
           status,
-          renews_at: renews_at || null,
           updated_at: new Date().toISOString()
         })
         .eq('lemonsqueezy_subscription_id', subscriptionId)
@@ -1323,7 +1321,6 @@ export async function processSubscriptionPaymentSuccess(payload: any): Promise<E
     await supabase
       .from('subscriptions')
       .update({
-        renews_at: renews_at || null,
         updated_at: new Date().toISOString()
       })
       .eq('lemonsqueezy_subscription_id', subscriptionId);
