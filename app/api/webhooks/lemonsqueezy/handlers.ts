@@ -1089,8 +1089,10 @@ export async function processSubscriptionPaymentSuccess(payload: any): Promise<E
     }
 
     const { meta, data } = payload;
-    const { id: subscriptionId, attributes } = data;
-    const { status, quantity, renews_at } = attributes;
+    const { attributes } = data;
+    // Note: data.id is the invoice ID, not subscription ID
+    const subscriptionId = attributes.subscription_id; // Get subscription ID from attributes
+    const { status } = attributes;
 
     // Check if event already processed
     if (await isEventAlreadyProcessed(meta.event_id)) {
