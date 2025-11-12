@@ -50,17 +50,38 @@ function AddUsersPageContent() {
       setIsUpgradeFlow(isUpgrade)
       
       if (isUpgrade && currentOrgId) {
-        // This is an upgrade - fetch existing organization
+        // This is an upgrade - fetch existing organization and subscription
         const { data: org, error: orgError } = await supabase
           .from('organizations')
           .select('id, name, slug, country_code')
           .eq('id', currentOrgId)
           .single()
-          
+
         if (org && !orgError) {
           setOrganizationData(org)
           setUserCount(recommendedSeats) // Set recommended seat count
-          console.log('🔄 Upgrade flow initialized:', { org: org.name, seats: recommendedSeats })
+
+          // Fetch current subscription to determine billing period
+          const { data: subscription } = await supabase
+            .from('subscriptions')
+            .select('lemonsqueezy_variant_id')
+            .eq('organization_id', currentOrgId)
+            .eq('status', 'active')
+            .single()
+
+          // Set tier based on current subscription variant
+          if (subscription?.lemonsqueezy_variant_id) {
+            const monthlyVariantId = process.env.NEXT_PUBLIC_LEMONSQUEEZY_MONTHLY_VARIANT_ID || '972634'
+            const isMonthly = subscription.lemonsqueezy_variant_id === monthlyVariantId
+            setSelectedTier(isMonthly ? 'monthly' : 'annual')
+            console.log('🔄 Upgrade flow initialized:', {
+              org: org.name,
+              seats: recommendedSeats,
+              currentTier: isMonthly ? 'monthly' : 'annual'
+            })
+          } else {
+            console.log('🔄 Upgrade flow initialized:', { org: org.name, seats: recommendedSeats })
+          }
         } else {
           console.error('Failed to load organization for upgrade:', orgError)
           router.push('/admin/settings?tab=billing')
@@ -428,9 +449,9 @@ function AddUsersPageContent() {
             ) : (
               <>
                 {/* Monthly payment card with "Most popular" badge - LEFT SIDE */}
-                <div 
-                  className={`${selectedTier === 'monthly' ? 'bg-violet-100 border-2 border-primary' : 'bg-card border-2 border-border'} rounded-xl p-8 flex flex-col gap-6 cursor-pointer relative ${selectedTier !== 'monthly' ? 'opacity-50' : ''}`}
-                  onClick={() => setSelectedTier('monthly')}
+                <div
+                  className={`${selectedTier === 'monthly' ? 'bg-violet-100 border-2 border-primary' : 'bg-card border-2 border-border'} rounded-xl p-8 flex flex-col gap-6 ${isUpgradeFlow ? 'cursor-not-allowed' : 'cursor-pointer'} relative ${selectedTier !== 'monthly' ? 'opacity-50' : ''}`}
+                  onClick={() => !isUpgradeFlow && setSelectedTier('monthly')}
                 >
                   <div className="flex flex-col gap-3">
                     <div className="flex gap-2.5 items-center">
@@ -451,9 +472,9 @@ function AddUsersPageContent() {
                 </div>
 
                 {/* Annual payment card - RIGHT SIDE */}
-                <div 
-                  className={`${selectedTier === 'annual' ? 'bg-violet-100 border-2 border-primary' : 'bg-card border-2 border-border'} rounded-xl p-8 flex flex-col gap-6 cursor-pointer relative ${selectedTier !== 'annual' ? 'opacity-50' : ''}`}
-                  onClick={() => setSelectedTier('annual')}
+                <div
+                  className={`${selectedTier === 'annual' ? 'bg-violet-100 border-2 border-primary' : 'bg-card border-2 border-border'} rounded-xl p-8 flex flex-col gap-6 ${isUpgradeFlow ? 'cursor-not-allowed' : 'cursor-pointer'} relative ${selectedTier !== 'annual' ? 'opacity-50' : ''}`}
+                  onClick={() => !isUpgradeFlow && setSelectedTier('annual')}
                 >
                   <div className="flex flex-col gap-3">
                     <div className="flex gap-2.5 items-center">
@@ -476,10 +497,15 @@ function AddUsersPageContent() {
           
           {/* Currency info note */}
           {!isFreeSelected && (
-            <div className="flex items-center justify-center w-full">
+            <div className="flex flex-col items-center justify-center w-full gap-2">
               <p className="text-sm text-muted-foreground text-center">
                 {t('pricing.pricesNote', { currency: pricing.currency })}
               </p>
+              {isUpgradeFlow && (
+                <p className="text-xs text-muted-foreground text-center">
+                  Note: Changing billing period is not available during upgrades. Only seat quantity can be adjusted.
+                </p>
+              )}
             </div>
           )}
         </div>
