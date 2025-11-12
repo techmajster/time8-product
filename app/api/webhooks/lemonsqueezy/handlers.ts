@@ -332,7 +332,10 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
 
     const { meta, data } = payload;
     const { id: subscriptionId, attributes } = data;
-    const { status, quantity, customer_id, variant_id, renews_at, ends_at, trial_ends_at } = attributes;
+    const { status, customer_id, variant_id, renews_at, ends_at, trial_ends_at, first_subscription_item } = attributes;
+
+    // Extract quantity from first_subscription_item (where LemonSqueezy stores it)
+    const quantity = first_subscription_item?.quantity || 0;
 
     // Validate subscription status
     if (!isValidSubscriptionStatus(status)) {
@@ -469,7 +472,10 @@ export async function processSubscriptionUpdated(payload: any): Promise<EventRes
 
     const { meta, data } = payload;
     const { id: subscriptionId, attributes } = data;
-    const { status, quantity, variant_id, renews_at, ends_at, trial_ends_at } = attributes;
+    const { status, variant_id, renews_at, ends_at, trial_ends_at, first_subscription_item } = attributes;
+
+    // Extract quantity from first_subscription_item (where LemonSqueezy stores it)
+    const quantity = first_subscription_item?.quantity || 0;
 
     // Validate subscription status
     if (!isValidSubscriptionStatus(status)) {
