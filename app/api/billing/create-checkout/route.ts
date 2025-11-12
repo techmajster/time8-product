@@ -232,14 +232,15 @@ export async function POST(request: NextRequest) {
           name: organization_data.name,
           email: `noreply+${Date.now()}@time8.io`,
           custom: {
-            organization_data: JSON.stringify(organization_data),
-            user_count: user_count.toString(),
-            paid_seats: paidSeats.toString(),
+            organization_id: organization_data.id || '',
+            organization_name: organization_data.name,
+            user_count,
+            paid_seats: paidSeats,
             tier
           },
-          variant_quantities: [
+          variantQuantities: [
             {
-              variant_id: parseInt(variant_id),
+              variantId: parseInt(variant_id),
               quantity: user_count
             }
           ]
@@ -249,17 +250,33 @@ export async function POST(request: NextRequest) {
           description: `Monthly subscription for ${user_count} users - includes 3 free seats`,
           redirectUrl: return_url || `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/onboarding/payment-success`,
           receiptThankYouNote: 'Thank you for subscribing to our leave management system!'
-        }
+        },
+        checkoutOptions: {
+          embed: false,
+          media: true,
+          logo: true
+        },
+        expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+        testMode: process.env.NODE_ENV !== 'production',
+        preview: false
       }
     );
 
     if (checkout.error) {
+      const errorMessage = checkout.error?.message ||
+                          JSON.stringify(checkout.error) ||
+                          'Unknown error from Lemon Squeezy';
+
       console.error('❌ Lemon Squeezy checkout creation failed:');
+      console.error('Error message:', errorMessage);
+      console.error('Status code:', checkout.statusCode);
       console.error('Full error object:', JSON.stringify(checkout.error, null, 2));
+
       return NextResponse.json(
-        { 
+        {
           error: 'Failed to create checkout session',
-          details: checkout.error.message || checkout.error,
+          details: errorMessage,
+          statusCode: checkout.statusCode,
           fullError: checkout.error
         },
         { status: 500 }
