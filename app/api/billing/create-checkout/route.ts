@@ -160,51 +160,16 @@ export async function POST(request: NextRequest) {
       ...(failure_url && { failure_url })
     });
 
-    // Prepare checkout options with quantity in productOptions
-    const checkoutOptions = {
-      checkoutData: {
-        name: organization_data.name,
-        email: `noreply+${Date.now()}@time8.io`, // Temporary email for checkout
-        custom: {
-          organization_data: JSON.stringify(organization_data),
-          user_count: user_count.toString(),
-          paid_seats: paidSeats.toString(),
-          tier,
-          ...(return_url && { return_url }),
-          ...(failure_url && { failure_url })
-        }
-      },
-      productOptions: {
-        name: `Leave Management - ${organization_data.name}`,
-        description: `${user_count} users (${paidSeats} paid seats after 3 free)`,
-        receiptThankYouNote: 'Thank you for subscribing!',
-        redirectUrl: return_url || `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/onboarding/payment-success`
-      }
-    };
-
+    // Log the complete payload for debugging with correct camelCase field names
     console.log('🛒 Creating checkout with quantity:', {
       store_id: process.env.LEMONSQUEEZY_STORE_ID,
       variant_id,
       organization: organization_data.name,
       total_users: user_count,
       paid_seats: paidSeats,
-      quantity: user_count, // Volume pricing uses total user count
+      quantity: user_count,
       test_mode: process.env.NODE_ENV !== 'production'
     });
-
-    console.log('🔍 Full checkout options being sent:', JSON.stringify({
-      ...checkoutOptions,
-      quantity: user_count
-    }, null, 2));
-
-    console.log('🔧 Using correct Lemon Squeezy format:', {
-      variant_id: parseInt(variant_id),
-      quantity: user_count,
-      total_users: user_count,
-      paid_seats: paidSeats
-    });
-
-    // Log the complete payload for debugging with correct camelCase field names
     // Build custom data - only include organization_id if it exists
     const customData: Record<string, string> = {
       organization_name: organization_data.name,
