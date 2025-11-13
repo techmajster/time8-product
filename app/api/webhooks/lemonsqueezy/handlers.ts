@@ -385,14 +385,34 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
       });
     }
 
-    // Verify variant is configured for usage-based billing
-    if (!first_subscription_item?.is_usage_based) {
-      console.warn(`⚠️ [Webhook] Subscription created with non-usage-based variant:`, {
+    // DETECT billing type based on variant_id (monthly vs yearly)
+    let billingType: 'usage_based' | 'quantity_based' | 'volume';
+
+    const monthlyVariantId = parseInt(process.env.LEMONSQUEEZY_MONTHLY_VARIANT_ID || '0');
+    const yearlyVariantId = parseInt(process.env.LEMONSQUEEZY_YEARLY_VARIANT_ID || '0');
+
+    if (variant_id === monthlyVariantId) {
+      billingType = 'usage_based'; // Monthly: usage records, charged at end of period
+      console.log(`🎫 [Webhook] Detected MONTHLY subscription (usage_based):`, {
         subscriptionId,
         variantId: variant_id,
         organizationId: customer.organization_id,
-        note: 'This subscription will use volume pricing'
+        note: 'Will create usage records - charged at end of billing period'
       });
+    } else if (variant_id === yearlyVariantId) {
+      billingType = 'quantity_based'; // Yearly: quantity updates, charged immediately with proration
+      console.log(`🎫 [Webhook] Detected YEARLY subscription (quantity_based):`, {
+        subscriptionId,
+        variantId: variant_id,
+        organizationId: customer.organization_id,
+        note: 'Will use quantity updates - charged immediately with proration'
+      });
+    } else {
+      // Unknown variant - this should not happen in production
+      const error = `Unknown variant ID: ${variant_id}. Expected ${monthlyVariantId} (monthly) or ${yearlyVariantId} (yearly)`;
+      console.error(`❌ [Webhook] ${error}`);
+      await logBillingEvent(meta.event_name, meta.event_id, payload, 'failed', error);
+      return { success: false, error };
     }
 
     // Log before state for comprehensive debugging
@@ -404,9 +424,10 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
       status,
       quantity,
       variant_id,
+      billingType, // NEW: Log detected billing type
       correlationId: meta.event_id,
       usageBasedBilling: first_subscription_item?.is_usage_based,
-      note: 'Quantity from first_subscription_item (usage records)'
+      note: `Billing type: ${billingType}`
     });
 
     // Calculate user_count for subscription setup
@@ -422,7 +443,7 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
         lemonsqueezy_subscription_id: subscriptionId,
         lemonsqueezy_subscription_item_id: subscriptionItemId || null,
         lemonsqueezy_variant_id: variant_id || null,
-        billing_type: first_subscription_item?.is_usage_based ? 'usage_based' : 'volume',
+        billing_type: billingType, // NEW: Use detected billing type (usage_based or quantity_based)
         status,
         quantity,
         current_seats: userCount,  // Use user_count from custom_data, not quantity from LemonSqueezy
@@ -467,12 +488,14 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
       note: 'Subscription created with usage-based billing enabled'
     });
 
-    // For usage-based billing: Create initial usage record if user_count is in custom_data
+    // For usage-based billing ONLY: Create initial usage record if user_count is in custom_data
+    // CRITICAL: Only create usage records for monthly (usage_based) subscriptions
+    // Yearly (quantity_based) subscriptions do NOT use usage records
     // FREE TIER: 1-3 users = quantity 0 (no billing)
     // PAID TIER: 4+ users = quantity equals total users (pay for ALL seats)
     const desiredUserCount = parseInt(meta.custom_data?.user_count || '0');
 
-    if (desiredUserCount > 0 && subscriptionItemId && first_subscription_item?.is_usage_based) {
+    if (desiredUserCount > 0 && subscriptionItemId && billingType === 'usage_based') {
       // Calculate billable quantity based on free tier
       // 1-3 users: Free tier, quantity = 0
       // 4+ users: Pay for all seats, quantity = desiredUserCount
@@ -534,6 +557,15 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
         console.error(`❌ [Webhook] Error creating initial usage record:`, usageError);
         // Don't fail the webhook - log the error and continue
       }
+    } else if (billingType === 'quantity_based') {
+      // Yearly subscriptions: Skip usage record creation
+      console.log(`⏭️  [Webhook] Skipping usage record for yearly (quantity_based) subscription:`, {
+        subscriptionId,
+        variantId: variant_id,
+        organizationId: customer.organization_id,
+        userCount: desiredUserCount,
+        note: 'Yearly subscriptions use quantity updates, not usage records'
+      });
     }
 
     await logBillingEvent(meta.event_name, meta.event_id, payload, 'processed');

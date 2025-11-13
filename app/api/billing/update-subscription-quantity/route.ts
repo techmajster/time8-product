@@ -1,13 +1,18 @@
 /**
  * Update Subscription Quantity Endpoint
  *
- * Updates subscription quantity via LemonSqueezy API.
+ * Updates subscription quantity via SeatManager service (hybrid billing).
+ * Routes to correct billing method based on subscription type:
+ * - usage_based (monthly): Creates usage records, charged at end of period
+ * - quantity_based (yearly): PATCH subscription quantity, charged immediately with proration
+ *
  * Works in both test mode and production mode.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { authenticateAndGetOrgContext } from '@/lib/auth-utils-v2';
+import { SeatManager } from '@/lib/billing/seat-manager';
 
 interface UpdateQuantityRequest {
   new_quantity: number;
@@ -59,7 +64,7 @@ export async function POST(request: NextRequest) {
     // Fetch active subscription for organization
     const { data: subscription, error: subError } = await supabase
       .from('subscriptions')
-      .select('lemonsqueezy_subscription_id, lemonsqueezy_subscription_item_id, billing_type, status, current_seats')
+      .select('id, lemonsqueezy_subscription_id, lemonsqueezy_subscription_item_id, billing_type, status, current_seats, organization_id')
       .eq('organization_id', organizationId)
       .in('status', ['active', 'on_trial', 'paused', 'past_due'])
       .single();
@@ -74,7 +79,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if subscription supports usage-based billing
+    // Check if subscription supports hybrid billing
     if (subscription.billing_type === 'volume') {
       console.warn(`⚠️ [Payment Flow] Attempted to update legacy subscription:`, {
         subscription_id: subscription.lemonsqueezy_subscription_id,
@@ -84,7 +89,7 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json(
         {
-          error: 'This subscription was created before usage-based billing was enabled',
+          error: 'This subscription was created before hybrid billing was enabled',
           details: 'Please create a new subscription to modify seats. Old subscriptions cannot be updated.',
           legacy_subscription: true,
           action_required: 'create_new_subscription'
@@ -145,158 +150,100 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate correlation ID for tracking payment flow
-    const correlationId = `upgrade-${organizationId}-${Date.now()}`;
+    // Check if seat count is changing
+    const currentSeats = subscription.current_seats;
+    const seatDiff = new_quantity - currentSeats;
 
-    // Calculate billable quantity based on free tier
-    // 1-3 users: Free tier, quantity = 0
-    // 4+ users: Pay for all seats, quantity = new_quantity
-    const billableQuantity = new_quantity > 3 ? new_quantity : 0;
+    // Handle no change case
+    if (seatDiff === 0) {
+      return NextResponse.json({
+        success: true,
+        message: 'No change in seat count',
+        currentSeats: currentSeats,
+        billing_type: subscription.billing_type
+      });
+    }
 
-    console.log(`💰 [Payment Flow] Starting quantity update:`, {
+    // Generate correlation ID for tracking
+    const correlationId = `seat-update-${organizationId}-${Date.now()}`;
+
+    console.log(`💰 [API] Starting seat update via SeatManager:`, {
       correlationId,
       subscription_id: subscription.lemonsqueezy_subscription_id,
-      subscription_item_id: subscription.lemonsqueezy_subscription_item_id,
-      current_quantity: subscription.current_seats,
+      subscription_db_id: subscription.id,
+      billing_type: subscription.billing_type,
+      current_seats: currentSeats,
       new_quantity,
-      billableQuantity,
-      freeTier: new_quantity <= 3,
-      invoice_immediately,
+      seatDiff,
       organizationId
     });
 
-    // Report usage via LemonSqueezy Usage Records API (usage-based billing)
-    const updateResponse = await fetch(
-      'https://api.lemonsqueezy.com/v1/usage-records',
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.LEMONSQUEEZY_API_KEY}`,
-          'Accept': 'application/vnd.api+json',
-          'Content-Type': 'application/vnd.api+json'
-        },
-        body: JSON.stringify({
-          data: {
-            type: 'usage-records',
-            attributes: {
-              quantity: billableQuantity,
-              action: 'set', // Set absolute value (not increment)
-              description: new_quantity <= 3
-                ? `Free tier: ${new_quantity} seats for organization ${organizationId}`
-                : `Seat count updated to ${billableQuantity} for organization ${organizationId}`
-            },
-            relationships: {
-              'subscription-item': {
-                data: {
-                  type: 'subscription-items',
-                  id: subscription.lemonsqueezy_subscription_item_id.toString()
-                }
-              }
-            }
-          }
-        })
-      }
-    );
+    try {
+      // Use SeatManager for routing to correct billing method
+      const seatManager = new SeatManager();
+      let result;
 
-    if (!updateResponse.ok) {
-      const errorData = await updateResponse.json();
-      console.error('❌ [Payment Flow] LemonSqueezy API update failed:', {
+      if (seatDiff > 0) {
+        // Adding seats
+        console.log(`➕ [API] Adding ${seatDiff} seats via SeatManager`);
+        result = await seatManager.addSeats(subscription.id, new_quantity);
+      } else {
+        // Removing seats
+        console.log(`➖ [API] Removing ${Math.abs(seatDiff)} seats via SeatManager`);
+        result = await seatManager.removeSeats(subscription.id, new_quantity);
+      }
+
+      console.log(`✅ [API] SeatManager operation completed:`, {
         correlationId,
-        subscription_id: subscription.lemonsqueezy_subscription_id,
-        subscription_item_id: subscription.lemonsqueezy_subscription_item_id,
-        error: errorData,
-        status: updateResponse.status
+        billingType: result.billingType,
+        chargedAt: result.chargedAt,
+        currentSeats: result.currentSeats,
+        message: result.message
       });
 
-      // Check if this is an old subscription that doesn't support usage-based billing
-      const errorMessage = errorData?.errors?.[0]?.detail || JSON.stringify(errorData);
-      const isUsageBasedError = errorMessage.toLowerCase().includes('usage') ||
-                                errorMessage.toLowerCase().includes('metered') ||
-                                updateResponse.status === 422;
+      // Store queued invitations if provided (to be sent after payment confirmation)
+      if (queued_invitations.length > 0) {
+        console.log(`📋 [API] Storing queued invitations:`, {
+          correlationId,
+          count: queued_invitations.length,
+          subscription_id: subscription.lemonsqueezy_subscription_id,
+          note: 'Will be sent after seat update confirmation'
+        });
 
-      if (isUsageBasedError) {
-        return NextResponse.json(
-          {
-            error: 'This subscription was created before usage-based billing was enabled',
-            details: 'Please create a new subscription to modify seats. Old subscriptions cannot be updated.',
-            legacy_subscription: true
-          },
-          { status: 400 }
-        );
+        // Store invitations temporarily
+        await supabase
+          .from('subscriptions')
+          .update({
+            queued_invitations: queued_invitations as any // JSONB column
+          })
+          .eq('id', subscription.id);
       }
+
+      // Return result with billing-specific information
+      return NextResponse.json({
+        success: true,
+        subscription_id: subscription.lemonsqueezy_subscription_id,
+        new_quantity,
+        correlationId,
+        ...result // Include all SeatManager result fields
+      });
+
+    } catch (seatManagerError) {
+      console.error('❌ [API] SeatManager error:', {
+        correlationId,
+        subscription_id: subscription.lemonsqueezy_subscription_id,
+        error: seatManagerError instanceof Error ? seatManagerError.message : seatManagerError
+      });
 
       return NextResponse.json(
         {
-          error: 'Failed to update subscription quantity',
-          details: errorData
+          error: 'Failed to update subscription seats',
+          details: seatManagerError instanceof Error ? seatManagerError.message : 'Unknown error',
+          correlationId
         },
-        { status: updateResponse.status }
+        { status: 500 }
       );
     }
-
-    const updatedData = await updateResponse.json();
-    const usageRecordId = updatedData.data.id;
-
-    console.log('✅ [Payment Flow] Usage record created successfully:', {
-      correlationId,
-      subscription_id: subscription.lemonsqueezy_subscription_id,
-      usage_record_id: usageRecordId,
-      new_quantity: updatedData.data.attributes.quantity,
-      note: 'Awaiting payment confirmation webhook'
-    });
-
-    // 🔒 SECURITY: Update quantity but NOT current_seats
-    // current_seats will be updated by subscription_payment_success webhook after payment confirmation
-    await supabase
-      .from('subscriptions')
-      .update({
-        quantity: new_quantity,
-        updated_at: new Date().toISOString()
-      })
-      .eq('organization_id', organizationId);
-
-    // Update organization.paid_seats based on free tier logic
-    await supabase
-      .from('organizations')
-      .update({
-        paid_seats: billableQuantity
-      })
-      .eq('id', organizationId);
-
-    // Store queued invitations if provided (to be sent after payment confirmation)
-    if (queued_invitations.length > 0) {
-      console.log(`📋 [Payment Flow] Storing queued invitations:`, {
-        correlationId,
-        count: queued_invitations.length,
-        subscription_id: subscription.lemonsqueezy_subscription_id,
-        note: 'Will be sent after payment confirmation'
-      });
-
-      // Store invitations temporarily - they'll be sent by subscription_payment_success webhook
-      await supabase
-        .from('subscriptions')
-        .update({
-          queued_invitations: queued_invitations as any // JSONB column
-        })
-        .eq('organization_id', organizationId);
-    }
-
-    console.log(`⏳ [Payment Flow] Awaiting webhook confirmation:`, {
-      correlationId,
-      subscription_id: subscription.lemonsqueezy_subscription_id,
-      new_quantity,
-      note: 'subscription_payment_success webhook will grant seats'
-    });
-
-    return NextResponse.json({
-      success: true,
-      payment_status: 'processing',
-      new_quantity,
-      subscription_id: subscription.lemonsqueezy_subscription_id,
-      usage_record_id: usageRecordId,
-      message: 'Usage reported. Seats will be granted after payment confirmation.',
-      correlationId // Include for tracking
-    });
 
   } catch (error) {
     console.error('Update subscription quantity error:', error);
