@@ -432,6 +432,65 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
       note: 'Subscription created with usage-based billing enabled'
     });
 
+    // For usage-based billing: Create initial usage record if user_count is in custom_data
+    // This is necessary because checkout always starts with quantity=0 for usage-based billing
+    const desiredQuantity = parseInt(meta.custom_data?.user_count || '0');
+    const subscriptionItemId = first_subscription_item?.id;
+
+    if (desiredQuantity > 0 && subscriptionItemId && first_subscription_item?.is_usage_based) {
+      console.log(`📊 [Webhook] Creating initial usage record:`, {
+        subscriptionItemId,
+        desiredQuantity,
+        organizationName: meta.custom_data?.organization_name
+      });
+
+      try {
+        const usageResponse = await fetch(
+          'https://api.lemonsqueezy.com/v1/usage-records',
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${process.env.LEMONSQUEEZY_API_KEY}`,
+              'Accept': 'application/vnd.api+json',
+              'Content-Type': 'application/vnd.api+json'
+            },
+            body: JSON.stringify({
+              data: {
+                type: 'usage-records',
+                attributes: {
+                  quantity: desiredQuantity,
+                  action: 'set',
+                  description: `Initial seat count: ${desiredQuantity} for ${meta.custom_data?.organization_name || 'organization'}`
+                },
+                relationships: {
+                  'subscription-item': {
+                    data: {
+                      type: 'subscription-items',
+                      id: subscriptionItemId.toString()
+                    }
+                  }
+                }
+              }
+            })
+          }
+        );
+
+        if (!usageResponse.ok) {
+          const errorText = await usageResponse.text();
+          console.error(`❌ [Webhook] Failed to create initial usage record:`, errorText);
+        } else {
+          const usageData = await usageResponse.json();
+          console.log(`✅ [Webhook] Initial usage record created:`, {
+            usageRecordId: usageData.data?.id,
+            quantity: desiredQuantity
+          });
+        }
+      } catch (usageError) {
+        console.error(`❌ [Webhook] Error creating initial usage record:`, usageError);
+        // Don't fail the webhook - log the error and continue
+      }
+    }
+
     await logBillingEvent(meta.event_name, meta.event_id, payload, 'processed');
 
     return {
@@ -439,7 +498,8 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
       data: {
         subscription: subscription.id,
         organization: customer.organization_id,
-        quantity
+        quantity,
+        initialUsageRecordCreated: desiredQuantity > 0 && subscriptionItemId ? true : false
       }
     };
 
