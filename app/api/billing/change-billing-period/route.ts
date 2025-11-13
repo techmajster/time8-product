@@ -10,9 +10,8 @@ import { createClient } from '@/lib/supabase/server';
 import { authenticateAndGetOrgContext } from '@/lib/auth-utils-v2';
 
 interface ChangeBillingPeriodRequest {
-  organization_id: string;
-  new_variant_id: string;
-  billing_period: 'monthly' | 'annual';
+  new_variant_id: number;
+  billing_period?: 'monthly' | 'annual';
 }
 
 /**
@@ -41,17 +40,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { new_variant_id, billing_period } = body;
+    const { new_variant_id, billing_period = 'unknown' } = body;
 
     // Validate inputs
-    if (!new_variant_id || !billing_period) {
+    if (!new_variant_id || new_variant_id <= 0) {
       return NextResponse.json(
-        { error: 'Missing required fields: new_variant_id, billing_period' },
+        { error: 'Invalid variant_id. Must be a positive number.' },
         { status: 400 }
       );
     }
 
-    if (!['monthly', 'annual'].includes(billing_period)) {
+    if (billing_period && !['monthly', 'annual', 'unknown'].includes(billing_period)) {
       return NextResponse.json(
         { error: 'Invalid billing_period. Must be "monthly" or "annual"' },
         { status: 400 }
@@ -79,11 +78,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if already on the requested variant
-    if (subscription.lemonsqueezy_variant_id === new_variant_id) {
+    if (subscription.lemonsqueezy_variant_id === new_variant_id.toString()) {
       return NextResponse.json(
         {
-          error: 'Already on requested billing period',
-          message: `Subscription is already on ${billing_period} billing`
+          error: 'Already on requested variant',
+          message: `Subscription is already using this variant`
         },
         { status: 400 }
       );
@@ -92,13 +91,14 @@ export async function POST(request: NextRequest) {
     // Generate correlation ID for tracking payment flow
     const correlationId = `billing-change-${organizationId}-${Date.now()}`;
 
-    console.log(`🔄 [Billing Period Change] Starting:`, {
+    console.log(`💰 [Payment Flow] Starting billing period change (usage-based):`, {
       correlationId,
       subscription_id: subscription.lemonsqueezy_subscription_id,
       current_variant: subscription.lemonsqueezy_variant_id,
       new_variant: new_variant_id,
       billing_period,
-      seats: subscription.current_seats,
+      current_seats: subscription.current_seats,
+      note: 'Usage-based billing preserves quantity automatically',
       organizationId
     });
 
@@ -118,9 +118,7 @@ export async function POST(request: NextRequest) {
             type: 'subscriptions',
             id: subscription.lemonsqueezy_subscription_id.toString(),
             attributes: {
-              variant_id: parseInt(new_variant_id)
-              // Note: LemonSqueezy automatically preserves quantity when changing variants
-              // Quantity changes must use /subscription-items endpoint, not /subscriptions
+              variant_id: new_variant_id
             }
           }
         })
@@ -145,101 +143,41 @@ export async function POST(request: NextRequest) {
     }
 
     const updatedData = await updateResponse.json();
-    console.log('✅ [Billing Period Change] Variant change successful:', {
+    const preservedSeats = updatedData.data.attributes.first_subscription_item?.quantity || subscription.current_seats;
+
+    console.log('✅ [Billing Period Change] Success - seats preserved automatically:', {
       correlationId,
       subscription_id: subscription.lemonsqueezy_subscription_id,
       new_variant_id: updatedData.data.attributes.variant_id,
-      billing_period
+      billing_period,
+      preserved_seats: preservedSeats,
+      note: 'Usage-based billing preserves quantity automatically'
     });
 
-    // CRITICAL: LemonSqueezy resets quantity to 1 when changing variants
-    // We must restore the original quantity using the subscription-items endpoint
-    const subscriptionItemId = subscription.lemonsqueezy_subscription_item_id ||
-      updatedData.data.attributes.first_subscription_item?.id;
-
-    if (!subscriptionItemId) {
-      console.error('❌ [Billing Period Change] No subscription_item_id found');
-      return NextResponse.json(
-        { error: 'Cannot restore quantity: subscription_item_id not found' },
-        { status: 500 }
-      );
-    }
-
-    console.log(`🔄 [Billing Period Change] Restoring quantity to ${subscription.current_seats}...`, {
-      correlationId,
-      subscription_item_id: subscriptionItemId,
-      original_seats: subscription.current_seats
-    });
-
-    // Restore the original quantity via subscription-items endpoint
-    const quantityResponse = await fetch(
-      `https://api.lemonsqueezy.com/v1/subscription-items/${subscriptionItemId}`,
-      {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${process.env.LEMONSQUEEZY_API_KEY}`,
-          'Accept': 'application/vnd.api+json',
-          'Content-Type': 'application/vnd.api+json'
-        },
-        body: JSON.stringify({
-          data: {
-            type: 'subscription-items',
-            id: subscriptionItemId.toString(),
-            attributes: {
-              quantity: subscription.current_seats,
-              invoice_immediately: true,
-              disable_prorations: false
-            }
-          }
-        })
-      }
-    );
-
-    if (!quantityResponse.ok) {
-      const errorData = await quantityResponse.json();
-      console.error('❌ [Billing Period Change] Failed to restore quantity:', {
-        correlationId,
-        subscription_item_id: subscriptionItemId,
-        error: errorData,
-        status: quantityResponse.status
-      });
-      return NextResponse.json(
-        { error: 'Failed to restore seat quantity', details: errorData },
-        { status: quantityResponse.status }
-      );
-    }
-
-    console.log('✅ [Billing Period Change] Quantity restored:', {
-      correlationId,
-      subscription_id: subscription.lemonsqueezy_subscription_id,
-      quantity: subscription.current_seats,
-      note: 'Awaiting payment confirmation webhook'
-    });
-
-    // Update database with new variant (webhook will confirm after payment)
+    // Update database with new variant
     await supabase
       .from('subscriptions')
       .update({
-        lemonsqueezy_variant_id: new_variant_id,
+        lemonsqueezy_variant_id: new_variant_id.toString(),
         updated_at: new Date().toISOString()
       })
       .eq('organization_id', organizationId);
 
-    console.log(`⏳ [Billing Period Change] Awaiting webhook confirmation:`, {
+    console.log(`✅ [Payment Flow] Billing period changed successfully:`, {
       correlationId,
       subscription_id: subscription.lemonsqueezy_subscription_id,
       new_billing_period: billing_period,
-      restored_quantity: subscription.current_seats,
-      note: 'subscription_payment_success webhook will confirm'
+      preserved_seats: preservedSeats,
+      note: 'Single API call - no manual restoration needed'
     });
 
     return NextResponse.json({
       success: true,
-      payment_status: 'processing',
       billing_period,
       new_variant_id,
       subscription_id: subscription.lemonsqueezy_subscription_id,
-      message: 'Billing period change processing. Confirmation pending.',
+      preserved_seats: preservedSeats,
+      message: `Billing period changed to ${billing_period}. ${preservedSeats} seats preserved.`,
       correlationId
     });
 

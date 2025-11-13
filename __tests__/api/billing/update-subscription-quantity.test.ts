@@ -231,7 +231,7 @@ describe('Update Subscription Quantity API', () => {
   });
 
   describe('LemonSqueezy API Integration', () => {
-    it('should call LemonSqueezy Subscription Items API with correct parameters', async () => {
+    it('should call LemonSqueezy Usage Records API with correct endpoint', async () => {
       const request = new NextRequest('http://localhost/api/billing/update-subscription-quantity', {
         method: 'POST',
         body: JSON.stringify({
@@ -243,19 +243,18 @@ describe('Update Subscription Quantity API', () => {
       await POST(request);
 
       expect(global.fetch).toHaveBeenCalledWith(
-        'https://api.lemonsqueezy.com/v1/subscription-items/sub-item-456',
+        'https://api.lemonsqueezy.com/v1/usage-records',
         expect.objectContaining({
-          method: 'PATCH',
+          method: 'POST',
           headers: expect.objectContaining({
             'Authorization': expect.stringContaining('Bearer'),
             'Content-Type': 'application/vnd.api+json'
-          }),
-          body: expect.stringContaining('"quantity":10')
+          })
         })
       );
     });
 
-    it('should enable prorations for fair billing', async () => {
+    it('should include subscription_item_id in relationships section', async () => {
       const request = new NextRequest('http://localhost/api/billing/update-subscription-quantity', {
         method: 'POST',
         body: JSON.stringify({
@@ -269,7 +268,81 @@ describe('Update Subscription Quantity API', () => {
       const fetchCall = (global.fetch as jest.Mock).mock.calls[0];
       const requestBody = JSON.parse(fetchCall[1].body);
 
-      expect(requestBody.data.attributes.disable_prorations).toBe(false);
+      expect(requestBody.data.relationships).toBeDefined();
+      expect(requestBody.data.relationships['subscription-item']).toEqual({
+        data: {
+          type: 'subscription-items',
+          id: 'sub-item-456'
+        }
+      });
+    });
+
+    it('should use action: "set" for absolute quantity updates', async () => {
+      const request = new NextRequest('http://localhost/api/billing/update-subscription-quantity', {
+        method: 'POST',
+        body: JSON.stringify({
+          new_quantity: 10,
+          invoice_immediately: true
+        })
+      });
+
+      await POST(request);
+
+      const fetchCall = (global.fetch as jest.Mock).mock.calls[0];
+      const requestBody = JSON.parse(fetchCall[1].body);
+
+      expect(requestBody.data.attributes.action).toBe('set');
+      expect(requestBody.data.attributes.quantity).toBe(10);
+    });
+
+    it('should include description with organization context', async () => {
+      const request = new NextRequest('http://localhost/api/billing/update-subscription-quantity', {
+        method: 'POST',
+        body: JSON.stringify({
+          new_quantity: 10,
+          invoice_immediately: true
+        })
+      });
+
+      await POST(request);
+
+      const fetchCall = (global.fetch as jest.Mock).mock.calls[0];
+      const requestBody = JSON.parse(fetchCall[1].body);
+
+      expect(requestBody.data.attributes.description).toBeDefined();
+      expect(requestBody.data.attributes.description).toContain('org-123');
+      expect(requestBody.data.attributes.description).toContain('10');
+    });
+
+    it('should return usage_record_id in response', async () => {
+      // Mock usage records API response with usage_record_id
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          data: {
+            type: 'usage-records',
+            id: 'usage-record-123',
+            attributes: {
+              subscription_item_id: 'sub-item-456',
+              quantity: 10,
+              action: 'set'
+            }
+          }
+        })
+      });
+
+      const request = new NextRequest('http://localhost/api/billing/update-subscription-quantity', {
+        method: 'POST',
+        body: JSON.stringify({
+          new_quantity: 10,
+          invoice_immediately: true
+        })
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(data.usage_record_id).toBe('usage-record-123');
     });
 
     it('should handle LemonSqueezy API errors gracefully', async () => {
@@ -294,6 +367,34 @@ describe('Update Subscription Quantity API', () => {
 
       expect(response.status).toBe(422);
       expect(data.error).toContain('Failed to update');
+    });
+
+    it('should handle 422 error when variant is not usage-based', async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: false,
+        status: 422,
+        json: async () => ({
+          errors: [{
+            detail: 'The variant is not configured for usage-based billing',
+            status: '422'
+          }]
+        })
+      });
+
+      const request = new NextRequest('http://localhost/api/billing/update-subscription-quantity', {
+        method: 'POST',
+        body: JSON.stringify({
+          new_quantity: 10,
+          invoice_immediately: true
+        })
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(422);
+      expect(data.error).toContain('Failed to update');
+      expect(data.details).toBeDefined();
     });
   });
 

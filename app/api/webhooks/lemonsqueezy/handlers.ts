@@ -381,7 +381,9 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
       status,
       quantity,
       variant_id,
-      correlationId: meta.event_id
+      correlationId: meta.event_id,
+      usageBasedBilling: true,
+      note: 'Quantity from first_subscription_item (usage records)'
     });
 
     // Create subscription record
@@ -425,7 +427,9 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
       renewsAt: renews_at,
       endsAt: ends_at,
       trialEndsAt: trial_ends_at,
-      correlationId: meta.event_id
+      correlationId: meta.event_id,
+      usageBasedBilling: true,
+      note: 'Subscription created with usage-based billing enabled'
     });
 
     await logBillingEvent(meta.event_name, meta.event_id, payload, 'processed');
@@ -512,7 +516,9 @@ export async function processSubscriptionUpdated(payload: any): Promise<EventRes
       current_seats: existingSubscription.current_seats,
       variant_id: existingSubscription.lemonsqueezy_variant_id,
       status: existingSubscription.status,
-      correlationId: meta.event_id
+      correlationId: meta.event_id,
+      usageBasedBilling: true,
+      note: 'Syncing quantity from first_subscription_item (usage records)'
     });
 
     // Update subscription
@@ -577,7 +583,9 @@ export async function processSubscriptionUpdated(payload: any): Promise<EventRes
       status,
       paid_seats: quantity > 3 ? quantity : 0,
       subscription_tier: status === 'active' && quantity > 0 ? 'active' : 'free',
-      correlationId: meta.event_id
+      correlationId: meta.event_id,
+      usageBasedBilling: true,
+      note: 'Subscription updated with usage-based quantity'
     });
 
     // Log successful processing
@@ -1151,7 +1159,9 @@ export async function processSubscriptionPaymentSuccess(payload: any): Promise<E
       quantity: existingSubscription.quantity,
       current_seats: existingSubscription.current_seats,
       pending_seats: existingSubscription.pending_seats,
-      correlationId: meta.event_id
+      correlationId: meta.event_id,
+      usageBasedBilling: true,
+      note: 'Confirming payment for usage-based billing update'
     });
 
     // Determine which pattern to use
@@ -1201,7 +1211,9 @@ export async function processSubscriptionPaymentSuccess(payload: any): Promise<E
         quantity: newSeats,
         current_seats: newSeats,
         paid_seats: newSeats,
-        correlationId: meta.event_id
+        correlationId: meta.event_id,
+        usageBasedBilling: true,
+        note: 'Payment confirmed - seats granted from usage records'
       });
 
       return {
@@ -1299,7 +1311,9 @@ export async function processSubscriptionPaymentSuccess(payload: any): Promise<E
         current_seats: newSeats,
         pending_seats: null,
         usersArchived: archivedCount,
-        correlationId: meta.event_id
+        correlationId: meta.event_id,
+        usageBasedBilling: true,
+        note: 'Deferred downgrade applied - usage records reflected'
       });
 
       return {
@@ -1316,7 +1330,10 @@ export async function processSubscriptionPaymentSuccess(payload: any): Promise<E
     }
 
     // Pattern 3: No changes needed (renewal payment with no seat changes)
-    console.log(`[Webhook] subscription_payment_success: No pending changes for subscription ${subscriptionId}`);
+    console.log(`[Webhook] subscription_payment_success: No pending changes for subscription ${subscriptionId}`, {
+      usageBasedBilling: true,
+      note: 'Renewal payment - quantity already synced via usage records'
+    });
 
     await supabase
       .from('subscriptions')

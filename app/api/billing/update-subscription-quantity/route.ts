@@ -123,11 +123,11 @@ export async function POST(request: NextRequest) {
       organizationId
     });
 
-    // Update subscription item quantity via LemonSqueezy API
+    // Report usage via LemonSqueezy Usage Records API (usage-based billing)
     const updateResponse = await fetch(
-      `https://api.lemonsqueezy.com/v1/subscription-items/${subscription.lemonsqueezy_subscription_item_id}`,
+      'https://api.lemonsqueezy.com/v1/usage-records',
       {
-        method: 'PATCH',
+        method: 'POST',
         headers: {
           'Authorization': `Bearer ${process.env.LEMONSQUEEZY_API_KEY}`,
           'Accept': 'application/vnd.api+json',
@@ -135,12 +135,19 @@ export async function POST(request: NextRequest) {
         },
         body: JSON.stringify({
           data: {
-            type: 'subscription-items',
-            id: subscription.lemonsqueezy_subscription_item_id.toString(),
+            type: 'usage-records',
             attributes: {
               quantity: new_quantity,
-              invoice_immediately,
-              disable_prorations: false // Enable prorations for fair billing
+              action: 'set', // Set absolute value (not increment)
+              description: `Seat count updated to ${new_quantity} for organization ${organizationId}`
+            },
+            relationships: {
+              'subscription-item': {
+                data: {
+                  type: 'subscription-items',
+                  id: subscription.lemonsqueezy_subscription_item_id.toString()
+                }
+              }
             }
           }
         })
@@ -166,9 +173,12 @@ export async function POST(request: NextRequest) {
     }
 
     const updatedData = await updateResponse.json();
-    console.log('✅ [Payment Flow] LemonSqueezy API call successful:', {
+    const usageRecordId = updatedData.data.id;
+
+    console.log('✅ [Payment Flow] Usage record created successfully:', {
       correlationId,
       subscription_id: subscription.lemonsqueezy_subscription_id,
+      usage_record_id: usageRecordId,
       new_quantity: updatedData.data.attributes.quantity,
       note: 'Awaiting payment confirmation webhook'
     });
@@ -213,7 +223,8 @@ export async function POST(request: NextRequest) {
       payment_status: 'processing',
       new_quantity,
       subscription_id: subscription.lemonsqueezy_subscription_id,
-      message: 'Payment processing. Seats will be granted after payment confirmation.',
+      usage_record_id: usageRecordId,
+      message: 'Usage reported. Seats will be granted after payment confirmation.',
       correlationId // Include for tracking
     });
 

@@ -26,6 +26,8 @@ function AddUsersPageContent() {
   const [pricingInfo, setPricingInfo] = useState<PricingInfo | null>(null)
   const [pricingLoading, setPricingLoading] = useState(true)
   const [isUpgradeFlow, setIsUpgradeFlow] = useState(false)
+  const [initialBillingPeriod, setInitialBillingPeriod] = useState<'monthly' | 'annual'>('annual')
+  const [initialUserCount, setInitialUserCount] = useState(3)
   const router = useRouter()
 
   const FREE_SEATS = 3
@@ -60,11 +62,12 @@ function AddUsersPageContent() {
         if (org && !orgError) {
           setOrganizationData(org)
           setUserCount(recommendedSeats) // Set recommended seat count
+          setInitialUserCount(recommendedSeats) // Store initial count for change detection
 
           // Fetch current subscription to determine billing period
           const { data: subscription } = await supabase
             .from('subscriptions')
-            .select('lemonsqueezy_variant_id')
+            .select('lemonsqueezy_variant_id, current_seats')
             .eq('organization_id', currentOrgId)
             .eq('status', 'active')
             .single()
@@ -73,11 +76,20 @@ function AddUsersPageContent() {
           if (subscription?.lemonsqueezy_variant_id) {
             const monthlyVariantId = process.env.NEXT_PUBLIC_LEMONSQUEEZY_MONTHLY_VARIANT_ID || '972634'
             const isMonthly = subscription.lemonsqueezy_variant_id === monthlyVariantId
-            setSelectedTier(isMonthly ? 'monthly' : 'annual')
+            const currentTier = isMonthly ? 'monthly' : 'annual'
+            setSelectedTier(currentTier)
+            setInitialBillingPeriod(currentTier) // Store initial period for change detection
+
+            // Use current_seats from subscription if no recommendedSeats provided
+            if (!urlParams.get('seats') && subscription.current_seats) {
+              setUserCount(subscription.current_seats)
+              setInitialUserCount(subscription.current_seats)
+            }
+
             console.log('🔄 Upgrade flow initialized:', {
               org: org.name,
-              seats: recommendedSeats,
-              currentTier: isMonthly ? 'monthly' : 'annual'
+              seats: subscription.current_seats,
+              currentTier
             })
           } else {
             console.log('🔄 Upgrade flow initialized:', { org: org.name, seats: recommendedSeats })
@@ -246,29 +258,90 @@ function AddUsersPageContent() {
         }
       }
 
-      // Handle upgrade flow differently - use update-subscription-quantity API
+      // Handle upgrade flow differently - use update-subscription-quantity and/or change-billing-period APIs
       if (isUpgradeFlow) {
-        console.log('🔄 Upgrade flow: updating subscription quantity via API')
+        // Detect what changed
+        const seatsChanged = userCount !== initialUserCount
+        const periodChanged = selectedTier !== initialBillingPeriod
 
-        const response = await fetch('/api/billing/update-subscription-quantity', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            new_quantity: userCount,
-            invoice_immediately: true
-          })
+        console.log('🔄 Upgrade flow: detecting changes', {
+          seatsChanged,
+          periodChanged,
+          currentSeats: userCount,
+          initialSeats: initialUserCount,
+          currentPeriod: selectedTier,
+          initialPeriod: initialBillingPeriod
         })
 
-        const data = await response.json()
+        // Handle billing period change first (if changed)
+        if (periodChanged) {
+          console.log(`🔄 Changing billing period: ${initialBillingPeriod} → ${selectedTier}`)
 
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to update subscription')
+          if (!pricingInfo) {
+            throw new Error('Pricing information not loaded')
+          }
+
+          const newVariantId = selectedTier === 'annual' ?
+            parseInt(pricingInfo.yearlyVariantId) :
+            parseInt(pricingInfo.monthlyVariantId)
+
+          const periodResponse = await fetch('/api/billing/change-billing-period', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              new_variant_id: newVariantId,
+              billing_period: selectedTier
+            })
+          })
+
+          const periodData = await periodResponse.json()
+
+          if (!periodResponse.ok) {
+            throw new Error(periodData.error || 'Failed to change billing period')
+          }
+
+          console.log('✅ Billing period changed successfully:', periodData)
+        }
+
+        // Handle seat quantity change (if changed)
+        if (seatsChanged) {
+          console.log(`🔄 Updating seat quantity: ${initialUserCount} → ${userCount}`)
+
+          const quantityResponse = await fetch('/api/billing/update-subscription-quantity', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              new_quantity: userCount,
+              invoice_immediately: true
+            })
+          })
+
+          const quantityData = await quantityResponse.json()
+
+          if (!quantityResponse.ok) {
+            throw new Error(quantityData.error || 'Failed to update subscription')
+          }
+
+          console.log('✅ Subscription quantity updated:', quantityData)
+        }
+
+        // If nothing changed, show error
+        if (!seatsChanged && !periodChanged) {
+          setError('No changes detected. Please adjust seats or billing period.')
+          setIsLoading(false)
+          return
         }
 
         // Show success message
-        console.log('✅ Subscription update initiated, awaiting payment confirmation')
+        const changes = []
+        if (periodChanged) changes.push(`period changed to ${selectedTier}`)
+        if (seatsChanged) changes.push(`seats updated to ${userCount}`)
+
+        console.log(`✅ Subscription updated: ${changes.join(', ')}`)
 
         // Redirect to payment success page to wait for webhook confirmation
         router.push(`/onboarding/payment-success?upgrade=true&org_id=${organizationData.id}`)
@@ -450,8 +523,8 @@ function AddUsersPageContent() {
               <>
                 {/* Monthly payment card with "Most popular" badge - LEFT SIDE */}
                 <div
-                  className={`${selectedTier === 'monthly' ? 'bg-violet-100 border-2 border-primary' : 'bg-card border-2 border-border'} rounded-xl p-8 flex flex-col gap-6 ${isUpgradeFlow ? 'cursor-not-allowed' : 'cursor-pointer'} relative ${selectedTier !== 'monthly' ? 'opacity-50' : ''}`}
-                  onClick={() => !isUpgradeFlow && setSelectedTier('monthly')}
+                  className={`${selectedTier === 'monthly' ? 'bg-violet-100 border-2 border-primary' : 'bg-card border-2 border-border'} rounded-xl p-8 flex flex-col gap-6 cursor-pointer relative ${selectedTier !== 'monthly' ? 'opacity-50' : ''}`}
+                  onClick={() => setSelectedTier('monthly')}
                 >
                   <div className="flex flex-col gap-3">
                     <div className="flex gap-2.5 items-center">
@@ -473,8 +546,8 @@ function AddUsersPageContent() {
 
                 {/* Annual payment card - RIGHT SIDE */}
                 <div
-                  className={`${selectedTier === 'annual' ? 'bg-violet-100 border-2 border-primary' : 'bg-card border-2 border-border'} rounded-xl p-8 flex flex-col gap-6 ${isUpgradeFlow ? 'cursor-not-allowed' : 'cursor-pointer'} relative ${selectedTier !== 'annual' ? 'opacity-50' : ''}`}
-                  onClick={() => !isUpgradeFlow && setSelectedTier('annual')}
+                  className={`${selectedTier === 'annual' ? 'bg-violet-100 border-2 border-primary' : 'bg-card border-2 border-border'} rounded-xl p-8 flex flex-col gap-6 cursor-pointer relative ${selectedTier !== 'annual' ? 'opacity-50' : ''}`}
+                  onClick={() => setSelectedTier('annual')}
                 >
                   <div className="flex flex-col gap-3">
                     <div className="flex gap-2.5 items-center">
@@ -502,8 +575,8 @@ function AddUsersPageContent() {
                 {t('pricing.pricesNote', { currency: pricing.currency })}
               </p>
               {isUpgradeFlow && (
-                <p className="text-xs text-muted-foreground text-center">
-                  Note: Changing billing period is not available during upgrades. Only seat quantity can be adjusted.
+                <p className="text-xs text-success text-center font-medium">
+                  ✓ You can now adjust both seat quantity and billing period
                 </p>
               )}
             </div>
