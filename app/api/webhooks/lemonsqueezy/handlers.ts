@@ -409,6 +409,10 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
       note: 'Quantity from first_subscription_item (usage records)'
     });
 
+    // Calculate user_count for subscription setup
+    // For usage-based billing: user_count from custom_data drives access control
+    const userCount = parseInt(meta.custom_data?.user_count || '0');
+
     // Create subscription record
     const { data: subscription, error: subscriptionError } = await supabase
       .from('subscriptions')
@@ -421,7 +425,7 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
         billing_type: first_subscription_item?.is_usage_based ? 'usage_based' : 'volume',
         status,
         quantity,
-        current_seats: quantity,  // Grant immediate access for new subscriptions
+        current_seats: userCount,  // Use user_count from custom_data, not quantity from LemonSqueezy
         renews_at: renews_at || null,
         ends_at: ends_at || null,
         trial_ends_at: trial_ends_at || null
@@ -435,13 +439,11 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
       return { success: false, error };
     }
 
-    // Calculate paid_seats based on user_count (not quantity)
-    // For usage-based billing: user_count drives billing, not quantity
-    const userCount = parseInt(meta.custom_data?.user_count || '0');
-    const paidSeats = userCount > 3 ? userCount : 0;
+    // Update organization subscription (pass total user_count, function calculates paid_seats)
+    await updateOrganizationSubscription(supabase, customer.organization_id, userCount, status);
 
-    // Update organization subscription (paid seats + tier)
-    await updateOrganizationSubscription(supabase, customer.organization_id, paidSeats, status);
+    // Calculate paid_seats for logging (function already updated organization)
+    const paidSeats = userCount > 3 ? userCount : 0;
 
     // Log after state for comprehensive debugging
     console.log(`✅ [Webhook] subscription_created - After:`, {
@@ -451,12 +453,12 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
       customerId: customer.id,
       status,
       quantity,
-      current_seats: quantity,
+      current_seats: userCount,
       variant_id,
       userCount,
       paid_seats: paidSeats,
       freeTier: userCount <= 3,
-      subscription_tier: status === 'active' && paidSeats > 0 ? 'paid' : 'free',
+      subscription_tier: status === 'active' && userCount > 0 ? 'active' : 'free',
       renewsAt: renews_at,
       endsAt: ends_at,
       trialEndsAt: trial_ends_at,
