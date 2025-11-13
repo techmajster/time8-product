@@ -327,7 +327,10 @@ function AddUsersPageContent() {
           const quantityData = await quantityResponse.json()
 
           if (!quantityResponse.ok) {
-            throw new Error(quantityData.error || 'Failed to update subscription')
+            console.error('❌ Failed to update subscription quantity:', quantityData)
+            throw new Error(
+              quantityData.details || quantityData.error || 'Failed to update subscription'
+            )
           }
 
           console.log('✅ Subscription quantity updated:', quantityData)

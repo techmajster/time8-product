@@ -163,6 +163,24 @@ export async function POST(request: NextRequest) {
         error: errorData,
         status: updateResponse.status
       });
+
+      // Check if this is an old subscription that doesn't support usage-based billing
+      const errorMessage = errorData?.errors?.[0]?.detail || JSON.stringify(errorData);
+      const isUsageBasedError = errorMessage.toLowerCase().includes('usage') ||
+                                errorMessage.toLowerCase().includes('metered') ||
+                                updateResponse.status === 422;
+
+      if (isUsageBasedError) {
+        return NextResponse.json(
+          {
+            error: 'This subscription was created before usage-based billing was enabled',
+            details: 'Please create a new subscription to modify seats. Old subscriptions cannot be updated.',
+            legacy_subscription: true
+          },
+          { status: 400 }
+        );
+      }
+
       return NextResponse.json(
         {
           error: 'Failed to update subscription quantity',
