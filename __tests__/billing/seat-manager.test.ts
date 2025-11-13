@@ -7,54 +7,58 @@
  */
 
 import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
-import { SeatManager } from '@/lib/billing/seat-manager';
 
-// Mock Supabase client - must be before imports
-const mockCreateAdminClient = jest.fn();
-jest.mock('@/lib/supabase/server', () => ({
-  createAdminClient: mockCreateAdminClient
-}));
+// Set environment variables BEFORE any imports
+process.env.LEMONSQUEEZY_API_KEY = 'test-api-key';
+process.env.LEMONSQUEEZY_MONTHLY_VARIANT_ID = '513746';
+process.env.LEMONSQUEEZY_YEARLY_VARIANT_ID = '513747';
+process.env.YEARLY_PRICE_PER_SEAT = '1200';
+process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co';
+process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key';
+process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key';
+
+// Use the manual mock for Supabase
+jest.mock('@/lib/supabase/server');
+
+// Import the mock exports
+import {
+  mockSupabaseFrom,
+  mockSupabaseSelect,
+  mockSupabaseUpdate,
+  mockSupabaseEq,
+  mockSupabaseSingle,
+  mockSupabaseClient
+} from '@/lib/supabase/__mocks__/server';
 
 // Mock fetch for LemonSqueezy API calls
-global.fetch = jest.fn();
+global.fetch = jest.fn() as jest.Mock;
+
+// Now import SeatManager after mocks are set up
+import { SeatManager } from '@/lib/billing/seat-manager';
 
 describe('SeatManager', () => {
   let seatManager: SeatManager;
-  let mockSupabase: any;
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    // Reset method chaining
+    mockSupabaseFrom.mockReturnValue(mockSupabaseClient);
+    mockSupabaseSelect.mockReturnValue(mockSupabaseClient);
+    mockSupabaseUpdate.mockReturnValue(mockSupabaseClient);
+    mockSupabaseEq.mockReturnValue(mockSupabaseClient);
+
     seatManager = new SeatManager();
-
-    // Mock Supabase client with common methods
-    mockSupabase = {
-      from: jest.fn().mockReturnThis(),
-      select: jest.fn().mockReturnThis(),
-      update: jest.fn().mockReturnThis(),
-      eq: jest.fn().mockReturnThis(),
-      single: jest.fn(),
-    };
-
-    mockCreateAdminClient.mockReturnValue(mockSupabase);
-
-    // Set environment variables
-    process.env.LEMONSQUEEZY_API_KEY = 'test-api-key';
-    process.env.LEMONSQUEEZY_MONTHLY_VARIANT_ID = '513746';
-    process.env.LEMONSQUEEZY_YEARLY_VARIANT_ID = '513747';
-    process.env.YEARLY_PRICE_PER_SEAT = '1200';
-    process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co';
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key';
-    process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key';
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    jest.clearAllMocks();
   });
 
   describe('addSeats() - Main Routing Logic', () => {
     it('should route to usage-based path for monthly subscriptions', async () => {
-      // Mock subscription with usage_based billing
-      mockSupabase.single.mockResolvedValueOnce({
+      // Mock subscription fetch (first .single() call)
+      mockSupabaseSingle.mockResolvedValueOnce({
         data: {
           id: 'sub-123',
           billing_type: 'usage_based',
@@ -71,9 +75,9 @@ describe('SeatManager', () => {
         json: async () => ({ data: { id: 'usage-rec-1', attributes: { quantity: 8 } } })
       });
 
-      // Mock database update
-      mockSupabase.single.mockResolvedValueOnce({
-        data: { current_seats: 8 },
+      // Mock database update (second .single() call)
+      mockSupabaseSingle.mockResolvedValueOnce({
+        data: null,
         error: null
       });
 
@@ -88,7 +92,7 @@ describe('SeatManager', () => {
 
     it('should route to quantity-based path for yearly subscriptions', async () => {
       // Mock subscription with quantity_based billing
-      mockSupabase.single.mockResolvedValueOnce({
+      mockSupabaseSingle.mockResolvedValueOnce({
         data: {
           id: 'sub-123',
           billing_type: 'quantity_based',
@@ -119,7 +123,7 @@ describe('SeatManager', () => {
       });
 
       // Mock database update
-      mockSupabase.single.mockResolvedValueOnce({
+      mockSupabaseSingle.mockResolvedValueOnce({
         data: { current_seats: 8 },
         error: null
       });
@@ -135,7 +139,7 @@ describe('SeatManager', () => {
     });
 
     it('should throw error for subscription not found', async () => {
-      mockSupabase.single.mockResolvedValueOnce({
+      mockSupabaseSingle.mockResolvedValueOnce({
         data: null,
         error: { message: 'Subscription not found' }
       });
@@ -146,7 +150,7 @@ describe('SeatManager', () => {
     });
 
     it('should throw error for unknown billing type', async () => {
-      mockSupabase.single.mockResolvedValueOnce({
+      mockSupabaseSingle.mockResolvedValueOnce({
         data: {
           id: 'sub-123',
           billing_type: 'volume', // Legacy type
@@ -164,7 +168,7 @@ describe('SeatManager', () => {
 
   describe('addSeatsUsageBased() - Monthly Path', () => {
     it('should create usage record with correct quantity', async () => {
-      mockSupabase.single.mockResolvedValueOnce({
+      mockSupabaseSingle.mockResolvedValueOnce({
         data: {
           id: 'sub-123',
           billing_type: 'usage_based',
@@ -180,7 +184,7 @@ describe('SeatManager', () => {
         json: async () => ({ data: { id: 'usage-rec-1', attributes: { quantity: 10, action: 'set' } } })
       });
 
-      mockSupabase.single.mockResolvedValueOnce({
+      mockSupabaseSingle.mockResolvedValueOnce({
         data: { current_seats: 10 },
         error: null
       });
@@ -205,7 +209,7 @@ describe('SeatManager', () => {
     });
 
     it('should handle LemonSqueezy API failure gracefully', async () => {
-      mockSupabase.single.mockResolvedValueOnce({
+      mockSupabaseSingle.mockResolvedValueOnce({
         data: {
           id: 'sub-123',
           billing_type: 'usage_based',
@@ -228,7 +232,7 @@ describe('SeatManager', () => {
     });
 
     it('should use action: "set" not "increment"', async () => {
-      mockSupabase.single.mockResolvedValueOnce({
+      mockSupabaseSingle.mockResolvedValueOnce({
         data: {
           id: 'sub-123',
           billing_type: 'usage_based',
@@ -244,7 +248,7 @@ describe('SeatManager', () => {
         json: async () => ({ data: { id: 'usage-rec-1' } })
       });
 
-      mockSupabase.single.mockResolvedValueOnce({
+      mockSupabaseSingle.mockResolvedValueOnce({
         data: { current_seats: 7 },
         error: null
       });
@@ -261,7 +265,7 @@ describe('SeatManager', () => {
 
   describe('addSeatsQuantityBased() - Yearly Path', () => {
     it('should PATCH subscription-items with invoice_immediately: true', async () => {
-      mockSupabase.single.mockResolvedValueOnce({
+      mockSupabaseSingle.mockResolvedValueOnce({
         data: {
           id: 'sub-123',
           billing_type: 'quantity_based',
@@ -291,7 +295,7 @@ describe('SeatManager', () => {
         json: async () => ({ data: { id: 'item-456', attributes: { quantity: 10 } } })
       });
 
-      mockSupabase.single.mockResolvedValueOnce({
+      mockSupabaseSingle.mockResolvedValueOnce({
         data: { current_seats: 10 },
         error: null
       });
@@ -313,7 +317,7 @@ describe('SeatManager', () => {
     });
 
     it('should handle PATCH failure gracefully', async () => {
-      mockSupabase.single.mockResolvedValueOnce({
+      mockSupabaseSingle.mockResolvedValueOnce({
         data: {
           id: 'sub-123',
           billing_type: 'quantity_based',
@@ -352,7 +356,7 @@ describe('SeatManager', () => {
 
   describe('calculateProration()', () => {
     it('should calculate accurate proration for half year remaining', async () => {
-      mockSupabase.single.mockResolvedValueOnce({
+      mockSupabaseSingle.mockResolvedValueOnce({
         data: {
           id: 'sub-123',
           billing_type: 'quantity_based',
@@ -385,7 +389,7 @@ describe('SeatManager', () => {
     });
 
     it('should return zero proration for usage-based subscriptions', async () => {
-      mockSupabase.single.mockResolvedValueOnce({
+      mockSupabaseSingle.mockResolvedValueOnce({
         data: {
           id: 'sub-123',
           billing_type: 'usage_based',
@@ -401,7 +405,7 @@ describe('SeatManager', () => {
     });
 
     it('should handle seat removal (return zero with message)', async () => {
-      mockSupabase.single.mockResolvedValueOnce({
+      mockSupabaseSingle.mockResolvedValueOnce({
         data: {
           id: 'sub-123',
           billing_type: 'quantity_based',
@@ -431,7 +435,7 @@ describe('SeatManager', () => {
     });
 
     it('should throw error if subscription not found', async () => {
-      mockSupabase.single.mockResolvedValueOnce({
+      mockSupabaseSingle.mockResolvedValueOnce({
         data: null,
         error: { message: 'Not found' }
       });
@@ -442,7 +446,7 @@ describe('SeatManager', () => {
     });
 
     it('should handle LemonSqueezy API failure when fetching renews_at', async () => {
-      mockSupabase.single.mockResolvedValueOnce({
+      mockSupabaseSingle.mockResolvedValueOnce({
         data: {
           id: 'sub-123',
           billing_type: 'quantity_based',
@@ -465,7 +469,7 @@ describe('SeatManager', () => {
 
   describe('removeSeats()', () => {
     it('should create usage record with lower quantity for monthly subscriptions', async () => {
-      mockSupabase.single.mockResolvedValueOnce({
+      mockSupabaseSingle.mockResolvedValueOnce({
         data: {
           id: 'sub-123',
           billing_type: 'usage_based',
@@ -481,7 +485,7 @@ describe('SeatManager', () => {
         json: async () => ({ data: { id: 'usage-rec-1', attributes: { quantity: 8 } } })
       });
 
-      mockSupabase.single.mockResolvedValueOnce({
+      mockSupabaseSingle.mockResolvedValueOnce({
         data: { current_seats: 8 },
         error: null
       });
@@ -494,7 +498,7 @@ describe('SeatManager', () => {
     });
 
     it('should PATCH with lower quantity for yearly subscriptions', async () => {
-      mockSupabase.single.mockResolvedValueOnce({
+      mockSupabaseSingle.mockResolvedValueOnce({
         data: {
           id: 'sub-123',
           billing_type: 'quantity_based',
@@ -524,7 +528,7 @@ describe('SeatManager', () => {
         json: async () => ({ data: { id: 'item-456', attributes: { quantity: 8 } } })
       });
 
-      mockSupabase.single.mockResolvedValueOnce({
+      mockSupabaseSingle.mockResolvedValueOnce({
         data: { current_seats: 8 },
         error: null
       });
@@ -542,7 +546,7 @@ describe('SeatManager', () => {
 
   describe('Edge Cases', () => {
     it('should handle missing subscription_item_id', async () => {
-      mockSupabase.single.mockResolvedValueOnce({
+      mockSupabaseSingle.mockResolvedValueOnce({
         data: {
           id: 'sub-123',
           billing_type: 'usage_based',
@@ -559,7 +563,7 @@ describe('SeatManager', () => {
     });
 
     it('should handle adding zero seats', async () => {
-      mockSupabase.single.mockResolvedValueOnce({
+      mockSupabaseSingle.mockResolvedValueOnce({
         data: {
           id: 'sub-123',
           billing_type: 'usage_based',
