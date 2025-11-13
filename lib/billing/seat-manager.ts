@@ -273,10 +273,14 @@ export class SeatManager {
     }
 
     const data = await response.json();
-    console.log(`✅ [SeatManager] Usage record created:`, {
-      usageRecordId: data.data.id,
-      quantity: newQuantity,
-      subscriptionId: subscription.id
+    console.log(`✅ [SeatManager] Usage record API Response:`, {
+      status: response.status,
+      usageRecordId: data.data?.id,
+      returnedQuantity: data.data?.attributes?.quantity,
+      requestedQuantity: newQuantity,
+      fullResponse: JSON.stringify(data, null, 2),
+      subscriptionId: subscription.id,
+      subscriptionItemId: subscription.lemonsqueezy_subscription_item_id
     });
 
     // Update local database
