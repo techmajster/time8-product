@@ -232,7 +232,7 @@ export class SeatManager {
       throw new Error(`Missing subscription_item_id for subscription ${subscription.id}. Cannot create usage record.`);
     }
 
-    // POST to usage records endpoint (CORRECT: use /usage-records with subscription-item in relationships)
+    // POST to usage records endpoint (corrected: use /usage-records with subscription-item in relationships)
     const response = await fetch(
       `https://api.lemonsqueezy.com/v1/usage-records`,
       {
