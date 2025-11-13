@@ -29,6 +29,9 @@ function AddUsersPageContent() {
   const [initialBillingPeriod, setInitialBillingPeriod] = useState<'monthly' | 'annual'>('annual')
   const [initialUserCount, setInitialUserCount] = useState(3)
   const [userEmail, setUserEmail] = useState<string | null>(null)
+  const [billingType, setBillingType] = useState<'usage_based' | 'quantity_based' | null>(null)
+  const [prorationPreview, setProrationPreview] = useState<any>(null)
+  const [loadingProration, setLoadingProration] = useState(false)
   const router = useRouter()
 
   const FREE_SEATS = 3
@@ -68,10 +71,10 @@ function AddUsersPageContent() {
           setUserCount(recommendedSeats) // Set recommended seat count
           setInitialUserCount(recommendedSeats) // Store initial count for change detection
 
-          // Fetch current subscription to determine billing period
+          // Fetch current subscription to determine billing period and type
           const { data: subscription } = await supabase
             .from('subscriptions')
-            .select('lemonsqueezy_variant_id, current_seats')
+            .select('lemonsqueezy_variant_id, current_seats, billing_type')
             .eq('organization_id', currentOrgId)
             .eq('status', 'active')
             .single()
@@ -83,6 +86,7 @@ function AddUsersPageContent() {
             const currentTier = isMonthly ? 'monthly' : 'annual'
             setSelectedTier(currentTier)
             setInitialBillingPeriod(currentTier) // Store initial period for change detection
+            setBillingType(subscription.billing_type as 'usage_based' | 'quantity_based')
 
             // Use current_seats from subscription if no recommendedSeats provided
             if (!urlParams.get('seats') && subscription.current_seats) {
@@ -160,6 +164,46 @@ function AddUsersPageContent() {
 
     initializePage()
   }, [router])
+
+  // Fetch proration preview when user count changes (for yearly subscriptions in upgrade flow)
+  useEffect(() => {
+    const fetchProrationPreview = async () => {
+      // Only fetch for upgrade flow with quantity-based (yearly) billing
+      if (!isUpgradeFlow || billingType !== 'quantity_based' || userCount === initialUserCount) {
+        setProrationPreview(null)
+        return
+      }
+
+      setLoadingProration(true)
+      try {
+        const response = await fetch('/api/billing/proration-preview', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            new_quantity: userCount
+          })
+        })
+
+        const data = await response.json()
+
+        if (response.ok && data.applicable) {
+          setProrationPreview(data.proration)
+          console.log('💵 Proration preview loaded:', data.proration)
+        } else {
+          setProrationPreview(null)
+        }
+      } catch (error) {
+        console.error('Failed to fetch proration preview:', error)
+        setProrationPreview(null)
+      } finally {
+        setLoadingProration(false)
+      }
+    }
+
+    fetchProrationPreview()
+  }, [userCount, billingType, isUpgradeFlow, initialUserCount])
 
   // Get current pricing calculation
   const getCurrentPricing = () => {
@@ -593,6 +637,51 @@ function AddUsersPageContent() {
                   ✓ You can now adjust both seat quantity and billing period
                 </p>
               )}
+            </div>
+          )}
+
+          {/* Billing information for upgrade flow */}
+          {isUpgradeFlow && userCount !== initialUserCount && (
+            <div className="w-full">
+              {billingType === 'usage_based' ? (
+                <Alert className="bg-blue-50 border-blue-200">
+                  <AlertDescription className="text-sm text-blue-800">
+                    💡 New seats will be billed at the end of your current billing period.
+                  </AlertDescription>
+                </Alert>
+              ) : billingType === 'quantity_based' && prorationPreview ? (
+                <Alert className="bg-yellow-50 border-yellow-200">
+                  <AlertDescription>
+                    <div className="flex flex-col gap-2">
+                      <p className="text-sm text-yellow-800 font-medium">
+                        ⚡ You will be charged immediately:
+                      </p>
+                      {loadingProration ? (
+                        <div className="flex items-center gap-2">
+                          <Loader2 className="size-4 animate-spin text-yellow-700" />
+                          <span className="text-sm text-yellow-700">Calculating proration...</span>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="text-lg font-bold text-yellow-900">
+                            ${prorationPreview.amount.toFixed(2)}
+                          </div>
+                          <p className="text-xs text-yellow-700">
+                            {prorationPreview.message}
+                          </p>
+                        </>
+                      )}
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              ) : loadingProration && billingType === 'quantity_based' ? (
+                <Alert className="bg-gray-50 border-gray-200">
+                  <AlertDescription className="flex items-center gap-2">
+                    <Loader2 className="size-4 animate-spin text-gray-700" />
+                    <span className="text-sm text-gray-700">Calculating proration...</span>
+                  </AlertDescription>
+                </Alert>
+              ) : null}
             </div>
           )}
         </div>

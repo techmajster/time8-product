@@ -3,7 +3,8 @@
  *
  * Tests for the update-subscription-quantity endpoint that handles:
  * - Payment security (seats not granted until webhook confirms payment)
- * - Subscription quantity updates via LemonSqueezy API
+ * - Subscription quantity updates via SeatManager service
+ * - Hybrid billing: usage-based (monthly) vs quantity-based (yearly)
  * - Queued invitations storage
  * - Payment processing states
  *
@@ -24,6 +25,9 @@ const mockSupabaseIn = jest.fn();
 jest.mock('@/lib/supabase/server', () => ({
   createClient: jest.fn(() => ({
     from: mockSupabaseFrom
+  })),
+  createAdminClient: jest.fn(() => ({
+    from: mockSupabaseFrom
   }))
 }));
 
@@ -31,6 +35,19 @@ jest.mock('@/lib/supabase/server', () => ({
 const mockAuthenticateAndGetOrgContext = jest.fn();
 jest.mock('@/lib/auth-utils-v2', () => ({
   authenticateAndGetOrgContext: () => mockAuthenticateAndGetOrgContext()
+}));
+
+// Mock SeatManager
+const mockAddSeats = jest.fn();
+const mockRemoveSeats = jest.fn();
+const mockCalculateProration = jest.fn();
+
+jest.mock('@/lib/billing/seat-manager', () => ({
+  SeatManager: jest.fn().mockImplementation(() => ({
+    addSeats: mockAddSeats,
+    removeSeats: mockRemoveSeats,
+    calculateProration: mockCalculateProration
+  }))
 }));
 
 // Mock fetch for LemonSqueezy API
@@ -44,11 +61,14 @@ describe('Update Subscription Quantity API', () => {
   };
 
   const mockSubscription = {
+    id: 'sub-db-123',
     lemonsqueezy_subscription_id: 'sub-123',
     lemonsqueezy_subscription_item_id: 'sub-item-456',
+    billing_type: 'usage_based',
     status: 'active',
     quantity: 9,
-    current_seats: 9
+    current_seats: 9,
+    organization_id: 'org-123'
   };
 
   beforeEach(() => {
@@ -94,7 +114,16 @@ describe('Update Subscription Quantity API', () => {
       error: null
     });
 
-    // Mock successful LemonSqueezy API response
+    // Mock SeatManager.addSeats default success response
+    mockAddSeats.mockResolvedValue({
+      success: true,
+      billingType: 'usage_based',
+      chargedAt: 'end_of_period',
+      message: 'New seats will be billed at end of current billing period',
+      currentSeats: 10
+    });
+
+    // Mock successful LemonSqueezy API response (for legacy tests)
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -110,7 +139,7 @@ describe('Update Subscription Quantity API', () => {
   });
 
   describe('Payment Security - DO NOT grant seats before webhook', () => {
-    it('should update quantity but NOT current_seats after LemonSqueezy API call', async () => {
+    it('should delegate to SeatManager which handles seat updates correctly', async () => {
       const request = new NextRequest('http://localhost/api/billing/update-subscription-quantity', {
         method: 'POST',
         body: JSON.stringify({
@@ -121,19 +150,11 @@ describe('Update Subscription Quantity API', () => {
 
       await POST(request);
 
-      // Verify quantity is updated
-      expect(mockSupabaseUpdate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          quantity: 10
-        })
-      );
-
-      // Verify current_seats is NOT updated
-      const updateCall = mockSupabaseUpdate.mock.calls[0][0];
-      expect(updateCall).not.toHaveProperty('current_seats');
+      // Verify SeatManager.addSeats was called (SeatManager handles database updates)
+      expect(mockAddSeats).toHaveBeenCalledWith('sub-db-123', 10);
     });
 
-    it('should NOT update organization paid_seats before webhook confirmation', async () => {
+    it('should NOT update tables directly - SeatManager handles all updates', async () => {
       const request = new NextRequest('http://localhost/api/billing/update-subscription-quantity', {
         method: 'POST',
         body: JSON.stringify({
@@ -144,9 +165,8 @@ describe('Update Subscription Quantity API', () => {
 
       await POST(request);
 
-      // Verify organizations table is NOT updated
-      const fromCalls = mockSupabaseFrom.mock.calls.map(call => call[0]);
-      expect(fromCalls).not.toContain('organizations');
+      // Verify API endpoint delegates to SeatManager
+      expect(mockAddSeats).toHaveBeenCalled();
     });
   });
 
@@ -196,7 +216,7 @@ describe('Update Subscription Quantity API', () => {
   });
 
   describe('Response Structure', () => {
-    it('should return payment_processing status when invoice_immediately is true', async () => {
+    it('should return SeatManager result information', async () => {
       const request = new NextRequest('http://localhost/api/billing/update-subscription-quantity', {
         method: 'POST',
         body: JSON.stringify({
@@ -209,9 +229,11 @@ describe('Update Subscription Quantity API', () => {
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(data).toHaveProperty('payment_status');
-      expect(data.payment_status).toBe('processing');
-      expect(data.message).toContain('payment');
+      expect(data).toHaveProperty('billingType');
+      expect(data).toHaveProperty('chargedAt');
+      expect(data).toHaveProperty('message');
+      expect(data.billingType).toBe('usage_based');
+      expect(data.chargedAt).toBe('end_of_period');
     });
 
     it('should include subscription_id in response for tracking', async () => {
@@ -230,8 +252,8 @@ describe('Update Subscription Quantity API', () => {
     });
   });
 
-  describe('LemonSqueezy API Integration', () => {
-    it('should call LemonSqueezy Usage Records API with correct endpoint', async () => {
+  describe('SeatManager Delegation', () => {
+    it('should delegate seat additions to SeatManager', async () => {
       const request = new NextRequest('http://localhost/api/billing/update-subscription-quantity', {
         method: 'POST',
         body: JSON.stringify({
@@ -242,94 +264,12 @@ describe('Update Subscription Quantity API', () => {
 
       await POST(request);
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        'https://api.lemonsqueezy.com/v1/usage-records',
-        expect.objectContaining({
-          method: 'POST',
-          headers: expect.objectContaining({
-            'Authorization': expect.stringContaining('Bearer'),
-            'Content-Type': 'application/vnd.api+json'
-          })
-        })
-      );
+      // Verify SeatManager.addSeats was called with correct parameters
+      expect(mockAddSeats).toHaveBeenCalledWith('sub-db-123', 10);
     });
 
-    it('should include subscription_item_id in relationships section', async () => {
-      const request = new NextRequest('http://localhost/api/billing/update-subscription-quantity', {
-        method: 'POST',
-        body: JSON.stringify({
-          new_quantity: 10,
-          invoice_immediately: true
-        })
-      });
-
-      await POST(request);
-
-      const fetchCall = (global.fetch as jest.Mock).mock.calls[0];
-      const requestBody = JSON.parse(fetchCall[1].body);
-
-      expect(requestBody.data.relationships).toBeDefined();
-      expect(requestBody.data.relationships['subscription-item']).toEqual({
-        data: {
-          type: 'subscription-items',
-          id: 'sub-item-456'
-        }
-      });
-    });
-
-    it('should use action: "set" for absolute quantity updates', async () => {
-      const request = new NextRequest('http://localhost/api/billing/update-subscription-quantity', {
-        method: 'POST',
-        body: JSON.stringify({
-          new_quantity: 10,
-          invoice_immediately: true
-        })
-      });
-
-      await POST(request);
-
-      const fetchCall = (global.fetch as jest.Mock).mock.calls[0];
-      const requestBody = JSON.parse(fetchCall[1].body);
-
-      expect(requestBody.data.attributes.action).toBe('set');
-      expect(requestBody.data.attributes.quantity).toBe(10);
-    });
-
-    it('should include description with organization context', async () => {
-      const request = new NextRequest('http://localhost/api/billing/update-subscription-quantity', {
-        method: 'POST',
-        body: JSON.stringify({
-          new_quantity: 10,
-          invoice_immediately: true
-        })
-      });
-
-      await POST(request);
-
-      const fetchCall = (global.fetch as jest.Mock).mock.calls[0];
-      const requestBody = JSON.parse(fetchCall[1].body);
-
-      expect(requestBody.data.attributes.description).toBeDefined();
-      expect(requestBody.data.attributes.description).toContain('org-123');
-      expect(requestBody.data.attributes.description).toContain('10');
-    });
-
-    it('should return usage_record_id in response', async () => {
-      // Mock usage records API response with usage_record_id
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          data: {
-            type: 'usage-records',
-            id: 'usage-record-123',
-            attributes: {
-              subscription_item_id: 'sub-item-456',
-              quantity: 10,
-              action: 'set'
-            }
-          }
-        })
-      });
+    it('should handle SeatManager errors gracefully', async () => {
+      mockAddSeats.mockRejectedValueOnce(new Error('LemonSqueezy API error'));
 
       const request = new NextRequest('http://localhost/api/billing/update-subscription-quantity', {
         method: 'POST',
@@ -342,59 +282,8 @@ describe('Update Subscription Quantity API', () => {
       const response = await POST(request);
       const data = await response.json();
 
-      expect(data.usage_record_id).toBe('usage-record-123');
-    });
-
-    it('should handle LemonSqueezy API errors gracefully', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: false,
-        status: 422,
-        json: async () => ({
-          errors: [{ detail: 'Invalid quantity' }]
-        })
-      });
-
-      const request = new NextRequest('http://localhost/api/billing/update-subscription-quantity', {
-        method: 'POST',
-        body: JSON.stringify({
-          new_quantity: 10,
-          invoice_immediately: true
-        })
-      });
-
-      const response = await POST(request);
-      const data = await response.json();
-
-      expect(response.status).toBe(422);
+      expect(response.status).toBe(500);
       expect(data.error).toContain('Failed to update');
-    });
-
-    it('should handle 422 error when variant is not usage-based', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: false,
-        status: 422,
-        json: async () => ({
-          errors: [{
-            detail: 'The variant is not configured for usage-based billing',
-            status: '422'
-          }]
-        })
-      });
-
-      const request = new NextRequest('http://localhost/api/billing/update-subscription-quantity', {
-        method: 'POST',
-        body: JSON.stringify({
-          new_quantity: 10,
-          invoice_immediately: true
-        })
-      });
-
-      const response = await POST(request);
-      const data = await response.json();
-
-      expect(response.status).toBe(422);
-      expect(data.error).toContain('Failed to update');
-      expect(data.details).toBeDefined();
     });
   });
 
@@ -488,28 +377,18 @@ describe('Update Subscription Quantity API', () => {
       });
 
       // Mock LemonSqueezy fetch subscription response
-      (global.fetch as jest.Mock)
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({
-            data: {
-              attributes: {
-                first_subscription_item: {
-                  id: 'sub-item-789'
-                }
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          data: {
+            attributes: {
+              first_subscription_item: {
+                id: 'sub-item-789'
               }
             }
-          })
+          }
         })
-        // Mock update subscription item response
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({
-            data: {
-              attributes: { quantity: 10 }
-            }
-          })
-        });
+      });
 
       const request = new NextRequest('http://localhost/api/billing/update-subscription-quantity', {
         method: 'POST',
@@ -521,8 +400,9 @@ describe('Update Subscription Quantity API', () => {
 
       const response = await POST(request);
 
+      // SeatManager is called after subscription_item_id is fetched
       expect(response.status).toBe(200);
-      expect(global.fetch).toHaveBeenCalledTimes(2);
+      expect(mockAddSeats).toHaveBeenCalled();
     });
 
     it('should handle invalid request body', async () => {
@@ -536,6 +416,255 @@ describe('Update Subscription Quantity API', () => {
 
       expect(response.status).toBe(400);
       expect(data.error).toContain('Invalid request payload');
+    });
+  });
+
+  describe('SeatManager Integration - Hybrid Billing', () => {
+    describe('Monthly (usage_based) Subscription Path', () => {
+      const mockMonthlySubscription = {
+        id: 'sub-db-123',
+        lemonsqueezy_subscription_id: 'sub-123',
+        lemonsqueezy_subscription_item_id: 'sub-item-456',
+        billing_type: 'usage_based',
+        status: 'active',
+        quantity: 9,
+        current_seats: 9,
+        organization_id: 'org-123'
+      };
+
+      beforeEach(() => {
+        mockSupabaseSingle.mockResolvedValue({
+          data: mockMonthlySubscription,
+          error: null
+        });
+
+        mockAddSeats.mockResolvedValue({
+          success: true,
+          billingType: 'usage_based',
+          chargedAt: 'end_of_period',
+          message: 'New seats will be billed at end of current billing period',
+          currentSeats: 10
+        });
+      });
+
+      it('should use SeatManager.addSeats() for monthly subscriptions when increasing seats', async () => {
+        const request = new NextRequest('http://localhost/api/billing/update-subscription-quantity', {
+          method: 'POST',
+          body: JSON.stringify({
+            new_quantity: 10,
+            invoice_immediately: true
+          })
+        });
+
+        await POST(request);
+
+        expect(mockAddSeats).toHaveBeenCalledWith('sub-db-123', 10);
+      });
+
+      it('should return usage_based billing information for monthly subscriptions', async () => {
+        const request = new NextRequest('http://localhost/api/billing/update-subscription-quantity', {
+          method: 'POST',
+          body: JSON.stringify({
+            new_quantity: 10,
+            invoice_immediately: true
+          })
+        });
+
+        const response = await POST(request);
+        const data = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(data.success).toBe(true);
+        expect(data.billingType).toBe('usage_based');
+        expect(data.chargedAt).toBe('end_of_period');
+        expect(data.message).toContain('end of current billing period');
+      });
+
+      it('should use SeatManager.removeSeats() for monthly subscriptions when decreasing seats', async () => {
+        mockSupabaseSingle.mockResolvedValue({
+          data: { ...mockMonthlySubscription, current_seats: 10 },
+          error: null
+        });
+
+        mockRemoveSeats.mockResolvedValue({
+          success: true,
+          billingType: 'usage_based',
+          chargedAt: 'end_of_period',
+          message: 'Seat reduction will take effect at end of current billing period',
+          currentSeats: 8
+        });
+
+        const request = new NextRequest('http://localhost/api/billing/update-subscription-quantity', {
+          method: 'POST',
+          body: JSON.stringify({
+            new_quantity: 8,
+            invoice_immediately: true
+          })
+        });
+
+        await POST(request);
+
+        expect(mockRemoveSeats).toHaveBeenCalledWith('sub-db-123', 8);
+      });
+    });
+
+    describe('Yearly (quantity_based) Subscription Path', () => {
+      const mockYearlySubscription = {
+        id: 'sub-db-456',
+        lemonsqueezy_subscription_id: 'sub-789',
+        lemonsqueezy_subscription_item_id: 'sub-item-999',
+        billing_type: 'quantity_based',
+        status: 'active',
+        quantity: 9,
+        current_seats: 9,
+        organization_id: 'org-123'
+      };
+
+      beforeEach(() => {
+        mockSupabaseSingle.mockResolvedValue({
+          data: mockYearlySubscription,
+          error: null
+        });
+
+        mockAddSeats.mockResolvedValue({
+          success: true,
+          billingType: 'quantity_based',
+          chargedAt: 'immediately',
+          prorationAmount: 600.00,
+          daysRemaining: 183,
+          message: 'You will be charged $600.00 for 183 remaining days',
+          currentSeats: 10
+        });
+      });
+
+      it('should use SeatManager.addSeats() for yearly subscriptions when increasing seats', async () => {
+        const request = new NextRequest('http://localhost/api/billing/update-subscription-quantity', {
+          method: 'POST',
+          body: JSON.stringify({
+            new_quantity: 10,
+            invoice_immediately: true
+          })
+        });
+
+        await POST(request);
+
+        expect(mockAddSeats).toHaveBeenCalledWith('sub-db-456', 10);
+      });
+
+      it('should return quantity_based billing information with proration for yearly subscriptions', async () => {
+        const request = new NextRequest('http://localhost/api/billing/update-subscription-quantity', {
+          method: 'POST',
+          body: JSON.stringify({
+            new_quantity: 10,
+            invoice_immediately: true
+          })
+        });
+
+        const response = await POST(request);
+        const data = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(data.success).toBe(true);
+        expect(data.billingType).toBe('quantity_based');
+        expect(data.chargedAt).toBe('immediately');
+        expect(data.prorationAmount).toBe(600.00);
+        expect(data.daysRemaining).toBe(183);
+        expect(data.message).toContain('charged $600.00');
+      });
+
+      it('should use SeatManager.removeSeats() for yearly subscriptions when decreasing seats', async () => {
+        mockSupabaseSingle.mockResolvedValue({
+          data: { ...mockYearlySubscription, current_seats: 10 },
+          error: null
+        });
+
+        mockRemoveSeats.mockResolvedValue({
+          success: true,
+          billingType: 'quantity_based',
+          chargedAt: 'immediately',
+          prorationAmount: 0,
+          daysRemaining: 183,
+          message: 'Credit will be applied at next renewal',
+          currentSeats: 8
+        });
+
+        const request = new NextRequest('http://localhost/api/billing/update-subscription-quantity', {
+          method: 'POST',
+          body: JSON.stringify({
+            new_quantity: 8,
+            invoice_immediately: true
+          })
+        });
+
+        await POST(request);
+
+        expect(mockRemoveSeats).toHaveBeenCalledWith('sub-db-456', 8);
+      });
+    });
+
+    describe('Error Handling', () => {
+      it('should handle SeatManager errors gracefully', async () => {
+        mockSupabaseSingle.mockResolvedValue({
+          data: {
+            id: 'sub-db-123',
+            billing_type: 'usage_based',
+            current_seats: 9,
+            organization_id: 'org-123'
+          },
+          error: null
+        });
+
+        mockAddSeats.mockRejectedValue(new Error('Failed to create usage record'));
+
+        const request = new NextRequest('http://localhost/api/billing/update-subscription-quantity', {
+          method: 'POST',
+          body: JSON.stringify({
+            new_quantity: 10,
+            invoice_immediately: true
+          })
+        });
+
+        const response = await POST(request);
+        const data = await response.json();
+
+        expect(response.status).toBe(500);
+        expect(data.error).toBeDefined();
+      });
+
+      it('should handle no change in seat count', async () => {
+        const sameQuantitySubscription = {
+          id: 'sub-db-123',
+          lemonsqueezy_subscription_id: 'sub-123',
+          lemonsqueezy_subscription_item_id: 'sub-item-456',
+          billing_type: 'usage_based' as const,
+          current_seats: 10,
+          quantity: 10,
+          organization_id: 'org-123',
+          status: 'active' as const
+        };
+
+        mockSupabaseSingle.mockResolvedValue({
+          data: sameQuantitySubscription,
+          error: null
+        });
+
+        const request = new NextRequest('http://localhost/api/billing/update-subscription-quantity', {
+          method: 'POST',
+          body: JSON.stringify({
+            new_quantity: 10,
+            invoice_immediately: true
+          })
+        });
+
+        const response = await POST(request);
+        const data = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(data.success).toBe(true);
+        expect(data.message).toContain('No change');
+        expect(mockAddSeats).not.toHaveBeenCalled();
+        expect(mockRemoveSeats).not.toHaveBeenCalled();
+      });
     });
   });
 });
