@@ -383,6 +383,16 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
       });
     }
 
+    // Verify variant is configured for usage-based billing
+    if (!first_subscription_item?.is_usage_based) {
+      console.warn(`⚠️ [Webhook] Subscription created with non-usage-based variant:`, {
+        subscriptionId,
+        variantId: variant_id,
+        organizationId: customer.organization_id,
+        note: 'This subscription will use volume pricing'
+      });
+    }
+
     // Log before state for comprehensive debugging
     console.log(`📊 [Webhook] subscription_created - Before:`, {
       subscriptionId,
@@ -406,6 +416,7 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
         lemonsqueezy_subscription_id: subscriptionId,
         lemonsqueezy_subscription_item_id: subscriptionItemId || null,
         lemonsqueezy_variant_id: variant_id || null,
+        billing_type: first_subscription_item?.is_usage_based ? 'usage_based' : 'volume',
         status,
         quantity,
         current_seats: quantity,  // Grant immediate access for new subscriptions

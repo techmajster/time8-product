@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     // Fetch active subscription for organization
     const { data: subscription, error: subError } = await supabase
       .from('subscriptions')
-      .select('lemonsqueezy_subscription_id, lemonsqueezy_subscription_item_id, status, current_seats')
+      .select('lemonsqueezy_subscription_id, lemonsqueezy_subscription_item_id, billing_type, status, current_seats')
       .eq('organization_id', organizationId)
       .in('status', ['active', 'on_trial', 'paused', 'past_due'])
       .single();
@@ -71,6 +71,25 @@ export async function POST(request: NextRequest) {
           message: 'Organization must have an active subscription to update quantity'
         },
         { status: 404 }
+      );
+    }
+
+    // Check if subscription supports usage-based billing
+    if (subscription.billing_type === 'volume') {
+      console.warn(`⚠️ [Payment Flow] Attempted to update legacy subscription:`, {
+        subscription_id: subscription.lemonsqueezy_subscription_id,
+        billing_type: subscription.billing_type,
+        organizationId
+      });
+
+      return NextResponse.json(
+        {
+          error: 'This subscription was created before usage-based billing was enabled',
+          details: 'Please create a new subscription to modify seats. Old subscriptions cannot be updated.',
+          legacy_subscription: true,
+          action_required: 'create_new_subscription'
+        },
+        { status: 400 }
       );
     }
 
@@ -108,6 +127,22 @@ export async function POST(request: NextRequest) {
         .eq('organization_id', organizationId);
 
       subscription.lemonsqueezy_subscription_item_id = subscriptionItemId;
+    }
+
+    // Verify subscription_item_id exists (required for usage records)
+    if (!subscription.lemonsqueezy_subscription_item_id) {
+      console.error(`❌ [Payment Flow] Missing subscription_item_id:`, {
+        subscription_id: subscription.lemonsqueezy_subscription_id,
+        organizationId
+      });
+
+      return NextResponse.json(
+        {
+          error: 'Subscription missing required data',
+          details: 'subscription_item_id is required for usage-based billing'
+        },
+        { status: 500 }
+      );
     }
 
     // Generate correlation ID for tracking payment flow

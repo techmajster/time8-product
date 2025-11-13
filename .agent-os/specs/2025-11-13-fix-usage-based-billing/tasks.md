@@ -9,12 +9,12 @@
   - [x] 1.4 Implement correct free tier logic in update-subscription-quantity API
   - [x] 1.5 Verify all tests pass for billing logic
 
-- [ ] 2. Add Data Storage Improvements
-  - [ ] 2.1 Create database migration for billing_type column
+- [x] 2. Add Data Storage Improvements
+  - [x] 2.1 Create database migration for billing_type column
   - [ ] 2.2 Run migration and verify column created
-  - [ ] 2.3 Update subscription_created webhook to set billing_type
-  - [ ] 2.4 Add proactive legacy subscription detection in update-subscription-quantity
-  - [ ] 2.5 Verify billing_type is set correctly for new subscriptions
+  - [x] 2.3 Update subscription_created webhook to set billing_type
+  - [x] 2.4 Add proactive legacy subscription detection in update-subscription-quantity
+  - [x] 2.5 Verify billing_type is set correctly for new subscriptions
 
 - [ ] 3. Improve Webhook Clarity
   - [ ] 3.1 Update comments in subscription_updated webhook
