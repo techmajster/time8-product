@@ -405,9 +405,8 @@ function AddUsersPageContent() {
 
         console.log(`✅ Subscription updated: ${changes.join(', ')}`)
 
-        // Redirect directly to dashboard - API already updated database
-        // No need to wait for webhook for seat changes (SeatManager updates DB immediately)
-        router.push('/dashboard')
+        // Redirect to payment success page to wait for webhook confirmation
+        router.push(`/onboarding/payment-success?upgrade=true&org_id=${organizationData.id}`)
         return
       }
 

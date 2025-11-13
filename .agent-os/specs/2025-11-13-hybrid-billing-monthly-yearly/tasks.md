@@ -41,14 +41,14 @@
   - [x] 4.6 Write test: yearly subscription uses quantity path
   - [x] 4.7 Verify all API endpoint tests pass
 
-- [x] 5. Frontend UX Updates for Yearly Subscriptions
-  - [x] 5.1 Add proration preview API endpoint
-  - [x] 5.2 Update add-users page to detect billing_type
-  - [x] 5.3 Add conditional UI: monthly shows "billed at end of period"
-  - [x] 5.4 Add conditional UI: yearly shows proration amount and "charged immediately"
-  - [x] 5.5 Add loading state while fetching proration preview
-  - [x] 5.6 Test UI with monthly subscription (verify unchanged)
-  - [x] 5.7 Test UI with yearly subscription (verify proration display)
+- [ ] 5. Frontend UX Updates for Yearly Subscriptions
+  - [ ] 5.1 Add proration preview API endpoint
+  - [ ] 5.2 Update add-users page to detect billing_type
+  - [ ] 5.3 Add conditional UI: monthly shows "billed at end of period"
+  - [ ] 5.4 Add conditional UI: yearly shows proration amount and "charged immediately"
+  - [ ] 5.5 Add loading state while fetching proration preview
+  - [ ] 5.6 Test UI with monthly subscription (verify unchanged)
+  - [ ] 5.7 Test UI with yearly subscription (verify proration display)
 
 - [ ] 6. Environment Configuration
   - [ ] 6.1 Add YEARLY_PRICE_PER_SEAT to .env.local
