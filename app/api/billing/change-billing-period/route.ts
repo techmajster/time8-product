@@ -154,14 +154,31 @@ export async function POST(request: NextRequest) {
       note: 'Usage-based billing preserves quantity automatically'
     });
 
-    // Update database with new variant
+    // Determine billing type based on variant
+    const monthlyVariantId = parseInt(process.env.LEMONSQUEEZY_MONTHLY_VARIANT_ID || '0');
+    const yearlyVariantId = parseInt(process.env.LEMONSQUEEZY_YEARLY_VARIANT_ID || '0');
+
+    let billingType: 'usage_based' | 'quantity_based';
+    if (new_variant_id === monthlyVariantId) {
+      billingType = 'usage_based'; // Monthly uses usage records
+    } else if (new_variant_id === yearlyVariantId) {
+      billingType = 'quantity_based'; // Yearly uses quantity updates
+    } else {
+      console.warn(`⚠️ Unknown variant ${new_variant_id}, defaulting to usage_based`);
+      billingType = 'usage_based';
+    }
+
+    // Update database with new variant AND billing_type
     await supabase
       .from('subscriptions')
       .update({
         lemonsqueezy_variant_id: new_variant_id.toString(),
+        billing_type: billingType,
         updated_at: new Date().toISOString()
       })
       .eq('organization_id', organizationId);
+
+    console.log(`🔄 [Billing Period Change] Updated billing_type to ${billingType} for variant ${new_variant_id}`);
 
     console.log(`✅ [Payment Flow] Billing period changed successfully:`, {
       correlationId,

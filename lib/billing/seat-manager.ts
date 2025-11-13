@@ -232,7 +232,7 @@ export class SeatManager {
       throw new Error(`Missing subscription_item_id for subscription ${subscription.id}. Cannot create usage record.`);
     }
 
-    // POST to usage records endpoint
+    // POST to usage records endpoint (corrected endpoint from main + action: 'set')
     const response = await fetch(
       `https://api.lemonsqueezy.com/v1/subscription-items/${subscription.lemonsqueezy_subscription_item_id}/usage-records`,
       {
@@ -266,10 +266,14 @@ export class SeatManager {
     }
 
     const data = await response.json();
-    console.log(`✅ [SeatManager] Usage record created:`, {
-      usageRecordId: data.data.id,
-      quantity: newQuantity,
-      subscriptionId: subscription.id
+    console.log(`✅ [SeatManager] Usage record API Response:`, {
+      status: response.status,
+      usageRecordId: data.data?.id,
+      returnedQuantity: data.data?.attributes?.quantity,
+      requestedQuantity: newQuantity,
+      fullResponse: JSON.stringify(data, null, 2),
+      subscriptionId: subscription.id,
+      subscriptionItemId: subscription.lemonsqueezy_subscription_item_id
     });
 
     // Update local database
@@ -354,9 +358,12 @@ export class SeatManager {
     }
 
     const data = await response.json();
-    console.log(`✅ [SeatManager] Quantity updated:`, {
-      subscriptionItemId: data.data.id,
-      newQuantity,
+    console.log(`✅ [SeatManager] Quantity updated (LemonSqueezy API Response):`, {
+      status: response.status,
+      subscriptionItemId: data.data?.id,
+      returnedQuantity: data.data?.attributes?.quantity,
+      requestedQuantity: newQuantity,
+      fullResponse: JSON.stringify(data, null, 2),
       subscriptionId: subscription.id
     });
 
