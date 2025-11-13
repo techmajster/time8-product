@@ -11,7 +11,7 @@
 
 - [x] 2. Add Data Storage Improvements
   - [x] 2.1 Create database migration for billing_type column
-  - [ ] 2.2 Run migration and verify column created
+  - [x] 2.2 Run migration and verify column created
   - [x] 2.3 Update subscription_created webhook to set billing_type
   - [x] 2.4 Add proactive legacy subscription detection in update-subscription-quantity
   - [x] 2.5 Verify billing_type is set correctly for new subscriptions
