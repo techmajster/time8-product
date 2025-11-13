@@ -318,7 +318,9 @@ function AddUsersPageContent() {
           currentSeats: userCount,
           initialSeats: initialUserCount,
           currentPeriod: selectedTier,
-          initialPeriod: initialBillingPeriod
+          initialPeriod: initialBillingPeriod,
+          billingType,
+          organizationId: organizationData.id
         })
 
         // Handle billing period change first (if changed)
@@ -357,21 +359,30 @@ function AddUsersPageContent() {
         if (seatsChanged) {
           console.log(`🔄 Updating seat quantity: ${initialUserCount} → ${userCount}`)
 
+          const requestBody = {
+            new_quantity: userCount,
+            invoice_immediately: true
+          };
+          console.log('📤 Sending request:', requestBody);
+
           const quantityResponse = await fetch('/api/billing/update-subscription-quantity', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-              new_quantity: userCount,
-              invoice_immediately: true
-            })
+            body: JSON.stringify(requestBody)
           })
 
+          console.log('📥 Response status:', quantityResponse.status);
+
           const quantityData = await quantityResponse.json()
+          console.log('📥 Response data:', quantityData);
 
           if (!quantityResponse.ok) {
-            console.error('❌ Failed to update subscription quantity:', quantityData)
+            console.error('❌ Failed to update subscription quantity:', {
+              status: quantityResponse.status,
+              data: quantityData
+            })
             throw new Error(
               quantityData.details || quantityData.error || 'Failed to update subscription'
             )
@@ -394,8 +405,9 @@ function AddUsersPageContent() {
 
         console.log(`✅ Subscription updated: ${changes.join(', ')}`)
 
-        // Redirect to payment success page to wait for webhook confirmation
-        router.push(`/onboarding/payment-success?upgrade=true&org_id=${organizationData.id}`)
+        // Redirect directly to dashboard - API already updated database
+        // No need to wait for webhook for seat changes (SeatManager updates DB immediately)
+        router.push('/dashboard')
         return
       }
 

@@ -361,9 +361,12 @@ export class SeatManager {
     }
 
     const data = await response.json();
-    console.log(`✅ [SeatManager] Quantity updated:`, {
-      subscriptionItemId: data.data.id,
-      newQuantity,
+    console.log(`✅ [SeatManager] LemonSqueezy API Response:`, {
+      status: response.status,
+      subscriptionItemId: data.data?.id,
+      returnedQuantity: data.data?.attributes?.quantity,
+      requestedQuantity: newQuantity,
+      fullResponse: JSON.stringify(data, null, 2),
       subscriptionId: subscription.id
     });
 
