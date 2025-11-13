@@ -16,9 +16,9 @@
   - [x] 2.4 Add proactive legacy subscription detection in update-subscription-quantity
   - [x] 2.5 Verify billing_type is set correctly for new subscriptions
 
-- [ ] 3. Improve Webhook Clarity
-  - [ ] 3.1 Update comments in subscription_updated webhook
-  - [ ] 3.2 Add usage-based verification in subscription_payment_success
+- [x] 3. Improve Webhook Clarity
+  - [x] 3.1 Update comments in subscription_updated webhook
+  - [x] 3.2 Add usage-based verification in subscription_payment_success
   - [ ] 3.3 Review and update change-billing-period logic
   - [ ] 3.4 Verify all webhooks have clear comments
 
@@ -46,3 +46,13 @@
   - [ ] 7.3 Run complete E2E test suite
   - [ ] 7.4 Create new test workspace and verify complete flow
   - [ ] 7.5 Verify all success criteria met
+
+- [ ] 8. Remove Legacy Volume Billing (Production Cleanup)
+  - [ ] 8.1 Clear all test subscriptions from database
+  - [ ] 8.2 Remove billing_type column (no longer needed - always usage_based)
+  - [ ] 8.3 Remove all legacy volume billing code paths from webhooks
+  - [ ] 8.4 Remove billing_type checks (subscription_updated, subscription_payment_success)
+  - [ ] 8.5 Simplify code - remove conditional logic for legacy subscriptions
+  - [ ] 8.6 Update migration to remove billing_type column creation
+  - [ ] 8.7 Test complete flow with cleaned codebase
+  - [ ] 8.8 Verify no references to 'volume' billing remain
