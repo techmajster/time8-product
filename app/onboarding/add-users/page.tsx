@@ -28,6 +28,7 @@ function AddUsersPageContent() {
   const [isUpgradeFlow, setIsUpgradeFlow] = useState(false)
   const [initialBillingPeriod, setInitialBillingPeriod] = useState<'monthly' | 'annual'>('annual')
   const [initialUserCount, setInitialUserCount] = useState(3)
+  const [userEmail, setUserEmail] = useState<string | null>(null)
   const router = useRouter()
 
   const FREE_SEATS = 3
@@ -37,11 +38,14 @@ function AddUsersPageContent() {
       // Check authentication
       const supabase = createClient()
       const { data: { user }, error } = await supabase.auth.getUser()
-      
+
       if (error || !user) {
         router.push('/login')
         return
       }
+
+      // Store user email for billing
+      setUserEmail(user.email || null)
 
       // Check if this is an upgrade flow
       const urlParams = new URLSearchParams(window.location.search)
@@ -375,6 +379,7 @@ function AddUsersPageContent() {
         organization_data: organizationData,
         user_count: userCount,
         tier: selectedTier,
+        user_email: userEmail, // Pass user email for billing notifications
         return_url: `${window.location.origin}/onboarding/payment-success${isUpgradeFlow ? '?upgrade=true' : ''}`,
         failure_url: `${window.location.origin}/onboarding/payment-failure${isUpgradeFlow ? '?upgrade=true' : ''}`
       }

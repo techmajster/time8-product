@@ -40,6 +40,7 @@ interface CheckoutRequest {
   };
   user_count: number;
   tier: 'monthly' | 'annual';
+  user_email?: string; // User email for billing notifications
   return_url?: string;
   failure_url?: string;
 }
@@ -79,7 +80,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { variant_id, organization_data, user_count, tier, return_url, failure_url } = body;
+    const { variant_id, organization_data, user_count, tier, user_email, return_url, failure_url } = body;
 
     // SECURITY: If organization_data includes an existing org ID (upgrade scenario),
     // validate user belongs to that organization
@@ -107,6 +108,7 @@ export async function POST(request: NextRequest) {
       organization_data: organization_data?.name,
       user_count,
       tier,
+      user_email: user_email || 'not provided (using fallback)',
       required_paid_seats: calculateRequiredPaidSeats(user_count)
     });
 
@@ -175,7 +177,7 @@ export async function POST(request: NextRequest) {
     const checkoutPayload = {
       checkoutData: {
         name: organization_data.name,
-        email: `noreply+${Date.now()}@time8.io`,
+        email: user_email || `noreply+${Date.now()}@time8.io`, // Use real user email for billing notifications
         custom: customData,
         variantQuantities: [
           {
