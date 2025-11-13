@@ -619,28 +619,36 @@ export async function processSubscriptionUpdated(payload: any): Promise<EventRes
       subscriptionId,
       quantity: existingSubscription.quantity,
       current_seats: existingSubscription.current_seats,
+      billing_type: existingSubscription.billing_type,
       variant_id: existingSubscription.lemonsqueezy_variant_id,
       status: existingSubscription.status,
       correlationId: meta.event_id,
-      usageBasedBilling: true,
-      note: 'Syncing quantity from first_subscription_item (usage records)'
+      note: 'Processing subscription update'
     });
 
-    // Update subscription
-    // IMPORTANT: When LemonSqueezy sends subscription_updated, sync BOTH quantity AND current_seats
-    // This ensures direct updates from LemonSqueezy dashboard immediately reflect in the UI
+    // For usage-based billing: quantity is always 0, current_seats comes from user_count in custom_data
+    // For volume billing: quantity reflects the seats, sync current_seats with quantity
+    const isUsageBased = existingSubscription.billing_type === 'usage_based';
+    const updateData: any = {
+      status,
+      quantity,
+      lemonsqueezy_variant_id: variant_id || null,
+      renews_at: renews_at || null,
+      ends_at: ends_at || null,
+      trial_ends_at: trial_ends_at || null,
+      updated_at: new Date().toISOString()
+    };
+
+    // CRITICAL: For usage-based billing, preserve current_seats (don't overwrite with quantity:0)
+    // current_seats is managed by our app based on actual user count, not by LemonSqueezy quantity
+    if (!isUsageBased) {
+      // For legacy volume billing, sync current_seats with quantity from LemonSqueezy
+      updateData.current_seats = quantity;
+    }
+
     const { data: updatedSubscription, error: updateError } = await supabase
       .from('subscriptions')
-      .update({
-        status,
-        quantity,
-        current_seats: quantity,  // Sync current_seats with quantity for direct LS updates
-        lemonsqueezy_variant_id: variant_id || null,
-        renews_at: renews_at || null,
-        ends_at: ends_at || null,
-        trial_ends_at: trial_ends_at || null,
-        updated_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('lemonsqueezy_subscription_id', subscriptionId)
       .select();
 
@@ -650,10 +658,11 @@ export async function processSubscriptionUpdated(payload: any): Promise<EventRes
       return { success: false, error };
     }
 
-    // ALWAYS update organization subscription - no conditional logic
-    // This ensures that ANY subscription update from LemonSqueezy syncs to the database
-    // Critical for manual dashboard updates, renewals, status changes, etc.
-    await updateOrganizationSubscription(supabase, existingSubscription.organization_id, quantity, status);
+    // Update organization subscription
+    // For usage-based billing: use existing current_seats (actual user count)
+    // For volume billing: use quantity from LemonSqueezy
+    const seatsForOrg = isUsageBased ? existingSubscription.current_seats : quantity;
+    await updateOrganizationSubscription(supabase, existingSubscription.organization_id, seatsForOrg, status);
 
     // Log changes for comprehensive debugging
     const variantChanged = existingSubscription.lemonsqueezy_variant_id !== variant_id;
@@ -680,17 +689,20 @@ export async function processSubscriptionUpdated(payload: any): Promise<EventRes
     }
 
     // Log after state for comprehensive debugging
+    const finalCurrentSeats = isUsageBased ? existingSubscription.current_seats : quantity;
     console.log(`✅ [Webhook] subscription_updated - After:`, {
       subscriptionId,
+      billing_type: existingSubscription.billing_type,
       quantity,
-      current_seats: quantity,
+      current_seats: finalCurrentSeats,
       variant_id,
       status,
-      paid_seats: quantity > 3 ? quantity : 0,
-      subscription_tier: status === 'active' && quantity > 0 ? 'active' : 'free',
+      paid_seats: seatsForOrg > 3 ? seatsForOrg : 0,
+      subscription_tier: status === 'active' && seatsForOrg > 0 ? 'active' : 'free',
       correlationId: meta.event_id,
-      usageBasedBilling: true,
-      note: 'Subscription updated with usage-based quantity'
+      note: isUsageBased
+        ? 'Usage-based: current_seats preserved, quantity=0'
+        : 'Volume: current_seats synced with quantity'
     });
 
     // Log successful processing
