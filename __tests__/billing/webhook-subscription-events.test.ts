@@ -680,6 +680,193 @@ describe('Webhook Subscription Event Processing', () => {
     });
   });
 
+  describe('subscription_created with usage-based billing', () => {
+    it('should extract quantity from first_subscription_item.quantity', async () => {
+      const usageBasedPayload = {
+        meta: {
+          event_name: 'subscription_created',
+          event_id: 'evt_usage_001'
+        },
+        data: {
+          id: '12345',
+          type: 'subscriptions',
+          attributes: {
+            status: 'active',
+            customer_id: 67890,
+            variant_id: 972634, // Monthly variant with usage-based billing
+            renews_at: '2025-02-01T00:00:00Z',
+            ends_at: null,
+            trial_ends_at: null,
+            first_subscription_item: {
+              id: 'sub-item-456',
+              subscription_id: 12345,
+              price_id: 12345,
+              quantity: 10 // Usage-based quantity
+            }
+          }
+        }
+      };
+
+      // Mock customer found
+      mockSupabaseSingle
+        .mockResolvedValueOnce({ data: testCustomerData, error: null })
+        .mockResolvedValueOnce({
+          data: {
+            id: 'new-subscription-id',
+            organization_id: testCustomerData.organization_id,
+            quantity: 10,
+            current_seats: 10
+          },
+          error: null
+        });
+
+      const { processSubscriptionCreated } = await import('@/app/api/webhooks/lemonsqueezy/handlers');
+
+      const result = await processSubscriptionCreated(usageBasedPayload);
+
+      expect(result.success).toBe(true);
+
+      // Verify subscription was created with usage-based quantity
+      expect(mockSupabaseInsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          quantity: 10,
+          current_seats: 10,
+          lemonsqueezy_subscription_item_id: 'sub-item-456'
+        })
+      );
+    });
+  });
+
+  describe('subscription_updated with usage-based billing', () => {
+    it('should sync quantity from first_subscription_item after usage record update', async () => {
+      const usageUpdatePayload = {
+        meta: {
+          event_name: 'subscription_updated',
+          event_id: 'evt_usage_update_001'
+        },
+        data: {
+          id: '12345',
+          type: 'subscriptions',
+          attributes: {
+            status: 'active',
+            customer_id: 67890,
+            variant_id: 972634,
+            renews_at: '2025-02-01T00:00:00Z',
+            ends_at: null,
+            trial_ends_at: null,
+            first_subscription_item: {
+              id: 'sub-item-456',
+              subscription_id: 12345,
+              price_id: 12345,
+              quantity: 15 // Updated from 8 to 15 via usage records
+            }
+          }
+        }
+      };
+
+      // Mock existing subscription
+      mockSupabaseSingle.mockResolvedValueOnce({
+        data: {
+          id: 'subscription-id',
+          organization_id: testCustomerData.organization_id,
+          lemonsqueezy_subscription_id: '12345',
+          quantity: 8,
+          current_seats: 8
+        },
+        error: null
+      });
+
+      // Mock successful update
+      mockSupabaseSelect.mockResolvedValueOnce({
+        data: [{
+          id: 'subscription-id',
+          quantity: 15,
+          current_seats: 15
+        }],
+        error: null
+      });
+
+      const { processSubscriptionUpdated } = await import('@/app/api/webhooks/lemonsqueezy/handlers');
+
+      const result = await processSubscriptionUpdated(usageUpdatePayload);
+
+      expect(result.success).toBe(true);
+
+      // Verify quantity was synced from usage records
+      expect(mockSupabaseUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          quantity: 15,
+          current_seats: 15
+        })
+      );
+    });
+
+    it('should handle variant change with usage-based billing preserving quantity', async () => {
+      const variantChangePayload = {
+        meta: {
+          event_name: 'subscription_updated',
+          event_id: 'evt_variant_usage_001'
+        },
+        data: {
+          id: '12345',
+          type: 'subscriptions',
+          attributes: {
+            status: 'active',
+            customer_id: 67890,
+            variant_id: 972635, // Changed from monthly (972634) to annual (972635)
+            renews_at: '2026-02-01T00:00:00Z',
+            ends_at: null,
+            trial_ends_at: null,
+            first_subscription_item: {
+              id: 'sub-item-456',
+              subscription_id: 12345,
+              price_id: 12345,
+              quantity: 10 // Preserved during variant change
+            }
+          }
+        }
+      };
+
+      // Mock existing subscription with monthly variant
+      mockSupabaseSingle.mockResolvedValueOnce({
+        data: {
+          id: 'subscription-id',
+          organization_id: testCustomerData.organization_id,
+          lemonsqueezy_subscription_id: '12345',
+          lemonsqueezy_variant_id: '972634',
+          quantity: 10,
+          current_seats: 10
+        },
+        error: null
+      });
+
+      // Mock successful update
+      mockSupabaseSelect.mockResolvedValueOnce({
+        data: [{
+          id: 'subscription-id',
+          lemonsqueezy_variant_id: '972635',
+          quantity: 10
+        }],
+        error: null
+      });
+
+      const { processSubscriptionUpdated } = await import('@/app/api/webhooks/lemonsqueezy/handlers');
+
+      const result = await processSubscriptionUpdated(variantChangePayload);
+
+      expect(result.success).toBe(true);
+
+      // Verify variant changed but quantity preserved
+      expect(mockSupabaseUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          lemonsqueezy_variant_id: 972635,
+          quantity: 10,
+          current_seats: 10
+        })
+      );
+    });
+  });
+
   describe('subscription.cancelled event', () => {
     it('should cancel subscription and reset paid_seats to 0', async () => {
       const organizationId = 'test-org-id';

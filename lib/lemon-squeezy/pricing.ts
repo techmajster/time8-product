@@ -100,8 +100,10 @@ export async function getVariantPrice(variantId: string): Promise<{
         // Find the tier for 4+ users (should be the tier with last_unit: "inf")
         const paidTier = tiers.find(tier => tier.last_unit === 'inf' || tier.last_unit === Infinity)
         if (paidTier) {
-          price = parseFloat(paidTier.unit_price || '0') / 100
-          console.log(`✅ Extracted tier 4+ price: ${price} PLN from graduated pricing`)
+          // Use unit_price_decimal (string) if available, fallback to unit_price (deprecated)
+          const unitPrice = paidTier.unit_price_decimal || paidTier.unit_price || '0'
+          price = parseFloat(unitPrice) / 100
+          console.log(`✅ Extracted tier 4+ price: ${price} PLN from graduated pricing (unit_price_decimal: ${unitPrice})`)
         } else {
           // Fallback to base variant price if tier not found
           price = parseFloat(variantAttrs.price || '0') / 100

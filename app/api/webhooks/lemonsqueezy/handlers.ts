@@ -199,10 +199,12 @@ async function findOrCreateCustomer(
     }
   } else if (customData.organization_id || customData.organization_name) {
     // New format: flat structure with organization_id and organization_name
+    // IMPORTANT: Use the organization_slug from custom_data (passed from checkout)
+    // This slug was already generated in create-workspace page with the correct logic
     organizationData = {
       id: customData.organization_id,
       name: customData.organization_name,
-      slug: customData.organization_name?.toLowerCase().replace(/\s+/g, '-')
+      slug: customData.organization_slug // Use slug directly from checkout custom_data
     };
     console.log('📋 Using flat organization data format:', organizationData);
   } else {
@@ -373,16 +375,43 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
       return { success: false, error };
     }
 
+    // Extract subscription_item_id for usage records API
+    const subscriptionItemId = first_subscription_item?.id;
+
+    if (!subscriptionItemId) {
+      console.error(`❌ [Webhook] Missing subscription_item_id in payload:`, {
+        subscriptionId,
+        organizationId: customer.organization_id
+      });
+    }
+
+    // Verify variant is configured for usage-based billing
+    if (!first_subscription_item?.is_usage_based) {
+      console.warn(`⚠️ [Webhook] Subscription created with non-usage-based variant:`, {
+        subscriptionId,
+        variantId: variant_id,
+        organizationId: customer.organization_id,
+        note: 'This subscription will use volume pricing'
+      });
+    }
+
     // Log before state for comprehensive debugging
     console.log(`📊 [Webhook] subscription_created - Before:`, {
       subscriptionId,
+      subscriptionItemId,
       organizationId: customer.organization_id,
       customerId: customer.id,
       status,
       quantity,
       variant_id,
-      correlationId: meta.event_id
+      correlationId: meta.event_id,
+      usageBasedBilling: first_subscription_item?.is_usage_based,
+      note: 'Quantity from first_subscription_item (usage records)'
     });
+
+    // Calculate user_count for subscription setup
+    // For usage-based billing: user_count from custom_data drives access control
+    const userCount = parseInt(meta.custom_data?.user_count || '0');
 
     // Create subscription record
     const { data: subscription, error: subscriptionError } = await supabase
@@ -391,10 +420,12 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
         organization_id: customer.organization_id,
         customer_id: customer.id,
         lemonsqueezy_subscription_id: subscriptionId,
+        lemonsqueezy_subscription_item_id: subscriptionItemId || null,
         lemonsqueezy_variant_id: variant_id || null,
+        billing_type: first_subscription_item?.is_usage_based ? 'usage_based' : 'volume',
         status,
         quantity,
-        current_seats: quantity,  // Grant immediate access for new subscriptions
+        current_seats: userCount,  // Use user_count from custom_data, not quantity from LemonSqueezy
         renews_at: renews_at || null,
         ends_at: ends_at || null,
         trial_ends_at: trial_ends_at || null
@@ -408,25 +439,102 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
       return { success: false, error };
     }
 
-    // Update organization subscription (paid seats + tier)
-    await updateOrganizationSubscription(supabase, customer.organization_id, quantity, status);
+    // Update organization subscription (pass total user_count, function calculates paid_seats)
+    await updateOrganizationSubscription(supabase, customer.organization_id, userCount, status);
+
+    // Calculate paid_seats for logging (function already updated organization)
+    const paidSeats = userCount > 3 ? userCount : 0;
 
     // Log after state for comprehensive debugging
     console.log(`✅ [Webhook] subscription_created - After:`, {
       subscriptionId,
+      subscriptionItemId,
       organizationId: customer.organization_id,
       customerId: customer.id,
       status,
       quantity,
-      current_seats: quantity,
+      current_seats: userCount,
       variant_id,
-      paid_seats: quantity > 3 ? quantity : 0,
-      subscription_tier: status === 'active' && quantity > 0 ? 'active' : 'free',
+      userCount,
+      paid_seats: paidSeats,
+      freeTier: userCount <= 3,
+      subscription_tier: status === 'active' && userCount > 0 ? 'active' : 'free',
       renewsAt: renews_at,
       endsAt: ends_at,
       trialEndsAt: trial_ends_at,
-      correlationId: meta.event_id
+      correlationId: meta.event_id,
+      usageBasedBilling: first_subscription_item?.is_usage_based,
+      note: 'Subscription created with usage-based billing enabled'
     });
+
+    // For usage-based billing: Create initial usage record if user_count is in custom_data
+    // FREE TIER: 1-3 users = quantity 0 (no billing)
+    // PAID TIER: 4+ users = quantity equals total users (pay for ALL seats)
+    const desiredUserCount = parseInt(meta.custom_data?.user_count || '0');
+
+    if (desiredUserCount > 0 && subscriptionItemId && first_subscription_item?.is_usage_based) {
+      // Calculate billable quantity based on free tier
+      // 1-3 users: Free tier, quantity = 0
+      // 4+ users: Pay for all seats, quantity = desiredUserCount
+      const billableQuantity = desiredUserCount > 3 ? desiredUserCount : 0;
+
+      console.log(`📊 [Webhook] Creating initial usage record:`, {
+        subscriptionItemId,
+        desiredUserCount,
+        billableQuantity,
+        freeTier: desiredUserCount <= 3,
+        organizationName: meta.custom_data?.organization_name
+      });
+
+      try {
+        const usageResponse = await fetch(
+          'https://api.lemonsqueezy.com/v1/usage-records',
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${process.env.LEMONSQUEEZY_API_KEY}`,
+              'Accept': 'application/vnd.api+json',
+              'Content-Type': 'application/vnd.api+json'
+            },
+            body: JSON.stringify({
+              data: {
+                type: 'usage-records',
+                attributes: {
+                  quantity: billableQuantity,
+                  action: 'set',
+                  description: desiredUserCount <= 3
+                    ? `Free tier: ${desiredUserCount} seats for ${meta.custom_data?.organization_name || 'organization'}`
+                    : `Initial seat count: ${billableQuantity} for ${meta.custom_data?.organization_name || 'organization'}`
+                },
+                relationships: {
+                  'subscription-item': {
+                    data: {
+                      type: 'subscription-items',
+                      id: subscriptionItemId.toString()
+                    }
+                  }
+                }
+              }
+            })
+          }
+        );
+
+        if (!usageResponse.ok) {
+          const errorText = await usageResponse.text();
+          console.error(`❌ [Webhook] Failed to create initial usage record:`, errorText);
+        } else {
+          const usageData = await usageResponse.json();
+          console.log(`✅ [Webhook] Initial usage record created:`, {
+            usageRecordId: usageData.data?.id,
+            quantity: billableQuantity,
+            freeTier: desiredUserCount <= 3
+          });
+        }
+      } catch (usageError) {
+        console.error(`❌ [Webhook] Error creating initial usage record:`, usageError);
+        // Don't fail the webhook - log the error and continue
+      }
+    }
 
     await logBillingEvent(meta.event_name, meta.event_id, payload, 'processed');
 
@@ -435,7 +543,8 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
       data: {
         subscription: subscription.id,
         organization: customer.organization_id,
-        quantity
+        quantity,
+        initialUsageRecordCreated: desiredUserCount > 0 && subscriptionItemId ? true : false
       }
     };
 
@@ -512,7 +621,9 @@ export async function processSubscriptionUpdated(payload: any): Promise<EventRes
       current_seats: existingSubscription.current_seats,
       variant_id: existingSubscription.lemonsqueezy_variant_id,
       status: existingSubscription.status,
-      correlationId: meta.event_id
+      correlationId: meta.event_id,
+      usageBasedBilling: true,
+      note: 'Syncing quantity from first_subscription_item (usage records)'
     });
 
     // Update subscription
@@ -577,7 +688,9 @@ export async function processSubscriptionUpdated(payload: any): Promise<EventRes
       status,
       paid_seats: quantity > 3 ? quantity : 0,
       subscription_tier: status === 'active' && quantity > 0 ? 'active' : 'free',
-      correlationId: meta.event_id
+      correlationId: meta.event_id,
+      usageBasedBilling: true,
+      note: 'Subscription updated with usage-based quantity'
     });
 
     // Log successful processing
@@ -1151,7 +1264,9 @@ export async function processSubscriptionPaymentSuccess(payload: any): Promise<E
       quantity: existingSubscription.quantity,
       current_seats: existingSubscription.current_seats,
       pending_seats: existingSubscription.pending_seats,
-      correlationId: meta.event_id
+      correlationId: meta.event_id,
+      usageBasedBilling: true,
+      note: 'Confirming payment for usage-based billing update'
     });
 
     // Determine which pattern to use
@@ -1201,7 +1316,9 @@ export async function processSubscriptionPaymentSuccess(payload: any): Promise<E
         quantity: newSeats,
         current_seats: newSeats,
         paid_seats: newSeats,
-        correlationId: meta.event_id
+        correlationId: meta.event_id,
+        usageBasedBilling: true,
+        note: 'Payment confirmed - seats granted from usage records'
       });
 
       return {
@@ -1299,7 +1416,9 @@ export async function processSubscriptionPaymentSuccess(payload: any): Promise<E
         current_seats: newSeats,
         pending_seats: null,
         usersArchived: archivedCount,
-        correlationId: meta.event_id
+        correlationId: meta.event_id,
+        usageBasedBilling: true,
+        note: 'Deferred downgrade applied - usage records reflected'
       });
 
       return {
@@ -1316,7 +1435,10 @@ export async function processSubscriptionPaymentSuccess(payload: any): Promise<E
     }
 
     // Pattern 3: No changes needed (renewal payment with no seat changes)
-    console.log(`[Webhook] subscription_payment_success: No pending changes for subscription ${subscriptionId}`);
+    console.log(`[Webhook] subscription_payment_success: No pending changes for subscription ${subscriptionId}`, {
+      usageBasedBilling: true,
+      note: 'Renewal payment - quantity already synced via usage records'
+    });
 
     await supabase
       .from('subscriptions')
