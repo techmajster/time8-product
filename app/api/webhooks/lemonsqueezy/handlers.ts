@@ -1263,16 +1263,39 @@ export async function processSubscriptionPaymentSuccess(payload: any): Promise<E
       subscriptionId,
       quantity: existingSubscription.quantity,
       current_seats: existingSubscription.current_seats,
-      pending_seats: existingSubscription.pending_seats,
+      billing_type: existingSubscription.billing_type,
       correlationId: meta.event_id,
-      usageBasedBilling: true,
-      note: 'Confirming payment for usage-based billing update'
+      note: 'Confirming payment'
     });
 
-    // Determine which pattern to use
+    // For usage-based billing: Payment confirmation only, no seat changes
+    // Seats are managed via usage records, not quantity at checkout
+    if (existingSubscription.billing_type === 'usage_based') {
+      console.log(`✅ [Webhook] Usage-based billing payment confirmed for subscription ${subscriptionId}`);
+
+      await logBillingEvent(
+        meta.event_name,
+        meta.event_id,
+        payload,
+        'processed',
+        'Usage-based billing payment confirmed'
+      );
+
+      return {
+        success: true,
+        data: {
+          subscription: existingSubscription.id,
+          organization: existingSubscription.organization_id,
+          billingType: 'usage_based',
+          note: 'Payment confirmed - seats managed via usage records'
+        }
+      };
+    }
+
+    // LEGACY VOLUME BILLING: Apply grace period logic
+    // NOTE: This code only runs for legacy subscriptions with billing_type='volume'
     const hasPendingChanges = existingSubscription.pending_seats !== null;
     const needsImmediateUpgrade = !hasPendingChanges && existingSubscription.current_seats !== existingSubscription.quantity;
-    const alreadySynced = existingSubscription.lemonsqueezy_quantity_synced === true;
 
     // Pattern 1: Immediate Upgrade (no pending_seats, but seats mismatch)
     if (needsImmediateUpgrade) {
@@ -1345,12 +1368,12 @@ export async function processSubscriptionPaymentSuccess(payload: any): Promise<E
       console.log(`✅ [Webhook] Applying deferred seat change for subscription ${subscriptionId}: ${previousSeats} → ${newSeats} seats`);
 
       // Update subscription: apply pending changes
+      // NOTE: pending_seats column was removed in migration 20251113000000_migrate_to_usage_based_billing.sql
+      // This code only runs for legacy 'volume' billing subscriptions
       const { data: updatedSubscription, error: updateError } = await supabase
         .from('subscriptions')
         .update({
           current_seats: newSeats,
-          pending_seats: null,
-          lemonsqueezy_quantity_synced: true,
           quantity: newSeats,
           status,
           updated_at: new Date().toISOString()
