@@ -113,12 +113,19 @@ export async function POST(request: NextRequest) {
     // Generate correlation ID for tracking payment flow
     const correlationId = `upgrade-${organizationId}-${Date.now()}`;
 
+    // Calculate billable quantity based on free tier
+    // 1-3 users: Free tier, quantity = 0
+    // 4+ users: Pay for all seats, quantity = new_quantity
+    const billableQuantity = new_quantity > 3 ? new_quantity : 0;
+
     console.log(`💰 [Payment Flow] Starting quantity update:`, {
       correlationId,
       subscription_id: subscription.lemonsqueezy_subscription_id,
       subscription_item_id: subscription.lemonsqueezy_subscription_item_id,
       current_quantity: subscription.current_seats,
       new_quantity,
+      billableQuantity,
+      freeTier: new_quantity <= 3,
       invoice_immediately,
       organizationId
     });
@@ -137,9 +144,11 @@ export async function POST(request: NextRequest) {
           data: {
             type: 'usage-records',
             attributes: {
-              quantity: new_quantity,
+              quantity: billableQuantity,
               action: 'set', // Set absolute value (not increment)
-              description: `Seat count updated to ${new_quantity} for organization ${organizationId}`
+              description: new_quantity <= 3
+                ? `Free tier: ${new_quantity} seats for organization ${organizationId}`
+                : `Seat count updated to ${billableQuantity} for organization ${organizationId}`
             },
             relationships: {
               'subscription-item': {
@@ -210,6 +219,14 @@ export async function POST(request: NextRequest) {
         updated_at: new Date().toISOString()
       })
       .eq('organization_id', organizationId);
+
+    // Update organization.paid_seats based on free tier logic
+    await supabase
+      .from('organizations')
+      .update({
+        paid_seats: billableQuantity
+      })
+      .eq('id', organizationId);
 
     // Store queued invitations if provided (to be sent after payment confirmation)
     if (queued_invitations.length > 0) {

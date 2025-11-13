@@ -2,12 +2,12 @@
 
 ## Tasks
 
-- [ ] 1. Fix Critical Billing Logic
-  - [ ] 1.1 Remove incorrect paid seats calculation from create-checkout
-  - [ ] 1.2 Implement correct free tier logic in subscription_created webhook (1-3 = quantity 0, 4+ = quantity all)
-  - [ ] 1.3 Store subscription_item_id at subscription creation
-  - [ ] 1.4 Implement correct free tier logic in update-subscription-quantity API
-  - [ ] 1.5 Verify all tests pass for billing logic
+- [x] 1. Fix Critical Billing Logic
+  - [x] 1.1 Remove incorrect paid seats calculation from create-checkout
+  - [x] 1.2 Implement correct free tier logic in subscription_created webhook (1-3 = quantity 0, 4+ = quantity all)
+  - [x] 1.3 Store subscription_item_id at subscription creation
+  - [x] 1.4 Implement correct free tier logic in update-subscription-quantity API
+  - [x] 1.5 Verify all tests pass for billing logic
 
 - [ ] 2. Add Data Storage Improvements
   - [ ] 2.1 Create database migration for billing_type column

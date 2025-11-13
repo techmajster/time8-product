@@ -45,15 +45,6 @@ interface CheckoutRequest {
   failure_url?: string;
 }
 
-/**
- * Calculate required paid seats
- * Business logic: Up to 3 users are free. 4+ users pay for ALL seats.
- */
-function calculateRequiredPaidSeats(totalUsers: number): number {
-  const FREE_TIER_LIMIT = 3;
-  // If 4+ users, pay for ALL seats. If 1-3 users, free tier (0 paid seats).
-  return totalUsers > FREE_TIER_LIMIT ? totalUsers : 0;
-}
 
 /**
  * POST handler for creating checkout sessions
@@ -115,8 +106,7 @@ export async function POST(request: NextRequest) {
       organization_data: organization_data?.name,
       user_count,
       tier,
-      user_email: user_email || 'not provided (using fallback)',
-      required_paid_seats: calculateRequiredPaidSeats(user_count)
+      user_email: user_email || 'not provided (using fallback)'
     });
 
     // Validate required parameters
@@ -148,31 +138,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Calculate seat requirements
-    const paidSeats = calculateRequiredPaidSeats(user_count);
-    
-    console.log('💺 Seat calculation:', {
-      total_users: user_count,
-      free_seats: 3,
-      paid_seats: paidSeats,
-      pricing_tier: tier
-    });
-
-    // Log the complete payload for debugging with correct camelCase field names
-    console.log('🛒 Creating checkout with quantity:', {
+    // For usage-based billing: Checkout is always $0
+    // Billing happens later based on usage records created in webhook
+    // Pass user_count to webhook for initial usage record creation
+    console.log('🛒 Creating checkout (usage-based billing):', {
       store_id: process.env.LEMONSQUEEZY_STORE_ID,
       variant_id,
       organization: organization_data.name,
-      total_users: user_count,
-      paid_seats: paidSeats,
-      quantity: user_count,
+      user_count,
+      note: 'Checkout charge is $0, billing happens via usage records',
       test_mode: process.env.NODE_ENV !== 'production'
     });
+
     // Build custom data - only include organization_id if it exists
     const customData: Record<string, string> = {
       organization_name: organization_data.name,
       user_count: user_count.toString(),
-      paid_seats: paidSeats.toString(),
       tier
     };
 

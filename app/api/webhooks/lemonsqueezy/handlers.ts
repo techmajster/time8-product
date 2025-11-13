@@ -373,16 +373,27 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
       return { success: false, error };
     }
 
+    // Extract subscription_item_id for usage records API
+    const subscriptionItemId = first_subscription_item?.id;
+
+    if (!subscriptionItemId) {
+      console.error(`❌ [Webhook] Missing subscription_item_id in payload:`, {
+        subscriptionId,
+        organizationId: customer.organization_id
+      });
+    }
+
     // Log before state for comprehensive debugging
     console.log(`📊 [Webhook] subscription_created - Before:`, {
       subscriptionId,
+      subscriptionItemId,
       organizationId: customer.organization_id,
       customerId: customer.id,
       status,
       quantity,
       variant_id,
       correlationId: meta.event_id,
-      usageBasedBilling: true,
+      usageBasedBilling: first_subscription_item?.is_usage_based,
       note: 'Quantity from first_subscription_item (usage records)'
     });
 
@@ -393,6 +404,7 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
         organization_id: customer.organization_id,
         customer_id: customer.id,
         lemonsqueezy_subscription_id: subscriptionId,
+        lemonsqueezy_subscription_item_id: subscriptionItemId || null,
         lemonsqueezy_variant_id: variant_id || null,
         status,
         quantity,
@@ -410,37 +422,52 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
       return { success: false, error };
     }
 
+    // Calculate paid_seats based on user_count (not quantity)
+    // For usage-based billing: user_count drives billing, not quantity
+    const userCount = parseInt(meta.custom_data?.user_count || '0');
+    const paidSeats = userCount > 3 ? userCount : 0;
+
     // Update organization subscription (paid seats + tier)
-    await updateOrganizationSubscription(supabase, customer.organization_id, quantity, status);
+    await updateOrganizationSubscription(supabase, customer.organization_id, paidSeats, status);
 
     // Log after state for comprehensive debugging
     console.log(`✅ [Webhook] subscription_created - After:`, {
       subscriptionId,
+      subscriptionItemId,
       organizationId: customer.organization_id,
       customerId: customer.id,
       status,
       quantity,
       current_seats: quantity,
       variant_id,
-      paid_seats: quantity > 3 ? quantity : 0,
-      subscription_tier: status === 'active' && quantity > 0 ? 'active' : 'free',
+      userCount,
+      paid_seats: paidSeats,
+      freeTier: userCount <= 3,
+      subscription_tier: status === 'active' && paidSeats > 0 ? 'paid' : 'free',
       renewsAt: renews_at,
       endsAt: ends_at,
       trialEndsAt: trial_ends_at,
       correlationId: meta.event_id,
-      usageBasedBilling: true,
+      usageBasedBilling: first_subscription_item?.is_usage_based,
       note: 'Subscription created with usage-based billing enabled'
     });
 
     // For usage-based billing: Create initial usage record if user_count is in custom_data
-    // This is necessary because checkout always starts with quantity=0 for usage-based billing
-    const desiredQuantity = parseInt(meta.custom_data?.user_count || '0');
-    const subscriptionItemId = first_subscription_item?.id;
+    // FREE TIER: 1-3 users = quantity 0 (no billing)
+    // PAID TIER: 4+ users = quantity equals total users (pay for ALL seats)
+    const desiredUserCount = parseInt(meta.custom_data?.user_count || '0');
 
-    if (desiredQuantity > 0 && subscriptionItemId && first_subscription_item?.is_usage_based) {
+    if (desiredUserCount > 0 && subscriptionItemId && first_subscription_item?.is_usage_based) {
+      // Calculate billable quantity based on free tier
+      // 1-3 users: Free tier, quantity = 0
+      // 4+ users: Pay for all seats, quantity = desiredUserCount
+      const billableQuantity = desiredUserCount > 3 ? desiredUserCount : 0;
+
       console.log(`📊 [Webhook] Creating initial usage record:`, {
         subscriptionItemId,
-        desiredQuantity,
+        desiredUserCount,
+        billableQuantity,
+        freeTier: desiredUserCount <= 3,
         organizationName: meta.custom_data?.organization_name
       });
 
@@ -458,9 +485,11 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
               data: {
                 type: 'usage-records',
                 attributes: {
-                  quantity: desiredQuantity,
+                  quantity: billableQuantity,
                   action: 'set',
-                  description: `Initial seat count: ${desiredQuantity} for ${meta.custom_data?.organization_name || 'organization'}`
+                  description: desiredUserCount <= 3
+                    ? `Free tier: ${desiredUserCount} seats for ${meta.custom_data?.organization_name || 'organization'}`
+                    : `Initial seat count: ${billableQuantity} for ${meta.custom_data?.organization_name || 'organization'}`
                 },
                 relationships: {
                   'subscription-item': {
@@ -482,7 +511,8 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
           const usageData = await usageResponse.json();
           console.log(`✅ [Webhook] Initial usage record created:`, {
             usageRecordId: usageData.data?.id,
-            quantity: desiredQuantity
+            quantity: billableQuantity,
+            freeTier: desiredUserCount <= 3
           });
         }
       } catch (usageError) {
@@ -499,7 +529,7 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
         subscription: subscription.id,
         organization: customer.organization_id,
         quantity,
-        initialUsageRecordCreated: desiredQuantity > 0 && subscriptionItemId ? true : false
+        initialUsageRecordCreated: desiredUserCount > 0 && subscriptionItemId ? true : false
       }
     };
 
