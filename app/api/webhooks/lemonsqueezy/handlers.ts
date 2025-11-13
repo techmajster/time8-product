@@ -523,11 +523,7 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
               data: {
                 type: 'usage-records',
                 attributes: {
-                  quantity: billableQuantity,
-                  action: 'set',
-                  description: desiredUserCount <= 3
-                    ? `Free tier: ${desiredUserCount} seats for ${meta.custom_data?.organization_name || 'organization'}`
-                    : `Initial seat count: ${billableQuantity} for ${meta.custom_data?.organization_name || 'organization'}`
+                  quantity: billableQuantity
                 },
                 relationships: {
                   'subscription-item': {
