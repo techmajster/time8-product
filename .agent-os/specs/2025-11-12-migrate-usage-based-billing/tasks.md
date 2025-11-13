@@ -70,13 +70,59 @@
   - Total billing tests passing: 41/41 (19 update-subscription-quantity + 22 change-billing-period) ✅
 
 - [ ] 6. End-to-End Testing and Verification
-  - [ ] 6.1 Test: Create subscription with 5 seats via usage records
-  - [ ] 6.2 Test: Increase to 10 seats via usage records API
-  - [ ] 6.3 Test: Change monthly → annual, verify 10 seats preserved
-  - [ ] 6.4 Test: Change annual → monthly, verify 10 seats preserved
-  - [ ] 6.5 Test: Decrease to 3 seats via usage records API
-  - [ ] 6.6 Test: Deferred downgrade still works correctly
-  - [ ] 6.7 Test: Immediate upgrade payment flow
-  - [ ] 6.8 Test: Webhook syncs usage correctly throughout
-  - [ ] 6.9 Test: Error handling for non-usage-based variants
-  - [ ] 6.10 Verify all tests pass and deploy to production
+  - [x] 6.1 Create E2E test script (scripts/test-e2e-usage-billing.mjs) ✅
+  - [x] 6.2 Create variant configuration check script (scripts/check-variant-usage.mjs) ✅
+  - [x] 6.3 Create subscription listing script (scripts/list-all-subscriptions.mjs) ✅
+  - [ ] 6.4 Test: Create subscription with 5 seats via usage records ⚠️ BLOCKED
+  - [ ] 6.5 Test: Increase to 10 seats via usage records API ⚠️ BLOCKED
+  - [ ] 6.6 Test: Change monthly → annual, verify 10 seats preserved ⚠️ BLOCKED
+  - [ ] 6.7 Test: Change annual → monthly, verify 10 seats preserved ⚠️ BLOCKED
+  - [ ] 6.8 Test: Decrease to 3 seats via usage records API ⚠️ BLOCKED
+  - [ ] 6.9 Test: Deferred downgrade still works correctly ⚠️ BLOCKED
+  - [ ] 6.10 Test: Immediate upgrade payment flow ⚠️ BLOCKED
+  - [ ] 6.11 Test: Webhook syncs usage correctly throughout ⚠️ BLOCKED
+  - [ ] 6.12 Test: Error handling for non-usage-based variants ⚠️ BLOCKED
+  - [ ] 6.13 Verify all tests pass and deploy to production ⚠️ BLOCKED
+
+  **⚠️ CRITICAL BLOCKER IDENTIFIED:**
+
+  Variants 972634 (Monthly) and 972635 (Annual) are **NOT** configured for usage-based billing in LemonSqueezy.
+
+  **API Verification Results:**
+  - Monthly Variant (972634): `is_usage_based: false` ❌
+  - Annual Variant (972635): `is_usage_based: false` ❌
+
+  **Impact:**
+  - Usage Records API returns 400 error: "The field :field is not a supported :type"
+  - Cannot test usage-based billing functionality
+  - All E2E tests are blocked
+
+  **Root Cause:**
+  Task 1 was marked complete, but the LemonSqueezy dashboard configuration was not actually applied. The note in Task 1 stated the variants were configured, but API verification shows they are still using volume pricing.
+
+  **Required Action:**
+  1. Access LemonSqueezy dashboard manually
+  2. Navigate to Product (ID: 621389) → Variants
+  3. Edit Monthly variant (972634):
+     - Enable "Usage is metered?"
+     - Set aggregation to "Most recent usage" (last_ever)
+     - Save changes
+  4. Edit Annual variant (972635):
+     - Enable "Usage is metered?"
+     - Set aggregation to "Most recent usage" (last_ever)
+     - Save changes
+  5. Run: `node scripts/check-variant-usage.mjs` to verify
+  6. Once verified, run: `node scripts/test-e2e-usage-billing.mjs <subscription_id>`
+
+  **Test Scripts Created:**
+  - [scripts/test-e2e-usage-billing.mjs](file:///Users/simon/Desktop/saas-leave-system/scripts/test-e2e-usage-billing.mjs) - Comprehensive E2E test suite
+  - [scripts/check-variant-usage.mjs](file:///Users/simon/Desktop/saas-leave-system/scripts/check-variant-usage.mjs) - Verify variant configuration
+  - [scripts/list-all-subscriptions.mjs](file:///Users/simon/Desktop/saas-leave-system/scripts/list-all-subscriptions.mjs) - Find test subscriptions
+
+  **Next Steps After Manual Configuration:**
+  1. Verify variants are usage-based enabled
+  2. Run E2E test script with active subscription (e.g., 1447969)
+  3. Verify all usage record operations work correctly
+  4. Verify billing period changes preserve seats
+  5. Verify webhook syncs work throughout
+  6. Deploy to production after all tests pass
