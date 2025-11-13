@@ -90,9 +90,10 @@ export async function GET(request: NextRequest) {
 
     // Get subscription record from database FIRST (contains stored Lemon Squeezy subscription ID)
     // Include all subscription statuses for display
+    // IMPORTANT: Select current_seats which is the actual paid seat count (for usage-based billing)
     const { data: subscriptionRecord, error: subError } = await supabase
       .from('subscriptions')
-      .select('lemonsqueezy_subscription_id, status, trial_ends_at')
+      .select('lemonsqueezy_subscription_id, status, trial_ends_at, current_seats')
       .eq('organization_id', organizationId)
       .in('status', ['active', 'on_trial', 'paused', 'past_due', 'cancelled', 'expired', 'unpaid'])
       .single();
@@ -126,6 +127,7 @@ export async function GET(request: NextRequest) {
 
     if (subError || !subscriptionRecord) {
       console.error('❌ No subscription record found:', subError);
+      // Use paid_seats from organizations table as fallback when subscription record missing
       const seatInfo = calculateComprehensiveSeatInfo(
         orgDetails.paid_seats,
         currentMembers,
@@ -171,8 +173,13 @@ export async function GET(request: NextRequest) {
 
       console.log(`✅ Found subscription: ${lsAttrs.variant_name} (${lsAttrs.first_subscription_item?.quantity || 'N/A'} seats)`);
 
+      // Use current_seats from subscription record (this is the ACTUAL paid seat count)
+      // For usage-based billing, current_seats reflects the actual usage records
+      const actualPaidSeats = subscriptionRecord.current_seats || orgDetails.paid_seats;
+      console.log(`💺 Using seat count: ${actualPaidSeats} (from subscriptions.current_seats)`);
+
       const seatInfo = calculateComprehensiveSeatInfo(
-        orgDetails.paid_seats,
+        actualPaidSeats,
         currentMembers,
         pendingInvitations
       );
@@ -194,7 +201,7 @@ export async function GET(request: NextRequest) {
         // Prefer database status for testing (allows manual status changes)
         status: subscriptionRecord.status || lsAttrs.status,
         status_formatted: lsAttrs.status_formatted,
-        quantity: lsAttrs.first_subscription_item?.quantity || orgDetails.paid_seats,
+        quantity: lsAttrs.first_subscription_item?.quantity || actualPaidSeats,
         current_period_start: lsAttrs.current_period_start,
         current_period_end: lsAttrs.current_period_end,
         renews_at: lsAttrs.renews_at,
@@ -212,7 +219,7 @@ export async function GET(request: NextRequest) {
           price: variantPrice ? Math.round(variantPrice.price * 100) : 1000, // Price per seat in cents
           currency: variantPrice?.currency || 'PLN',
           interval: variantPrice?.interval || 'month',
-          quantity: lsAttrs.first_subscription_item?.quantity || orgDetails.paid_seats
+          quantity: lsAttrs.first_subscription_item?.quantity || actualPaidSeats
         },
         billing_info: {
           card_brand: lsAttrs.card_brand,
@@ -244,8 +251,11 @@ export async function GET(request: NextRequest) {
       console.error('❌ Failed to fetch from Lemon Squeezy:', error);
       console.log('🔄 Falling back to database subscription data...');
 
+      // Use current_seats from subscription record (fallback scenario)
+      const actualPaidSeats = subscriptionRecord.current_seats || orgDetails.paid_seats;
+
       const seatInfo = calculateComprehensiveSeatInfo(
-        orgDetails.paid_seats,
+        actualPaidSeats,
         currentMembers,
         pendingInvitations
       );
@@ -255,7 +265,7 @@ export async function GET(request: NextRequest) {
         id: subscriptionRecord.lemonsqueezy_subscription_id,
         status: 'active',
         status_formatted: 'Active',
-        quantity: orgDetails.paid_seats + 3, // Convert paid seats back to total users
+        quantity: actualPaidSeats,
         product: {
           name: 'Leave Management System',
           description: 'Database subscription (Lemon Squeezy unavailable)'
@@ -263,7 +273,7 @@ export async function GET(request: NextRequest) {
         variant: {
           name: 'Monthly Plan', // Default assumption
           price: 1299, // Default monthly price in cents
-          quantity: orgDetails.paid_seats + 3
+          quantity: actualPaidSeats
         },
         billing_info: {
           card_brand: null,
