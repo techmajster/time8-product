@@ -128,7 +128,7 @@ export default async function AdminSettingsPage() {
   // Get subscription data for SubscriptionWidget
   const { data: subscription } = await supabase
     .from('subscriptions')
-    .select('current_seats, pending_seats, renews_at, status')
+    .select('current_seats, renews_at, status')
     .eq('organization_id', profile.organization_id)
     .in('status', ['active', 'on_trial', 'past_due'])
     .single()

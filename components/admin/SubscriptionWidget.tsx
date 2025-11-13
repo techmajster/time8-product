@@ -1,12 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Users, Calendar, TrendingUp, TrendingDown, AlertCircle } from 'lucide-react'
+import { Users, Calendar } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 
 interface SubscriptionWidgetProps {
   currentSeats: number
-  pendingSeats?: number | null
   renewsAt?: string | null
   status?: 'active' | 'on_trial' | 'past_due' | 'cancelled'
   className?: string
@@ -14,14 +12,10 @@ interface SubscriptionWidgetProps {
 
 export function SubscriptionWidget({
   currentSeats,
-  pendingSeats,
   renewsAt,
   status = 'active',
   className
 }: SubscriptionWidgetProps) {
-  const hasPendingChanges = pendingSeats !== null && pendingSeats !== undefined && pendingSeats !== currentSeats
-  const isIncrease = hasPendingChanges && pendingSeats! > currentSeats
-  const isDecrease = hasPendingChanges && pendingSeats! < currentSeats
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -60,30 +54,10 @@ export function SubscriptionWidget({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Users className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium">Current Seats</span>
+            <span className="text-sm font-medium">Active Seats</span>
           </div>
           <span className="text-2xl font-bold">{currentSeats}</span>
         </div>
-
-        {/* Pending Changes Alert */}
-        {hasPendingChanges && (
-          <Alert className={cn(
-            'border-orange-500/50',
-            isIncrease && 'bg-blue-50 dark:bg-blue-950',
-            isDecrease && 'bg-orange-50 dark:bg-orange-950'
-          )}>
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">
-                  Changing to <strong>{pendingSeats}</strong> seats at renewal
-                </span>
-                {isIncrease && <TrendingUp className="h-4 w-4 text-blue-600" />}
-                {isDecrease && <TrendingDown className="h-4 w-4 text-orange-600" />}
-              </div>
-            </AlertDescription>
-          </Alert>
-        )}
 
         {/* Renewal Date */}
         {renewsAt && (

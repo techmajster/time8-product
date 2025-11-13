@@ -67,7 +67,6 @@ interface TeamMember {
 
 interface Subscription {
   current_seats: number
-  pending_seats: number | null
   renews_at: string | null
   status: string
 }
@@ -1683,7 +1682,6 @@ export default function AdminSettingsClient({
           {initialSubscription && (
             <SubscriptionWidget
               currentSeats={initialSubscription.current_seats}
-              pendingSeats={initialSubscription.pending_seats}
               renewsAt={initialSubscription.renews_at}
               status={initialSubscription.status as 'active' | 'on_trial' | 'past_due' | 'cancelled'}
               className="mt-6"
