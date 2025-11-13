@@ -153,6 +153,7 @@ export async function POST(request: NextRequest) {
     // Build custom data - only include organization_id if it exists
     const customData: Record<string, string> = {
       organization_name: organization_data.name,
+      organization_slug: organization_data.slug, // Pass the slug for webhook organization lookup
       user_count: user_count.toString(),
       tier
     };

@@ -199,10 +199,12 @@ async function findOrCreateCustomer(
     }
   } else if (customData.organization_id || customData.organization_name) {
     // New format: flat structure with organization_id and organization_name
+    // IMPORTANT: Use the organization_slug from custom_data (passed from checkout)
+    // This slug was already generated in create-workspace page with the correct logic
     organizationData = {
       id: customData.organization_id,
       name: customData.organization_name,
-      slug: customData.organization_name?.toLowerCase().replace(/\s+/g, '-')
+      slug: customData.organization_slug // Use slug directly from checkout custom_data
     };
     console.log('📋 Using flat organization data format:', organizationData);
   } else {
