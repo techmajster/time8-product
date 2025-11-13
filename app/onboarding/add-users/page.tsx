@@ -386,8 +386,14 @@ function AddUsersPageContent() {
         return_url: `${window.location.origin}/onboarding/payment-success${isUpgradeFlow ? '?upgrade=true' : ''}`,
         failure_url: `${window.location.origin}/onboarding/payment-failure${isUpgradeFlow ? '?upgrade=true' : ''}`
       }
-      
+
       console.log('📤 Sending checkout payload:', checkoutPayload)
+      console.log('📧 User email being sent:', {
+        userEmail,
+        has_email: !!userEmail,
+        type: typeof userEmail,
+        value: userEmail
+      })
       
       const checkoutResponse = await fetch('/api/billing/create-checkout', {
         method: 'POST',

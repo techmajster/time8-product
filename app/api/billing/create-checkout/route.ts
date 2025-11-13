@@ -82,6 +82,13 @@ export async function POST(request: NextRequest) {
 
     const { variant_id, organization_data, user_count, tier, user_email, return_url, failure_url } = body;
 
+    console.log('📧 User email from request:', {
+      user_email,
+      has_email: !!user_email,
+      type: typeof user_email,
+      fallback_will_be_used: !user_email
+    });
+
     // SECURITY: If organization_data includes an existing org ID (upgrade scenario),
     // validate user belongs to that organization
     if (organization_data?.id) {
