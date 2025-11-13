@@ -234,7 +234,7 @@ export class SeatManager {
 
     // POST to usage records endpoint
     const response = await fetch(
-      `https://api.lemonsqueezy.com/v1/subscription-items/${subscription.lemonsqueezy_subscription_item_id}/usage-records`,
+      `https://api.lemonsqueezy.com/v1/usage-records`,
       {
         method: 'POST',
         headers: {
@@ -246,8 +246,15 @@ export class SeatManager {
           data: {
             type: 'usage-records',
             attributes: {
-              quantity: newQuantity,
-              action: 'set' // CRITICAL: 'set' not 'increment'
+              quantity: newQuantity
+            },
+            relationships: {
+              'subscription-item': {
+                data: {
+                  type: 'subscription-items',
+                  id: subscription.lemonsqueezy_subscription_item_id.toString()
+                }
+              }
             }
           }
         })
