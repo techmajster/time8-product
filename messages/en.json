@@ -144,6 +144,21 @@
         "cancel": "Cancel"
       }
     },
+    "updateSubscription": {
+      "title": "Manage Subscription",
+      "question": "Update your subscription",
+      "yearlyOnlyAtRenewal": "🔒 Switching to monthly is only available at renewal (after {renewalDate})",
+      "monthly": "Monthly",
+      "yearly": "Yearly",
+      "mostPopular": "Most popular",
+      "perMonthPerUser": "/ month / user",
+      "cancel": "Cancel",
+      "updateSubscription": "Update Subscription",
+      "switchToYearly": "Switch to Yearly",
+      "updating": "Updating...",
+      "infoMonthly": "You can upgrade to yearly billing anytime and adjust seats as needed.",
+      "infoYearly": "You can adjust your seat count anytime. Monthly billing will be available at renewal."
+    },
     "paymentSuccess": {
       "loading": {
         "verifying": "Verifying payment...",
@@ -860,6 +875,7 @@
     "currentSubscription": "Current Subscription",
     "subscriptionDescription": "Your current subscription plan and billing details",
     "manageSeatSubscription": "Manage seat subscription",
+    "manageSubscription": "Manage Subscription",
     "opening": "Opening...",
     "seatUsage": "Seat Usage",
     "currentUsage": "Current usage",

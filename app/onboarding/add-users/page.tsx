@@ -6,7 +6,6 @@ import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { PricingInfo, calculatePricing } from '@/lib/lemon-squeezy/pricing'
@@ -25,13 +24,7 @@ function AddUsersPageContent() {
   const [organizationData, setOrganizationData] = useState<any>(null)
   const [pricingInfo, setPricingInfo] = useState<PricingInfo | null>(null)
   const [pricingLoading, setPricingLoading] = useState(true)
-  const [isUpgradeFlow, setIsUpgradeFlow] = useState(false)
-  const [initialBillingPeriod, setInitialBillingPeriod] = useState<'monthly' | 'annual'>('annual')
-  const [initialUserCount, setInitialUserCount] = useState(3)
   const [userEmail, setUserEmail] = useState<string | null>(null)
-  const [billingType, setBillingType] = useState<'usage_based' | 'quantity_based' | null>(null)
-  const [prorationPreview, setProrationPreview] = useState<any>(null)
-  const [loadingProration, setLoadingProration] = useState(false)
   const router = useRouter()
 
   const FREE_SEATS = 3
@@ -50,80 +43,21 @@ function AddUsersPageContent() {
       // Store user email for billing
       setUserEmail(user.email || null)
 
-      // Check if this is an upgrade flow
-      const urlParams = new URLSearchParams(window.location.search)
-      const isUpgrade = urlParams.get('upgrade') === 'true'
-      const currentOrgId = urlParams.get('current_org')
-      const recommendedSeats = parseInt(urlParams.get('seats') || '4')
-      
-      setIsUpgradeFlow(isUpgrade)
-      
-      if (isUpgrade && currentOrgId) {
-        // This is an upgrade - fetch existing organization and subscription
-        const { data: org, error: orgError } = await supabase
-          .from('organizations')
-          .select('id, name, slug, country_code')
-          .eq('id', currentOrgId)
-          .single()
-
-        if (org && !orgError) {
-          setOrganizationData(org)
-          setUserCount(recommendedSeats) // Set recommended seat count
-          setInitialUserCount(recommendedSeats) // Store initial count for change detection
-
-          // Fetch current subscription to determine billing period and type
-          const { data: subscription } = await supabase
-            .from('subscriptions')
-            .select('lemonsqueezy_variant_id, current_seats, billing_type')
-            .eq('organization_id', currentOrgId)
-            .eq('status', 'active')
-            .single()
-
-          // Set tier based on current subscription variant
-          if (subscription?.lemonsqueezy_variant_id) {
-            const monthlyVariantId = process.env.NEXT_PUBLIC_LEMONSQUEEZY_MONTHLY_VARIANT_ID || '972634'
-            const isMonthly = subscription.lemonsqueezy_variant_id === monthlyVariantId
-            const currentTier = isMonthly ? 'monthly' : 'annual'
-            setSelectedTier(currentTier)
-            setInitialBillingPeriod(currentTier) // Store initial period for change detection
-            setBillingType(subscription.billing_type as 'usage_based' | 'quantity_based')
-
-            // Use current_seats from subscription if no recommendedSeats provided
-            if (!urlParams.get('seats') && subscription.current_seats) {
-              setUserCount(subscription.current_seats)
-              setInitialUserCount(subscription.current_seats)
-            }
-
-            console.log('🔄 Upgrade flow initialized:', {
-              org: org.name,
-              seats: subscription.current_seats,
-              currentTier
-            })
-          } else {
-            console.log('🔄 Upgrade flow initialized:', { org: org.name, seats: recommendedSeats })
-          }
-        } else {
-          console.error('Failed to load organization for upgrade:', orgError)
-          router.push('/admin/settings?tab=billing')
-          return
-        }
-      } else {
-        // Original new workspace flow - get organization data from session storage
-        if (typeof window !== 'undefined' && window.sessionStorage) {
-          const storedOrgData = sessionStorage.getItem('pending_organization')
-          if (storedOrgData) {
-            try {
-              const parsedData = JSON.parse(storedOrgData)
-              setOrganizationData(parsedData)
-            } catch (e) {
-              console.error('Failed to parse stored organization data:', e)
-              router.push('/onboarding/create-workspace')
-              return
-            }
-          } else {
+      // Get organization data from session storage
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        const storedOrgData = sessionStorage.getItem('pending_organization')
+        if (storedOrgData) {
+          try {
+            const parsedData = JSON.parse(storedOrgData)
+            setOrganizationData(parsedData)
+          } catch (e) {
+            console.error('Failed to parse stored organization data:', e)
             router.push('/onboarding/create-workspace')
             return
           }
+        } else {
+          router.push('/onboarding/create-workspace')
+          return
         }
       }
 
@@ -165,46 +99,6 @@ function AddUsersPageContent() {
     initializePage()
   }, [router])
 
-  // Fetch proration preview when user count changes (for yearly subscriptions in upgrade flow)
-  useEffect(() => {
-    const fetchProrationPreview = async () => {
-      // Only fetch for upgrade flow with quantity-based (yearly) billing
-      if (!isUpgradeFlow || billingType !== 'quantity_based' || userCount === initialUserCount) {
-        setProrationPreview(null)
-        return
-      }
-
-      setLoadingProration(true)
-      try {
-        const response = await fetch('/api/billing/proration-preview', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            new_quantity: userCount
-          })
-        })
-
-        const data = await response.json()
-
-        if (response.ok && data.applicable) {
-          setProrationPreview(data.proration)
-          console.log('💵 Proration preview loaded:', data.proration)
-        } else {
-          setProrationPreview(null)
-        }
-      } catch (error) {
-        console.error('Failed to fetch proration preview:', error)
-        setProrationPreview(null)
-      } finally {
-        setLoadingProration(false)
-      }
-    }
-
-    fetchProrationPreview()
-  }, [userCount, billingType, isUpgradeFlow, initialUserCount])
-
   // Get current pricing calculation
   const getCurrentPricing = () => {
     if (!pricingInfo) {
@@ -217,25 +111,6 @@ function AddUsersPageContent() {
         monthlyPerSeat: 0,
         annualPerSeat: 0,
         currency: 'PLN'
-      }
-    }
-
-    // For upgrades, don't apply free tier - pay for all seats
-    if (isUpgradeFlow) {
-      const monthlyPerSeat = pricingInfo.monthlyPricePerSeat
-      const annualPerSeat = pricingInfo.annualPricePerSeat
-      const monthlyTotal = userCount * monthlyPerSeat
-      const annualTotal = userCount * annualPerSeat * 12
-
-      return {
-        isFree: false,
-        totalUsers: userCount,
-        paidSeats: userCount, // All seats are paid in upgrades
-        monthlyTotal,
-        annualTotal,
-        monthlyPerSeat,
-        annualPerSeat,
-        currency: pricingInfo.currency
       }
     }
 
@@ -292,126 +167,13 @@ function AddUsersPageContent() {
 
     try {
       if (userCount <= FREE_SEATS) {
-        // Free tier handling
-        if (isUpgradeFlow) {
-          // For upgrades, free tier doesn't make sense - redirect back to billing
-          console.log('🚫 Cannot downgrade to free tier from upgrade flow')
-          router.push('/admin/settings?tab=billing')
-          return
-        } else {
-          // For new workspace: go to confirmation page (no payment required)
-          console.log('🆓 Free tier: redirecting to confirmation page')
-          router.push('/onboarding/payment-success?free=true')
-          return
-        }
-      }
-
-      // Handle upgrade flow differently - use update-subscription-quantity and/or change-billing-period APIs
-      if (isUpgradeFlow) {
-        // Detect what changed
-        const seatsChanged = userCount !== initialUserCount
-        const periodChanged = selectedTier !== initialBillingPeriod
-
-        console.log('🔄 Upgrade flow: detecting changes', {
-          seatsChanged,
-          periodChanged,
-          currentSeats: userCount,
-          initialSeats: initialUserCount,
-          currentPeriod: selectedTier,
-          initialPeriod: initialBillingPeriod,
-          billingType,
-          organizationId: organizationData.id
-        })
-
-        // Handle billing period change first (if changed)
-        if (periodChanged) {
-          console.log(`🔄 Changing billing period: ${initialBillingPeriod} → ${selectedTier}`)
-
-          if (!pricingInfo) {
-            throw new Error('Pricing information not loaded')
-          }
-
-          const newVariantId = selectedTier === 'annual' ?
-            parseInt(pricingInfo.yearlyVariantId) :
-            parseInt(pricingInfo.monthlyVariantId)
-
-          const periodResponse = await fetch('/api/billing/change-billing-period', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              new_variant_id: newVariantId,
-              billing_period: selectedTier
-            })
-          })
-
-          const periodData = await periodResponse.json()
-
-          if (!periodResponse.ok) {
-            throw new Error(periodData.error || 'Failed to change billing period')
-          }
-
-          console.log('✅ Billing period changed successfully:', periodData)
-        }
-
-        // Handle seat quantity change (if changed)
-        if (seatsChanged) {
-          console.log(`🔄 Updating seat quantity: ${initialUserCount} → ${userCount}`)
-
-          const requestBody = {
-            new_quantity: userCount,
-            invoice_immediately: true
-          };
-          console.log('📤 Sending request:', requestBody);
-
-          const quantityResponse = await fetch('/api/billing/update-subscription-quantity', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(requestBody)
-          })
-
-          console.log('📥 Response status:', quantityResponse.status);
-
-          const quantityData = await quantityResponse.json()
-          console.log('📥 Response data:', quantityData);
-
-          if (!quantityResponse.ok) {
-            console.error('❌ Failed to update subscription quantity:', {
-              status: quantityResponse.status,
-              data: quantityData
-            })
-            throw new Error(
-              quantityData.details || quantityData.error || 'Failed to update subscription'
-            )
-          }
-
-          console.log('✅ Subscription quantity updated:', quantityData)
-        }
-
-        // If nothing changed, show error
-        if (!seatsChanged && !periodChanged) {
-          setError('No changes detected. Please adjust seats or billing period.')
-          setIsLoading(false)
-          return
-        }
-
-        // Show success message
-        const changes = []
-        if (periodChanged) changes.push(`period changed to ${selectedTier}`)
-        if (seatsChanged) changes.push(`seats updated to ${userCount}`)
-
-        console.log(`✅ Subscription updated: ${changes.join(', ')}`)
-
-        // Redirect directly to dashboard - API already updated database
-        // No need to wait for webhook for seat changes (SeatManager updates DB immediately)
-        router.push('/dashboard')
+        // Free tier: go to confirmation page (no payment required)
+        console.log('🆓 Free tier: redirecting to confirmation page')
+        router.push('/onboarding/payment-success?free=true')
         return
       }
 
-      // Paid tier (new workspace): create checkout session with organization data
+      // Paid tier: create checkout session with organization data
       // Use dynamic variant IDs from pricing info
       if (!pricingInfo) {
         throw new Error('Pricing information not loaded')
@@ -439,8 +201,8 @@ function AddUsersPageContent() {
         user_count: userCount,
         tier: selectedTier,
         user_email: userEmail, // Pass user email for billing notifications
-        return_url: `${window.location.origin}/onboarding/payment-success${isUpgradeFlow ? '?upgrade=true' : ''}`,
-        failure_url: `${window.location.origin}/onboarding/payment-failure${isUpgradeFlow ? '?upgrade=true' : ''}`
+        return_url: `${window.location.origin}/onboarding/payment-success`,
+        failure_url: `${window.location.origin}/onboarding/payment-failure`
       }
 
       console.log('📤 Sending checkout payload:', checkoutPayload)
@@ -510,7 +272,7 @@ function AddUsersPageContent() {
         <div className="flex gap-3 items-center w-full">
           <UserPlusIcon className="size-6 text-muted-foreground" />
           <p className="flex-1 text-lg text-muted-foreground font-normal">
-            {isUpgradeFlow ? t('titleUpgrade') : t('title')}
+            {t('title')}
           </p>
         </div>
 
@@ -518,7 +280,7 @@ function AddUsersPageContent() {
           <div className="flex flex-col gap-8 items-start w-full">
             {/* Main question */}
             <h1 className="text-3xl font-bold leading-9 text-foreground">
-              {isUpgradeFlow ? t('questionUpgrade') : t('question')}
+              {t('question')}
             </h1>
 
             {/* Counter section */}
@@ -644,56 +406,9 @@ function AddUsersPageContent() {
               <p className="text-sm text-muted-foreground text-center">
                 {t('pricing.pricesNote', { currency: pricing.currency })}
               </p>
-              {isUpgradeFlow && (
-                <p className="text-xs text-success text-center font-medium">
-                  ✓ You can now adjust both seat quantity and billing period
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* Billing information for upgrade flow */}
-          {isUpgradeFlow && userCount !== initialUserCount && (
-            <div className="w-full">
-              {billingType === 'usage_based' ? (
-                <Alert className="bg-blue-50 border-blue-200">
-                  <AlertDescription className="text-sm text-blue-800">
-                    💡 New seats will be billed at the end of your current billing period.
-                  </AlertDescription>
-                </Alert>
-              ) : billingType === 'quantity_based' && prorationPreview ? (
-                <Alert className="bg-yellow-50 border-yellow-200">
-                  <AlertDescription>
-                    <div className="flex flex-col gap-2">
-                      <p className="text-sm text-yellow-800 font-medium">
-                        ⚡ You will be charged immediately:
-                      </p>
-                      {loadingProration ? (
-                        <div className="flex items-center gap-2">
-                          <Loader2 className="size-4 animate-spin text-yellow-700" />
-                          <span className="text-sm text-yellow-700">Calculating proration...</span>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="text-lg font-bold text-yellow-900">
-                            ${prorationPreview.amount.toFixed(2)}
-                          </div>
-                          <p className="text-xs text-yellow-700">
-                            {prorationPreview.message}
-                          </p>
-                        </>
-                      )}
-                    </div>
-                  </AlertDescription>
-                </Alert>
-              ) : loadingProration && billingType === 'quantity_based' ? (
-                <Alert className="bg-gray-50 border-gray-200">
-                  <AlertDescription className="flex items-center gap-2">
-                    <Loader2 className="size-4 animate-spin text-gray-700" />
-                    <span className="text-sm text-gray-700">Calculating proration...</span>
-                  </AlertDescription>
-                </Alert>
-              ) : null}
+              <p className="text-xs text-blue-600 text-center font-medium">
+                ℹ️ You can upgrade to yearly billing anytime from your settings. Yearly→monthly switching is only available at renewal.
+              </p>
             </div>
           )}
         </div>
@@ -714,17 +429,6 @@ function AddUsersPageContent() {
             </span>
           </div>
           <div className="flex gap-3">
-            {/* Cancel button - only show in upgrade flow */}
-            {isUpgradeFlow && (
-              <Button
-                variant="outline"
-                onClick={() => router.push('/admin/settings?tab=billing')}
-                disabled={isLoading}
-                size="lg"
-              >
-                {t('actions.cancel')}
-              </Button>
-            )}
             <Button
               onClick={handleContinue}
               disabled={isLoading}

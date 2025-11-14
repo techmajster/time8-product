@@ -144,6 +144,21 @@
         "cancel": "Anuluj"
       }
     },
+    "updateSubscription": {
+      "title": "Zarządzaj subskrypcją",
+      "question": "Zaktualizuj swoją subskrypcję",
+      "yearlyOnlyAtRenewal": "🔒 Przełączenie na miesięczną subskrypcję jest dostępne tylko przy odnowieniu (po {renewalDate})",
+      "monthly": "Miesięczna",
+      "yearly": "Roczna",
+      "mostPopular": "Najpopularniejszy",
+      "perMonthPerUser": "/ miesiąc / użytkownik",
+      "cancel": "Anuluj",
+      "updateSubscription": "Zaktualizuj subskrypcję",
+      "switchToYearly": "Przełącz na roczną",
+      "updating": "Aktualizowanie...",
+      "infoMonthly": "Możesz przejść na roczną subskrypcję w dowolnym momencie i dostosować liczbę miejsc według potrzeb.",
+      "infoYearly": "Możesz dostosować liczbę miejsc w dowolnym momencie. Przełączenie na miesięczną subskrypcję będzie dostępne przy odnowieniu."
+    },
     "paymentSuccess": {
       "loading": {
         "verifying": "Weryfikacja płatności...",
@@ -862,6 +877,7 @@
     "currentSubscription": "Aktualna subskrypcja",
     "subscriptionDescription": "Twoja aktualna subskrypcja i szczegóły płatności",
     "manageSeatSubscription": "Zarządzaj subskrypcją miejsc",
+    "manageSubscription": "Zarządzaj subskrypcją",
     "opening": "Otwieranie...",
     "seatUsage": "Wykorzystanie miejsc",
     "currentUsage": "Aktualne wykorzystanie",

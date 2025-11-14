@@ -334,7 +334,7 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
 
     const { meta, data } = payload;
     const { id: subscriptionId, attributes } = data;
-    const { status, customer_id, variant_id, renews_at, ends_at, trial_ends_at, first_subscription_item } = attributes;
+    const { status, customer_id, variant_id, product_id, renews_at, ends_at, trial_ends_at, first_subscription_item } = attributes;
 
     // Extract quantity from first_subscription_item (where LemonSqueezy stores it)
     const quantity = first_subscription_item?.quantity || 0;
@@ -443,6 +443,7 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
         lemonsqueezy_subscription_id: subscriptionId,
         lemonsqueezy_subscription_item_id: subscriptionItemId || null,
         lemonsqueezy_variant_id: variant_id || null,
+        lemonsqueezy_product_id: product_id?.toString() || null,
         billing_type: billingType, // NEW: Use detected billing type (usage_based or quantity_based)
         status,
         quantity,
@@ -562,6 +563,70 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
         userCount: desiredUserCount,
         note: 'Yearly subscriptions use quantity updates, not usage records'
       });
+    }
+
+    // TWO-PRODUCT MIGRATION: Detect and handle migration from old subscription
+    // Check if this is a migration (monthly→yearly upgrade)
+    const migrationFromSubscriptionId = meta.custom_data?.migration_from_subscription_id;
+
+    if (migrationFromSubscriptionId) {
+      console.log(`🔄 [Webhook] Migration detected: Canceling old subscription ${migrationFromSubscriptionId}`);
+
+      try {
+        // Cancel old subscription via LemonSqueezy API
+        const cancelResponse = await fetch(
+          `https://api.lemonsqueezy.com/v1/subscriptions/${migrationFromSubscriptionId}`,
+          {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${process.env.LEMONSQUEEZY_API_KEY}`,
+              'Accept': 'application/vnd.api+json'
+            }
+          }
+        );
+
+        if (!cancelResponse.ok) {
+          const errorData = await cancelResponse.json();
+          console.error(`❌ [Webhook] Failed to cancel old subscription ${migrationFromSubscriptionId}:`, errorData);
+          // Log error but don't fail the webhook - new subscription is already created
+          await logBillingEvent(
+            meta.event_name,
+            meta.event_id,
+            { error: 'Failed to cancel old subscription', details: errorData },
+            'failed',
+            `Migration cleanup failed for ${migrationFromSubscriptionId}`
+          );
+        } else {
+          console.log(`✅ [Webhook] Successfully canceled old subscription ${migrationFromSubscriptionId}`);
+
+          // Update old subscription status in database
+          const { error: updateError } = await supabase
+            .from('subscriptions')
+            .update({
+              status: 'migrated',
+              migrated_to_subscription_id: subscriptionId,
+              updated_at: new Date().toISOString()
+            })
+            .eq('lemonsqueezy_subscription_id', migrationFromSubscriptionId);
+
+          if (updateError) {
+            console.error(`⚠️ [Webhook] Failed to update old subscription status:`, updateError);
+            // Log but don't fail - the cancellation succeeded
+          } else {
+            console.log(`✅ [Webhook] Updated old subscription status to 'migrated'`);
+          }
+        }
+      } catch (error) {
+        console.error(`❌ [Webhook] Error during migration cleanup:`, error);
+        // Log error but don't fail the webhook
+        await logBillingEvent(
+          meta.event_name,
+          meta.event_id,
+          { error: 'Migration cleanup exception', details: error },
+          'failed',
+          `Migration cleanup exception for ${migrationFromSubscriptionId}`
+        );
+      }
     }
 
     await logBillingEvent(meta.event_name, meta.event_id, payload, 'processed');

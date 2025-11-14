@@ -467,22 +467,13 @@ export default function AdminSettingsClient({
     }
   }
 
-  // Handle seat management - always redirect to seat management page
-  const handleManageSeatSubscription = () => {
+  // Handle subscription management - redirect to unified subscription management page
+  const handleManageSubscription = () => {
     if (!currentOrganization?.id) return
 
-    // Always redirect to seat management page (add users/upgrade page)
+    // Redirect to unified subscription management page
     const currentSeats = getSeatUsage().total
-    window.location.href = `/onboarding/add-users?upgrade=true&current_org=${currentOrganization?.id}&seats=${currentSeats}`
-  }
-
-  // Handle billing period change
-  const handleChangeBillingPeriod = () => {
-    if (!currentOrganization?.id) return
-
-    // Redirect to billing period change page
-    const currentSeats = getSeatUsage().total
-    window.location.href = `/onboarding/change-billing-period?current_org=${currentOrganization?.id}&seats=${currentSeats}`
+    window.location.href = `/onboarding/update-subscription?current_org=${currentOrganization?.id}&seats=${currentSeats}`
   }
 
   // Handle customer portal access for billing issues
@@ -1420,20 +1411,10 @@ export default function AdminSettingsClient({
                     variant="secondary"
                     size="sm"
                     className="h-9"
-                    onClick={handleManageSeatSubscription}
+                    onClick={handleManageSubscription}
                   >
-                    {t('manageSeatSubscription')}
+                    {t('manageSubscription')}
                   </Button>
-                  {subscriptionData && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-9"
-                      onClick={handleChangeBillingPeriod}
-                    >
-                      Change Billing Period
-                    </Button>
-                  )}
                 </div>
               </div>
             </CardHeader>
