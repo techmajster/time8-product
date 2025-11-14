@@ -48,3 +48,14 @@ scripts/fix-szymon-balances.js
 
 # Vercel setup scripts (contain production secrets)
 setup-vercel-env.sh
+
+# Debug and test scripts for development
+check-*.mjs
+test-*.mjs
+run-product-migration*.mjs
+execute-product-migration.sh
+logs_*.json
+find-12-record.mjs
+update-db-to-15.mjs
+HOW-TO-FIX-USAGE-BASED-BILLING.md
+time8-subscription-billing-specification.md
