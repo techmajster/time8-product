@@ -860,6 +860,7 @@
     "currentSubscription": "Current Subscription",
     "subscriptionDescription": "Your current subscription plan and billing details",
     "manageSeatSubscription": "Manage seat subscription",
+    "manageSubscription": "Manage Subscription",
     "opening": "Opening...",
     "seatUsage": "Seat Usage",
     "currentUsage": "Current usage",
