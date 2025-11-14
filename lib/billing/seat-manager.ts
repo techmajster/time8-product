@@ -44,6 +44,7 @@ interface Subscription {
   current_seats: number;
   lemonsqueezy_subscription_item_id: string | null;
   lemonsqueezy_subscription_id?: string | null;
+  lemonsqueezy_variant_id?: string | null;
   organization_id: string;
 }
 
@@ -115,6 +116,140 @@ export class SeatManager {
     } else {
       throw new Error(`Unknown billing type: ${subscription.billing_type}`);
     }
+  }
+
+  /**
+   * Switch subscription plan between monthly and yearly
+   * Handles variant change with automatic proration/credits from LemonSqueezy
+   *
+   * @param subscriptionId - Database subscription ID
+   * @param targetVariantId - Target variant ID ('972634' for monthly, '972635' for yearly)
+   * @returns Result with plan switch details
+   */
+  async switchPlan(subscriptionId: string, targetVariantId: string): Promise<SeatChangeResult> {
+    console.log(`🔄 [SeatManager] switchPlan called:`, {
+      subscriptionId,
+      targetVariantId
+    });
+
+    // Fetch subscription from database
+    const subscription = await this.getSubscription(subscriptionId);
+
+    // Validate subscription has LemonSqueezy ID
+    if (!subscription.lemonsqueezy_subscription_id) {
+      throw new Error(`Missing lemonsqueezy_subscription_id for subscription ${subscription.id}`);
+    }
+
+    // Determine target billing type from variant ID
+    const monthlyVariantId = process.env.LEMONSQUEEZY_MONTHLY_VARIANT_ID || '972634';
+    const yearlyVariantId = process.env.LEMONSQUEEZY_YEARLY_VARIANT_ID || '972635';
+
+    let targetBillingType: 'usage_based' | 'quantity_based';
+    if (targetVariantId === monthlyVariantId) {
+      targetBillingType = 'usage_based';
+    } else if (targetVariantId === yearlyVariantId) {
+      targetBillingType = 'quantity_based';
+    } else {
+      throw new Error(`Unknown variant ID: ${targetVariantId}. Expected ${monthlyVariantId} or ${yearlyVariantId}`);
+    }
+
+    // Check if already on target billing type
+    if (subscription.billing_type === targetBillingType) {
+      throw new Error(`Subscription already on ${targetBillingType} billing`);
+    }
+
+    console.log(`🔄 [SeatManager] Switching plan:`, {
+      subscriptionId: subscription.id,
+      currentBillingType: subscription.billing_type,
+      targetBillingType,
+      currentSeats: subscription.current_seats,
+      targetVariantId
+    });
+
+    // PATCH subscription to change variant (LemonSqueezy handles proration automatically)
+    const response = await fetch(
+      `https://api.lemonsqueezy.com/v1/subscriptions/${subscription.lemonsqueezy_subscription_id}`,
+      {
+        method: 'PATCH',
+        headers: {
+          'Accept': 'application/vnd.api+json',
+          'Content-Type': 'application/vnd.api+json',
+          'Authorization': `Bearer ${process.env.LEMONSQUEEZY_API_KEY}`
+        },
+        body: JSON.stringify({
+          data: {
+            type: 'subscriptions',
+            id: subscription.lemonsqueezy_subscription_id,
+            attributes: {
+              variant_id: parseInt(targetVariantId),
+              invoice_immediately: true // Charge/credit immediately
+            }
+          }
+        })
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`❌ [SeatManager] Failed to switch plan:`, {
+        status: response.status,
+        error: errorText,
+        subscriptionId: subscription.id,
+        lemonSqueezyId: subscription.lemonsqueezy_subscription_id
+      });
+      throw new Error(`Failed to switch subscription plan: ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log(`✅ [SeatManager] Plan switched (LemonSqueezy API Response):`, {
+      status: response.status,
+      subscriptionId: data.data?.id,
+      newVariantId: data.data?.attributes?.variant_id,
+      fullResponse: JSON.stringify(data, null, 2)
+    });
+
+    // Update database billing_type
+    const supabase = createAdminClient();
+    const { error: updateError } = await supabase
+      .from('subscriptions')
+      .update({
+        billing_type: targetBillingType,
+        lemonsqueezy_variant_id: targetVariantId
+      })
+      .eq('id', subscriptionId);
+
+    if (updateError) {
+      console.error(`❌ [SeatManager] Failed to update billing_type in database:`, {
+        subscriptionId,
+        error: updateError.message
+      });
+      throw new Error(`Failed to update billing_type: ${updateError.message}`);
+    }
+
+    console.log(`✅ [SeatManager] Database updated with new billing_type:`, {
+      subscriptionId,
+      newBillingType: targetBillingType
+    });
+
+    // If switching TO usage-based (monthly), create initial usage record
+    if (targetBillingType === 'usage_based') {
+      console.log(`📊 [SeatManager] Creating initial usage record for monthly plan:`, {
+        subscriptionId: subscription.id,
+        currentSeats: subscription.current_seats
+      });
+
+      await this.addSeatsUsageBased(subscription, subscription.current_seats);
+    }
+
+    const direction = targetBillingType === 'usage_based' ? 'yearly → monthly' : 'monthly → yearly';
+
+    return {
+      success: true,
+      billingType: targetBillingType,
+      chargedAt: 'immediately',
+      message: `Plan switched successfully (${direction}). LemonSqueezy has applied automatic proration/credit.`,
+      currentSeats: subscription.current_seats
+    };
   }
 
   /**
@@ -403,7 +538,7 @@ export class SeatManager {
 
     const { data, error } = await supabase
       .from('subscriptions')
-      .select('id, billing_type, current_seats, lemonsqueezy_subscription_item_id, lemonsqueezy_subscription_id, organization_id')
+      .select('id, billing_type, current_seats, lemonsqueezy_subscription_item_id, lemonsqueezy_subscription_id, lemonsqueezy_variant_id, organization_id')
       .eq('id', subscriptionId)
       .single();
 
