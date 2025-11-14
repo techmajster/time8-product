@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
     // Fetch active subscription for organization
     const { data: subscription, error: subError } = await supabase
       .from('subscriptions')
-      .select('lemonsqueezy_subscription_id, lemonsqueezy_subscription_item_id, lemonsqueezy_variant_id, status, current_seats')
+      .select('lemonsqueezy_subscription_id, lemonsqueezy_subscription_item_id, lemonsqueezy_variant_id, lemonsqueezy_product_id, status, current_seats, renews_at')
       .eq('organization_id', organizationId)
       .in('status', ['active', 'on_trial'])
       .single();
@@ -87,6 +87,55 @@ export async function POST(request: NextRequest) {
         },
         { status: 400 }
       );
+    }
+
+    // TWO-PRODUCT MIGRATION: Block yearly→monthly switches and redirect monthly→yearly
+    // Only apply this logic if product_id is set (new two-product architecture)
+    const monthlyProductId = process.env.LEMONSQUEEZY_MONTHLY_PRODUCT_ID;
+    const yearlyProductId = process.env.LEMONSQUEEZY_YEARLY_PRODUCT_ID;
+    const monthlyVariantId = process.env.LEMONSQUEEZY_MONTHLY_VARIANT_ID;
+    const yearlyVariantId = process.env.LEMONSQUEEZY_YEARLY_VARIANT_ID;
+
+    if (subscription.lemonsqueezy_product_id) {
+
+      // Check if this is a yearly→monthly attempt (BLOCKED)
+      if (subscription.lemonsqueezy_product_id === yearlyProductId &&
+          new_variant_id.toString() === monthlyVariantId) {
+        console.log('⚠️ [Billing Period Change] Blocking yearly→monthly switch:', {
+          organization_id: organizationId,
+          current_product_id: subscription.lemonsqueezy_product_id,
+          requested_variant_id: new_variant_id,
+          renewal_date: subscription.renews_at
+        });
+
+        return NextResponse.json(
+          {
+            error: 'Cannot switch from yearly to monthly',
+            message: 'Yearly→monthly switching is only available at renewal. Please wait until your subscription renews.',
+            renewal_date: subscription.renews_at
+          },
+          { status: 400 }
+        );
+      }
+
+      // Check if this is a monthly→yearly attempt (REDIRECT to new endpoint)
+      if (subscription.lemonsqueezy_product_id === monthlyProductId &&
+          new_variant_id.toString() === yearlyVariantId) {
+        console.log('🔄 [Billing Period Change] Redirecting monthly→yearly to switch-to-yearly endpoint:', {
+          organization_id: organizationId,
+          current_product_id: subscription.lemonsqueezy_product_id,
+          requested_variant_id: new_variant_id
+        });
+
+        return NextResponse.json(
+          {
+            error: 'Use switch-to-yearly endpoint for upgrades',
+            message: 'Monthly→yearly upgrades require a checkout flow to handle product migration. Please use the switch-to-yearly endpoint.',
+            redirect_to: '/api/billing/switch-to-yearly'
+          },
+          { status: 400 }
+        );
+      }
     }
 
     // Generate correlation ID for tracking payment flow
@@ -156,13 +205,10 @@ export async function POST(request: NextRequest) {
     });
 
     // Determine billing type based on variant
-    const monthlyVariantId = parseInt(process.env.LEMONSQUEEZY_MONTHLY_VARIANT_ID || '0');
-    const yearlyVariantId = parseInt(process.env.LEMONSQUEEZY_YEARLY_VARIANT_ID || '0');
-
     let billingType: 'usage_based' | 'quantity_based';
-    if (new_variant_id === monthlyVariantId) {
+    if (new_variant_id.toString() === monthlyVariantId) {
       billingType = 'usage_based'; // Monthly uses usage records
-    } else if (new_variant_id === yearlyVariantId) {
+    } else if (new_variant_id.toString() === yearlyVariantId) {
       billingType = 'quantity_based'; // Yearly uses quantity updates
     } else {
       console.warn(`⚠️ Unknown variant ${new_variant_id}, defaulting to usage_based`);

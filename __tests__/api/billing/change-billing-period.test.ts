@@ -48,7 +48,9 @@ describe('Change Billing Period API', () => {
     status: 'active',
     quantity: 10,
     current_seats: 10,
-    lemonsqueezy_variant_id: '972634' // Monthly variant
+    lemonsqueezy_variant_id: '972634', // Monthly variant
+    lemonsqueezy_product_id: null, // Legacy subscription (before two-product migration)
+    renews_at: null
   };
 
   beforeEach(() => {
@@ -266,6 +268,136 @@ describe('Change Billing Period API', () => {
 
       expect(response.status).toBe(200);
       expect(data.new_variant_id).toBe(972634);
+    });
+  });
+
+  describe('Two-Product Migration Blocking', () => {
+    beforeEach(() => {
+      // Setup environment variables for two-product architecture
+      process.env.LEMONSQUEEZY_MONTHLY_PRODUCT_ID = '621389';
+      process.env.LEMONSQUEEZY_YEARLY_PRODUCT_ID = '693341';
+      process.env.LEMONSQUEEZY_MONTHLY_VARIANT_ID = '972634';
+      process.env.LEMONSQUEEZY_YEARLY_VARIANT_ID = '1090954';
+    });
+
+    it('should block yearly→monthly switches with product_id check', async () => {
+      // Setup subscription with yearly product
+      mockSupabaseSingle.mockResolvedValueOnce({
+        data: {
+          ...mockSubscription,
+          lemonsqueezy_product_id: '693341', // Yearly product
+          lemonsqueezy_variant_id: '1090954', // Yearly variant
+          renews_at: '2025-12-01T00:00:00Z'
+        },
+        error: null
+      });
+
+      const request = new NextRequest('http://localhost/api/billing/change-billing-period', {
+        method: 'POST',
+        body: JSON.stringify({
+          new_variant_id: 972634 // Monthly variant
+        })
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.error).toContain('Cannot switch from yearly to monthly');
+      expect(data.message).toContain('renewal');
+      expect(data.renewal_date).toBe('2025-12-01T00:00:00Z');
+    });
+
+    it('should redirect monthly→yearly to switch-to-yearly endpoint', async () => {
+      // Setup subscription with monthly product
+      mockSupabaseSingle.mockResolvedValueOnce({
+        data: {
+          ...mockSubscription,
+          lemonsqueezy_product_id: '621389', // Monthly product
+          lemonsqueezy_variant_id: '972634' // Monthly variant
+        },
+        error: null
+      });
+
+      const request = new NextRequest('http://localhost/api/billing/change-billing-period', {
+        method: 'POST',
+        body: JSON.stringify({
+          new_variant_id: 1090954 // Yearly variant
+        })
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.error).toContain('Use switch-to-yearly endpoint');
+      expect(data.redirect_to).toBe('/api/billing/switch-to-yearly');
+    });
+
+    it('should allow same-product variant changes', async () => {
+      // Setup subscription with monthly product, trying to change to a different variant within same product
+      mockSupabaseSingle.mockResolvedValueOnce({
+        data: {
+          ...mockSubscription,
+          lemonsqueezy_product_id: '621389', // Monthly product
+          lemonsqueezy_variant_id: '999999' // Different monthly variant (hypothetical old variant)
+        },
+        error: null
+      });
+
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          data: {
+            attributes: {
+              variant_id: 972634, // New monthly variant
+              first_subscription_item: {
+                quantity: 10
+              }
+            }
+          }
+        })
+      });
+
+      const request = new NextRequest('http://localhost/api/billing/change-billing-period', {
+        method: 'POST',
+        body: JSON.stringify({
+          new_variant_id: 972634 // Different variant, same product (not blocked)
+        })
+      });
+
+      const response = await POST(request);
+
+      // Should proceed with variant change since it's not a cross-product switch
+      expect(response.status).toBe(200);
+      expect(response.status).not.toBe(400);
+    });
+
+    it('should include renewal_date in yearly→monthly blocking response', async () => {
+      const renewalDate = '2026-01-15T10:30:00Z';
+
+      mockSupabaseSingle.mockResolvedValueOnce({
+        data: {
+          ...mockSubscription,
+          lemonsqueezy_product_id: '693341',
+          lemonsqueezy_variant_id: '1090954',
+          renews_at: renewalDate
+        },
+        error: null
+      });
+
+      const request = new NextRequest('http://localhost/api/billing/change-billing-period', {
+        method: 'POST',
+        body: JSON.stringify({
+          new_variant_id: 972634
+        })
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(data.renewal_date).toBe(renewalDate);
+      expect(data.message).toContain('renewal');
     });
   });
 
