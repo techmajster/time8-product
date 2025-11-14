@@ -429,17 +429,6 @@ function AddUsersPageContent() {
             </span>
           </div>
           <div className="flex gap-3">
-            {/* Cancel button - only show in upgrade flow */}
-            {isUpgradeFlow && (
-              <Button
-                variant="outline"
-                onClick={() => router.push('/admin/settings?tab=billing')}
-                disabled={isLoading}
-                size="lg"
-              >
-                {t('actions.cancel')}
-              </Button>
-            )}
             <Button
               onClick={handleContinue}
               disabled={isLoading}
