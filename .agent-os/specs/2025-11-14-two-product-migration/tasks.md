@@ -42,17 +42,17 @@
   - [x] 5.7 Add error handling for cancellation failures
   - [x] 5.8 Verify all tests pass
 
-- [ ] 6. Create Update Subscription Page
-  - [ ] 6.1 Create /app/onboarding/update-subscription/page.tsx
-  - [ ] 6.2 Implement seat adjustment controls (+/- buttons)
-  - [ ] 6.3 Implement pricing cards display (monthly + yearly)
-  - [ ] 6.4 Implement monthly user flow (both cards selectable)
-  - [ ] 6.5 Implement yearly user flow (banner + locked monthly card)
-  - [ ] 6.6 Fetch and display renewal date for yearly users
-  - [ ] 6.7 Implement API call logic based on user changes
-  - [ ] 6.8 Add loading states and error handling
-  - [ ] 6.9 Write tests for all user flows
-  - [ ] 6.10 Verify all tests pass
+- [x] 6. Create Update Subscription Page
+  - [x] 6.1 Create /app/onboarding/update-subscription/page.tsx
+  - [x] 6.2 Implement seat adjustment controls (+/- buttons)
+  - [x] 6.3 Implement pricing cards display (monthly + yearly)
+  - [x] 6.4 Implement monthly user flow (both cards selectable)
+  - [x] 6.5 Implement yearly user flow (banner + locked monthly card)
+  - [x] 6.6 Fetch and display renewal date for yearly users
+  - [x] 6.7 Implement API call logic based on user changes
+  - [x] 6.8 Add loading states and error handling
+  - [x] 6.9 Write tests for all user flows
+  - [x] 6.10 Verify all tests pass
 
 - [ ] 7. Update Admin Settings & Simplify Add Users Page
   - [ ] 7.1 Update AdminSettingsClient: Replace two buttons with "Manage Subscription"
