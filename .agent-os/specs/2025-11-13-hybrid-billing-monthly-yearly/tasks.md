@@ -50,90 +50,113 @@
   - [ ] 5.6 Test UI with monthly subscription (verify unchanged)
   - [ ] 5.7 Test UI with yearly subscription (verify proration display)
 
-- [ ] 6. Environment Configuration
-  - [ ] 6.1 Add YEARLY_PRICE_PER_SEAT to .env.local
-  - [ ] 6.2 Add YEARLY_PRICE_PER_SEAT to Vercel environment variables
-  - [ ] 6.3 Verify LEMONSQUEEZY_MONTHLY_VARIANT_ID exists
-  - [ ] 6.4 Verify LEMONSQUEEZY_YEARLY_VARIANT_ID exists
-  - [ ] 6.5 Verify all environment variables loaded correctly
+- [ ] 6. Plan Switching Implementation (NEW)
+  - [ ] 6.1 Create switch-plan API endpoint
+  - [ ] 6.2 Add SeatManager.switchPlan() method
+  - [ ] 6.3 Update subscription_updated webhook handler for plan switches
+  - [ ] 6.4 Create plan comparison UI component
+  - [ ] 6.5 Add plan switching confirmation modal with proration preview
+  - [ ] 6.6 Test monthly → yearly switch
+  - [ ] 6.7 Test yearly → monthly switch
+  - [ ] 6.8 Verify all plan switching tests pass
 
-- [ ] 7. LemonSqueezy Dashboard Configuration
-  - [ ] 7.1 Verify monthly variant (513746) has usage-based billing ENABLED
-  - [ ] 7.2 Verify yearly variant (513747) has usage-based billing DISABLED
-  - [ ] 7.3 Document current variant settings for reference
+- [x] 7. Environment Configuration
+  - [x] 7.1 Add YEARLY_PRICE_PER_SEAT=8.00 to .env.local (8 PLN/month like MONTHLY_PRICE_PER_SEAT)
+  - [ ] 7.2 Add YEARLY_PRICE_PER_SEAT=8.00 to Vercel environment variables
+  - [x] 7.3 Update .env.example with YEARLY_PRICE_PER_SEAT
+  - [x] 7.4 Verify LEMONSQUEEZY_MONTHLY_VARIANT_ID=972634 exists
+  - [x] 7.5 Verify LEMONSQUEEZY_YEARLY_VARIANT_ID=972635 exists
+  - [x] 7.6 Update SeatManager to calculate yearly total (8 PLN × 12 = 96 PLN)
 
-- [ ] 8. End-to-End Testing (Monthly - Verify Unchanged)
-  - [ ] 8.1 Clear all test subscriptions from database
-  - [ ] 8.2 Create new monthly subscription with 6 users
-  - [ ] 8.3 Verify billing_type = 'usage_based' in database
-  - [ ] 8.4 Verify usage record created at subscription_created webhook
-  - [ ] 8.5 Add 2 seats via add-users page
-  - [ ] 8.6 Verify new usage record created with quantity: 8
-  - [ ] 8.7 Verify NO immediate charge (charged at end of period)
-  - [ ] 8.8 Verify subscription_updated did NOT overwrite current_seats
-  - [ ] 8.9 Verify free tier (1-3 users) still works for monthly
+- [ ] 8. LemonSqueezy Dashboard Configuration
+  - [ ] 8.1 Verify monthly variant (972634) has usage-based billing ENABLED
+  - [ ] 8.2 Verify yearly variant (972635) has usage-based billing DISABLED
+  - [ ] 8.3 Document current variant settings for reference
 
-- [ ] 9. End-to-End Testing (Yearly - New Flow)
-  - [ ] 9.1 Create new yearly subscription with 6 users
-  - [ ] 9.2 Verify billing_type = 'quantity_based' in database
-  - [ ] 9.3 Verify NO usage record created at subscription_created webhook
-  - [ ] 9.4 Verify immediate charge for 6 seats × yearly rate
+- [ ] 9. End-to-End Testing (Monthly - Verify Unchanged)
+  - [ ] 9.1 Clear all test subscriptions from database
+  - [ ] 9.2 Create new monthly subscription with 6 users
+  - [ ] 9.3 Verify billing_type = 'usage_based' in database
+  - [ ] 9.4 Verify usage record created at subscription_created webhook
   - [ ] 9.5 Add 2 seats via add-users page
-  - [ ] 9.6 Verify proration preview shown in UI before confirmation
-  - [ ] 9.7 Confirm seat addition
-  - [ ] 9.8 Verify PATCH to subscription-items with invoice_immediately: true
-  - [ ] 9.9 Verify immediate proration charge applied
-  - [ ] 9.10 Verify subscription quantity updated to 8 in LemonSqueezy
-  - [ ] 9.11 Verify current_seats updated to 8 in database
-  - [ ] 9.12 Verify free tier (1-3 users) works for yearly
+  - [ ] 9.6 Verify new usage record created with quantity: 8
+  - [ ] 9.7 Verify NO immediate charge (charged at end of period)
+  - [ ] 9.8 Verify subscription_updated did NOT overwrite current_seats
+  - [ ] 9.9 Verify free tier (1-3 users) still works for monthly
 
-- [ ] 10. Proration Accuracy Testing
-  - [ ] 10.1 Create yearly subscription that renews in exactly 183 days (half year)
-  - [ ] 10.2 Add 1 seat via API
-  - [ ] 10.3 Calculate expected proration: (1 × $1200 × 183) / 365 ≈ $600
-  - [ ] 10.4 Verify actual charge matches expected within $0.50
-  - [ ] 10.5 Test with different days remaining (30, 90, 270 days)
-  - [ ] 10.6 Verify all proration calculations accurate
+- [ ] 10. End-to-End Testing (Yearly - New Flow)
+  - [ ] 10.1 Create new yearly subscription with 6 users
+  - [ ] 10.2 Verify billing_type = 'quantity_based' in database
+  - [ ] 10.3 Verify NO usage record created at subscription_created webhook
+  - [ ] 10.4 Verify immediate charge for 6 seats × yearly rate (96 PLN per seat)
+  - [ ] 10.5 Add 2 seats via add-users page
+  - [ ] 10.6 Verify proration preview shown in UI before confirmation
+  - [ ] 10.7 Confirm seat addition
+  - [ ] 10.8 Verify PATCH to subscription-items with invoice_immediately: true
+  - [ ] 10.9 Verify immediate proration charge applied
+  - [ ] 10.10 Verify subscription quantity updated to 8 in LemonSqueezy
+  - [ ] 10.11 Verify current_seats updated to 8 in database
+  - [ ] 10.12 Verify free tier (1-3 users) works for yearly
 
-- [ ] 11. Seat Removal Testing
-  - [ ] 11.1 Test removing seats for monthly subscription
-  - [ ] 11.2 Verify usage record created with lower quantity
-  - [ ] 11.3 Verify credit applied at end of period
-  - [ ] 11.4 Test removing seats for yearly subscription
-  - [ ] 11.5 Verify PATCH with lower quantity
-  - [ ] 11.6 Verify credit applied at next renewal
+- [ ] 11. End-to-End Testing (Plan Switching)
+  - [ ] 11.1 Test monthly → yearly: Start with monthly 8 seats
+  - [ ] 11.2 Switch to yearly, verify proration credit applied
+  - [ ] 11.3 Verify billing_type updated to 'quantity_based'
+  - [ ] 11.4 Verify seats preserved (8)
+  - [ ] 11.5 Test yearly → monthly: Start with yearly 8 seats
+  - [ ] 11.6 Switch to monthly, verify credit at next renewal
+  - [ ] 11.7 Verify billing_type updated to 'usage_based'
+  - [ ] 11.8 Verify usage record created with quantity: 8
 
-- [ ] 12. Error Handling and Edge Cases
-  - [ ] 12.1 Test unknown variant_id throws clear error
-  - [ ] 12.2 Test missing subscription_item_id handled gracefully
-  - [ ] 12.3 Test LemonSqueezy API failure returns user-friendly error
-  - [ ] 12.4 Test adding 0 seats returns no-op response
-  - [ ] 12.5 Test adding negative seats treated as removal
-  - [ ] 12.6 Verify all error messages logged comprehensively
+- [ ] 12. Proration Accuracy Testing
+  - [ ] 12.1 Create yearly subscription that renews in exactly 183 days (half year)
+  - [ ] 12.2 Add 1 seat via API
+  - [ ] 12.3 Calculate expected proration: (1 × 96 PLN × 183) / 365 ≈ 48.16 PLN
+  - [ ] 12.4 Verify actual charge matches expected within 0.50 PLN
+  - [ ] 12.5 Test with different days remaining (30, 90, 270 days)
+  - [ ] 12.6 Verify all proration calculations accurate
 
-- [ ] 13. Code Quality and Documentation
-  - [ ] 13.1 Add comprehensive inline comments to SeatManager
-  - [ ] 13.2 Add comprehensive comments to subscription_created routing logic
-  - [ ] 13.3 Update existing comments to clarify monthly (unchanged) vs yearly (new)
-  - [ ] 13.4 Add JSDoc comments to all public SeatManager methods
-  - [ ] 13.5 Add type definitions with clear descriptions
-  - [ ] 13.6 Verify code follows project conventions
+- [ ] 13. Seat Removal Testing
+  - [ ] 13.1 Test removing seats for monthly subscription
+  - [ ] 13.2 Verify usage record created with lower quantity
+  - [ ] 13.3 Verify credit applied at end of period
+  - [ ] 13.4 Test removing seats for yearly subscription
+  - [ ] 13.5 Verify PATCH with lower quantity
+  - [ ] 13.6 Verify credit applied at next renewal
 
-- [ ] 14. Deployment and Monitoring
-  - [ ] 14.1 Deploy to staging environment
-  - [ ] 14.2 Run all E2E tests on staging
-  - [ ] 14.3 Monitor logs for any errors or unexpected behavior
-  - [ ] 14.4 Create test yearly subscription on staging
-  - [ ] 14.5 Verify complete flow: create → add seats → verify proration
-  - [ ] 14.6 Deploy to production
-  - [ ] 14.7 Monitor production logs for first 24 hours
-  - [ ] 14.8 Create test yearly subscription on production
-  - [ ] 14.9 Verify production deployment successful
+- [ ] 14. Error Handling and Edge Cases
+  - [ ] 14.1 Test unknown variant_id throws clear error
+  - [ ] 14.2 Test missing subscription_item_id handled gracefully
+  - [ ] 14.3 Test LemonSqueezy API failure returns user-friendly error
+  - [ ] 14.4 Test adding 0 seats returns no-op response
+  - [ ] 14.5 Test adding negative seats treated as removal
+  - [ ] 14.6 Verify all error messages logged comprehensively
 
-- [ ] 15. Final Verification and Cleanup
-  - [ ] 15.1 Verify monthly subscriptions still working correctly in production
-  - [ ] 15.2 Verify yearly subscriptions working correctly in production
-  - [ ] 15.3 Delete all test subscriptions from database
-  - [ ] 15.4 Update project README if needed
-  - [ ] 15.5 Document proration formula for future reference
-  - [ ] 15.6 Verify all success criteria met from spec.md
+- [ ] 15. Code Quality and Documentation
+  - [ ] 15.1 Add comprehensive inline comments to SeatManager
+  - [ ] 15.2 Add comprehensive comments to subscription_created routing logic
+  - [ ] 15.3 Update existing comments to clarify monthly (unchanged) vs yearly (new)
+  - [ ] 15.4 Add JSDoc comments to all public SeatManager methods
+  - [ ] 15.5 Add type definitions with clear descriptions
+  - [ ] 15.6 Verify code follows project conventions
+
+- [ ] 16. Deployment and Monitoring
+  - [ ] 16.1 Deploy to staging environment
+  - [ ] 16.2 Run all E2E tests on staging
+  - [ ] 16.3 Monitor logs for any errors or unexpected behavior
+  - [ ] 16.4 Create test yearly subscription on staging
+  - [ ] 16.5 Verify complete flow: create → add seats → verify proration
+  - [ ] 16.6 Test plan switching on staging
+  - [ ] 16.7 Deploy to production
+  - [ ] 16.8 Monitor production logs for first 24 hours
+  - [ ] 16.9 Create test yearly subscription on production
+  - [ ] 16.10 Verify production deployment successful
+
+- [ ] 17. Final Verification and Cleanup
+  - [ ] 17.1 Verify monthly subscriptions still working correctly in production
+  - [ ] 17.2 Verify yearly subscriptions working correctly in production
+  - [ ] 17.3 Verify plan switching working correctly in production
+  - [ ] 17.4 Delete all test subscriptions from database
+  - [ ] 17.5 Update project README if needed
+  - [ ] 17.6 Document proration formula for future reference
+  - [ ] 17.7 Verify all success criteria met from spec.md

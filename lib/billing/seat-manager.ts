@@ -180,8 +180,11 @@ export class SeatManager {
       };
     }
 
-    // Get yearly price per seat from environment
-    const yearlyPricePerSeat = parseFloat(process.env.YEARLY_PRICE_PER_SEAT || '1200');
+    // Get monthly price per seat for yearly billing from environment (8 PLN/month)
+    const monthlyPricePerSeat = parseFloat(process.env.YEARLY_PRICE_PER_SEAT || '8.00');
+
+    // Calculate yearly total per seat (8 PLN/month × 12 months = 96 PLN/year)
+    const yearlyPricePerSeat = monthlyPricePerSeat * 12;
 
     // Calculate prorated amount
     // Formula: (seats_added × yearly_price × days_remaining) / total_days
@@ -192,6 +195,7 @@ export class SeatManager {
       currentSeats: subscription.current_seats,
       newQuantity,
       seatsAdded,
+      monthlyPricePerSeat,
       yearlyPricePerSeat,
       daysRemaining,
       totalDays,
@@ -383,7 +387,7 @@ export class SeatManager {
       chargedAt: 'immediately',
       prorationAmount: proration.amount,
       daysRemaining: proration.daysRemaining,
-      message: `You will be charged $${proration.amount.toFixed(2)} for ${proration.daysRemaining} remaining days`,
+      message: `You will be charged ${proration.amount.toFixed(2)} PLN for ${proration.daysRemaining} remaining days`,
       currentSeats: newQuantity
     };
   }
