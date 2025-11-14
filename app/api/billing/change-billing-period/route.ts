@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { authenticateAndGetOrgContext } from '@/lib/auth-utils-v2';
+import { SeatManager } from '@/lib/billing/seat-manager';
 
 interface ChangeBillingPeriodRequest {
   new_variant_id: number;
@@ -179,6 +180,33 @@ export async function POST(request: NextRequest) {
       .eq('organization_id', organizationId);
 
     console.log(`🔄 [Billing Period Change] Updated billing_type to ${billingType} for variant ${new_variant_id}`);
+
+    // If switching TO usage-based (monthly), create initial usage record
+    if (billingType === 'usage_based' && preservedSeats > 0) {
+      try {
+        console.log(`📊 [Billing Period Change] Creating initial usage record for monthly billing:`, {
+          correlationId,
+          subscription_id: subscription.lemonsqueezy_subscription_id,
+          seats: preservedSeats
+        });
+
+        // Get subscription ID from database to use SeatManager
+        const { data: subData } = await supabase
+          .from('subscriptions')
+          .select('id')
+          .eq('organization_id', organizationId)
+          .single();
+
+        if (subData) {
+          const seatManager = new SeatManager();
+          await seatManager.addSeats(subData.id, preservedSeats);
+          console.log(`✅ [Billing Period Change] Initial usage record created for ${preservedSeats} seats`);
+        }
+      } catch (usageError) {
+        console.error(`⚠️ [Billing Period Change] Failed to create initial usage record:`, usageError);
+        // Don't fail the entire request - usage record can be created later
+      }
+    }
 
     console.log(`✅ [Payment Flow] Billing period changed successfully:`, {
       correlationId,
