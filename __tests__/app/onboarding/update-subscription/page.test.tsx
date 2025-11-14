@@ -33,17 +33,23 @@ jest.mock('@/components/ui/alert', () => ({
 }))
 
 jest.mock('@/components/ui/button', () => ({
-  Button: ({ children, onClick, disabled, variant, className }: any) => (
-    <button
-      data-testid={children?.toString().includes('Cancel') ? 'cancel-button' : children?.toString().includes('Update') || children?.toString().includes('Switch') ? 'update-button' : 'button'}
-      onClick={onClick}
-      disabled={disabled}
-      data-variant={variant}
-      className={className}
-    >
-      {children}
-    </button>
-  )
+  Button: ({ children, onClick, disabled, variant, className }: any) => {
+    const childText = children?.toString().toLowerCase() || ''
+    const testId = childText.includes('cancel') ? 'cancel-button' :
+                   (childText.includes('update') || childText.includes('switch')) ? 'update-button' :
+                   'button'
+    return (
+      <button
+        data-testid={testId}
+        onClick={onClick}
+        disabled={disabled}
+        data-variant={variant}
+        className={className}
+      >
+        {children}
+      </button>
+    )
+  }
 }))
 
 jest.mock('@/components/ui/badge', () => ({
@@ -182,11 +188,11 @@ describe('UpdateSubscriptionPage', () => {
       render(<UpdateSubscriptionPage />)
 
       await waitFor(() => {
-        expect(screen.queryByText(/only available at renewal/i)).not.toBeInTheDocument()
+        expect(screen.queryByText(/yearlyOnlyAtRenewal/i)).not.toBeInTheDocument()
       })
 
       // Both cards should be clickable (no lock overlay)
-      const cards = screen.getAllByText(/per month per user/i)
+      const cards = screen.getAllByText(/perMonthPerUser/i)
       expect(cards).toHaveLength(2)
     })
 
@@ -194,18 +200,18 @@ describe('UpdateSubscriptionPage', () => {
       render(<UpdateSubscriptionPage />)
 
       await waitFor(() => {
-        expect(screen.getByText('Yearly')).toBeInTheDocument()
+        expect(screen.getByText('yearly')).toBeInTheDocument()
       })
 
       // Click yearly card
-      const yearlyCard = screen.getByText('Yearly').closest('div')
+      const yearlyCard = screen.getByText('yearly').closest('div')
       if (yearlyCard) {
         fireEvent.click(yearlyCard)
       }
 
       // Click update button
       const updateButton = screen.getByTestId('update-button')
-      expect(updateButton).toHaveTextContent('Switch to Yearly')
+      expect(updateButton).toHaveTextContent('switchToYearly')
     })
 
     it('should call switch-to-yearly API when monthly user switches to yearly', async () => {
@@ -232,11 +238,11 @@ describe('UpdateSubscriptionPage', () => {
       render(<UpdateSubscriptionPage />)
 
       await waitFor(() => {
-        expect(screen.getByText('Yearly')).toBeInTheDocument()
+        expect(screen.getByText('yearly')).toBeInTheDocument()
       })
 
       // Select yearly
-      const yearlyCard = screen.getByText('Yearly').closest('div')
+      const yearlyCard = screen.getByText('yearly').closest('div')
       if (yearlyCard) {
         fireEvent.click(yearlyCard)
       }
@@ -335,7 +341,7 @@ describe('UpdateSubscriptionPage', () => {
       render(<UpdateSubscriptionPage />)
 
       await waitFor(() => {
-        expect(screen.getByText(/only available at renewal/i)).toBeInTheDocument()
+        expect(screen.getByText(/yearlyOnlyAtRenewal/i)).toBeInTheDocument()
       })
     })
 
@@ -343,11 +349,11 @@ describe('UpdateSubscriptionPage', () => {
       render(<UpdateSubscriptionPage />)
 
       await waitFor(() => {
-        expect(screen.getByText('Monthly')).toBeInTheDocument()
+        expect(screen.getByText('monthly')).toBeInTheDocument()
       })
 
       // Check for lock icon (lucide-react Lock component)
-      const monthlyCard = screen.getByText('Monthly').closest('div')
+      const monthlyCard = screen.getByText('monthly').closest('div')
       expect(monthlyCard).toHaveClass('cursor-not-allowed')
       expect(monthlyCard).toHaveClass('opacity-50')
     })
@@ -405,18 +411,18 @@ describe('UpdateSubscriptionPage', () => {
       render(<UpdateSubscriptionPage />)
 
       await waitFor(() => {
-        expect(screen.getByText('Monthly')).toBeInTheDocument()
+        expect(screen.getByText('monthly')).toBeInTheDocument()
       })
 
       // Try to click monthly card
-      const monthlyCard = screen.getByText('Monthly').closest('div')
+      const monthlyCard = screen.getByText('monthly').closest('div')
       if (monthlyCard) {
         fireEvent.click(monthlyCard)
       }
 
       // Should still be on yearly
       await waitFor(() => {
-        const yearlyCard = screen.getByText('Yearly').closest('div')
+        const yearlyCard = screen.getByText('yearly').closest('div')
         expect(yearlyCard).toHaveClass('bg-violet-100')
       })
     })
@@ -583,11 +589,11 @@ describe('UpdateSubscriptionPage', () => {
       render(<UpdateSubscriptionPage />)
 
       await waitFor(() => {
-        expect(screen.getByText('Yearly')).toBeInTheDocument()
+        expect(screen.getByText('yearly')).toBeInTheDocument()
       })
 
       // Select yearly
-      const yearlyCard = screen.getByText('Yearly').closest('div')
+      const yearlyCard = screen.getByText('yearly').closest('div')
       if (yearlyCard) {
         fireEvent.click(yearlyCard)
       }

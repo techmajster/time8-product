@@ -55,15 +55,15 @@
   - [x] 6.10 Verify all tests pass
 
 - [ ] 7. Update Admin Settings & Simplify Add Users Page
-  - [ ] 7.1 Update AdminSettingsClient: Replace two buttons with "Manage Subscription"
-  - [ ] 7.2 Update handler to redirect to /onboarding/update-subscription
-  - [ ] 7.3 Remove old handleManageSeatSubscription handler
-  - [ ] 7.4 Remove old handleChangeBillingPeriod handler
-  - [ ] 7.5 Simplify add-users page: Remove isUpgradeFlow logic
-  - [ ] 7.6 Simplify add-users page: Remove subscription fetching
-  - [ ] 7.7 Simplify add-users page: Update warning text
-  - [ ] 7.8 Delete /app/onboarding/change-billing-period/page.tsx
-  - [ ] 7.9 Delete /__tests__/app/onboarding/change-billing-period/
+  - [x] 7.1 Update AdminSettingsClient: Replace two buttons with "Manage Subscription"
+  - [x] 7.2 Update handler to redirect to /onboarding/update-subscription
+  - [x] 7.3 Remove old handleManageSeatSubscription handler
+  - [x] 7.4 Remove old handleChangeBillingPeriod handler
+  - [x] 7.5 Simplify add-users page: Remove isUpgradeFlow logic
+  - [x] 7.6 Simplify add-users page: Remove subscription fetching
+  - [x] 7.7 Simplify add-users page: Update warning text
+  - [x] 7.8 Delete /app/onboarding/change-billing-period/page.tsx
+  - [x] 7.9 Delete /__tests__/app/onboarding/change-billing-period/
   - [ ] 7.10 Verify all tests pass
 
 - [ ] 8. Integration Testing
