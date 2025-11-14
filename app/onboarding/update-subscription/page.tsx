@@ -253,7 +253,7 @@ function UpdateSubscriptionPageContent() {
           <div className="flex gap-3 items-center w-full">
             <Info className="size-6 text-muted-foreground" />
             <p className="flex-1 text-lg text-muted-foreground font-normal">
-              Manage Subscription
+              {t('title')}
             </p>
           </div>
 
@@ -263,14 +263,14 @@ function UpdateSubscriptionPageContent() {
               <Alert variant="default" className="w-full border-blue-200 bg-blue-50">
                 <Lock className="h-4 w-4 text-blue-600" />
                 <AlertDescription className="text-blue-800">
-                  🔒 Switching to monthly is only available at renewal (after {formatRenewalDate(renewalDate)})
+                  {t('yearlyOnlyAtRenewal', { renewalDate: formatRenewalDate(renewalDate) })}
                 </AlertDescription>
               </Alert>
             )}
 
             {/* Main question */}
             <h1 className="text-3xl font-bold leading-9 text-foreground">
-              Update your subscription
+              {t('question')}
             </h1>
 
             {/* Counter section */}
@@ -327,13 +327,13 @@ function UpdateSubscriptionPageContent() {
                         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 size-2 rounded-full bg-foreground" />
                       )}
                     </div>
-                    <span className="flex-1 text-lg font-semibold leading-7">Monthly</span>
-                    <Badge className="ml-auto">Most popular</Badge>
+                    <span className="flex-1 text-lg font-semibold leading-7">{t('monthly')}</span>
+                    <Badge className="ml-auto">{t('mostPopular')}</Badge>
                   </div>
                 </div>
                 <div className="flex gap-1.5 items-end">
                   <span className="text-3xl font-semibold leading-9">{pricing.monthlyPerSeat.toFixed(2)} {pricing.currency}</span>
-                  <span className="text-sm text-muted-foreground">per month per user</span>
+                  <span className="text-sm text-muted-foreground">{t('perMonthPerUser')}</span>
                 </div>
               </div>
 
@@ -353,12 +353,12 @@ function UpdateSubscriptionPageContent() {
                         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 size-2 rounded-full bg-foreground" />
                       )}
                     </div>
-                    <span className="flex-1 text-lg font-semibold leading-7">Yearly</span>
+                    <span className="flex-1 text-lg font-semibold leading-7">{t('yearly')}</span>
                   </div>
                 </div>
                 <div className="flex gap-1.5 items-end">
                   <span className="text-3xl font-semibold leading-9">{pricing.yearlyPerSeat.toFixed(2)} {pricing.currency}</span>
-                  <span className="text-sm text-muted-foreground">per month per user</span>
+                  <span className="text-sm text-muted-foreground">{t('perMonthPerUser')}</span>
                 </div>
               </div>
             </div>
@@ -378,7 +378,7 @@ function UpdateSubscriptionPageContent() {
                 disabled={isLoading}
                 className="flex-1"
               >
-                Cancel
+                {t('cancel')}
               </Button>
               <Button
                 onClick={handleUpdateSubscription}
@@ -388,12 +388,12 @@ function UpdateSubscriptionPageContent() {
                 {isLoading ? (
                   <>
                     <Loader2 className="size-4 animate-spin mr-2" />
-                    Updating...
+                    {t('updating')}
                   </>
                 ) : tierChanged && currentTier === 'monthly' ? (
-                  'Switch to Yearly'
+                  t('switchToYearly')
                 ) : (
-                  'Update Subscription'
+                  t('updateSubscription')
                 )}
               </Button>
             </div>
@@ -401,9 +401,7 @@ function UpdateSubscriptionPageContent() {
             {/* Info message */}
             <div className="w-full">
               <p className="text-xs text-blue-600 text-center font-medium">
-                ℹ️ {isYearlyUser ?
-                  'You can adjust your seat count anytime. Monthly billing will be available at renewal.' :
-                  'You can upgrade to yearly billing anytime and adjust seats as needed.'}
+                ℹ️ {isYearlyUser ? t('infoYearly') : t('infoMonthly')}
               </p>
             </div>
           </div>
