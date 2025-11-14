@@ -51,8 +51,8 @@
   - [ ] 5.7 Test UI with yearly subscription (verify proration display)
 
 - [x] 6. Plan Switching Implementation (Backend Complete)
-  - [x] 6.1 Create switch-plan API endpoint
-  - [x] 6.2 Add SeatManager.switchPlan() method
+  - [x] 6.1 Update change-billing-period endpoint to create usage records when switching to monthly
+  - [x] 6.2 Remove redundant switchPlan() method (functionality in change-billing-period endpoint)
   - [ ] 6.3 Update subscription_updated webhook handler for plan switches
   - [ ] 6.4 Create plan comparison UI component
   - [ ] 6.5 Add plan switching confirmation modal with proration preview
