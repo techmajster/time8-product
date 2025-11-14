@@ -42,7 +42,7 @@
   - [x] 4.7 Verify all API endpoint tests pass
 
 - [ ] 5. Frontend UX Updates for Yearly Subscriptions
-  - [ ] 5.1 Add proration preview API endpoint
+  - [x] 5.1 Add proration preview API endpoint
   - [ ] 5.2 Update add-users page to detect billing_type
   - [ ] 5.3 Add conditional UI: monthly shows "billed at end of period"
   - [ ] 5.4 Add conditional UI: yearly shows proration amount and "charged immediately"
@@ -50,9 +50,9 @@
   - [ ] 5.6 Test UI with monthly subscription (verify unchanged)
   - [ ] 5.7 Test UI with yearly subscription (verify proration display)
 
-- [ ] 6. Plan Switching Implementation (NEW)
-  - [ ] 6.1 Create switch-plan API endpoint
-  - [ ] 6.2 Add SeatManager.switchPlan() method
+- [x] 6. Plan Switching Implementation (Backend Complete)
+  - [x] 6.1 Create switch-plan API endpoint
+  - [x] 6.2 Add SeatManager.switchPlan() method
   - [ ] 6.3 Update subscription_updated webhook handler for plan switches
   - [ ] 6.4 Create plan comparison UI component
   - [ ] 6.5 Add plan switching confirmation modal with proration preview
