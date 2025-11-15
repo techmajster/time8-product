@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!process.env.LEMONSQUEEZY_YEARLY_VARIANT_ID || !process.env.LEMONSQUEEZY_MONTHLY_PRODUCT_ID || !process.env.LEMONSQUEEZY_YEARLY_PRODUCT_ID) {
+    if (!process.env.LEMONSQUEEZY_YEARLY_VARIANT_ID?.trim() || !process.env.LEMONSQUEEZY_MONTHLY_PRODUCT_ID?.trim() || !process.env.LEMONSQUEEZY_YEARLY_PRODUCT_ID?.trim()) {
       return NextResponse.json(
         { error: 'Product configuration missing' },
         { status: 500 }
@@ -84,8 +84,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify subscription is monthly (not already yearly)
-    const monthlyProductId = process.env.LEMONSQUEEZY_MONTHLY_PRODUCT_ID;
-    const yearlyProductId = process.env.LEMONSQUEEZY_YEARLY_PRODUCT_ID;
+    const monthlyProductId = process.env.LEMONSQUEEZY_MONTHLY_PRODUCT_ID?.trim();
+    const yearlyProductId = process.env.LEMONSQUEEZY_YEARLY_PRODUCT_ID?.trim();
 
     if (subscription.lemonsqueezy_product_id === yearlyProductId) {
       return NextResponse.json(
@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Create checkout with custom_data for migration tracking
-    const yearlyVariantId = process.env.LEMONSQUEEZY_YEARLY_VARIANT_ID;
+    const yearlyVariantId = process.env.LEMONSQUEEZY_YEARLY_VARIANT_ID?.trim();
     const customData = {
       migration_from_subscription_id: subscription.lemonsqueezy_subscription_id,
       preserve_seats: currentSeats.toString(),

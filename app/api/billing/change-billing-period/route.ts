@@ -91,10 +91,10 @@ export async function POST(request: NextRequest) {
 
     // TWO-PRODUCT MIGRATION: Block yearly→monthly switches and redirect monthly→yearly
     // Only apply this logic if product_id is set (new two-product architecture)
-    const monthlyProductId = process.env.LEMONSQUEEZY_MONTHLY_PRODUCT_ID;
-    const yearlyProductId = process.env.LEMONSQUEEZY_YEARLY_PRODUCT_ID;
-    const monthlyVariantId = process.env.LEMONSQUEEZY_MONTHLY_VARIANT_ID;
-    const yearlyVariantId = process.env.LEMONSQUEEZY_YEARLY_VARIANT_ID;
+    const monthlyProductId = process.env.LEMONSQUEEZY_MONTHLY_PRODUCT_ID?.trim();
+    const yearlyProductId = process.env.LEMONSQUEEZY_YEARLY_PRODUCT_ID?.trim();
+    const monthlyVariantId = process.env.LEMONSQUEEZY_MONTHLY_VARIANT_ID?.trim();
+    const yearlyVariantId = process.env.LEMONSQUEEZY_YEARLY_VARIANT_ID?.trim();
 
     if (subscription.lemonsqueezy_product_id) {
 
