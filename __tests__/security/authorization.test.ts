@@ -159,22 +159,23 @@ describe('Authorization and Role-Based Access Control Tests', () => {
 
     test('should allow admin to manage organization settings', async () => {
       const request = createMockRequest('PUT', '/api/admin/settings/organization', {
-        allowDomainJoinRequests: false,
-        requireAdminApproval: true,
-        defaultEmploymentType: 'contract'
+        name: 'Updated Organization Name',
+        countryCode: 'PL',
+        locale: 'pl'
       }, { userId: adminUserId, organizationId: testOrgId })
 
       const response = await organizationSettingsPut(request)
       expect(response.status).toBe(200)
 
       const data = await response.json()
-      expect(data.settings).toBeDefined()
+      expect(data.success).toBe(true)
+      expect(data.organization).toBeDefined()
     })
 
     test('should deny manager from managing organization settings', async () => {
       const request = createMockRequest('PUT', '/api/admin/settings/organization', {
-        allowDomainJoinRequests: false,
-        requireAdminApproval: true
+        name: 'Unauthorized Update',
+        locale: 'en'
       }, { userId: managerUserId, organizationId: testOrgId })
 
       const response = await organizationSettingsPut(request)
@@ -186,7 +187,7 @@ describe('Authorization and Role-Based Access Control Tests', () => {
 
     test('should deny employee from managing organization settings', async () => {
       const request = createMockRequest('PUT', '/api/admin/settings/organization', {
-        allowDomainJoinRequests: false
+        name: 'Unauthorized Update'
       }, { userId: employeeUserId, organizationId: testOrgId })
 
       const response = await organizationSettingsPut(request)
@@ -194,6 +195,32 @@ describe('Authorization and Role-Based Access Control Tests', () => {
 
       const data = await response.json()
       expect(data.error).toMatch(/access denied|unauthorized|admin/i)
+    })
+
+    test('should reject deprecated fields in organization settings', async () => {
+      const deprecatedFieldTests = [
+        { slug: 'test-slug', name: 'Test Org' },
+        { name: 'Test Org', logo: 'logo-data' },
+        { name: 'Test Org', logoUrl: 'https://example.com/logo.png' },
+        { name: 'Test Org', googleDomain: 'example.com' },
+        { name: 'Test Org', requireGoogleDomain: true }
+      ]
+
+      for (const requestBody of deprecatedFieldTests) {
+        const request = createMockRequest('PUT', '/api/admin/settings/organization', requestBody, {
+          userId: adminUserId,
+          organizationId: testOrgId
+        })
+
+        const response = await organizationSettingsPut(request)
+        expect(response.status).toBe(400)
+
+        const data = await response.json()
+        expect(data.error).toMatch(/no longer supported|removed|deprecated/i)
+        expect(data.deprecatedFields).toBeDefined()
+        expect(Array.isArray(data.deprecatedFields)).toBe(true)
+        expect(data.deprecatedFields.length).toBeGreaterThan(0)
+      }
     })
 
     test('should allow admin to send invitations', async () => {
