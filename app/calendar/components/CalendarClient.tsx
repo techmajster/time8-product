@@ -47,6 +47,11 @@ interface CalendarClientProps {
   showHeader?: boolean
   showPadding?: boolean
   workingDays?: string[]
+  workScheduleConfig?: {
+    excludePublicHolidays: boolean
+    dailyStartTime: string
+    dailyEndTime: string
+  }
   externalCurrentDate?: Date
   onDateChange?: (date: Date) => void
   hideNavigation?: boolean
@@ -128,7 +133,7 @@ interface SelectedDayData {
   }
 }
 
-export default function CalendarClient({ organizationId, countryCode, userId, colleagues, teamMemberIds, teamScope, showHeader = true, showPadding = true, workingDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'], externalCurrentDate, onDateChange, hideNavigation = false, disableResponsive = false, headerLayout = 'default' }: CalendarClientProps) {
+export default function CalendarClient({ organizationId, countryCode, userId, colleagues, teamMemberIds, teamScope, showHeader = true, showPadding = true, workingDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'], workScheduleConfig, externalCurrentDate, onDateChange, hideNavigation = false, disableResponsive = false, headerLayout = 'default' }: CalendarClientProps) {
   const [internalDate, setInternalDate] = useState(new Date())
   
   // Use external date if provided, otherwise use internal state
@@ -314,20 +319,21 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
     // Check if it's a weekend based on organization's working days
     const dayName = DAY_NAMES_LOWERCASE[dayOfWeek]
     const isWeekend = !workingDays.includes(dayName)
-    
-    // Check if it's a holiday
-    const isHoliday = !!holiday
-    
+
+    // Check if it's a holiday (respect excludePublicHolidays setting)
+    const excludeHolidays = workScheduleConfig?.excludePublicHolidays ?? true
+    const isHoliday = excludeHolidays && !!holiday
+
     // Check if you have approved leave on this day
     const dateStr = `${currentDate.getFullYear()}-${(currentDate.getMonth() + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`
 
-    const hasPersonalLeave = leaveRequests.some((leave: LeaveRequest) => 
-      leave.user_id === userId && 
+    const hasPersonalLeave = leaveRequests.some((leave: LeaveRequest) =>
+      leave.user_id === userId &&
       leave.status === 'approved' &&
-      dateStr >= leave.start_date && 
+      dateStr >= leave.start_date &&
       dateStr <= leave.end_date
     )
-    
+
     return isWeekend || isHoliday || hasPersonalLeave
   }
 
@@ -449,10 +455,13 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
     // Determine day status for dynamic message
     const dayOfWeek = selectedDate.getDay() // 0 = Sunday, 6 = Saturday
     const dayNameLower = DAY_NAMES_LOWERCASE[dayOfWeek]
-    const isWeekend = !workingDays.includes(dayNameLower)
-    
+    const isNonWorkingDay = !workingDays.includes(dayNameLower)
+
+    // Check if it's a traditional weekend day (Saturday or Sunday)
+    const isTraditionalWeekend = dayOfWeek === 0 || dayOfWeek === 6
+
     let dayStatus: SelectedDayData['dayStatus']
-    
+
     if (userLeave && userLeave.leave_types) {
       // User has approved leave on this day
       dayStatus = {
@@ -460,19 +469,20 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
         message: userLeave.leave_types.name || t('youHaveLeave'),
         leaveTypeName: userLeave.leave_types.name || t('youHaveLeave')
       }
-    } else if (isWeekend && holiday) {
-      // Weekend with holiday - show weekend as header, holiday name below
+    } else if (isNonWorkingDay && holiday) {
+      // Non-working day with holiday
       dayStatus = {
-        type: 'weekend',
+        type: isTraditionalWeekend ? 'weekend' : 'holiday',
         message: holiday.name,
         holidayName: holiday.name,
         holidayType: holiday.type as 'national' | 'company'
       }
-    } else if (isWeekend) {
-      // Weekend without holiday - single text only
+    } else if (isNonWorkingDay) {
+      // Non-working day without holiday
+      // Use "Weekend" for Sat/Sun, "Niepracujący" for custom non-working days
       dayStatus = {
         type: 'weekend',
-        message: t('weekend')
+        message: isTraditionalWeekend ? t('weekend') : 'Niepracujący'
       }
     } else if (holiday) {
       // It's a holiday (not weekend)
@@ -528,17 +538,25 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
     const dateStr = `${currentDate.getFullYear()}-${(currentDate.getMonth() + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`
     
     // Check if user has approved leave on this day
-    const userLeave = leaveRequests.find((leave: LeaveRequest) => 
-      leave.user_id === userId && 
+    const userLeave = leaveRequests.find((leave: LeaveRequest) =>
+      leave.user_id === userId &&
       leave.status === 'approved' &&
-      dateStr >= leave.start_date && 
+      dateStr >= leave.start_date &&
       dateStr <= leave.end_date
     )
-    
+
+    // Get work hours from config
+    const dailyStart = workScheduleConfig?.dailyStartTime || '09:00'
+    const dailyEnd = workScheduleConfig?.dailyEndTime || '17:00'
+    const workHours = `${dailyStart.substring(0, 5)} - ${dailyEnd.substring(0, 5)}`
+
+    // Check if holidays should be treated as non-working days
+    const excludeHolidays = workScheduleConfig?.excludePublicHolidays ?? true
+
     // Determine background color and status label
     let bgClass = 'bg-[var(--card-violet)]' // Default: working day (uses CSS variable that adapts to dark mode)
     let patternClass = ''
-    let statusLabel = '9:00 - 15:00' // Hardcoded work hours as requested
+    let statusLabel = workHours
 
     if (userLeave) {
       // User has leave - determine type
@@ -551,20 +569,24 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
         statusLabel = leaveTypeName
       }
     } else if (isWeekend && holiday) {
-      // Weekend with holiday
+      // Weekend with holiday - respect excludeHolidays setting
       bgClass = 'bg-accent'
       patternClass = 'calendar-weekend-pattern'
-      statusLabel = holiday.name
+      statusLabel = excludeHolidays ? holiday.name : workHours
     } else if (isWeekend) {
       // Weekend without holiday
       bgClass = 'bg-accent'
       patternClass = 'calendar-weekend-pattern'
       statusLabel = 'Niepracujący'
-    } else if (holiday) {
-      // Holiday on working day
+    } else if (holiday && excludeHolidays) {
+      // Holiday on working day (only if excludeHolidays is true)
       bgClass = 'bg-accent'
       patternClass = 'calendar-holiday-pattern'
       statusLabel = holiday.name
+    } else if (holiday && !excludeHolidays) {
+      // Holiday but treated as working day (excludeHolidays is false)
+      // Keep working day styling but don't show holiday pattern
+      statusLabel = workHours
     }
     
     return {

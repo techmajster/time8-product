@@ -93,7 +93,8 @@ export function useUpdateWorkMode() {
         throw new Error(result.error || 'Nie udało się zaktualizować trybu pracy')
       }
 
-      return response.json()
+      const result = await response.json()
+      return result.data // Return the updated organization data
     },
     onSuccess: () => {
       // Invalidate relevant queries

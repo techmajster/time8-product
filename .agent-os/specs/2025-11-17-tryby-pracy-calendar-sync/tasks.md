@@ -11,15 +11,15 @@
 - [x] 2.3 Wire admin/server loaders (`/admin/settings`, `/dashboard`, `/calendar`) to select new columns
 
 ## 3. Admin Settings UI
-- [ ] 3.1 Replace `WorkModeSettings` summary with Figma cards + `Edytuj` actions
-- [ ] 3.2 Implement `EditWorkingDaysSheet` (chips, toggle, optimistic updates)
-- [ ] 3.3 Implement `EditWorkHoursSheet` (Praca codzienna, shift preview states)
-- [ ] 3.4 Hook sheets into React Query mutation with loading/error states
+- [x] 3.1 Replace `WorkModeSettings` summary with Figma cards + `Edytuj` actions
+- [x] 3.2 Implement `EditWorkingDaysSheet` (chips, toggle, optimistic updates)
+- [x] 3.3 Implement `EditWorkHoursSheet` (Praca codzienna, shift preview states)
+- [x] 3.4 Hook sheets into React Query mutation with loading/error states
 
 ## 4. Dashboard & Calendar Integration
-- [ ] 4.1 Feed working-days + hours into `CurrentDayCard`
-- [ ] 4.2 Pass new config props through `DashboardCalendar` → `CalendarClient`
-- [ ] 4.3 Update `CalendarClient` day status logic (hours label + holiday toggle)
+- [x] 4.1 Feed working-days + hours into `CurrentDayCard`
+- [x] 4.2 Pass new config props through `DashboardCalendar` → `CalendarClient`
+- [x] 4.3 Update `CalendarClient` day status logic (hours label + holiday toggle)
 
 ## 5. QA / Documentation
 - [ ] 5.1 Add component/API tests covering new flows + validation failures
