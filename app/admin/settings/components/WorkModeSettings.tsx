@@ -2,132 +2,252 @@
 
 import React, { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Label } from '@/components/ui/label'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Button } from '@/components/ui/button'
-import { toast } from 'sonner'
-import { Loader2 } from 'lucide-react'
-import { useRouter } from 'next/navigation'
-import { useUpdateWorkMode } from '@/hooks/use-admin-mutations'
+import { Separator } from '@/components/ui/separator'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Check, X } from 'lucide-react'
+import { EditWorkingDaysSheet } from './EditWorkingDaysSheet'
+import { EditWorkHoursSheet } from './EditWorkHoursSheet'
+import { cn } from '@/lib/utils'
 
 interface WorkModeSettingsProps {
   currentOrganization: {
     id: string
     work_mode?: 'monday_to_friday' | 'multi_shift'
     working_days?: string[]
+    exclude_public_holidays?: boolean
+    work_schedule_type?: 'daily' | 'multi_shift'
+    daily_start_time?: string | null
+    daily_end_time?: string | null
+    shift_count?: number | null
+    work_shifts?: Array<{
+      label?: string
+      start_time: string
+      end_time: string
+    }>
   }
 }
 
-export function WorkModeSettings({ currentOrganization }: WorkModeSettingsProps) {
-  const router = useRouter()
-  const [selectedMode, setSelectedMode] = useState<'monday_to_friday' | 'multi_shift'>(
-    currentOrganization?.work_mode || 'monday_to_friday'
-  )
+const DAY_LABELS: Record<string, string> = {
+  monday: 'Pon',
+  tuesday: 'Wt',
+  wednesday: 'Śr',
+  thursday: 'Czw',
+  friday: 'Pt',
+  saturday: 'Sob',
+  sunday: 'Niedz',
+}
 
-  // React Query mutation
-  const updateWorkModeMutation = useUpdateWorkMode()
+const DAY_ORDER = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
 
-  const handleSaveWorkMode = async () => {
-    // Prepare default working days based on mode
-    let workingDays: string[] = []
+export function WorkModeSettings({ currentOrganization: initialOrganization }: WorkModeSettingsProps) {
+  const [editWorkingDaysOpen, setEditWorkingDaysOpen] = useState(false)
+  const [editWorkHoursOpen, setEditWorkHoursOpen] = useState(false)
+  const [organization, setOrganization] = useState(initialOrganization)
 
-    if (selectedMode === 'monday_to_friday') {
-      workingDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']
-    }
+  // Sync with prop changes
+  React.useEffect(() => {
+    setOrganization(initialOrganization)
+  }, [initialOrganization])
 
-    // Use React Query mutation
-    updateWorkModeMutation.mutate({
-      work_mode: selectedMode,
-      working_days: workingDays
-    })
+  const workingDays = organization?.working_days || ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']
+  const excludeHolidays = organization?.exclude_public_holidays ?? true
+  const scheduleType = organization?.work_schedule_type || 'daily'
+  const dailyStartTime = organization?.daily_start_time || '09:00'
+  const dailyEndTime = organization?.daily_end_time || '17:00'
+  const workShifts = organization?.work_shifts || []
+
+  const handleOrganizationUpdate = (updatedOrg: any) => {
+    setOrganization(prev => ({ ...prev, ...updatedOrg }))
+  }
+
+  const formatTime = (time: string | null | undefined) => {
+    if (!time) return '09:00'
+    // Handle both HH:MM and HH:MM:SS formats
+    return time.split(':').slice(0, 2).join(':')
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Dostępne tryby pracy</CardTitle>
-        <CardDescription>
-          Konfiguracja trybu pracy dla organizacji. Określa, które dni tygodnia są dniami roboczymi, a które są weekendami.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <RadioGroup
-          value={selectedMode}
-          onValueChange={(value) => setSelectedMode(value as 'monday_to_friday' | 'multi_shift')}
-          className="space-y-4"
-        >
-          {/* Monday to Friday Mode */}
-          <div className="flex items-start space-x-3 space-y-0">
-            <RadioGroupItem value="monday_to_friday" id="monday_to_friday" />
-            <div className="flex-1">
-              <Label
-                htmlFor="monday_to_friday"
-                className="text-base font-medium cursor-pointer"
-              >
-                Poniedziałek - Piątek
-              </Label>
-              <p className="text-sm text-muted-foreground mt-1">
-                Standardowy tydzień pracy (5 dni). Sobota i niedziela są weekendami i będą wyświetlane na kalendarzu jako dni wolne.
-              </p>
-              <div className="mt-2 flex gap-2 flex-wrap">
-                {['Pon', 'Wt', 'Śr', 'Czw', 'Pt'].map((day, index) => (
-                  <span
-                    key={index}
-                    className="px-2 py-1 text-xs font-medium bg-green-50 text-green-700 border border-green-200 rounded"
-                  >
-                    {day}
-                  </span>
-                ))}
-                {['Sob', 'Niedz'].map((day, index) => (
-                  <span
-                    key={index}
-                    className="px-2 py-1 text-xs font-medium bg-gray-50 text-gray-500 border border-gray-200 rounded"
-                  >
-                    {day}
-                  </span>
-                ))}
-              </div>
+    <div className="space-y-6">
+      {/* Working Days Card */}
+      <Card className="border-0 p-0">
+        <CardHeader className="pb-0 p-0">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1.5">
+              <CardTitle className="text-xl font-semibold">Dni pracujące</CardTitle>
+              <CardDescription>
+                Podstawowe informacje o przestrzeni roboczej
+              </CardDescription>
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setEditWorkingDaysOpen(true)}
+              className="h-9"
+            >
+              Edytuj
+            </Button>
           </div>
-
-          {/* Multi-shift Mode (Coming Soon) */}
-          <div className="flex items-start space-x-3 space-y-0 opacity-50 cursor-not-allowed">
-            <RadioGroupItem value="multi_shift" id="multi_shift" disabled />
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <Label
-                  htmlFor="multi_shift"
-                  className="text-base font-medium cursor-not-allowed"
+        </CardHeader>
+        <CardContent className="pt-0 pb-0 p-0 space-y-6">
+          {/* Day Chips - NO border */}
+          <div className="flex gap-1 flex-wrap">
+            {DAY_ORDER.map((dayKey) => {
+              const isWorking = workingDays.includes(dayKey)
+              return (
+                <div
+                  key={dayKey}
+                  className={cn(
+                    'px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5',
+                    isWorking
+                      ? 'bg-card-violet text-foreground'
+                      : 'bg-muted text-muted-foreground'
+                  )}
                 >
-                  Multi-shift
-                </Label>
-                <span className="px-2 py-0.5 text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200 rounded">
-                  Wkrótce
-                </span>
-              </div>
-              <p className="text-sm text-muted-foreground mt-1">
-                Elastyczny harmonogram pracy z możliwością pracy w weekendy. Ta funkcja będzie dostępna wkrótce.
-              </p>
-            </div>
+                  {isWorking ? (
+                    <Check className="h-3 w-3 opacity-50" />
+                  ) : (
+                    <X className="h-3 w-3 opacity-50" />
+                  )}
+                  {DAY_LABELS[dayKey]}
+                </div>
+              )
+            })}
           </div>
-        </RadioGroup>
 
-        {/* Save Button */}
-        <div className="pt-4 border-t">
-          <Button
-            onClick={handleSaveWorkMode}
-            disabled={updateWorkModeMutation.isPending || selectedMode === currentOrganization?.work_mode}
-          >
-            {updateWorkModeMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Zapisz tryb pracy
-          </Button>
-          {selectedMode !== currentOrganization?.work_mode && (
-            <p className="text-sm text-muted-foreground mt-2">
-              Masz niezapisane zmiany
+          {/* Public Holidays Checkbox - Disabled */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                checked={excludeHolidays}
+                disabled
+              />
+              <Label className="text-sm font-medium text-foreground">
+                Wolne święta państwowe
+              </Label>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Święta wypadające w dni pracujące zostaną wyłączone z harmonogramu
             </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Separator */}
+      <Separator />
+
+      {/* Work Hours Card */}
+      <Card className="border-0 p-0">
+        <CardHeader className="pb-0 p-0">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1.5">
+              <CardTitle className="text-xl font-semibold">Godziny pracy</CardTitle>
+              <CardDescription>
+                Podstawowe informacje o przestrzeni roboczej
+              </CardDescription>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setEditWorkHoursOpen(true)}
+              className="h-9"
+            >
+              Edytuj
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-0 pb-0 p-0 space-y-6">
+          {scheduleType === 'daily' ? (
+            <>
+              <div>
+                <p className="text-sm font-medium">Praca codzienna</p>
+                <p className="text-xs text-muted-foreground">
+                  Stałe godziny pracy każdego dnia pracującego
+                </p>
+              </div>
+              <div className="flex items-center gap-6">
+                <p className="text-sm font-medium">Godziny pracy</p>
+                <div className="flex items-center gap-3.5">
+                  <p className="text-sm font-medium">Od</p>
+                  <Select value={formatTime(dailyStartTime)} disabled>
+                    <SelectTrigger className="w-[90px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={formatTime(dailyStartTime)}>{formatTime(dailyStartTime)}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-sm font-medium">do</p>
+                  <Select value={formatTime(dailyEndTime)} disabled>
+                    <SelectTrigger className="w-[90px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={formatTime(dailyEndTime)}>{formatTime(dailyEndTime)}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <p className="text-sm font-medium">Praca według grafiku</p>
+                <p className="text-xs text-muted-foreground">
+                  Praca zmianowa w różnych dniach i/lub godzinach
+                </p>
+              </div>
+              {workShifts.length > 0 && (
+                <div className="space-y-6">
+                  {workShifts.map((shift, index) => (
+                    <div key={index} className="flex items-center gap-3">
+                      <p className="text-sm font-medium min-w-[120px]">
+                        Zmiana {index + 1} pracuje
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">Od</span>
+                        <Select value={formatTime(shift.start_time)} disabled>
+                          <SelectTrigger className="w-[90px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value={formatTime(shift.start_time)}>{formatTime(shift.start_time)}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <span className="text-sm font-medium">do</span>
+                        <Select value={formatTime(shift.end_time)} disabled>
+                          <SelectTrigger className="w-[90px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value={formatTime(shift.end_time)}>{formatTime(shift.end_time)}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
           )}
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+
+      {/* Edit Sheets */}
+      <EditWorkingDaysSheet
+        open={editWorkingDaysOpen}
+        onOpenChange={setEditWorkingDaysOpen}
+        organization={organization}
+        onSave={handleOrganizationUpdate}
+      />
+      <EditWorkHoursSheet
+        open={editWorkHoursOpen}
+        onOpenChange={setEditWorkHoursOpen}
+        organization={organization}
+        onSave={handleOrganizationUpdate}
+      />
+    </div>
   )
 }
