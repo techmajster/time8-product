@@ -21,6 +21,12 @@ interface DashboardCalendarProps {
   teamMemberIds: string[]
   teamScope: any
   calendarTitle: string
+  workingDays?: string[]
+  workScheduleConfig?: {
+    excludePublicHolidays: boolean
+    dailyStartTime: string
+    dailyEndTime: string
+  }
 }
 
 const monthNames = [
@@ -35,7 +41,9 @@ export function DashboardCalendar({
   colleagues,
   teamMemberIds,
   teamScope,
-  calendarTitle
+  calendarTitle,
+  workingDays,
+  workScheduleConfig
 }: DashboardCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date())
 
@@ -112,6 +120,8 @@ export function DashboardCalendar({
             externalCurrentDate={currentDate}
             onDateChange={setCurrentDate}
             hideNavigation={true}
+            workingDays={workingDays}
+            workScheduleConfig={workScheduleConfig}
           />
         </div>
       </CardContent>

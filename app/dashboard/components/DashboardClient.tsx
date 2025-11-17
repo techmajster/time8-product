@@ -131,6 +131,8 @@ export function DashboardClient({
             year={currentYear}
             workStatus={td('workingToday')}
             workHours="9:00 - 15:00"
+            organization={profile.organizations}
+            currentDayName={currentDayName}
           />
 
           {/* Birthday Card */}
@@ -207,6 +209,12 @@ export function DashboardClient({
             teamMemberIds={teamMemberIds}
             teamScope={teamScope}
             calendarTitle={t('calendarTitle')}
+            workingDays={profile.organizations?.working_days}
+            workScheduleConfig={{
+              excludePublicHolidays: profile.organizations?.exclude_public_holidays ?? true,
+              dailyStartTime: profile.organizations?.daily_start_time || '09:00',
+              dailyEndTime: profile.organizations?.daily_end_time || '17:00'
+            }}
           />
         </div>
       </div>

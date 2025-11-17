@@ -17,9 +17,9 @@
 - [x] 3.4 Hook sheets into React Query mutation with loading/error states
 
 ## 4. Dashboard & Calendar Integration
-- [ ] 4.1 Feed working-days + hours into `CurrentDayCard`
-- [ ] 4.2 Pass new config props through `DashboardCalendar` → `CalendarClient`
-- [ ] 4.3 Update `CalendarClient` day status logic (hours label + holiday toggle)
+- [x] 4.1 Feed working-days + hours into `CurrentDayCard`
+- [x] 4.2 Pass new config props through `DashboardCalendar` → `CalendarClient`
+- [x] 4.3 Update `CalendarClient` day status logic (hours label + holiday toggle)
 
 ## 5. QA / Documentation
 - [ ] 5.1 Add component/API tests covering new flows + validation failures
