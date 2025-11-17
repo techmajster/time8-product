@@ -354,25 +354,66 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
 
     const supabase = createAdminClient();
 
-    // Find customer record, passing custom data from checkout
-    // Note: custom_data is in meta object, not attributes
-    const { data: customer, error: customerError } = await findOrCreateCustomer(
-      supabase,
-      customer_id.toString(),
-      meta.custom_data || null,
-      attributes.user_email
-    );
+    // TWO-PRODUCT MIGRATION: Detect migration BEFORE customer lookup
+    // If this is a migration (monthly→yearly upgrade), reuse existing customer
+    const migrationFromSubscriptionId = meta.custom_data?.migration_from_subscription_id;
+    let customer = null;
+    let customerError = null;
 
-    if (customerError) {
-      const error = `Customer lookup failed: ${customerError.message}`;
-      await logBillingEvent(meta.event_name, meta.event_id, payload, 'failed', error);
-      return { success: false, error };
-    }
+    if (migrationFromSubscriptionId) {
+      console.log(`🔄 [Webhook] Migration detected from subscription ${migrationFromSubscriptionId}`);
+      console.log(`   Reusing existing customer instead of creating new one`);
 
-    if (!customer) {
-      const error = 'Customer not found and could not be created';
-      await logBillingEvent(meta.event_name, meta.event_id, payload, 'failed', error);
-      return { success: false, error };
+      // Find the old subscription to get its customer
+      const { data: oldSubscription, error: oldSubError } = await supabase
+        .from('subscriptions')
+        .select('customer_id, organization_id')
+        .eq('lemonsqueezy_subscription_id', migrationFromSubscriptionId)
+        .single();
+
+      if (oldSubError || !oldSubscription) {
+        const error = `Migration failed: Could not find old subscription ${migrationFromSubscriptionId}`;
+        await logBillingEvent(meta.event_name, meta.event_id, payload, 'failed', error);
+        return { success: false, error };
+      }
+
+      // Reuse the existing customer from the old subscription
+      const { data: existingCustomer, error: existingCustomerError } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('id', oldSubscription.customer_id)
+        .single();
+
+      if (existingCustomerError || !existingCustomer) {
+        const error = `Migration failed: Could not find existing customer for old subscription`;
+        await logBillingEvent(meta.event_name, meta.event_id, payload, 'failed', error);
+        return { success: false, error };
+      }
+
+      customer = existingCustomer;
+      console.log(`✅ [Webhook] Reusing existing customer ${customer.id} for organization ${customer.organization_id}`);
+    } else {
+      // Normal flow: Find or create customer
+      const result = await findOrCreateCustomer(
+        supabase,
+        customer_id.toString(),
+        meta.custom_data || null,
+        attributes.user_email
+      );
+      customer = result.data;
+      customerError = result.error;
+
+      if (customerError) {
+        const error = `Customer lookup failed: ${customerError.message}`;
+        await logBillingEvent(meta.event_name, meta.event_id, payload, 'failed', error);
+        return { success: false, error };
+      }
+
+      if (!customer) {
+        const error = 'Customer not found and could not be created';
+        await logBillingEvent(meta.event_name, meta.event_id, payload, 'failed', error);
+        return { success: false, error };
+      }
     }
 
     // Extract subscription_item_id for usage records API
@@ -565,12 +606,10 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
       });
     }
 
-    // TWO-PRODUCT MIGRATION: Detect and handle migration from old subscription
-    // Check if this is a migration (monthly→yearly upgrade)
-    const migrationFromSubscriptionId = meta.custom_data?.migration_from_subscription_id;
-
+    // TWO-PRODUCT MIGRATION: Cancel old subscription if this was a migration
+    // migrationFromSubscriptionId was already extracted earlier (line 359)
     if (migrationFromSubscriptionId) {
-      console.log(`🔄 [Webhook] Migration detected: Canceling old subscription ${migrationFromSubscriptionId}`);
+      console.log(`🔄 [Webhook] Migration cleanup: Canceling old subscription ${migrationFromSubscriptionId}`);
 
       try {
         // Cancel old subscription via LemonSqueezy API

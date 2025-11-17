@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
       productOptions: {
         name: `Yearly Leave Management for ${organization.name}`,
         description: `Annual subscription for ${currentSeats} users - upgrade from monthly`,
-        redirectUrl: `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/settings/billing?upgraded=true`,
+        redirectUrl: `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/admin/settings?upgraded=true`,
         receiptThankYouNote: 'Thank you for upgrading to yearly billing!'
       },
       checkoutOptions: {
