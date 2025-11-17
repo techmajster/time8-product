@@ -28,6 +28,7 @@ export interface UserOrganization {
   team_id: string | null
   is_active: boolean
   is_default: boolean
+  is_owner?: boolean
   joined_via: 'google_domain' | 'invitation' | 'created' | 'request'
   employment_type: string
   contract_start_date: string | null

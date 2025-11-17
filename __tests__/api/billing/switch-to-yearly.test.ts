@@ -44,8 +44,7 @@ jest.mock('@lemonsqueezy/lemonsqueezy.js', () => ({
 describe('Switch to Yearly API', () => {
   const mockOrganization = {
     id: 'org-123',
-    name: 'Test Organization',
-    slug: 'test-org'
+    name: 'Test Organization'
   };
 
   const mockUser = {

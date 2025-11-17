@@ -31,7 +31,9 @@ export default async function DashboardPage() {
   // Get current active organization (respect workspace switching cookie)
   const cookieStore = await cookies()
   const activeOrgId = cookieStore.get('active-organization-id')?.value
-  
+
+  console.log('🍪 Dashboard cookie check:', { activeOrgId, userId: user.id })
+
   let userOrgQuery = supabase
     .from('user_organizations')
     .select(`
@@ -44,17 +46,24 @@ export default async function DashboardPage() {
     `)
     .eq('user_id', user.id)
     .eq('is_active', true)
-    
+
   // If we have an active org cookie, use that specific org, otherwise use default
   if (activeOrgId) {
     userOrgQuery = userOrgQuery.eq('organization_id', activeOrgId)
   } else {
     userOrgQuery = userOrgQuery.eq('is_default', true)
   }
-  
-  const { data: userOrg } = await userOrgQuery.single()
+
+  const { data: userOrg, error: userOrgError } = await userOrgQuery.single()
+
+  console.log('🏢 Dashboard userOrg query result:', {
+    hasUserOrg: !!userOrg,
+    error: userOrgError?.message,
+    activeOrgId
+  })
 
   if (!userOrg) {
+    console.log('❌ Dashboard: No userOrg found, redirecting to onboarding')
     redirect('/onboarding')
   }
 

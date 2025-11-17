@@ -475,6 +475,32 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
     // For usage-based billing: user_count from custom_data drives access control
     const userCount = parseInt(meta.custom_data?.user_count || '0');
 
+    // CRITICAL BUG FIX: Extract billing_period from custom_data
+    // The tier field ('monthly' or 'annual') is set during checkout
+    // Map 'annual' to 'yearly' for consistency with database enum
+    let billingPeriod: 'monthly' | 'yearly' | null = null;
+    const tier = meta.custom_data?.tier;
+
+    if (tier === 'monthly') {
+      billingPeriod = 'monthly';
+    } else if (tier === 'annual') {
+      billingPeriod = 'yearly'; // Map 'annual' → 'yearly'
+    } else {
+      // Fallback: Infer from variant_id if tier not in custom_data
+      if (variant_id === monthlyVariantId) {
+        billingPeriod = 'monthly';
+      } else if (variant_id === yearlyVariantId) {
+        billingPeriod = 'yearly';
+      }
+    }
+
+    console.log(`💳 [Webhook] Billing period determination:`, {
+      tier_from_custom_data: tier,
+      calculated_billing_period: billingPeriod,
+      variant_id,
+      fallback_used: !tier
+    });
+
     // Create subscription record
     const { data: subscription, error: subscriptionError } = await supabase
       .from('subscriptions')
@@ -486,6 +512,7 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
         lemonsqueezy_variant_id: variant_id || null,
         lemonsqueezy_product_id: product_id?.toString() || null,
         billing_type: billingType, // NEW: Use detected billing type (usage_based or quantity_based)
+        billing_period: billingPeriod, // CRITICAL FIX: Save billing period from custom_data
         status,
         quantity,
         current_seats: userCount,  // Use user_count from custom_data, not quantity from LemonSqueezy

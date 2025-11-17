@@ -179,7 +179,6 @@ describe('Authentication Integration Verification', () => {
       const mockOrganization = {
         id: 'org-123',
         name: 'Test Company',
-        slug: 'test-company'
       }
 
       const mockUserOrganization = {
@@ -411,7 +410,6 @@ describe('Authentication Integration Verification', () => {
       const mockOrganization = {
         id: 'new-org-456',
         name: 'New Company',
-        slug: 'new-company'
       }
 
       mockSupabaseClient.auth.getUser.mockResolvedValue({
@@ -435,7 +433,6 @@ describe('Authentication Integration Verification', () => {
 
       const result = await createOrganization({
         name: 'New Company',
-        slug: 'new-company'
       })
 
       expect(result.success).toBe(true)

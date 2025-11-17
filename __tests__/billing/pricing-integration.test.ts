@@ -49,7 +49,7 @@ describe('Billing Integration - Critical Issues', () => {
       
       const mockCheckoutPayload = {
         variant_id: '972634', // Monthly variant
-        organization_data: { name: 'Test Org', slug: 'test-org', country_code: 'PL' },
+        organization_data: { name: 'Test Org', country_code: 'PL' },
         user_count: userCount,
         tier: tier,
         return_url: 'http://localhost:3000/onboarding/payment-success',
@@ -126,7 +126,7 @@ describe('Billing Integration - Critical Issues', () => {
       // Current checkout payload that's sent
       const currentPayload = {
         variant_id: scenario.expectedVariantId,
-        organization_data: { name: 'Test Org', slug: 'test-org', country_code: 'PL' },
+        organization_data: { name: 'Test Org', country_code: 'PL' },
         user_count: scenario.userCount,
         tier: scenario.selectedTier
       }

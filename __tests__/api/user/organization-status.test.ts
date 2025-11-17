@@ -179,7 +179,6 @@ describe('/api/user/organization-status', () => {
                   is_active: true,
                   organizations: {
                     name: 'My Company',
-                    slug: 'my-company',
                     member_count: 5
                   }
                 }],
@@ -311,7 +310,6 @@ describe('/api/user/organization-status', () => {
                   is_active: true,
                   organizations: {
                     name: 'Amazing Business Bureau',
-                    slug: 'abb',
                     member_count: 10
                   }
                 }],
@@ -356,7 +354,6 @@ describe('/api/user/organization-status', () => {
                   is_active: true,
                   organizations: {
                     name: 'Google',
-                    slug: 'google',
                     member_count: 3
                   }
                 }],

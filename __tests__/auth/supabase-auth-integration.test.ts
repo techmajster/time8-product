@@ -383,7 +383,6 @@ describe('Supabase Auth Integration Tests', () => {
       const mockOrganization = {
         id: 'org-123',
         name: 'Test Company',
-        slug: 'test-company'
       }
 
       const mockUserOrganization = {
@@ -596,7 +595,6 @@ describe('Supabase Auth Integration Tests', () => {
       const mockOrganization = {
         id: 'new-org-123',
         name: 'New Company',
-        slug: 'new-company'
       }
 
       mockSupabaseServer.auth.getUser.mockResolvedValue({
@@ -623,7 +621,6 @@ describe('Supabase Auth Integration Tests', () => {
 
       const result = await createOrganization({
         name: 'New Company',
-        slug: 'new-company'
       })
 
       expect(result.success).toBe(true)
@@ -639,7 +636,6 @@ describe('Supabase Auth Integration Tests', () => {
       const mockOrganization = {
         id: 'failed-org-123',
         name: 'Failed Company',
-        slug: 'failed-company'
       }
 
       mockSupabaseServer.auth.getUser.mockResolvedValue({
@@ -667,7 +663,6 @@ describe('Supabase Auth Integration Tests', () => {
 
       const result = await createOrganization({
         name: 'Failed Company',
-        slug: 'failed-company'
       })
 
       expect(result.success).toBe(false)

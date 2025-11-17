@@ -118,7 +118,8 @@ function AddUsersPageContent() {
   }
 
   const handleUserCountChange = (delta: number) => {
-    const newCount = Math.max(1, Math.min(50, userCount + delta))
+    // Minimum 3 seats (free tier includes 3 seats)
+    const newCount = Math.max(3, Math.min(50, userCount + delta))
     setUserCount(newCount)
   }
 
@@ -288,7 +289,7 @@ function AddUsersPageContent() {
               {/* Minus button */}
               <Button
                 onClick={() => handleUserCountChange(-1)}
-                disabled={userCount <= 1}
+                disabled={userCount <= 3}
                 variant="outline"
                 className="size-16 p-0 border-foreground"
               >
