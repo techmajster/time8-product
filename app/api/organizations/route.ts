@@ -7,8 +7,8 @@ export async function POST(request: NextRequest) {
   try {
     console.log('📝 Parsing request body...')
     const body = await request.json()
-    const { name, slug, google_domain, require_google_domain, country_code } = body
-    console.log('📝 Request data:', { name, slug, google_domain, require_google_domain, country_code })
+    const { name, country_code } = body
+    console.log('📝 Request data:', { name, country_code })
 
     // Get current user from session
     console.log('🔐 Getting user from session...')
@@ -41,48 +41,6 @@ export async function POST(request: NextRequest) {
 
     console.log('API: User profile found:', profile.full_name, profile.role)
 
-    // SECURITY: Validate slug is unique (prevent conflicts)
-    // Check if organization with this slug already exists
-    const { data: existingOrg, error: slugCheckError } = await supabaseAdmin
-      .from('organizations')
-      .select('id, name, slug')
-      .eq('slug', slug)
-      .maybeSingle()
-
-    if (slugCheckError) {
-      console.error('API: Error checking slug:', slugCheckError)
-      return NextResponse.json({
-        error: 'Failed to validate organization slug'
-      }, { status: 500 })
-    }
-
-    if (existingOrg) {
-      // Check if this user is already a member of this organization
-      const { data: userOrg, error: userOrgCheckError } = await supabaseAdmin
-        .from('user_organizations')
-        .select('organization_id, role')
-        .eq('organization_id', existingOrg.id)
-        .eq('user_id', user.id)
-        .maybeSingle()
-
-      if (userOrg) {
-        // Organization exists and user is already a member - return existing org (idempotent)
-        console.log('✅ Organization already exists for this user, returning existing org')
-        return NextResponse.json({
-          success: true,
-          organization: existingOrg,
-          message: 'Organization already exists',
-          existing: true
-        })
-      } else {
-        // Organization exists but user is not a member - slug is taken
-        console.error('API: Slug already taken by another user:', slug)
-        return NextResponse.json({
-          error: 'Organization slug is already taken. Please choose a different slug.'
-        }, { status: 409 })
-      }
-    }
-
     // Create organization with admin client (bypasses RLS)
     // NOTE: Any authenticated user can create an organization and become its admin.
     // This is intentional - organization creation is open to all users.
@@ -91,9 +49,6 @@ export async function POST(request: NextRequest) {
       .from('organizations')
       .insert({
         name,
-        slug,
-        google_domain: google_domain || null,
-        require_google_domain: require_google_domain || false,
         country_code: country_code || 'PL',
       })
       .select()
@@ -103,37 +58,6 @@ export async function POST(request: NextRequest) {
 
     if (orgError) {
       console.error('API: Organization creation error:', orgError)
-
-      // RACE CONDITION FIX: If duplicate key error, check if user already owns this org
-      if (orgError.code === '23505' && orgError.message?.includes('organizations_slug_key')) {
-        console.log('🔄 Duplicate slug detected, checking if user owns organization...')
-
-        const { data: existingOrgRetry, error: retryCheckError } = await supabaseAdmin
-          .from('organizations')
-          .select('id, name, slug')
-          .eq('slug', slug)
-          .single()
-
-        if (!retryCheckError && existingOrgRetry) {
-          const { data: userOrgRetry, error: userOrgRetryError } = await supabaseAdmin
-            .from('user_organizations')
-            .select('organization_id, role')
-            .eq('organization_id', existingOrgRetry.id)
-            .eq('user_id', user.id)
-            .maybeSingle()
-
-          if (userOrgRetry) {
-            console.log('✅ Organization already exists for this user (race condition handled)')
-            return NextResponse.json({
-              success: true,
-              organization: existingOrgRetry,
-              message: 'Organization already exists',
-              existing: true
-            })
-          }
-        }
-      }
-
       return NextResponse.json({ error: orgError.message }, { status: 400 })
     }
 
@@ -166,27 +90,6 @@ export async function POST(request: NextRequest) {
     if (userOrgError) {
       console.error('API: User organization creation error:', userOrgError)
       return NextResponse.json({ error: userOrgError.message }, { status: 400 })
-    }
-
-    // MULTI-ORG UPDATE: Create organization_domains entry if Google domain is provided
-    if (google_domain) {
-      const { error: domainError } = await supabaseAdmin
-        .from('organization_domains')
-        .insert({
-          organization_id: org.id,
-          domain: google_domain,
-          domain_type: 'google',
-          is_verified: true,
-          auto_join_enabled: true,
-          default_role: 'employee'
-        })
-
-      if (domainError) {
-        console.error('API: Organization domain creation error:', domainError)
-        // Don't fail - organization is already created
-      } else {
-        console.log('API: Organization domain created for:', google_domain)
-      }
     }
 
     // Create ONLY the 2 mandatory leave types for new workspaces

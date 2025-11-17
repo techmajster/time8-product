@@ -55,7 +55,6 @@ function CreateWorkspacePageContent() {
       // Store organization data in session storage instead of creating in DB
       const organizationData = {
         name: workspaceName.trim(),
-        slug: workspaceName.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').substring(0, 50),
         country_code: country === 'ireland' ? 'IE' : country === 'poland' ? 'PL' : 'GB'
       }
 
