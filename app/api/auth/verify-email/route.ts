@@ -118,7 +118,7 @@ export async function GET(request: NextRequest) {
         team_id,
         status,
         expires_at,
-        organization:organizations(id, name, slug)
+        organization:organizations(id, name)
       `)
       .eq('email', decoded.email.toLowerCase())
       .eq('status', 'pending')
@@ -172,7 +172,7 @@ export async function GET(request: NextRequest) {
           auto_join_enabled,
           default_role,
           default_team_id,
-          organization:organizations(id, name, slug)
+          organization:organizations(id, name)
         `)
         .eq('domain', emailDomain)
         .eq('is_verified', true)

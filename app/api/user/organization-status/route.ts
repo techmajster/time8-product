@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
     
     console.log('✅ User authenticated:', user.email)
 
-    // Check if user has any organization memberships 
+    // Check if user has any organization memberships
     console.log('🏢 Checking user organizations...')
     const { data: userOrganizations, error: orgError } = await supabase
       .from('user_organizations')
@@ -72,8 +72,7 @@ export async function GET(request: NextRequest) {
         is_default,
         is_active,
         organizations!inner(
-          name,
-          slug
+          name
         )
       `)
       .eq('user_id', user.id)

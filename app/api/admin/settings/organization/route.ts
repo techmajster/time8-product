@@ -40,40 +40,33 @@ export async function PUT(request: NextRequest) {
     const body = await request.json()
     console.log('Received request body:', body)
     console.log('Request headers:', Object.fromEntries(request.headers.entries()))
-    
-    const { name, slug, logo, adminId, countryCode, locale } = body
-    console.log('Extracted fields:', { name, slug, adminId, countryCode, locale })
+
+    // Check for deprecated fields and reject them
+    const deprecatedFields = ['slug', 'logo', 'logoUrl', 'googleDomain', 'requireGoogleDomain']
+    const foundDeprecatedFields = deprecatedFields.filter(field => field in body)
+
+    if (foundDeprecatedFields.length > 0) {
+      console.error('Deprecated fields found in request:', foundDeprecatedFields)
+      return NextResponse.json({
+        error: 'The following fields are no longer supported and have been removed',
+        deprecatedFields: foundDeprecatedFields
+      }, { status: 400 })
+    }
+
+    const { name, adminId, countryCode, locale } = body
+    console.log('Extracted fields:', { name, adminId, countryCode, locale })
 
     // Validate required fields
-    if (!name || !slug) {
-      console.error('Missing required fields:', { name, slug })
-      return NextResponse.json({ error: 'Name and slug are required' }, { status: 400 })
+    if (!name) {
+      console.error('Missing required field: name')
+      return NextResponse.json({ error: 'Name is required' }, { status: 400 })
     }
-    
+
     console.log('=== VALIDATION PASSED ===')
-
-    // Check if slug is already taken by another organization
-    const { data: existingOrgs, error: slugCheckError } = await supabase
-      .from('organizations')
-      .select('id')
-      .eq('slug', slug)
-      .neq('id', organizationId)
-
-    if (slugCheckError) {
-      console.error('Error checking slug:', slugCheckError)
-      return NextResponse.json({ error: 'Failed to check slug availability' }, { status: 500 })
-    }
-
-    if (existingOrgs && existingOrgs.length > 0) {
-      return NextResponse.json({ error: 'Slug already taken' }, { status: 400 })
-    }
-    
-    console.log('=== SLUG CHECK PASSED ===')
 
     // Update organization
     const updateData: any = {
       name,
-      slug,
       country_code: countryCode,
       locale
     }
@@ -158,13 +151,6 @@ export async function PUT(request: NextRequest) {
       console.log('Admin changed successfully to:', (newAdminOrg.profiles as any).email)
     } else if (adminId === user.id) {
       console.log('Admin not changing - same user selected, keeping current admin')
-    }
-
-    // Handle logo upload if provided
-    if (logo) {
-      // TODO: Implement file upload to Supabase Storage
-      // For now, we'll skip logo upload
-      console.log('Logo upload not implemented yet')
     }
 
     console.log('=== REACHING ORGANIZATION UPDATE ===')

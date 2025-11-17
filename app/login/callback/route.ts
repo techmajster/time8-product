@@ -51,7 +51,7 @@ export async function GET(request: Request) {
               auto_join_enabled,
               default_role,
               default_team_id,
-              organization:organizations(id, name, slug)
+              organization:organizations(id, name)
             `)
             .eq('domain', emailDomain)
             .eq('is_verified', true)
@@ -202,7 +202,7 @@ export async function GET(request: Request) {
                 auto_join_enabled,
                 default_role,
                 default_team_id,
-                organization:organizations(id, name, slug)
+                organization:organizations(id, name)
               `)
               .eq('domain', emailDomain)
               .eq('is_verified', true)

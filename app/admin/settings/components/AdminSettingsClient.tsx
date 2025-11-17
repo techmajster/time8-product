@@ -9,7 +9,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
@@ -60,11 +59,6 @@ interface Team {
   name: string
 }
 
-interface TeamMember {
-  user_id: string
-  team_id: string
-}
-
 interface Subscription {
   current_seats: number
   renews_at: string | null
@@ -93,7 +87,6 @@ interface AdminSettingsClientProps {
   users: any[]
   leaveTypes: LeaveType[]
   teams: Team[]
-  teamMembers: TeamMember[]
   subscription: Subscription | null
   pendingRemovalUsers: PendingRemovalUser[]
   archivedUsers: ArchivedUser[]
@@ -104,7 +97,6 @@ export default function AdminSettingsClient({
   users,
   leaveTypes: initialLeaveTypes,
   teams,
-  teamMembers,
   subscription: initialSubscription,
   pendingRemovalUsers: initialPendingUsers,
   archivedUsers: initialArchivedUsers
@@ -116,7 +108,7 @@ export default function AdminSettingsClient({
   const [archivedUsers, setArchivedUsers] = useState<ArchivedUser[]>(initialArchivedUsers)
   const router = useRouter()
 
-  // Tab state management
+  // Tab state management - Only 4 tabs: Ogólne, Tryb pracy, Urlopy, Rozliczenia
   const [activeTab, setActiveTab] = useState('general')
   
   // Sheet states
@@ -131,10 +123,6 @@ export default function AdminSettingsClient({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [selectedLeaveType, setSelectedLeaveType] = useState<LeaveType | null>(null)
   const [loading, setLoading] = useState(false)
-  
-  // Workspace deletion state
-  const [deleteWorkspaceDialogOpen, setDeleteWorkspaceDialogOpen] = useState(false)
-  const [workspaceDeleteLoading, setWorkspaceDeleteLoading] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
     days_per_year: 0,
@@ -239,42 +227,6 @@ export default function AdminSettingsClient({
     console.log('Leave policies updated:', updatedPolicies)
     window.dispatchEvent(new Event(REFETCH_SETTINGS))
   }
-
-  // Handler for calendar restriction toggle
-  const handleCalendarRestrictionToggle = async (checked: boolean) => {
-    try {
-      const response = await fetch('/api/admin/settings/calendar-restriction', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          organizationId: currentOrganization.id,
-          restrictCalendarByGroup: checked
-        })
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to update calendar restriction setting')
-      }
-
-      // Update local state
-      setCurrentOrganization({
-        ...currentOrganization,
-        restrict_calendar_by_group: checked
-      })
-
-      toast.success(
-        checked
-          ? 'Widoczność kalendarza została ograniczona według grup'
-          : 'Widoczność kalendarza została odblokowana dla wszystkich'
-      )
-    } catch (error) {
-      console.error('Error updating calendar restriction:', error)
-      toast.error(error instanceof Error ? error.message : 'Nie udało się zaktualizować ustawienia')
-    }
-  }
-
 
   // Handlers for leave types edit and delete
   const handleEditLeaveType = (leaveType: LeaveType) => {
@@ -426,44 +378,6 @@ export default function AdminSettingsClient({
       toast.error(error instanceof Error ? error.message : 'Wystąpił błąd podczas tworzenia domyślnych rodzajów urlopów')
     } finally {
       setLoading(false)
-    }
-  }
-
-  // Workspace deletion handler
-  const handleDeleteWorkspace = () => {
-    setDeleteWorkspaceDialogOpen(true)
-  }
-
-  const handleConfirmDeleteWorkspace = async () => {
-    setWorkspaceDeleteLoading(true)
-
-    try {
-      const response = await fetch(`/api/workspaces/${currentOrganization?.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      })
-
-      const result = await response.json()
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Nie udało się usunąć workspace')
-      }
-
-      toast.success('Workspace został pomyślnie usunięty!')
-      
-      // Redirect to onboarding since current workspace no longer exists
-      setTimeout(() => {
-        window.location.href = '/onboarding'
-      }, 2000)
-
-    } catch (error) {
-      console.error('Error deleting workspace:', error)
-      toast.error(error instanceof Error ? error.message : 'Wystąpił błąd podczas usuwania workspace')
-    } finally {
-      setWorkspaceDeleteLoading(false)
-      setDeleteWorkspaceDialogOpen(false)
     }
   }
 
@@ -659,18 +573,14 @@ export default function AdminSettingsClient({
         <h1 className="text-3xl font-semibold text-foreground">Ustawienia administracyjne</h1>
       </div>
 
-      {/* Tabs */}
+      {/* Tabs - 4 tabs only: Ogólne, Tryb pracy, Urlopy, Rozliczenia */}
       <FigmaTabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <div className="relative -mx-12 px-12">
           <FigmaTabsList className="border-b-0">
             <FigmaTabsTrigger value="general">Ogólne</FigmaTabsTrigger>
+            <FigmaTabsTrigger value="work-modes">Tryb pracy</FigmaTabsTrigger>
             <FigmaTabsTrigger value="leave-types">Urlopy</FigmaTabsTrigger>
-            <FigmaTabsTrigger value="calendar-visibility">Widoczność kalendarza</FigmaTabsTrigger>
-            <FigmaTabsTrigger value="billing">Billing</FigmaTabsTrigger>
-            <FigmaTabsTrigger value="workspace">Workspace</FigmaTabsTrigger>
-            <FigmaTabsTrigger value="notifications">Powiadomienia</FigmaTabsTrigger>
-            <FigmaTabsTrigger value="work-modes">Tryby pracy</FigmaTabsTrigger>
-            <FigmaTabsTrigger value="additional-rules">Dodatkowe reguły</FigmaTabsTrigger>
+            <FigmaTabsTrigger value="billing">Rozliczenia</FigmaTabsTrigger>
           </FigmaTabsList>
           <div className="absolute bottom-0 left-0 right-0 h-px bg-border" />
         </div>
@@ -1225,135 +1135,6 @@ export default function AdminSettingsClient({
           </Tabs>
         </FigmaTabsContent>
 
-        <FigmaTabsContent value="calendar-visibility" className="mt-6 space-y-6">
-          {/* Calendar Visibility Settings Card */}
-          <Card className="border border-border">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-xl font-semibold">Widoczność kalendarza</CardTitle>
-              <CardDescription>
-                Kontroluj, którzy użytkownicy mogą widzieć kalendarze innych osób w organizacji.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Calendar Restriction Toggle */}
-              <div className="flex items-center justify-between p-4 border border-border rounded-lg bg-muted/30">
-                <div className="space-y-1">
-                  <div className="font-medium text-foreground">
-                    Ogranicz widoczność kalendarza według grup
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    Gdy włączone, użytkownicy w grupach widzą tylko kalendarze członków swojej grupy. Użytkownicy bez grupy widzą wszystkich.
-                  </div>
-                </div>
-                <Switch
-                  checked={currentOrganization?.restrict_calendar_by_group || false}
-                  onCheckedChange={handleCalendarRestrictionToggle}
-                />
-              </div>
-
-              {/* Current Status Explanation */}
-              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-sm text-blue-900">
-                  <strong>Obecny status:</strong>{' '}
-                  {currentOrganization?.restrict_calendar_by_group
-                    ? 'Użytkownicy w grupach widzą tylko kalendarze członków swojej grupy. Użytkownicy bez grupy widzą wszystkich w organizacji.'
-                    : 'Wszyscy użytkownicy w organizacji widzą nawzajem swoje kalendarze, niezależnie od przynależności do grup.'}
-                </p>
-              </div>
-
-              <Separator />
-
-              {/* User Group Assignments */}
-              <div className="space-y-2">
-                <h3 className="text-base font-medium text-foreground">Przypisania użytkowników do grup</h3>
-                <p className="text-sm text-muted-foreground">
-                  Zarządzaj grupami użytkowników na stronie Zarządzania Zespołem
-                </p>
-              </div>
-
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="font-medium text-muted-foreground">Użytkownik</TableHead>
-                    <TableHead className="font-medium text-muted-foreground">Email</TableHead>
-                    <TableHead className="font-medium text-muted-foreground">Grupa</TableHead>
-                    <TableHead className="font-medium text-muted-foreground">Widoczność kalendarza</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {users.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={4} className="h-16 text-center">
-                        <div className="text-muted-foreground">
-                          Brak użytkowników w organizacji
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    users.map((user) => {
-                      const userTeam = teamMembers.find(tm => tm.user_id === user.id)
-                      const team = userTeam ? teams.find(t => t.id === userTeam.team_id) : null
-
-                      // Calculate visibility based on restriction setting
-                      let visibilityText: string
-                      if (currentOrganization?.restrict_calendar_by_group) {
-                        // Restriction is ON
-                        visibilityText = team
-                          ? `Tylko grupa: ${team.name}`
-                          : 'Wszyscy w organizacji'
-                      } else {
-                        // Restriction is OFF - everyone sees everyone
-                        visibilityText = 'Wszyscy w organizacji'
-                      }
-
-                      return (
-                        <TableRow key={user.id} className="h-[72px]">
-                          <TableCell>
-                            <div className="flex items-center gap-3">
-                              <Avatar className="size-10">
-                                <AvatarImage src={user.avatar_url || undefined} />
-                                <AvatarFallback className="text-sm font-medium">
-                                  {user.full_name
-                                    ? user.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase()
-                                    : user.email.charAt(0).toUpperCase()}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <div className="font-medium text-foreground">
-                                  {user.full_name || 'Bez nazwiska'}
-                                </div>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-sm text-muted-foreground">
-                              {user.email}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {team ? (
-                              <Badge variant="secondary">
-                                {team.name}
-                              </Badge>
-                            ) : (
-                              <span className="text-sm text-muted-foreground">Brak grupy</span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-sm text-muted-foreground">
-                              {visibilityText}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      )
-                    })
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </FigmaTabsContent>
-
         <FigmaTabsContent value="billing" className="mt-6 space-y-6">
           {/* Trial Countdown Banner */}
           {subscriptionData?.status === 'on_trial' && trialDaysRemaining !== null && (
@@ -1687,128 +1468,9 @@ export default function AdminSettingsClient({
 
         </FigmaTabsContent>
 
-        <FigmaTabsContent value="workspace" className="mt-6 space-y-6">
-          {/* Workspace Management Card */}
-          <Card className="border border-border">
-            <CardHeader className="pb-0">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-2">
-                    <CardTitle className="text-xl font-semibold">Zarządzanie workspace</CardTitle>
-                  </div>
-                  <CardDescription>
-                    Zarządzaj ustawieniami i danymi workspace
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0 pb-6 space-y-6">
-              <div className="space-y-6">
-                <div className="w-[400px] space-y-2">
-                  <Label htmlFor="workspace-name">Nazwa workspace</Label>
-                  <Input 
-                    id="workspace-name"
-                    value={currentOrganization?.name || ''} 
-                    disabled 
-                    className="opacity-50"
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    Obecna nazwa Twojego workspace
-                  </p>
-                </div>
-                
-                <div className="w-[400px] space-y-2">
-                  <Label htmlFor="workspace-slug">Identyfikator workspace</Label>
-                  <Input 
-                    id="workspace-slug"
-                    value={currentOrganization?.slug || ''} 
-                    disabled 
-                    className="opacity-50"
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    Unikalny identyfikator używany w URL
-                  </p>
-                </div>
-
-                <div className="w-[400px] space-y-2">
-                  <Label htmlFor="workspace-created">Data utworzenia</Label>
-                  <Input 
-                    id="workspace-created"
-                    value={currentOrganization?.created_at ? new Date(currentOrganization.created_at).toLocaleDateString('pl-PL') : 'Nieznana'} 
-                    disabled 
-                    className="opacity-50"
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    Kiedy workspace został utworzony
-                  </p>
-                </div>
-
-                <Separator />
-                
-                {/* Danger Zone */}
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label className="text-base font-semibold text-red-600">Strefa niebezpieczna</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Nieodwracalne operacje dotyczące workspace. Użyj ostrożnie.
-                    </p>
-                  </div>
-                  
-                  <div className="border border-red-200 rounded-lg p-4 bg-red-50">
-                    <div className="space-y-3">
-                      <div>
-                        <h4 className="text-sm font-semibold text-red-800">Usuń workspace</h4>
-                        <p className="text-sm text-red-600 mt-1">
-                          Trwale usuwa workspace wraz z wszystkimi danymi: użytkownikami, urlopami, żądaniami, zespołami i ustawieniami. 
-                          <strong> Ta operacja jest nieodwracalna!</strong>
-                        </p>
-                      </div>
-                      <Button
-                        onClick={handleDeleteWorkspace}
-                        disabled={workspaceDeleteLoading}
-                        className="bg-red-600 text-red-50 hover:bg-red-700 h-9 px-4 rounded-lg"
-                      >
-                        {workspaceDeleteLoading ? 'Usuwanie...' : 'Usuń workspace'}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </FigmaTabsContent>
-
-        <FigmaTabsContent value="notifications" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Powiadomienia</CardTitle>
-              <CardDescription>
-                Konfiguracja powiadomień email i w aplikacji
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">Ta sekcja będzie wkrótce dostępna.</p>
-            </CardContent>
-          </Card>
-        </FigmaTabsContent>
-
         <FigmaTabsContent value="work-modes" className="mt-6">
           <WorkModeSettings currentOrganization={currentOrganization} />
         </FigmaTabsContent>
-
-        <FigmaTabsContent value="additional-rules" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Dodatkowe reguły</CardTitle>
-              <CardDescription>
-                Dodatkowe reguły biznesowe i konfiguracja zaawansowana
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">Ta sekcja będzie wkrótce dostępna.</p>
-            </CardContent>
-          </Card>
-                  </FigmaTabsContent>
       </FigmaTabs>
 
       {/* Edit Leave Type Dialog */}
@@ -1952,66 +1614,6 @@ export default function AdminSettingsClient({
               className="h-9 px-4 bg-red-600 text-red-50 hover:bg-red-700"
             >
               {loading ? 'Usuwanie...' : 'Usuń rodzaj urlopu'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Workspace Confirmation Dialog */}
-      <Dialog open={deleteWorkspaceDialogOpen} onOpenChange={setDeleteWorkspaceDialogOpen}>
-        <DialogContent className="max-w-md">
-          <div className="absolute right-4 top-4 z-10">
-            <Button
-              variant="ghost" 
-              size="sm" 
-              className="h-9 w-9 p-0 border border bg-card shadow-sm"
-              onClick={() => setDeleteWorkspaceDialogOpen(false)}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-          
-          <DialogHeader className="space-y-1.5">
-            <DialogTitle className="text-lg font-semibold text-red-950">
-              Usuń workspace
-            </DialogTitle>
-            <div className="space-y-3">
-              <DialogDescription className="text-sm text-red-500">
-                Czy na pewno chcesz usunąć workspace <strong>"{currentOrganization?.name}"</strong>?
-              </DialogDescription>
-              
-              <div className="text-sm text-red-500">
-                <p>Ta operacja usunie <strong>WSZYSTKIE DANE</strong> z workspace:</p>
-                <ul className="list-disc list-inside mt-2 space-y-1">
-                  <li>Wszystkich użytkowników i ich uprawnienia</li>
-                  <li>Wszystkie urlopy i wnioski urlopowe</li>
-                  <li>Wszystkie zespoły i struktura organizacyjna</li>
-                  <li>Wszystkie ustawienia i konfiguracje</li>
-                </ul>
-                <p className="mt-3">
-                  <strong className="text-red-600">Ta operacja jest nieodwracalna!</strong>
-                </p>
-              </div>
-            </div>
-          </DialogHeader>
-
-          <DialogFooter className="flex justify-end gap-2 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setDeleteWorkspaceDialogOpen(false)}
-              disabled={workspaceDeleteLoading}
-              className="h-9 px-4 border bg-card"
-            >
-              Anuluj
-            </Button>
-            <Button
-              type="button"
-              onClick={handleConfirmDeleteWorkspace}
-              disabled={workspaceDeleteLoading}
-              className="h-9 px-4 bg-red-600 text-red-50 hover:bg-red-700"
-            >
-              {workspaceDeleteLoading ? 'Usuwanie workspace...' : 'Tak, usuń workspace'}
             </Button>
           </DialogFooter>
         </DialogContent>

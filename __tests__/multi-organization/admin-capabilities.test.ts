@@ -17,7 +17,7 @@ import { createMockRequest, createTestUser, createTestOrganization, cleanupTestD
 import { createClient } from '@supabase/supabase-js'
 
 // Import admin-related API route handlers
-import { GET as adminSettingsGet, POST as adminSettingsPost } from '@/app/api/admin/settings/organization/route'
+import { GET as adminSettingsGet, PUT as adminSettingsPut } from '@/app/api/admin/settings/organization/route'
 import { POST as sendInvitationPost } from '@/app/api/send-invitation/route'
 import { POST as cancelInvitationPost } from '@/app/api/cancel-invitation/route'
 import { GET as employeesGet, POST as employeesPost } from '@/app/api/employees/route'
@@ -206,22 +206,22 @@ describe('Organization Admin Capabilities and Restrictions Tests', () => {
     })
 
     test('should allow admin to modify organization settings', async () => {
-      const settingsUpdateRequest = createMockRequest('POST', '/api/admin/settings/organization', {
-        allow_domain_join_requests: false,
-        require_admin_approval_for_domain_join: true,
-        default_employment_type: 'full_time'
+      const settingsUpdateRequest = createMockRequest('PUT', '/api/admin/settings/organization', {
+        name: 'Updated Org Name',
+        countryCode: 'PL',
+        locale: 'pl'
       }, {
         userId: org1AdminId,
         organizationId: org1Id
       })
 
-      const settingsUpdateResponse = await adminSettingsPost(settingsUpdateRequest)
-      
-      // Should not be forbidden due to permissions
-      if (settingsUpdateResponse.status === 403) {
-        const errorData = await settingsUpdateResponse.json()
-        expect(errorData.error).not.toMatch(/permission|access denied|role/i)
-      }
+      const settingsUpdateResponse = await adminSettingsPut(settingsUpdateRequest)
+
+      // Should succeed (200) for admin users
+      expect(settingsUpdateResponse.status).toBe(200)
+      const settingsData = await settingsUpdateResponse.json()
+      expect(settingsData.success).toBe(true)
+      expect(settingsData.organization).toBeDefined()
     })
 
     test('should allow admin to send invitations', async () => {
@@ -346,14 +346,15 @@ describe('Organization Admin Capabilities and Restrictions Tests', () => {
     })
 
     test('should prevent manager from modifying organization settings', async () => {
-      const managerSettingsUpdateRequest = createMockRequest('POST', '/api/admin/settings/organization', {
-        allow_domain_join_requests: true
+      const managerSettingsUpdateRequest = createMockRequest('PUT', '/api/admin/settings/organization', {
+        name: 'Unauthorized Update',
+        locale: 'en'
       }, {
         userId: org1ManagerId,
         organizationId: org1Id
       })
 
-      const managerSettingsUpdateResponse = await adminSettingsPost(managerSettingsUpdateRequest)
+      const managerSettingsUpdateResponse = await adminSettingsPut(managerSettingsUpdateRequest)
       expect(managerSettingsUpdateResponse.status).toBe(403)
 
       const errorData = await managerSettingsUpdateResponse.json()
@@ -525,14 +526,15 @@ describe('Organization Admin Capabilities and Restrictions Tests', () => {
 
       for (const orgId of organizations) {
         // Should NOT have admin capabilities (can't modify settings)
-        const settingsRequest = createMockRequest('POST', '/api/admin/settings/organization', {
-          allow_domain_join_requests: false
+        const settingsRequest = createMockRequest('PUT', '/api/admin/settings/organization', {
+          name: 'Unauthorized Update',
+          locale: 'en'
         }, {
           userId: crossOrgManagerId,
           organizationId: orgId
         })
 
-        const settingsResponse = await adminSettingsPost(settingsRequest)
+        const settingsResponse = await adminSettingsPut(settingsRequest)
         expect(settingsResponse.status).toBe(403)
 
         const errorData = await settingsResponse.json()
@@ -736,13 +738,14 @@ describe('Organization Admin Capabilities and Restrictions Tests', () => {
       const sensitiveOperations = [
         {
           operation: 'Organization settings modification',
-          request: createMockRequest('POST', '/api/admin/settings/organization', {
-            allow_domain_join_requests: false
+          request: createMockRequest('PUT', '/api/admin/settings/organization', {
+            name: 'Unauthorized Update',
+            locale: 'en'
           }, {
             userId: org1ManagerId,
             organizationId: org1Id
           }),
-          handler: adminSettingsPost
+          handler: adminSettingsPut
         },
         {
           operation: 'Leave balance management',
