@@ -88,6 +88,7 @@ export default async function AdminSettingsPage() {
     .select(`
       user_id,
       role,
+      is_owner,
       profiles!user_organizations_user_id_fkey(id, email, full_name, avatar_url)
     `)
     .eq('organization_id', profile.organization_id)
@@ -100,7 +101,8 @@ export default async function AdminSettingsPage() {
     email: (ou.profiles as any).email,
     full_name: (ou.profiles as any).full_name,
     avatar_url: (ou.profiles as any).avatar_url,
-    role: ou.role
+    role: ou.role,
+    isOwner: Boolean(ou.is_owner)
   })) || []
 
   // Get all teams/groups for calendar visibility settings
@@ -187,6 +189,8 @@ export default async function AdminSettingsPage() {
     role: au.role
   })) || []
 
+  const canManageOwnership = Boolean((userOrg as any)?.is_owner)
+
   return (
     <AppLayout>
       <AdminSettingsClient
@@ -197,6 +201,7 @@ export default async function AdminSettingsPage() {
         subscription={subscriptionData}
         pendingRemovalUsers={transformedPendingUsers}
         archivedUsers={transformedArchivedUsers}
+        canManageOwnership={canManageOwnership}
       />
     </AppLayout>
   )

@@ -83,14 +83,24 @@ interface ArchivedUser {
   role: string
 }
 
+interface AdminUser {
+  id: string
+  email: string
+  full_name: string | null
+  avatar_url: string | null
+  role: string
+  isOwner?: boolean
+}
+
 interface AdminSettingsClientProps {
   currentOrganization: any
-  users: any[]
+  users: AdminUser[]
   leaveTypes: LeaveType[]
   teams: Team[]
   subscription: Subscription | null
   pendingRemovalUsers: PendingRemovalUser[]
   archivedUsers: ArchivedUser[]
+  canManageOwnership: boolean
 }
 
 export default function AdminSettingsClient({
@@ -100,7 +110,8 @@ export default function AdminSettingsClient({
   teams,
   subscription: initialSubscription,
   pendingRemovalUsers: initialPendingUsers,
-  archivedUsers: initialArchivedUsers
+  archivedUsers: initialArchivedUsers,
+  canManageOwnership
 }: AdminSettingsClientProps) {
   const t = useTranslations('billing')
   const [currentOrganization, setCurrentOrganization] = useState(initialOrganization)
@@ -207,6 +218,8 @@ export default function AdminSettingsClient({
   // Handler for organization updates
   const handleOrganizationSave = (updatedOrganization: any) => {
     setCurrentOrganization(updatedOrganization)
+    // Refresh the page to get updated user roles after admin change
+    router.refresh()
   }
 
   // Handlers for leave management updates
@@ -593,10 +606,10 @@ export default function AdminSettingsClient({
               <div className="flex items-center justify-between">
                 <div className="space-y-1.5">
                   <div className="flex items-center gap-2">
-                    <CardTitle className="text-xl font-semibold">Ustawienia organizacji</CardTitle>
+                    <CardTitle className="text-xl font-semibold">Ustawienia workspace</CardTitle>
                   </div>
                   <CardDescription>
-                    Podstawowe informacje o organizacji
+                    Podstawowe informacje o przestrzeni roboczej
                   </CardDescription>
                 </div>
                 <Button variant="outline" size="sm" className="h-9" onClick={() => setIsOrganizationSheetOpen(true)}>
@@ -607,7 +620,7 @@ export default function AdminSettingsClient({
             <CardContent className="pt-0 pb-0 p-0 space-y-6">
               <div className="space-y-6">
                 <div className="w-[400px] space-y-2">
-                  <Label htmlFor="org-name">Nazwa organizacji</Label>
+                  <Label htmlFor="org-name">Nazwa workspace</Label>
                   <Input
                     id="org-name"
                     value={currentOrganization?.name || 'BB8'}
@@ -617,25 +630,27 @@ export default function AdminSettingsClient({
                 </div>
 
                 <div className="w-[400px] space-y-2">
-                  <Label>Administrator</Label>
+                  <Label>Właściciel workspace</Label>
                   <div className="flex items-center gap-4 w-full">
                     {(() => {
-                      const adminUser = users.find(u => u.role === 'admin')
-                      return adminUser ? (
+                      const ownerUser = users.find(u => u.isOwner)
+                      const fallbackAdmin = users.find(u => u.role === 'admin')
+                      const displayUser = ownerUser || fallbackAdmin
+                      return displayUser ? (
                         <>
                           <Avatar className="h-10 w-10">
-                            <AvatarImage src={adminUser.avatar_url || undefined} />
+                            <AvatarImage src={displayUser.avatar_url || undefined} />
                             <AvatarFallback className="">
-                              {getUserInitials(adminUser.full_name || '', adminUser.email)}
+                              {getUserInitials(displayUser.full_name || '', displayUser.email)}
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex-1">
-                            <p className="text-sm font-medium text-foreground">{adminUser.full_name || adminUser.email}</p>
-                            <p className="text-sm text-muted-foreground">{adminUser.email}</p>
+                            <p className="text-sm font-medium text-foreground">{displayUser.full_name || displayUser.email}</p>
+                            <p className="text-sm text-muted-foreground">{displayUser.email}</p>
                           </div>
                         </>
                       ) : (
-                        <span className="text-muted-foreground">Brak administratora</span>
+                        <span className="text-muted-foreground">Brak właściciela</span>
                       )
                     })()}
                   </div>
@@ -1546,6 +1561,8 @@ export default function AdminSettingsClient({
           onOpenChange={setIsOrganizationSheetOpen}
           organization={currentOrganization}
           users={users}
+          currentOwnerId={users.find(u => u.isOwner)?.id || null}
+          canManageOwnership={canManageOwnership}
           onSave={handleOrganizationSave}
         />
 

@@ -48,6 +48,7 @@ interface User {
   full_name: string | null;
   role: string;
   avatar_url?: string | null;
+  isOwner?: boolean;
 }
 
 interface EditOrganizationSheetProps {
@@ -55,6 +56,8 @@ interface EditOrganizationSheetProps {
   onOpenChange: (open: boolean) => void;
   organization: Organization | null;
   users: User[];
+  currentOwnerId: string | null;
+  canManageOwnership: boolean;
   onSave: (data: any) => void;
 }
 
@@ -63,37 +66,42 @@ export function EditOrganizationSheet({
   onOpenChange,
   organization,
   users,
+  currentOwnerId,
+  canManageOwnership,
   onSave,
 }: EditOrganizationSheetProps) {
   // const { updateOrganization } = useOrganization()
 
   const [formData, setFormData] = useState({
     name: organization?.name || "",
-    adminId: "", // Will store selected admin user ID
+    ownerId: currentOwnerId || "",
     countryCode: organization?.country_code || "PL",
     locale: organization?.locale || "pl",
   });
 
   const allUsers = users; // Show all users, not just admins
+  const ownerSelectionDisabled = !canManageOwnership;
 
   // Sync form data when organization changes
   useEffect(() => {
-    if (organization) {
-      // Find current admin user
-      const currentAdmin = users.find((u) => u.role === "admin");
+    if (organization && users.length > 0) {
+      const ownerFromProps = users.find((user) => user.id === currentOwnerId);
+      const fallbackAdmin = users[0];
 
       setFormData({
         name: organization.name || "",
-        adminId: currentAdmin?.id || "", // Set current admin ID
+        ownerId: ownerFromProps?.id || fallbackAdmin?.id || "",
         countryCode: organization.country_code || "PL",
         locale: organization.locale || "pl",
       });
     }
-  }, [organization, users]);
+  }, [organization, users, currentOwnerId]);
 
   const handleSave = async () => {
     try {
+      console.log("=== HANDLE SAVE START ===");
       console.log("Sending form data:", formData);
+      console.log("Selected ownerId:", formData.ownerId);
       console.log(
         "Available users:",
         users.map((u) => ({ id: u.id, email: u.email, role: u.role })),
@@ -101,6 +109,7 @@ export function EditOrganizationSheet({
 
       // Get organization ID from the current organization being edited
       const organizationId = organization?.id;
+      console.log("Organization ID:", organizationId);
 
       const response = await fetch("/api/admin/settings/organization", {
         method: "PUT",
@@ -174,7 +183,7 @@ export function EditOrganizationSheet({
     // Reset form data
     setFormData({
       name: organization?.name || "",
-      adminId: "",
+      ownerId: currentOwnerId || "",
       countryCode: organization?.country_code || "PL",
       locale: organization?.locale || "pl",
     });
@@ -222,19 +231,20 @@ export function EditOrganizationSheet({
                 />
               </div>
 
-              {/* Admin Selector */}
+              {/* Owner Selector */}
               <div className="space-y-2">
-                <Label>Wybierz administratora</Label>
+                <Label>Wybierz właściciela workspace</Label>
                 <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
+                  <DropdownMenuTrigger asChild disabled={ownerSelectionDisabled}>
                     <Button
                       variant="outline"
                       className="w-full justify-between h-auto min-h-9 px-3 py-2"
+                      disabled={ownerSelectionDisabled}
                     >
-                      {formData.adminId ? (
+                      {formData.ownerId ? (
                         (() => {
                           const selectedUser = allUsers.find(
-                            (u) => u.id === formData.adminId,
+                            (u) => u.id === formData.ownerId,
                           );
                           return selectedUser ? (
                             <div className="flex items-center gap-2">
@@ -259,7 +269,7 @@ export function EditOrganizationSheet({
                         })()
                       ) : (
                         <span className="text-muted-foreground">
-                          Wybierz administratora
+                          Wybierz właściciela workspace
                         </span>
                       )}
                       <ChevronDown className="size-4 opacity-50" />
@@ -271,13 +281,13 @@ export function EditOrganizationSheet({
                         <DropdownMenuItem
                           onClick={() => {
                             console.log(
-                              "Setting admin to:",
+                              "Setting owner to:",
                               user.id,
                               user.full_name || user.email,
                             );
                             setFormData((prev) => ({
                               ...prev,
-                              adminId: user.id,
+                              ownerId: user.id,
                             }));
                           }}
                           className="cursor-pointer"
@@ -304,6 +314,11 @@ export function EditOrganizationSheet({
                     ))}
                   </DropdownMenuContent>
                 </DropdownMenu>
+                {ownerSelectionDisabled && (
+                  <p className="text-xs text-muted-foreground">
+                    Tylko obecny właściciel workspace może przekazać tę rolę innemu administratorowi. Poproś właściciela o aktualizację.
+                  </p>
+                )}
               </div>
             </div>
 
@@ -422,7 +437,7 @@ export function EditOrganizationSheet({
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold text-destructive mb-1">
-                    Delete workspace
+                    Usuń workspace
                   </h3>
                   <p className="text-sm text-muted-foreground mb-3">
                     This is a toast description. Lorem ipsum dolor sit amet
@@ -440,7 +455,7 @@ export function EditOrganizationSheet({
                       );
                     }}
                   >
-                    Delete workspace
+                    Usuń workspace
                   </Button>
                 </div>
               </div>
