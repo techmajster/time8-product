@@ -80,22 +80,23 @@ export default async function AdminSettingsPage() {
     .eq('organization_id', profile.organization_id)
     .order('name')
 
-  // Get all users in the organization for admin selector
-  const { data: orgUsers } = await supabase
+  // Get all ADMIN users in the organization for admin selector
+  const { data: orgUsers, error: orgUsersError } = await supabase
     .from('user_organizations')
     .select(`
       user_id,
       role,
-      profiles!inner (
-        id,
-        email,
-        full_name,
-        avatar_url
-      )
+      profiles!user_organizations_user_id_fkey(id, email, full_name, avatar_url)
     `)
     .eq('organization_id', profile.organization_id)
     .eq('is_active', true)
-    .order('profiles(full_name)')
+    .eq('role', 'admin')
+
+  console.log('🔍 Admin Settings - orgUsers query result:', {
+    orgUsersCount: orgUsers?.length,
+    orgUsersError,
+    orgUsersData: orgUsers
+  })
 
   // Transform the data to match the expected format
   const users = orgUsers?.map(ou => ({
@@ -113,21 +114,28 @@ export default async function AdminSettingsPage() {
     .eq('organization_id', profile.organization_id)
     .order('name')
 
-  // Get team member assignments from user_organizations.team_id
-  const { data: teamMembers } = await supabase
-    .from('user_organizations')
-    .select('user_id, team_id')
-    .eq('organization_id', profile.organization_id)
-    .eq('is_active', true)
-    .not('team_id', 'is', null)
-
   // Get subscription data for SubscriptionWidget
   const { data: subscription } = await supabase
     .from('subscriptions')
-    .select('current_seats, renews_at, status')
+    .select('seat_limit, renews_at, status')
     .eq('organization_id', profile.organization_id)
     .in('status', ['active', 'on_trial', 'past_due'])
     .single()
+
+  // CRITICAL BUG FIX: Query actual user count from organization_members
+  // DO NOT use subscription.current_seats (may be 0 or outdated)
+  const { count: actualUserCount } = await supabase
+    .from('organization_members')
+    .select('*', { count: 'exact', head: true })
+    .eq('organization_id', profile.organization_id)
+    .eq('status', 'active')
+
+  // Combine subscription and actual user count for display
+  const subscriptionData = subscription ? {
+    ...subscription,
+    current_seats: actualUserCount || 0, // Use actual user count
+    seat_limit: subscription.seat_limit || 3 // Fallback to free tier limit
+  } : null
 
   // Get users with pending_removal status
   const { data: pendingRemovalUsers } = await supabase
@@ -183,6 +191,12 @@ export default async function AdminSettingsPage() {
     role: au.role
   })) || []
 
+  // DEBUG: Log users before passing to client
+  console.log('📊 page.tsx - About to pass users to AdminSettingsClient:', {
+    usersCount: users?.length,
+    usersData: users?.map(u => ({ id: u.id, email: u.email, role: u.role }))
+  })
+
   return (
     <AppLayout>
       <AdminSettingsClient
@@ -190,8 +204,7 @@ export default async function AdminSettingsPage() {
         leaveTypes={leaveTypes || []}
         users={users || []}
         teams={teams || []}
-        teamMembers={teamMembers || []}
-        subscription={subscription}
+        subscription={subscriptionData}
         pendingRemovalUsers={transformedPendingUsers}
         archivedUsers={transformedArchivedUsers}
       />

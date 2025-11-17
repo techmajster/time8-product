@@ -22,7 +22,6 @@ describe('Seat Enforcement', () => {
       .from('organizations')
       .insert({
         name: 'Seat Test Org',
-        slug: 'seat-test-org',
         subscription_tier: 'free',
         paid_seats: 0
       })

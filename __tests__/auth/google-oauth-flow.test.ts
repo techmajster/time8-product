@@ -328,7 +328,6 @@ describe('Google OAuth Flow Tests', () => {
         organization: {
           id: 'org-company',
           name: 'Company Inc',
-          slug: 'company'
         }
       }
 

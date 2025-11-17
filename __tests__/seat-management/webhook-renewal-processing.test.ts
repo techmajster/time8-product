@@ -38,7 +38,6 @@ describe('Webhook Renewal Processing E2E Tests', () => {
       .from('organizations')
       .insert({
         name: `Webhook Test Org ${Date.now()}`,
-        slug: `webhook-test-${Date.now()}`,
         country_code: 'PL'
       })
       .select()

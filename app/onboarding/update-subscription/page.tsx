@@ -17,8 +17,8 @@ function UpdateSubscriptionPageContent() {
   const t = useTranslations('onboarding.updateSubscription')
   const searchParams = useSearchParams()
   const [userCount, setUserCount] = useState(3)
-  const [selectedTier, setSelectedTier] = useState<'monthly' | 'yearly'>('yearly')
-  const [currentTier, setCurrentTier] = useState<'monthly' | 'yearly'>('yearly')
+  const [selectedTier, setSelectedTier] = useState<'monthly' | 'yearly'>('monthly') // Default to monthly for free tier
+  const [currentTier, setCurrentTier] = useState<'monthly' | 'yearly'>('monthly') // Default to monthly for free tier
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [organizationId, setOrganizationId] = useState<string | null>(null)
@@ -27,6 +27,7 @@ function UpdateSubscriptionPageContent() {
   const [initialUserCount, setInitialUserCount] = useState(3)
   const [renewalDate, setRenewalDate] = useState<string | null>(null)
   const [subscriptionId, setSubscriptionId] = useState<string | null>(null)
+  const [organizationData, setOrganizationData] = useState<{ name: string; slug: string; country_code: string } | null>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -53,10 +54,28 @@ function UpdateSubscriptionPageContent() {
       setUserCount(seats)
       setInitialUserCount(seats)
 
+      // Fetch organization data for checkout
+      const { data: org } = await supabase
+        .from('organizations')
+        .select('name, slug, country_code')
+        .eq('id', orgId)
+        .single()
+
+      if (org) {
+        // Generate slug from name if it doesn't exist
+        const slug = org.slug || org.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+
+        setOrganizationData({
+          name: org.name,
+          slug: slug,
+          country_code: org.country_code
+        })
+      }
+
       // Fetch current subscription to determine billing period
       const { data: subscription } = await supabase
         .from('subscriptions')
-        .select('lemonsqueezy_subscription_id, lemonsqueezy_variant_id, lemonsqueezy_product_id, current_seats, renews_at')
+        .select('lemonsqueezy_subscription_id, lemonsqueezy_variant_id, lemonsqueezy_product_id, billing_period, current_seats, renews_at')
         .eq('organization_id', orgId)
         .eq('status', 'active')
         .single()
@@ -64,13 +83,24 @@ function UpdateSubscriptionPageContent() {
       if (subscription) {
         setSubscriptionId(subscription.lemonsqueezy_subscription_id)
 
-        // Determine tier based on product_id (preferred) or variant_id (fallback)
-        const yearlyProductId = process.env.NEXT_PUBLIC_LEMONSQUEEZY_YEARLY_PRODUCT_ID || '693341'
-        const monthlyVariantId = process.env.NEXT_PUBLIC_LEMONSQUEEZY_MONTHLY_VARIANT_ID || '972634'
+        // CRITICAL BUG FIX: Use billing_period column as primary source
+        // Fallback to product_id/variant_id inference only if billing_period is null
+        let tier: 'monthly' | 'yearly' = 'yearly'
 
-        const isYearly = subscription.lemonsqueezy_product_id === yearlyProductId ||
-                        subscription.lemonsqueezy_variant_id !== monthlyVariantId
-        const tier = isYearly ? 'yearly' : 'monthly'
+        if (subscription.billing_period) {
+          // Primary: Use explicit billing_period column
+          tier = subscription.billing_period
+          console.log('✅ Using billing_period column:', tier)
+        } else {
+          // Fallback: Infer from product_id or variant_id (legacy subscriptions)
+          const yearlyProductId = process.env.NEXT_PUBLIC_LEMONSQUEEZY_YEARLY_PRODUCT_ID || '693341'
+          const monthlyVariantId = process.env.NEXT_PUBLIC_LEMONSQUEEZY_MONTHLY_VARIANT_ID || '972634'
+
+          const isYearly = subscription.lemonsqueezy_product_id === yearlyProductId ||
+                          subscription.lemonsqueezy_variant_id !== monthlyVariantId
+          tier = isYearly ? 'yearly' : 'monthly'
+          console.log('⚠️ Fallback: Inferring billing period from product_id/variant_id:', tier)
+        }
 
         setSelectedTier(tier)
         setCurrentTier(tier)
@@ -139,6 +169,44 @@ function UpdateSubscriptionPageContent() {
     try {
       const tierChanged = selectedTier !== currentTier
       const seatsChanged = userCount !== initialUserCount
+
+      // CRITICAL FIX: Handle free tier users upgrading to paid plan
+      if (!subscriptionId && organizationData) {
+        // Free tier user upgrading to paid plan - create checkout
+        const variantId = selectedTier === 'monthly'
+          ? pricingInfo.monthlyVariantId
+          : pricingInfo.yearlyVariantId
+
+        // Call create-checkout API which handles free tier upgrades
+        const response = await fetch('/api/billing/create-checkout', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            variant_id: variantId,
+            organization_data: {
+              id: organizationId, // Include org ID for upgrade scenario
+              name: organizationData.name,
+              slug: organizationData.slug,
+              country_code: organizationData.country_code
+            },
+            user_count: userCount,
+            tier: selectedTier === 'monthly' ? 'monthly' : 'annual',
+            return_url: `${window.location.origin}/admin/settings?tab=billing`
+          })
+        })
+
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to create checkout for upgrade')
+        }
+
+        // Redirect to checkout
+        window.location.href = data.checkout_url
+        return
+      }
 
       if (currentTier === 'monthly' && selectedTier === 'yearly') {
         // Monthly → Yearly upgrade: redirect to checkout

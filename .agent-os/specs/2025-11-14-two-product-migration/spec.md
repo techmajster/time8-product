@@ -26,6 +26,51 @@ As a yearly subscriber, I want to understand why I cannot switch to monthly unti
 
 **Problem Solved**: Prevents user confusion and support tickets by clearly communicating the one-way upgrade policy.
 
+## Critical Bug Fixes (Discovered During Testing)
+
+### Issues Identified
+
+During testing of workspace creation with user "testlemoniady", the following critical bugs were discovered:
+
+1. **Billing Period Not Saved**: User selects "monthly" during workspace creation, but system shows "yearly" in settings
+2. **Seat Count Shows Zero**: Admin settings displays "0 z 3 miejsc wykorzystanych" when should show "1 z 3 miejsc" (user is first seat)
+3. **Wrong Redirect on Upgrade**: "Uaktualnij do płatnego planu" button redirects to new workspace creation instead of subscription management
+4. **Monthly Option Incorrectly Locked**: Update subscription page shows monthly as unavailable even though user is on monthly plan
+5. **Webhook Not Processing Billing Period**: No webhook received, or webhook fails to process billing period information
+
+### Root Causes
+
+**No Explicit Billing Period Storage**:
+- Database has NO `billing_period` column to track monthly vs yearly
+- System infers billing period from `lemonsqueezy_product_id` or `lemonsqueezy_variant_id`
+- These IDs are NULL until webhook fires and processes subscription creation
+- During workspace creation, billing period selection is lost
+
+**Webhook Doesn't Read Tier from Custom Data**:
+- `create-checkout` endpoint sends `tier: 'monthly'/'annual'` in `custom_data`
+- Webhook handler receives this data but NEVER reads the `tier` field
+- Instead, webhook infers billing type from variant_id comparison
+- If webhook fails or is delayed, no billing period information exists
+
+**Seat Count Display Bug**:
+- `SubscriptionWidget` displays `subscription.current_seats` column
+- This column defaults to 0 when subscription doesn't exist or webhook hasn't processed
+- Should display count of actual active users from `organization_members` table
+
+**Update-Subscription Defaults to Yearly**:
+- Page checks: `subscription.lemonsqueezy_product_id === yearlyProductId`
+- When product_id is NULL (no webhook yet), defaults to yearly
+- Fallback logic: `subscription.lemonsqueezy_variant_id !== monthlyVariantId` also defaults to yearly when NULL
+
+### Required Fixes (Added to Spec Scope)
+
+1. **Add `billing_period` Column** - Explicit enum column ('monthly', 'yearly', null) in subscriptions table
+2. **Update Webhook Handler** - Extract and save `tier` from `custom_data` to `billing_period` column
+3. **Fix Seat Count Logic** - Query actual user count instead of displaying `current_seats` column
+4. **Fix Billing Period Detection** - Use `billing_period` column as primary source in update-subscription page
+5. **Fix Upgrade Button Redirect** - Change redirect from workspace creation to subscription management
+6. **Add Billing Period to Org Creation** - Save billing period during free tier organization creation
+
 ## Spec Scope
 
 1. **Database Schema Update** - Add `lemonsqueezy_product_id` column to track which product (monthly 621389 vs yearly 693341) each subscription belongs to
@@ -78,6 +123,14 @@ As a yearly subscriber, I want to understand why I cannot switch to monthly unti
 
 ## Expected Deliverable
 
+### Critical Bug Fixes Verified
+1. Billing period correctly saved and displayed (monthly shows as monthly, yearly shows as yearly)
+2. Seat count displays accurate user count ("1 z 3 miejsc" for first user on free tier)
+3. "Upgrade to paid plan" button redirects to subscription management page
+4. Monthly plan users can see and select monthly option in update-subscription page
+5. Webhook properly processes and saves billing period from checkout custom_data
+
+### Original Two-Product Migration Features
 1. Monthly users can successfully upgrade to yearly billing with seat count preserved through checkout flow
 2. Yearly→monthly switch is visually disabled in UI with clear messaging about renewal date
 3. Database tracks both `lemonsqueezy_product_id` and `lemonsqueezy_variant_id` for all subscriptions

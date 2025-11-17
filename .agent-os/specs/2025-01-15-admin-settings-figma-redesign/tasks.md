@@ -24,16 +24,16 @@
   - [x] 3.4 Remove unused tab content sections
   - [x] 3.5 Verify tab navigation works correctly
 
-- [ ] 4. Ogólne Tab Updates
-  - [ ] 4.1 Remove logo upload UI components (file input, preview, upload button)
-  - [ ] 4.2 Remove organization slug input field from EditOrganizationSheet
-  - [ ] 4.3 Delete EditGoogleWorkspaceSheet component file
-  - [ ] 4.4 Remove Google Workspace integration card from Ogólne tab
-  - [ ] 4.5 Add country flag icons to holiday calendar dropdown
-  - [ ] 4.6 Add country flag icons to language dropdown
-  - [ ] 4.7 Add helper text under language selector
-  - [ ] 4.8 Update EditOrganizationSheet validation to exclude deprecated fields
-  - [ ] 4.9 Test Ogólne tab renders correctly with new layout
+- [x] 4. Ogólne Tab Updates
+  - [x] 4.1 Remove logo upload UI components (file input, preview, upload button)
+  - [x] 4.2 Remove organization slug input field from EditOrganizationSheet
+  - [x] 4.3 Delete EditGoogleWorkspaceSheet component file
+  - [x] 4.4 Remove Google Workspace integration card from Ogólne tab
+  - [x] 4.5 Add country flag icons to holiday calendar dropdown
+  - [x] 4.6 Add country flag icons to language dropdown
+  - [x] 4.7 Add helper text under language selector
+  - [x] 4.8 Update EditOrganizationSheet validation to exclude deprecated fields
+  - [x] 4.9 Test Ogólne tab renders correctly with new layout
 
 - [ ] 5. Create Working Days Grid Component (Tryb pracy Tab)
   - [ ] 5.1 Create WorkingDaysGrid.tsx component file

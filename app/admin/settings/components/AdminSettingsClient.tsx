@@ -15,13 +15,13 @@ import { Separator } from '@/components/ui/separator'
 import { EditOrganizationSheet } from './EditOrganizationSheet'
 import { EditLeaveTypesSheet } from './EditLeaveTypesSheet'
 import { EditLeavePoliciesSheet } from './EditLeavePoliciesSheet'
-import { EditGoogleWorkspaceSheet } from './EditGoogleWorkspaceSheet'
 import { CreateLeaveTypeSheet } from './CreateLeaveTypeSheet'
 import { WorkModeSettings } from './WorkModeSettings'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { getCountryFlag, getLanguageFlag } from '@/lib/flag-utils'
 import { Plus, MoreVertical, X, Lock } from 'lucide-react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { PolandFlag } from '@/components/icons/PolandFlag'
+import { UKFlag } from '@/components/icons/UKFlag'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Checkbox } from '@/components/ui/checkbox'
 import { toast } from 'sonner'
@@ -60,7 +60,8 @@ interface Team {
 }
 
 interface Subscription {
-  current_seats: number
+  current_seats: number // Actual user count from organization_members
+  seat_limit: number // Maximum allowed seats from subscription
   renews_at: string | null
   status: string
 }
@@ -108,6 +109,13 @@ export default function AdminSettingsClient({
   const [archivedUsers, setArchivedUsers] = useState<ArchivedUser[]>(initialArchivedUsers)
   const router = useRouter()
 
+  // Debug logging for users prop
+  useEffect(() => {
+    console.log('AdminSettingsClient - users prop received:', users);
+    console.log('AdminSettingsClient - users.length:', users?.length);
+    console.log('AdminSettingsClient - users data:', users?.map(u => ({ id: u.id, email: u.email, role: u.role })));
+  }, [users])
+
   // Tab state management - Only 4 tabs: Ogólne, Tryb pracy, Urlopy, Rozliczenia
   const [activeTab, setActiveTab] = useState('general')
   
@@ -115,7 +123,6 @@ export default function AdminSettingsClient({
   const [isOrganizationSheetOpen, setIsOrganizationSheetOpen] = useState(false)
   const [isLeaveTypesSheetOpen, setIsLeaveTypesSheetOpen] = useState(false)
   const [isLeavePoliciesSheetOpen, setIsLeavePoliciesSheetOpen] = useState(false)
-  const [isGoogleWorkspaceSheetOpen, setIsGoogleWorkspaceSheetOpen] = useState(false)
   const [isCreateLeaveTypeSheetOpen, setIsCreateLeaveTypeSheetOpen] = useState(false)
 
   // Dialog states for leave types management
@@ -588,8 +595,8 @@ export default function AdminSettingsClient({
         {/* Tab Content */}
         <FigmaTabsContent value="general" className="mt-6 space-y-6">
           {/* Organization Settings Card */}
-          <Card className="border border-border">
-            <CardHeader className="pb-0">
+          <Card className="border-0 p-0">
+            <CardHeader className="pb-0 p-0">
               <div className="flex items-center justify-between">
                 <div className="space-y-1.5">
                   <div className="flex items-center gap-2">
@@ -599,51 +606,21 @@ export default function AdminSettingsClient({
                     Podstawowe informacje o organizacji
                   </CardDescription>
                 </div>
-                <Button variant="secondary" size="sm" className="h-9" onClick={() => setIsOrganizationSheetOpen(true)}>
+                <Button variant="outline" size="sm" className="h-9" onClick={() => setIsOrganizationSheetOpen(true)}>
                   Edytuj dane
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="pt-0 pb-6 space-y-6">
+            <CardContent className="pt-0 pb-0 p-0 space-y-6">
               <div className="space-y-6">
                 <div className="w-[400px] space-y-2">
                   <Label htmlFor="org-name">Nazwa organizacji</Label>
-                  <Input 
+                  <Input
                     id="org-name"
-                    value={currentOrganization?.name || 'BB8'} 
-                    disabled 
+                    value={currentOrganization?.name || 'BB8'}
+                    disabled
                     className="opacity-50"
                   />
-                </div>
-                
-                <div className="w-[400px] space-y-2">
-                  <Label htmlFor="org-logo">Logo organizacji</Label>
-                  <div className="relative">
-                    <Input 
-                      id="org-logo"
-                      value="Nie wybrano pliku" 
-                      disabled 
-                      className="opacity-50 pl-[100px]"
-                    />
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2">
-                      <Button variant="ghost" size="sm" className="h-auto p-1.5 text-sm font-medium">
-                        Wybierz plik
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="w-[400px] space-y-2">
-                  <Label htmlFor="org-slug">Slug organizacji</Label>
-                  <Input 
-                    id="org-slug"
-                    value={currentOrganization?.slug || 'bb8'} 
-                    disabled 
-                    className="opacity-50"
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    Unikalny identyfikator (tylko małe litery, cyfry i myślniki)
-                  </p>
                 </div>
 
                 <div className="w-[400px] space-y-2">
@@ -671,24 +648,22 @@ export default function AdminSettingsClient({
                   </div>
                 </div>
 
-                <Separator />
-
                 <div className="w-[400px] space-y-2">
                   <Label htmlFor="holiday-calendar">Kalendarz świąt</Label>
                   <Select value={currentOrganization?.country_code || 'PL'} disabled>
-                    <SelectTrigger>
+                    <SelectTrigger className="w-[400px]">
                       <div className="flex items-center gap-2">
-                        {currentOrganization?.country_code === 'PL' && (
-                          <span className="text-lg">🇵🇱</span>
+                        {(currentOrganization?.country_code === 'PL' || !currentOrganization?.country_code) && (
+                          <PolandFlag size={16} />
                         )}
                         {currentOrganization?.country_code === 'IE' && (
-                          <span className="text-lg">🇮🇪</span>
+                          <UKFlag size={16} />
                         )}
                         {currentOrganization?.country_code === 'US' && (
-                          <span className="text-lg">🇺🇸</span>
+                          <UKFlag size={16} />
                         )}
                         <span className="font-medium text-sm">
-                          {currentOrganization?.country_code === 'PL' ? 'Polska' :
+                          {currentOrganization?.country_code === 'PL' || !currentOrganization?.country_code ? 'Polska' :
                            currentOrganization?.country_code === 'IE' ? 'Irlandia' :
                            currentOrganization?.country_code === 'US' ? 'Stany Zjednoczone' :
                            'Polska'}
@@ -704,13 +679,13 @@ export default function AdminSettingsClient({
                 <div className="w-[400px] space-y-2">
                   <Label htmlFor="primary-language">Język podstawowy organizacji</Label>
                   <Select value={currentOrganization?.locale || 'pl'} disabled>
-                    <SelectTrigger>
+                    <SelectTrigger className="w-[400px]">
                       <div className="flex items-center gap-2">
                         {(currentOrganization?.locale === 'pl' || !currentOrganization?.locale) && (
-                          <span className="text-lg">🇵🇱</span>
+                          <PolandFlag size={16} />
                         )}
                         {currentOrganization?.locale === 'en' && (
-                          <span className="text-lg">🇺🇸</span>
+                          <UKFlag size={16} />
                         )}
                         <span className="font-medium text-sm">
                           {(currentOrganization?.locale === 'pl' || !currentOrganization?.locale) ? 'Polski' :
@@ -722,13 +697,13 @@ export default function AdminSettingsClient({
                     <SelectContent>
                       <SelectItem value="pl">
                         <div className="flex items-center gap-2">
-                          <span className="text-lg">🇵🇱</span>
+                          <PolandFlag size={16} />
                           <span>Polski</span>
                         </div>
                       </SelectItem>
                       <SelectItem value="en">
                         <div className="flex items-center gap-2">
-                          <span className="text-lg">🇺🇸</span>
+                          <UKFlag size={16} />
                           <span>English</span>
                         </div>
                       </SelectItem>
@@ -737,55 +712,6 @@ export default function AdminSettingsClient({
                   <p className="text-xs text-muted-foreground">
                     Domyślny język dla nowych użytkowników. Użytkownicy mogą zmienić język w swoim profilu.
                   </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Google Workspace Integration Card */}
-          <Card className="border border-border">
-            <CardHeader className="pb-0">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-2">
-                    <CardTitle className="text-xl font-semibold">Integracja z Google Workspace</CardTitle>
-                  </div>
-                  <CardDescription>
-                    Konfiguracja domeny Google
-                  </CardDescription>
-                </div>
-                <Button variant="secondary" size="sm" className="h-9" onClick={() => setIsGoogleWorkspaceSheetOpen(true)}>
-                  Edytuj dane
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0 pb-6">
-              <div className="space-y-6">
-                <div className="w-[400px] space-y-2">
-                  <Label htmlFor="google-domain">Domena Google Workspace</Label>
-                  <Input 
-                    id="google-domain"
-                    value={currentOrganization?.google_domain || 'bb8.pl'} 
-                    disabled 
-                    className="opacity-50"
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    Jeśli ustawione, tylko użytkownicy z tej domeny będą mogli się logować przez Google
-                  </p>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <Switch 
-                    id="require-google-domain" 
-                    checked={currentOrganization?.require_google_domain || false}
-                    disabled
-                    className="opacity-50"
-                  />
-                  <div className="space-y-2">
-                    <Label htmlFor="require-google-domain" className="text-sm font-medium">
-                      Wymagaj domeny Google dla wszystkich nowych użytkowników
-                    </Label>
-                  </div>
                 </div>
               </div>
             </CardContent>
@@ -1303,13 +1229,14 @@ export default function AdminSettingsClient({
                   <div className="space-y-4">
                     {!subscriptionData ? (
                       <>
-                        <Button 
+                        <Button
                           className=" text-primary-foreground h-9 px-4 rounded-lg shadow-sm"
                           onClick={() => {
-                            // Redirect to upgrade flow - start with current team size + 1 buffer
+                            // CRITICAL BUG FIX: Redirect to update-subscription, not add-users
+                            // add-users is for creating NEW workspaces, update-subscription is for upgrading existing
                             const currentTeamSize = users.length || 1
                             const recommendedSeats = Math.max(currentTeamSize + 1, 4) // At least 4 total
-                            router.push(`/onboarding/add-users?upgrade=true&current_org=${currentOrganization?.id}&seats=${recommendedSeats}`)
+                            router.push(`/onboarding/update-subscription?current_org=${currentOrganization?.id}&seats=${recommendedSeats}`)
                           }}
                         >
                           {t('upgradeToPaid')}
@@ -1444,6 +1371,7 @@ export default function AdminSettingsClient({
           {initialSubscription && (
             <SubscriptionWidget
               currentSeats={initialSubscription.current_seats}
+              seatLimit={initialSubscription.seat_limit}
               renewsAt={initialSubscription.renews_at}
               status={initialSubscription.status as 'active' | 'on_trial' | 'past_due' | 'cancelled'}
               className="mt-6"
@@ -1625,13 +1553,6 @@ export default function AdminSettingsClient({
           onOpenChange={setIsOrganizationSheetOpen}
           organization={currentOrganization}
           users={users}
-          onSave={handleOrganizationSave}
-        />
-
-        <EditGoogleWorkspaceSheet
-          open={isGoogleWorkspaceSheetOpen}
-          onOpenChange={setIsGoogleWorkspaceSheetOpen}
-          organization={currentOrganization}
           onSave={handleOrganizationSave}
         />
 

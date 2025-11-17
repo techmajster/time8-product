@@ -122,7 +122,6 @@ describe('POST /api/organizations - Workspace Creator Balance Initialization', (
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name: 'Test Workspace',
-        slug: 'test-workspace',
         country_code: 'PL'
       }),
     }) as any
@@ -251,7 +250,6 @@ describe('POST /api/organizations - Workspace Creator Balance Initialization', (
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name: 'Test Workspace',
-        slug: 'test-workspace',
         country_code: 'PL'
       }),
     }) as any

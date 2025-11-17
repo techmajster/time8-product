@@ -67,7 +67,6 @@ describe('Organization Creation and Initialization Process Tests', () => {
       await supabaseAdmin.from('organizations').insert({
         id: existingUserOrgId,
         name: 'Existing User Organization',
-        slug: 'existing-user-org',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })
@@ -104,8 +103,7 @@ describe('Organization Creation and Initialization Process Tests', () => {
     test('should create new organization with valid data', async () => {
       const orgCreationRequest = createMockRequest('POST', '/api/organizations', {
         name: 'Test Organization',
-        slug: 'test-organization',
-        google_domain: 'testorg.com'
+        country_code: 'PL'
       }, {
         userId: newUserForOrgCreation
       })
@@ -117,8 +115,7 @@ describe('Organization Creation and Initialization Process Tests', () => {
         const createdOrgData = await orgCreationResponse.json()
         expect(createdOrgData.organization).toBeDefined()
         expect(createdOrgData.organization.name).toBe('Test Organization')
-        expect(createdOrgData.organization.slug).toBe('test-organization')
-        
+
         const createdOrgId = createdOrgData.organization.id
         testOrgIds.push(createdOrgId)
 
@@ -131,15 +128,12 @@ describe('Organization Creation and Initialization Process Tests', () => {
 
         expect(orgFromDb).toBeDefined()
         expect(orgFromDb.name).toBe('Test Organization')
-        expect(orgFromDb.slug).toBe('test-organization')
-        expect(orgFromDb.google_domain).toBe('testorg.com')
       }
     })
 
     test('should automatically add creator as admin of new organization', async () => {
       const orgCreationRequest = createMockRequest('POST', '/api/organizations', {
         name: 'Admin Test Organization',
-        slug: 'admin-test-org'
       }, {
         userId: newUserForOrgCreation
       })
@@ -182,7 +176,6 @@ describe('Organization Creation and Initialization Process Tests', () => {
     test('should create default organization settings during initialization', async () => {
       const orgCreationRequest = createMockRequest('POST', '/api/organizations', {
         name: 'Settings Test Organization',
-        slug: 'settings-test-org'
       }, {
         userId: newUserForOrgCreation
       })
@@ -232,23 +225,11 @@ describe('Organization Creation and Initialization Process Tests', () => {
       const invalidRequests = [
         {
           description: 'Missing name',
-          data: { slug: 'missing-name-org' }
-        },
-        {
-          description: 'Missing slug',
-          data: { name: 'Missing Slug Organization' }
+          data: { country_code: 'PL' }
         },
         {
           description: 'Empty name',
-          data: { name: '', slug: 'empty-name-org' }
-        },
-        {
-          description: 'Empty slug',
-          data: { name: 'Empty Slug Organization', slug: '' }
-        },
-        {
-          description: 'Invalid slug characters',
-          data: { name: 'Invalid Slug Organization', slug: 'invalid slug with spaces' }
+          data: { name: '', country_code: 'PL' }
         }
       ]
 
@@ -262,76 +243,18 @@ describe('Organization Creation and Initialization Process Tests', () => {
 
         const errorData = await invalidResponse.json()
         expect(errorData.error).toBeDefined()
-        expect(errorData.error).toMatch(/name|slug|required|invalid/i)
+        expect(errorData.error).toMatch(/name|required|invalid/i)
       }
     })
 
-    test('should prevent duplicate organization slugs', async () => {
-      // Create first organization
-      const firstOrgRequest = createMockRequest('POST', '/api/organizations', {
-        name: 'First Organization',
-        slug: 'duplicate-test-org'
-      }, {
-        userId: newUserForOrgCreation
-      })
-
-      const firstOrgResponse = await organizationsPost(firstOrgRequest)
-      
-      if (firstOrgResponse.status === 201) {
-        const firstOrgData = await firstOrgResponse.json()
-        testOrgIds.push(firstOrgData.organization.id)
-
-        // Try to create second organization with same slug
-        const duplicateOrgRequest = createMockRequest('POST', '/api/organizations', {
-          name: 'Second Organization',
-          slug: 'duplicate-test-org' // Same slug
-        }, {
-          userId: newUserForOrgCreation
-        })
-
-        const duplicateOrgResponse = await organizationsPost(duplicateOrgRequest)
-        expect(duplicateOrgResponse.status).toBe(400)
-
-        const errorData = await duplicateOrgResponse.json()
-        expect(errorData.error).toMatch(/slug|duplicate|exists|unique/i)
-      }
+    // Note: Slug uniqueness validation removed as slug field no longer exists
+    test.skip('should prevent duplicate organization slugs', async () => {
+      // This test is no longer applicable as slug field has been removed from organizations
     })
 
-    test('should validate Google domain format if provided', async () => {
-      const invalidDomainRequests = [
-        {
-          domain: 'invalid domain',
-          description: 'domain with spaces'
-        },
-        {
-          domain: 'http://invalid.com',
-          description: 'domain with protocol'
-        },
-        {
-          domain: 'invalid..com',
-          description: 'domain with double dots'
-        },
-        {
-          domain: '.invalid.com',
-          description: 'domain starting with dot'
-        }
-      ]
-
-      for (const { domain, description } of invalidDomainRequests) {
-        const invalidDomainRequest = createMockRequest('POST', '/api/organizations', {
-          name: `Invalid Domain Organization - ${description}`,
-          slug: `invalid-domain-${Date.now()}`,
-          google_domain: domain
-        }, {
-          userId: newUserForOrgCreation
-        })
-
-        const invalidDomainResponse = await organizationsPost(invalidDomainRequest)
-        expect(invalidDomainResponse.status).toBe(400)
-
-        const errorData = await invalidDomainResponse.json()
-        expect(errorData.error).toMatch(/domain|invalid|format/i)
-      }
+    // Note: Google domain validation removed as google_domain field no longer exists
+    test.skip('should validate Google domain format if provided', async () => {
+      // This test is no longer applicable as google_domain field has been removed from organizations
     })
   })
 
@@ -339,7 +262,6 @@ describe('Organization Creation and Initialization Process Tests', () => {
     test('should allow existing user to create additional organization', async () => {
       const additionalOrgRequest = createMockRequest('POST', '/api/organizations', {
         name: 'Additional Organization',
-        slug: 'additional-org'
       }, {
         userId: existingUser,
         organizationId: existingUserOrgId // Current organization context
@@ -381,7 +303,6 @@ describe('Organization Creation and Initialization Process Tests', () => {
       // Create organization as existing user
       const isolatedOrgRequest = createMockRequest('POST', '/api/organizations', {
         name: 'Isolated Organization',
-        slug: 'isolated-org'
       }, {
         userId: existingUser
       })
@@ -415,7 +336,6 @@ describe('Organization Creation and Initialization Process Tests', () => {
     test('should handle organization creation with minimal required data', async () => {
       const minimalOrgRequest = createMockRequest('POST', '/api/organizations', {
         name: 'Minimal Organization',
-        slug: 'minimal-org'
         // No optional fields
       }, {
         userId: newUserForOrgCreation
@@ -437,7 +357,6 @@ describe('Organization Creation and Initialization Process Tests', () => {
 
         expect(orgFromDb).toBeDefined()
         expect(orgFromDb.name).toBe('Minimal Organization')
-        expect(orgFromDb.slug).toBe('minimal-org')
         expect(orgFromDb.google_domain).toBeNull()
         expect(orgFromDb.require_google_domain).toBe(false)
         expect(orgFromDb.created_at).toBeDefined()
@@ -446,10 +365,10 @@ describe('Organization Creation and Initialization Process Tests', () => {
     })
 
     test('should handle concurrent organization creation attempts', async () => {
-      const concurrentRequests = Array.from({ length: 3 }, (_, i) => 
+      const concurrentRequests = Array.from({ length: 3 }, (_, i) =>
         createMockRequest('POST', '/api/organizations', {
           name: `Concurrent Organization ${i}`,
-          slug: `concurrent-org-${i}`
+          country_code: 'PL'
         }, {
           userId: newUserForOrgCreation,
           requestId: `concurrent-${i}`
@@ -491,8 +410,7 @@ describe('Organization Creation and Initialization Process Tests', () => {
     test('should handle organization creation failure recovery', async () => {
       // Attempt to create organization with invalid data that would fail partway through
       const failingOrgRequest = createMockRequest('POST', '/api/organizations', {
-        name: 'Failing Organization',
-        slug: 'existing-user-org' // Duplicate slug
+        name: '' // Empty name - should fail validation
       }, {
         userId: newUserForOrgCreation
       })
@@ -520,7 +438,6 @@ describe('Organization Creation and Initialization Process Tests', () => {
       // Verify user can still create organization after failure
       const recoveryOrgRequest = createMockRequest('POST', '/api/organizations', {
         name: 'Recovery Organization',
-        slug: 'recovery-org'
       }, {
         userId: newUserForOrgCreation
       })
@@ -538,7 +455,6 @@ describe('Organization Creation and Initialization Process Tests', () => {
     test('should allow immediate access to newly created organization', async () => {
       const newOrgRequest = createMockRequest('POST', '/api/organizations', {
         name: 'Immediate Access Organization',
-        slug: 'immediate-access-org'
       }, {
         userId: newUserForOrgCreation
       })
@@ -570,7 +486,6 @@ describe('Organization Creation and Initialization Process Tests', () => {
     test('should show newly created organization in organization status', async () => {
       const statusOrgRequest = createMockRequest('POST', '/api/organizations', {
         name: 'Status Test Organization',
-        slug: 'status-test-org'
       }, {
         userId: newUserForOrgCreation
       })
@@ -605,7 +520,6 @@ describe('Organization Creation and Initialization Process Tests', () => {
     test('should create proper organization initials for workspace display', async () => {
       const orgWithInitialsRequest = createMockRequest('POST', '/api/organizations', {
         name: 'Test Initials Organization',
-        slug: 'test-initials-org'
       }, {
         userId: newUserForOrgCreation
       })
@@ -640,7 +554,6 @@ describe('Organization Creation and Initialization Process Tests', () => {
     test('should prevent unauthorized organization creation', async () => {
       const unauthorizedRequest = createMockRequest('POST', '/api/organizations', {
         name: 'Unauthorized Organization',
-        slug: 'unauthorized-org'
       }, {
         // No userId provided
       })
@@ -657,7 +570,6 @@ describe('Organization Creation and Initialization Process Tests', () => {
       
       const nonExistentUserRequest = createMockRequest('POST', '/api/organizations', {
         name: 'Non-existent User Organization',
-        slug: 'nonexistent-user-org'
       }, {
         userId: nonExistentUserId
       })
