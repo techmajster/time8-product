@@ -35,11 +35,7 @@ export default async function AdminSettingsPage() {
       organizations (
         id,
         name,
-        slug,
-        google_domain,
-        require_google_domain,
         brand_color,
-        logo_url,
         country_code,
         locale,
         created_at,

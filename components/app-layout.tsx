@@ -39,8 +39,7 @@ export async function AppLayout({ children }: AppLayoutProps) {
       organizations (
         id,
         name,
-        brand_color,
-        logo_url
+        brand_color
       )
     `)
     .eq('user_id', user.id)
