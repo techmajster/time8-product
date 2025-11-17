@@ -49,7 +49,17 @@ export default async function DashboardPage() {
       organizations (
         id,
         name,
-        country_code
+        country_code,
+        locale,
+        brand_color,
+        work_mode,
+        working_days,
+        exclude_public_holidays,
+        daily_start_time,
+        daily_end_time,
+        work_schedule_type,
+        shift_count,
+        work_shifts
       )
     `)
     .eq('user_id', user.id)

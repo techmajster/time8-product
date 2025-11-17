@@ -45,6 +45,16 @@ export interface Organization {
   require_google_domain: boolean
   work_mode?: 'monday_to_friday' | 'multi_shift'
   working_days?: string[]
+  exclude_public_holidays?: boolean
+  daily_start_time?: string | null
+  daily_end_time?: string | null
+  work_schedule_type?: 'daily' | 'multi_shift'
+  shift_count?: number | null
+  work_shifts?: Array<{
+    label?: string
+    start_time: string
+    end_time: string
+  }> | null
   created_at: string
   updated_at: string
 }
