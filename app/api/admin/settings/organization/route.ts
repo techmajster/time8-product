@@ -80,7 +80,7 @@ export async function PUT(request: NextRequest) {
       // Determine current ownership status
       const isCurrentOwner = Boolean(userOrganization?.is_owner)
 
-      const { data: currentOwnerRow, error: currentOwnerError } = await supabaseAdmin
+      const { data: currentOwnerRow, error: currentOwnerError} = await supabaseAdmin
         .from('user_organizations')
         .select('user_id')
         .eq('organization_id', organizationId)
@@ -160,6 +160,88 @@ export async function PUT(request: NextRequest) {
       }
     } else {
       console.log('No ownerId provided, skipping ownership transfer')
+=======
+    // Determine current ownership status
+    const isCurrentOwner = Boolean(userOrganization?.is_owner)
+
+    const { data: currentOwnerRow, error: currentOwnerError } = await supabaseAdmin
+      .from('user_organizations')
+      .select('user_id')
+      .eq('organization_id', organizationId)
+      .eq('is_owner', true)
+      .maybeSingle()
+
+    if (currentOwnerError && currentOwnerError.code !== 'PGRST116') {
+      console.error('Failed to fetch current owner:', currentOwnerError)
+      return NextResponse.json({ error: 'Failed to verify current owner' }, { status: 500 })
+    }
+
+    const currentOwnerId = currentOwnerRow?.user_id || null
+    const isOwnershipChange = ownerId !== currentOwnerId
+    const canTransferOwnership = isCurrentOwner || !currentOwnerId
+
+    if (isOwnershipChange && !canTransferOwnership) {
+      console.error('Ownership transfer blocked: user is not current owner')
+      return NextResponse.json({ error: 'Only the current workspace owner can transfer ownership' }, { status: 403 })
+    }
+
+    if (isOwnershipChange) {
+      console.log('Fetching target owner info:', ownerId)
+      const { data: targetOwner, error: targetOwnerError } = await supabaseAdmin
+        .from('user_organizations')
+        .select('user_id, role, is_owner')
+        .eq('user_id', ownerId)
+        .eq('organization_id', organizationId)
+        .eq('is_active', true)
+        .single()
+
+      if (targetOwnerError || !targetOwner) {
+        console.error('Owner not found in organization:', ownerId, targetOwnerError)
+        return NextResponse.json({ error: 'Selected owner not found in organization' }, { status: 400 })
+      }
+
+      if (targetOwner.role !== 'admin') {
+        console.log('Promoting selected owner to admin role')
+        const { error: promoteError } = await supabaseAdmin
+          .from('user_organizations')
+          .update({ role: 'admin' })
+          .eq('user_id', ownerId)
+          .eq('organization_id', organizationId)
+
+        if (promoteError) {
+          console.error('Failed to promote owner to admin:', promoteError)
+          return NextResponse.json({ error: 'Failed to promote owner to admin role' }, { status: 500 })
+        }
+      }
+
+      console.log('Transferring ownership to user:', ownerId)
+
+      const { error: clearOwnerError } = await supabaseAdmin
+        .from('user_organizations')
+        .update({ is_owner: false })
+        .eq('organization_id', organizationId)
+        .eq('is_owner', true)
+
+      if (clearOwnerError) {
+        console.error('Failed to clear existing owner:', clearOwnerError)
+        return NextResponse.json({ error: 'Failed to clear existing owner' }, { status: 500 })
+      }
+
+      const { error: setOwnerError } = await supabaseAdmin
+        .from('user_organizations')
+        .update({ is_owner: true, role: 'admin' })
+        .eq('user_id', ownerId)
+        .eq('organization_id', organizationId)
+
+      if (setOwnerError) {
+        console.error('Failed to assign new owner:', setOwnerError)
+        return NextResponse.json({ error: 'Failed to assign new owner' }, { status: 500 })
+      }
+
+      console.log('Ownership transferred successfully')
+    } else {
+      console.log('Selected user is already the owner, skipping transfer')
+>>>>>>> origin/main
     }
 
     console.log('=== REACHING ORGANIZATION UPDATE ===')
