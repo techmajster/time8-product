@@ -73,6 +73,15 @@ export async function POST(request: NextRequest) {
 
     const { variant_id, organization_data, user_count, tier, user_email, return_url, failure_url } = body;
 
+    console.log('🔍 DIAGNOSTIC: Checkout request received:', {
+      variant_id,
+      organization_data_full: organization_data,
+      user_count,
+      tier,
+      user_email,
+      timestamp: new Date().toISOString()
+    });
+
     console.log('📧 User email from request:', {
       user_email,
       has_email: !!user_email,
@@ -163,6 +172,13 @@ export async function POST(request: NextRequest) {
     if (organization_data.id) {
       customData.organization_id = organization_data.id;
     }
+
+    console.log('🎯 DIAGNOSTIC: Customer name being sent to LemonSqueezy:', {
+      name: organization_data.name,
+      source: 'organization_data.name from request body',
+      email: user_email || `noreply+${Date.now()}@time8.io`,
+      WARNING: organization_data.name.includes('Paweł') ? '⚠️ TEST DATA DETECTED IN ORGANIZATION NAME!' : 'OK'
+    });
 
     const checkoutPayload = {
       checkoutData: {

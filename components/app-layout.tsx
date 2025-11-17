@@ -39,7 +39,17 @@ export async function AppLayout({ children }: AppLayoutProps) {
       organizations (
         id,
         name,
-        brand_color
+        brand_color,
+        country_code,
+        locale,
+        work_mode,
+        working_days,
+        exclude_public_holidays,
+        daily_start_time,
+        daily_end_time,
+        work_schedule_type,
+        shift_count,
+        work_shifts
       )
     `)
     .eq('user_id', user.id)

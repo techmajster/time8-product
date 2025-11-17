@@ -49,6 +49,12 @@ function AddUsersPageContent() {
         if (storedOrgData) {
           try {
             const parsedData = JSON.parse(storedOrgData)
+            console.log('🔍 DIAGNOSTIC: Organization data from sessionStorage:', {
+              raw_data: storedOrgData,
+              parsed_data: parsedData,
+              organization_name: parsedData?.name,
+              WARNING: parsedData?.name?.includes('Paweł') ? '⚠️ TEST DATA FOUND IN SESSION STORAGE!' : 'OK'
+            })
             setOrganizationData(parsedData)
           } catch (e) {
             console.error('Failed to parse stored organization data:', e)
@@ -206,6 +212,13 @@ function AddUsersPageContent() {
         failure_url: `${window.location.origin}/onboarding/payment-failure`
       }
 
+      console.log('🔍 DIAGNOSTIC: Frontend checkout payload:', {
+        organization_name: organizationData?.name,
+        organization_data_full: organizationData,
+        user_email: userEmail,
+        WARNING: organizationData?.name?.includes('Paweł') ? '⚠️ TEST DATA IN ORGANIZATION NAME!' : 'OK',
+        from_session_storage: 'pending_organization'
+      })
       console.log('📤 Sending checkout payload:', checkoutPayload)
       console.log('📧 User email being sent:', {
         userEmail,

@@ -286,6 +286,16 @@ export interface Organization {
   shift_end_time?: string
   country_code?: string
   locale?: string
+  exclude_public_holidays?: boolean
+  daily_start_time?: string | null
+  daily_end_time?: string | null
+  work_schedule_type?: 'daily' | 'multi_shift'
+  shift_count?: number | null
+  work_shifts?: Array<{
+    label?: string
+    start_time: string
+    end_time: string
+  }>
 }
 
 export interface Profile {
