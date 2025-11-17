@@ -76,13 +76,6 @@ export function EditOrganizationSheet({
 
   const allUsers = users; // Show all users, not just admins
 
-  // Debug logging
-  useEffect(() => {
-    console.log('EditOrganizationSheet - users prop:', users);
-    console.log('EditOrganizationSheet - allUsers:', allUsers);
-    console.log('EditOrganizationSheet - users.length:', users?.length);
-  }, [users, allUsers]);
-
   // Sync form data when organization changes
   useEffect(() => {
     if (organization) {

@@ -48,10 +48,10 @@ describe('Seat Count Display', () => {
   });
 
   describe('Active User Count Query', () => {
-    it('should count active users from organization_members table', async () => {
+    it('should count active users from user_organizations table', async () => {
       const organizationId = 'org-123';
 
-      // Mock organization members query
+      // Mock user_organizations query
       mockSupabaseCount.mockResolvedValueOnce({
         count: 5,
         error: null
@@ -62,16 +62,16 @@ describe('Seat Count Display', () => {
       const supabase = createClient();
 
       const { count, error } = await supabase
-        .from('organization_members')
+        .from('user_organizations')
         .select('*', { count: 'exact', head: true })
         .eq('organization_id', organizationId)
-        .eq('status', 'active');
+        .eq('is_active', true);
 
       expect(error).toBeNull();
       expect(count).toBe(5);
-      expect(mockSupabaseFrom).toHaveBeenCalledWith('organization_members');
+      expect(mockSupabaseFrom).toHaveBeenCalledWith('user_organizations');
       expect(mockSupabaseEq).toHaveBeenCalledWith('organization_id', organizationId);
-      expect(mockSupabaseEq).toHaveBeenCalledWith('status', 'active');
+      expect(mockSupabaseEq).toHaveBeenCalledWith('is_active', true);
     });
 
     it('should return 1 for first user in new organization', async () => {
@@ -87,10 +87,10 @@ describe('Seat Count Display', () => {
       const supabase = createClient();
 
       const { count, error } = await supabase
-        .from('organization_members')
+        .from('user_organizations')
         .select('*', { count: 'exact', head: true })
         .eq('organization_id', organizationId)
-        .eq('status', 'active');
+        .eq('is_active', true);
 
       expect(error).toBeNull();
       expect(count).toBe(1); // Should show "1 z 3 miejsc" in UI
@@ -110,10 +110,10 @@ describe('Seat Count Display', () => {
       const supabase = createClient();
 
       const { count, error } = await supabase
-        .from('organization_members')
+        .from('user_organizations')
         .select('*', { count: 'exact', head: true })
         .eq('organization_id', organizationId)
-        .eq('status', 'active'); // Only count active users
+        .eq('is_active', true); // Only count active users
 
       expect(error).toBeNull();
       expect(count).toBe(2); // Only active users
@@ -134,8 +134,8 @@ describe('Seat Count Display', () => {
       const wrongSeatCount = subscription.current_seats;
       expect(wrongSeatCount).toBe(0); // Demonstrates the bug
 
-      // Instead, we should query organization_members
-      const correctApproach = 'Query organization_members with status=active';
+      // Instead, we should query user_organizations
+      const correctApproach = 'Query user_organizations with is_active=true';
       expect(correctApproach).toBeDefined();
     });
 
@@ -164,10 +164,10 @@ describe('Seat Count Display', () => {
 
       // Get actual user count
       const { count: actualUsers } = await supabase
-        .from('organization_members')
+        .from('user_organizations')
         .select('*', { count: 'exact', head: true })
         .eq('organization_id', organizationId)
-        .eq('status', 'active');
+        .eq('is_active', true);
 
       // Get seat limit from subscription
       const { data: subscription } = await supabase
@@ -207,10 +207,10 @@ describe('Seat Count Display', () => {
 
       // Get actual user count
       const { count: actualUsers } = await supabase
-        .from('organization_members')
+        .from('user_organizations')
         .select('*', { count: 'exact', head: true })
         .eq('organization_id', organizationId)
-        .eq('status', 'active');
+        .eq('is_active', true);
 
       // Try to get subscription
       const { data: subscription } = await supabase
@@ -315,10 +315,10 @@ describe('Seat Count Display', () => {
       const supabase = createClient();
 
       const { count } = await supabase
-        .from('organization_members')
+        .from('user_organizations')
         .select('*', { count: 'exact', head: true })
         .eq('organization_id', organizationId)
-        .eq('status', 'active');
+        .eq('is_active', true);
 
       expect(count).toBe(0);
     });
@@ -335,10 +335,10 @@ describe('Seat Count Display', () => {
       const supabase = createClient();
 
       const { count, error } = await supabase
-        .from('organization_members')
+        .from('user_organizations')
         .select('*', { count: 'exact', head: true })
         .eq('organization_id', organizationId)
-        .eq('status', 'active');
+        .eq('is_active', true);
 
       expect(error).toBeDefined();
       expect(count).toBeNull();

@@ -1,5 +1,5 @@
 import { AppLayout } from '@/components/app-layout'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import AdminSettingsClient from '@/app/admin/settings/components/AdminSettingsClient'
@@ -81,7 +81,9 @@ export default async function AdminSettingsPage() {
     .order('name')
 
   // Get all ADMIN users in the organization for admin selector
-  const { data: orgUsers, error: orgUsersError } = await supabase
+  // Use admin client to bypass RLS (like app-layout.tsx does)
+  const supabaseAdmin = createAdminClient()
+  const { data: orgUsers, error: orgUsersError } = await supabaseAdmin
     .from('user_organizations')
     .select(`
       user_id,
@@ -90,13 +92,7 @@ export default async function AdminSettingsPage() {
     `)
     .eq('organization_id', profile.organization_id)
     .eq('is_active', true)
-    .eq('role', 'admin')
-
-  console.log('🔍 Admin Settings - orgUsers query result:', {
-    orgUsersCount: orgUsers?.length,
-    orgUsersError,
-    orgUsersData: orgUsers
-  })
+    .eq('role', 'admin')  // Filter for admins only
 
   // Transform the data to match the expected format
   const users = orgUsers?.map(ou => ({
@@ -122,13 +118,13 @@ export default async function AdminSettingsPage() {
     .in('status', ['active', 'on_trial', 'past_due'])
     .single()
 
-  // CRITICAL BUG FIX: Query actual user count from organization_members
+  // CRITICAL BUG FIX: Query actual user count from user_organizations
   // DO NOT use subscription.current_seats (may be 0 or outdated)
   const { count: actualUserCount } = await supabase
-    .from('organization_members')
+    .from('user_organizations')
     .select('*', { count: 'exact', head: true })
     .eq('organization_id', profile.organization_id)
-    .eq('status', 'active')
+    .eq('is_active', true)
 
   // Combine subscription and actual user count for display
   const subscriptionData = subscription ? {
@@ -190,12 +186,6 @@ export default async function AdminSettingsPage() {
     avatar_url: (au.profiles as any)?.avatar_url || null,
     role: au.role
   })) || []
-
-  // DEBUG: Log users before passing to client
-  console.log('📊 page.tsx - About to pass users to AdminSettingsClient:', {
-    usersCount: users?.length,
-    usersData: users?.map(u => ({ id: u.id, email: u.email, role: u.role }))
-  })
 
   return (
     <AppLayout>

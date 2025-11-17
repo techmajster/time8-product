@@ -109,13 +109,6 @@ export default function AdminSettingsClient({
   const [archivedUsers, setArchivedUsers] = useState<ArchivedUser[]>(initialArchivedUsers)
   const router = useRouter()
 
-  // Debug logging for users prop
-  useEffect(() => {
-    console.log('AdminSettingsClient - users prop received:', users);
-    console.log('AdminSettingsClient - users.length:', users?.length);
-    console.log('AdminSettingsClient - users data:', users?.map(u => ({ id: u.id, email: u.email, role: u.role })));
-  }, [users])
-
   // Tab state management - Only 4 tabs: Ogólne, Tryb pracy, Urlopy, Rozliczenia
   const [activeTab, setActiveTab] = useState('general')
   
