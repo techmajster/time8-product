@@ -104,36 +104,7 @@ function PaymentSuccessPageContent() {
           const orgData = JSON.parse(storedOrgData)
           setOrganizationData(orgData)
 
-          // First, check if organization already exists (prevents duplicate creation on page refresh)
-          console.log('🔍 Checking if organization already exists with slug:', orgData.slug)
-          const checkResponse = await fetch(`/api/organizations/check?slug=${encodeURIComponent(orgData.slug)}`)
-          const checkResult = await checkResponse.json()
-
-          if (checkResult.exists && checkResult.belongsToUser) {
-            console.log('✅ Organization already exists, using existing:', checkResult.organization)
-
-            // Clear session storage immediately to prevent future attempts
-            sessionStorage.removeItem('pending_organization')
-
-            // Set the existing organization as active
-            setOrganizationId(checkResult.organization.id)
-            setIsCreatingOrganization(false)
-
-            // For free tier, set status as 'free', for paid tier set as 'processing'
-            if (isFree) {
-              setSubscriptionData({ status: 'free', seats: 3 })
-            } else {
-              setSubscriptionData({ status: 'processing' })
-            }
-
-            setIsLoading(false)
-            return
-          } else if (checkResult.exists && !checkResult.belongsToUser) {
-            // Slug is taken by another user - this shouldn't happen but handle it
-            throw new Error('Organization slug is already taken. Please contact support.')
-          }
-
-          // Organization doesn't exist yet, proceed with creation
+          // Proceed with organization creation
           if (!isMounted) return // Check if component is still mounted
           setIsCreatingOrganization(true)
 
