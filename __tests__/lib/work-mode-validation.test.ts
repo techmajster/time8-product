@@ -21,7 +21,6 @@ describe('validateWorkModePayload', () => {
       dailyEndTime: '16:00',
       shiftCount: 1,
       workShifts: [],
-      workMode: 'monday_to_friday',
       isLegacyPayload: false
     })
   })

@@ -195,7 +195,6 @@ interface EditLeaveRequestSheetProps {
     organizations?: {
       id: string
       name: string
-      work_mode?: 'monday_to_friday' | 'multi_shift'
       working_days?: string[]
       country_code?: string
     }

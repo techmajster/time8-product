@@ -97,3 +97,48 @@
   - [ ] 10.6 Verify production monthly→yearly upgrade works
   - [ ] 10.7 Verify production yearly→monthly blocking works
   - [ ] 10.8 All production tests verified
+
+- [ ] 11. Fix Webhook Reliability & Implement Auto-Archival
+  - [ ] 11.1 Write tests for `subscription_deleted` webhook handler
+  - [ ] 11.2 Add `subscription_deleted` case to webhook route.ts switch statement
+  - [ ] 11.3 Implement `processSubscriptionDeleted()` handler in handlers.ts
+  - [ ] 11.4 Write tests for `subscription_unpaused` webhook handler
+  - [ ] 11.5 Implement `processSubscriptionUnpaused()` handler in handlers.ts
+  - [ ] 11.6 Verify webhook handlers log to billing_events correctly
+  - [ ] 11.7 Write tests for user selection logic (owner + 2 admins priority)
+  - [ ] 11.8 Create `selectUsersToKeepOnDowngrade()` helper in lib/billing/
+  - [ ] 11.9 Write tests for auto-archival on subscription cancellation
+  - [ ] 11.10 Enhance `processSubscriptionCancelled()` with auto-archival logic
+  - [ ] 11.11 Enhance `processSubscriptionDeleted()` with auto-archival logic
+  - [ ] 11.12 Only archive if seats > 3 (preserve free tier access)
+  - [ ] 11.13 Write tests for reconciliation cron with auto-archival
+  - [ ] 11.14 Enhance `/api/cron/reconcile-subscriptions` endpoint
+  - [ ] 11.15 Fetch subscription status from LemonSqueezy API
+  - [ ] 11.16 Compare with database, detect discrepancies
+  - [ ] 11.17 Auto-fix status/seats mismatches in database
+  - [ ] 11.18 Trigger archival if subscription cancelled/deleted remotely
+  - [ ] 11.19 Add comprehensive logging to billing_events table
+  - [ ] 11.20 Document LemonSqueezy dashboard webhook configuration
+  - [ ] 11.21 Add verification checklist for webhook event subscriptions
+  - [ ] 11.22 Verify all tests pass
+
+- [ ] 12. Fix Work Mode Column Migration Conflict (PRODUCTION BLOCKER)
+  - [x] 12.1 Create database cleanup migration file
+  - [x] 12.2 Migrate existing `work_mode = 'monday_to_friday'` to `work_schedule_type = 'daily'`
+  - [x] 12.3 Drop old `work_mode` column and constraint
+  - [x] 12.4 Verify migration on local database
+  - [x] 12.5 Remove `work_mode` from API endpoint (app/api/admin/settings/work-mode/route.ts)
+  - [x] 12.6 Remove value mapping logic (lib/validations/work-mode.ts)
+  - [x] 12.7 Update type definitions (lib/auth-utils-v2.ts)
+  - [x] 12.8 Update WorkModeSettings component (app/admin/settings/components/)
+  - [x] 12.9 Update use-admin-mutations hook (hooks/use-admin-mutations.ts)
+  - [x] 12.10 Remove old values from types/leave.ts
+  - [x] 12.11 Update all test files and component types to use new column/values
+  - [x] 12.12 Test organization creation locally
+  - [x] 12.13 Test Tryb Pracy admin settings UI
+  - [x] 12.14 Verify calendar uses work_schedule_type correctly
+  - [x] 12.15 Run full test suite
+  - [ ] 12.16 Deploy migration to production
+  - [ ] 12.17 Verify production organization creation works
+  - [ ] 12.18 Monitor production for constraint violations
+  - [ ] 12.19 Verify all tests pass

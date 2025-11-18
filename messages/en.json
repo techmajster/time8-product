@@ -1105,5 +1105,73 @@
       "error": "An error occurred"
     },
     "noLastName": "No last name"
+  },
+  "adminSettings": {
+    "tabs": {
+      "general": "General",
+      "workMode": "Work Mode",
+      "leave": "Leave",
+      "billing": "Billing"
+    },
+    "general": {
+      "title": "General Settings",
+      "workspaceName": "Workspace Name",
+      "administrator": "Administrator",
+      "holidayCalendar": "Holiday Calendar",
+      "primaryLanguage": "Primary Language",
+      "languageHelper": "Default language for new users. Users can change their language in their profile.",
+      "editData": "Edit Data"
+    },
+    "workMode": {
+      "title": "Work Mode",
+      "workingDays": {
+        "title": "Working Days",
+        "description": "Basic workspace information",
+        "publicHolidays": "Public holidays off",
+        "publicHolidaysDescription": "Public holidays falling on working days will be excluded from the schedule",
+        "days": {
+          "monday": "Mon",
+          "tuesday": "Tue",
+          "wednesday": "Wed",
+          "thursday": "Thu",
+          "friday": "Fri",
+          "saturday": "Sat",
+          "sunday": "Sun"
+        }
+      },
+      "workHours": {
+        "title": "Work Hours",
+        "description": "Basic workspace information",
+        "dailyWork": "Daily Work",
+        "dailyWorkDescription": "Fixed work hours every working day",
+        "multiShiftWork": "Shift Work",
+        "multiShiftWorkDescription": "Shift work on different days and/or hours",
+        "workHoursLabel": "Work Hours",
+        "from": "From",
+        "to": "to",
+        "edit": "Edit",
+        "shiftWorks": "Shift {number} works",
+        "defineWorkMode": "Define work mode",
+        "selectShiftCount": "Select number of shifts",
+        "defineWorkHours": "Define work hours",
+        "shift": "shift",
+        "shifts": "shifts",
+        "save": "Save",
+        "cancel": "Cancel"
+      }
+    },
+    "leave": {
+      "title": "Leave Types",
+      "createDefault": "Create default leave types",
+      "creating": "Creating...",
+      "addLeaveType": "Add leave type",
+      "table": {
+        "name": "Name",
+        "limit": "Limit",
+        "paid": "Paid",
+        "mandatory": "Mandatory",
+        "actions": "Actions"
+      }
+    }
   }
 } 

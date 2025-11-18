@@ -43,7 +43,6 @@ export interface Organization {
   logo_url: string | null
   google_domain: string | null
   require_google_domain: boolean
-  work_mode?: 'monday_to_friday' | 'multi_shift'
   working_days?: string[]
   exclude_public_holidays?: boolean
   daily_start_time?: string | null

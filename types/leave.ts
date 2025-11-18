@@ -280,7 +280,6 @@ export interface Organization {
   name: string
   created_at: string
   updated_at: string
-  work_mode?: 'monday_to_friday' | 'multi_shift'
   working_days?: string[]
   shift_start_time?: string
   shift_end_time?: string

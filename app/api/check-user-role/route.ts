@@ -32,7 +32,6 @@ export async function GET(request: Request) {
           name,
           country_code,
           locale,
-          work_mode,
           working_days,
           exclude_public_holidays,
           daily_start_time,

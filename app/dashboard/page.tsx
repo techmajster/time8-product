@@ -44,7 +44,6 @@ export default async function DashboardPage() {
         country_code,
         locale,
         brand_color,
-        work_mode,
         working_days,
         exclude_public_holidays,
         daily_start_time,

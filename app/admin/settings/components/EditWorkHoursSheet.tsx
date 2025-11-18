@@ -22,6 +22,7 @@ import {
 import { Loader2 } from 'lucide-react'
 import { useUpdateWorkMode } from '@/hooks/use-admin-mutations'
 import { cn } from '@/lib/utils'
+import { useTranslations } from 'next-intl'
 
 interface EditWorkHoursSheetProps {
   open: boolean
@@ -71,6 +72,7 @@ export function EditWorkHoursSheet({
   organization,
   onSave,
 }: EditWorkHoursSheetProps) {
+  const t = useTranslations('adminSettings.workMode.workHours')
   const [scheduleType, setScheduleType] = useState<'daily' | 'multi_shift'>(
     organization?.work_schedule_type || 'daily'
   )
@@ -222,7 +224,7 @@ export function EditWorkHoursSheet({
           {/* Header */}
           <div className="p-6 pb-0">
             <SheetTitle className="text-xl font-semibold text-foreground">
-              Godziny pracy
+              {t('title')}
             </SheetTitle>
           </div>
 
@@ -233,7 +235,7 @@ export function EditWorkHoursSheet({
           <div className="flex-1 overflow-y-auto p-6 pt-6 space-y-6">
             {/* Schedule Type Selection */}
             <div className="space-y-3">
-              <Label className="text-base font-semibold">Określ tryb pracy</Label>
+              <Label className="text-base font-semibold">{t('defineWorkMode')}</Label>
               <div className={cn(scheduleType === 'daily' ? 'space-y-6' : 'space-y-3')}>
                 <div
                   className={cn(
@@ -252,10 +254,10 @@ export function EditWorkHoursSheet({
                   </RadioGroup>
                   <div className="flex-1 space-y-1">
                     <Label htmlFor="daily" className="text-sm font-medium leading-none cursor-pointer">
-                      Praca codzienna
+                      {t('dailyWork')}
                     </Label>
                     <p className="text-sm text-muted-foreground">
-                      Stałe godziny pracy każdego dnia pracującego
+                      {t('dailyWorkDescription')}
                     </p>
                   </div>
                 </div>
@@ -263,9 +265,9 @@ export function EditWorkHoursSheet({
                 {/* Hours BETWEEN the cards */}
                 {scheduleType === 'daily' && (
                   <div className="flex items-center justify-between">
-                    <Label className="text-base font-semibold">Godziny pracy</Label>
+                    <Label className="text-base font-semibold">{t('workHoursLabel')}</Label>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium">Od</span>
+                      <span className="text-sm font-medium">{t('from')}</span>
                       <Select value={dailyStartTime} onValueChange={setDailyStartTime}>
                         <SelectTrigger className="w-[90px]">
                           <SelectValue />
@@ -278,7 +280,7 @@ export function EditWorkHoursSheet({
                           ))}
                         </SelectContent>
                       </Select>
-                      <span className="text-sm font-medium">do</span>
+                      <span className="text-sm font-medium">{t('to')}</span>
                       <Select value={dailyEndTime} onValueChange={setDailyEndTime}>
                         <SelectTrigger className="w-[90px]">
                           <SelectValue />
@@ -312,10 +314,10 @@ export function EditWorkHoursSheet({
                   </RadioGroup>
                   <div className="flex-1 space-y-1">
                     <Label htmlFor="multi_shift" className="text-sm font-medium leading-none cursor-pointer">
-                      Praca według grafiku
+                      {t('multiShiftWork')}
                     </Label>
                     <p className="text-sm text-muted-foreground">
-                      Praca zmianowa w różnych dniach i/lub godzinach
+                      {t('multiShiftWorkDescription')}
                     </p>
                   </div>
                 </div>
@@ -326,7 +328,7 @@ export function EditWorkHoursSheet({
             {scheduleType === 'multi_shift' && (
               <div className="space-y-6">
                 <div className="space-y-6">
-                  <Label className="text-base font-semibold">Wybierz liczbę zmian</Label>
+                  <Label className="text-base font-semibold">{t('selectShiftCount')}</Label>
                   <div className="flex gap-2">
                     {[1, 2, 3].map((count) => (
                       <div
@@ -346,7 +348,7 @@ export function EditWorkHoursSheet({
                           <RadioGroupItem value={count.toString()} className="pointer-events-none" />
                         </RadioGroup>
                         <span className="text-sm font-medium">
-                          {count} {count === 1 ? 'zmiana' : 'zmiany'}
+                          {count} {count === 1 ? t('shift') : t('shifts')}
                         </span>
                       </div>
                     ))}
@@ -354,15 +356,15 @@ export function EditWorkHoursSheet({
                 </div>
 
                 <div className="space-y-6">
-                  <Label className="text-base font-semibold">Określ godziny pracy</Label>
+                  <Label className="text-base font-semibold">{t('defineWorkHours')}</Label>
                   <div className="space-y-6">
                     {shifts.map((shift, index) => (
                       <div key={index} className="flex items-center gap-3">
                         <Label className="text-sm font-medium min-w-[120px]">
-                          Zmiana {index + 1} pracuje
+                          {t('shiftWorks', { number: index + 1 })}
                         </Label>
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium">Od</span>
+                          <span className="text-sm font-medium">{t('from')}</span>
                           <Select
                             value={shift.start_time}
                             onValueChange={(value) => updateShift(index, 'start_time', value)}
@@ -378,7 +380,7 @@ export function EditWorkHoursSheet({
                               ))}
                             </SelectContent>
                           </Select>
-                          <span className="text-sm font-medium">do</span>
+                          <span className="text-sm font-medium">{t('to')}</span>
                           <Select
                             value={shift.end_time}
                             onValueChange={(value) => updateShift(index, 'end_time', value)}
@@ -409,7 +411,7 @@ export function EditWorkHoursSheet({
           {/* Footer - Fixed at Bottom */}
           <SheetFooter className="flex flex-row gap-2 items-center justify-between w-full p-6 bg-background">
             <Button variant="outline" onClick={handleCancel} className="h-9">
-              Anuluj
+              {t('cancel')}
             </Button>
             <Button
               onClick={handleSave}
@@ -419,7 +421,7 @@ export function EditWorkHoursSheet({
               {updateWorkModeMutation.isPending && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
-              Zapisz
+              {t('save')}
             </Button>
           </SheetFooter>
         </div>

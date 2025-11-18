@@ -150,7 +150,6 @@ export async function GET(
       organizations: {
         id: organization.id,
         name: organization.name,
-        work_mode: organization.work_mode || 'monday_to_friday',
         working_days: organization.working_days || ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
         country_code: organization.country_code || 'PL'
       }

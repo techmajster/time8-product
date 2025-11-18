@@ -33,7 +33,6 @@ export async function POST(request: NextRequest) {
     const { data, error } = await supabaseAdmin
       .from('organizations')
       .update({
-        work_mode: config.workMode,
         working_days: config.workingDays,
         exclude_public_holidays: config.excludePublicHolidays,
         daily_start_time: config.dailyStartTime,
@@ -46,7 +45,6 @@ export async function POST(request: NextRequest) {
       .select(`
         id,
         name,
-        work_mode,
         working_days,
         exclude_public_holidays,
         daily_start_time,
@@ -67,7 +65,6 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Work mode updated successfully:', {
       organizationId: organization.id,
-      work_mode: data.work_mode,
       work_schedule_type: data.work_schedule_type,
       working_days: data.working_days
     })
