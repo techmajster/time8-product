@@ -138,7 +138,7 @@
   - [x] 12.13 Test Tryb Pracy admin settings UI
   - [x] 12.14 Verify calendar uses work_schedule_type correctly
   - [x] 12.15 Run full test suite
-  - [ ] 12.16 Deploy migration to production
+  - [x] 12.16 Deploy migration to production
   - [ ] 12.17 Verify production organization creation works
   - [ ] 12.18 Monitor production for constraint violations
   - [ ] 12.19 Verify all tests pass
