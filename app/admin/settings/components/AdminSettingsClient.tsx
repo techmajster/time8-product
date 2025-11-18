@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useTranslations } from 'next-intl'
 import { FigmaTabs, FigmaTabsList, FigmaTabsTrigger, FigmaTabsContent } from '@/app/admin/team-management/components/FigmaTabs'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -16,9 +16,10 @@ import { EditOrganizationSheet } from './EditOrganizationSheet'
 import { EditLeaveTypesSheet } from './EditLeaveTypesSheet'
 import { EditLeavePoliciesSheet } from './EditLeavePoliciesSheet'
 import { CreateLeaveTypeSheet } from './CreateLeaveTypeSheet'
+import { EditLeaveTypeSheet } from './EditLeaveTypeSheet'
 import { WorkModeSettings } from './WorkModeSettings'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Plus, MoreVertical, X, Lock } from 'lucide-react'
+import { Plus, MoreVertical, X, LockKeyhole } from 'lucide-react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { PolandFlag } from '@/components/icons/PolandFlag'
 import { UKFlag } from '@/components/icons/UKFlag'
@@ -119,6 +120,17 @@ export default function AdminSettingsClient({
   const [pendingRemovalUsers, setPendingRemovalUsers] = useState<PendingRemovalUser[]>(initialPendingUsers)
   const [archivedUsers, setArchivedUsers] = useState<ArchivedUser[]>(initialArchivedUsers)
   const router = useRouter()
+
+  // Sort leave types to always show mandatory ones first
+  const sortedLeaveTypes = useMemo(() => {
+    return [...leaveTypes].sort((a, b) => {
+      // Mandatory leave types come first
+      if (a.is_mandatory && !b.is_mandatory) return -1
+      if (!a.is_mandatory && b.is_mandatory) return 1
+      // Keep original order for same type
+      return 0
+    })
+  }, [leaveTypes])
 
   // Tab state management - Only 4 tabs: Ogólne, Tryb pracy, Urlopy, Rozliczenia
   const [activeTab, setActiveTab] = useState('general')
@@ -243,11 +255,6 @@ export default function AdminSettingsClient({
 
   // Handlers for leave types edit and delete
   const handleEditLeaveType = (leaveType: LeaveType) => {
-    setFormData({
-      name: leaveType.name,
-      days_per_year: leaveType.days_per_year,
-      requires_balance: leaveType.requires_balance
-    })
     setSelectedLeaveType(leaveType)
     setEditDialogOpen(true)
   }
@@ -261,59 +268,6 @@ export default function AdminSettingsClient({
     }, 100)
   }
 
-  const handleSubmitEdit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (!selectedLeaveType?.id) {
-      toast.error('Nie wybrano rodzaju urlopu')
-      return
-    }
-
-    setLoading(true)
-
-    try {
-      const supabase = createClient()
-
-      const { error: updateError } = await supabase
-        .from('leave_types')
-        .update({
-          name: formData.name,
-          days_per_year: formData.days_per_year,
-          requires_balance: formData.requires_balance
-        })
-        .eq('id', selectedLeaveType.id)
-
-      if (updateError) {
-        throw new Error(updateError.message || 'Nie udało się zaktualizować rodzaju urlopu')
-      }
-
-      // Update local state immediately (optimistic update)
-      setLeaveTypes(prevLeaveTypes =>
-        prevLeaveTypes.map(lt =>
-          lt.id === selectedLeaveType.id
-            ? {
-                ...lt,
-                name: formData.name,
-                days_per_year: formData.days_per_year,
-                requires_balance: formData.requires_balance
-              }
-            : lt
-        )
-      )
-
-      // Show success message
-      toast.success('Rodzaj urlopu został zaktualizowany!')
-
-    } catch (error) {
-      console.error('Error updating leave type:', error)
-      toast.error(error instanceof Error ? error.message : 'Wystąpił błąd podczas aktualizacji rodzaju urlopu')
-    } finally {
-      setLoading(false)
-      // Close dialog after loading is complete
-      setEditDialogOpen(false)
-      setSelectedLeaveType(null)
-    }
-  }
 
   const handleSubmitDelete = async () => {
     if (!selectedLeaveType?.id) {
@@ -727,105 +681,85 @@ export default function AdminSettingsClient({
         </FigmaTabsContent>
 
         <FigmaTabsContent value="leave-types" className="mt-6 space-y-6">
-          {/* Nested Tabs for Urlopy */}
-          <Tabs defaultValue="rodzaje-urlopow" className="w-full">
-            <TabsList className="bg-muted p-[3px] h-9 rounded-lg">
-              <TabsTrigger value="rodzaje-urlopow" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">
-                Rodzaje urlopów
-              </TabsTrigger>
-              <TabsTrigger value="polityki-urlopowe" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">
-                Polityki urlopowe
-              </TabsTrigger>
-            </TabsList>
+          {/* Section Header */}
+          <div className="flex items-center justify-between">
+            <div className="space-y-1.5">
+              <h2 className="text-xl font-semibold text-foreground">Rodzaje urlopów</h2>
+              <p className="text-sm text-muted-foreground">
+                Zarządzaj dostępnymi rodzajami urlopów w organizacji
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                onClick={handleCreateDefaults}
+                disabled={loading}
+                className="h-9"
+              >
+                {loading ? 'Tworzenie...' : 'Utwórz domyślne rodzaje urlopów'}
+              </Button>
+              <Button
+                onClick={() => setIsCreateLeaveTypeSheetOpen(true)}
+                className="bg-primary text-primary-foreground h-9 shadow-sm"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Dodaj rodzaj urlopu
+              </Button>
+            </div>
+          </div>
 
-            {/* Leave Types Tab */}
-            <TabsContent value="rodzaje-urlopow" className="mt-6">
-              <Card className="border border-border">
-                <CardHeader className="pb-0">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1.5">
-                      <div className="flex items-center gap-2">
-                        <CardTitle className="text-xl font-semibold">Rodzaje urlopów</CardTitle>
-                      </div>
-                      <CardDescription>
-                        Zarządzaj dostępnymi rodzajami urlopów w organizacji
-                      </CardDescription>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Button 
-                        variant="outline" 
-                        onClick={handleCreateDefaults}
-                        disabled={loading}
-                        className="h-9 px-4 rounded-lg border bg-card text-foreground"
-                      >
-                        {loading ? 'Tworzenie...' : 'Utwórz domyślne rodzaje urlopów'}
-                      </Button>
-                      <Button
-                        onClick={() => setIsCreateLeaveTypeSheetOpen(true)}
-                        className="bg-foreground text-primary-foreground h-9 px-4 rounded-lg shadow-sm"
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Dodaj rodzaj urlopu
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-0 pb-6">
-                  <div className="overflow-hidden">
+          {/* Table */}
+          <div className="mt-6">
                     <table className="w-full">
                       {/* Table Header */}
                       <thead>
-                        <tr className="border-b border">
-                          <th className="text-left py-2.5 px-2 text-sm font-medium text-muted-foreground">
+                        <tr className="border-b h-[40px]">
+                          <th className="text-left px-2 text-sm font-medium text-muted-foreground">
                             Rodzaj urlopu
                           </th>
-                          <th className="text-left py-2.5 px-2 text-sm font-medium text-muted-foreground">
+                          <th className="text-left px-2 text-sm font-medium text-muted-foreground">
                             Dni rocznie
                           </th>
-                          <th className="py-2.5 px-2"></th>
-                          <th className="py-2.5 px-2"></th>
+                          <th className="px-2"></th>
+                          <th className="px-2"></th>
                         </tr>
                       </thead>
                       <tbody>
-                        {leaveTypes.map((leaveType) => (
-                          <tr key={leaveType.id} className="border-b border last:border-b-0">
-                            <td className="py-2 px-2">
-                              <div className="flex flex-col gap-0">
-                                <div className="flex items-center gap-2">
-                                  {leaveType.is_mandatory && (
-                                    <div title="Obowiązkowy typ urlopu - nie można usunąć">
-                                      <Lock className="h-4 w-4 text-muted-foreground" />
-                                    </div>
-                                  )}
-                                  <span className="text-sm font-medium text-foreground">
-                                    {leaveType.name}
-                                  </span>
-                                  {leaveType.is_mandatory && (
-                                    <Badge className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-lg border border-blue-200">
-                                      Obowiązkowy
-                                    </Badge>
-                                  )}
-                                </div>
+                        {sortedLeaveTypes.map((leaveType, index) => (
+                          <tr key={leaveType.id} className={`border-b h-[52px] ${index === sortedLeaveTypes.length - 1 ? '' : ''}`}>
+                            <td className="px-2">
+                              <div className="flex items-center gap-2">
+                                {leaveType.is_mandatory && (
+                                  <LockKeyhole className="h-4 w-4 text-muted-foreground" />
+                                )}
+                                <span className="text-sm font-medium text-foreground">
+                                  {leaveType.name}
+                                </span>
+                                {leaveType.is_mandatory && (
+                                  <Badge variant="secondary" className="text-xs px-2 py-0.5 rounded-md">
+                                    Obowiązkowy
+                                  </Badge>
+                                )}
                               </div>
                             </td>
-                            <td className="py-2 px-2">
+                            <td className="px-2">
                               <span className="text-sm font-medium text-foreground">
                                 {leaveType.days_per_year === 0
                                   ? "Nielimitowany"
                                   : `${leaveType.days_per_year} dni rocznie`}
                               </span>
                             </td>
-                            <td className="py-2 px-2">
+                            <td className="px-2">
                               {leaveType.requires_balance && (
-                                <Badge className="bg-foreground text-primary-foreground text-xs px-2 py-0.5 rounded-lg">
+                                <Badge className="bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded-md">
                                   Saldo
                                 </Badge>
                               )}
                             </td>
-                            <td className="py-2 px-2 text-right">
+                            <td className="px-2 text-right">
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="sm" className="h-9 w-9 p-0 hover:bg-muted">
+                                  <Button variant="outline" size="sm" className="h-9 w-9 p-0">
                                     <MoreVertical className="h-4 w-4" />
                                   </Button>
                                 </DropdownMenuTrigger>
@@ -839,7 +773,7 @@ export default function AdminSettingsClient({
                                       className="text-muted-foreground cursor-not-allowed"
                                       title="Nie można usunąć obowiązkowego typu urlopu"
                                     >
-                                      <Lock className="h-3 w-3 mr-2" />
+                                      <LockKeyhole className="h-3 w-3 mr-2" />
                                       Usuń
                                     </DropdownMenuItem>
                                   ) : (
@@ -857,216 +791,7 @@ export default function AdminSettingsClient({
                         ))}
                       </tbody>
                     </table>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Leave Policies Tab */}
-            <TabsContent value="polityki-urlopowe" className="mt-6 space-y-6">
-              {/* Zasady zatwierdzania */}
-              <Card className="border border-border">
-                <CardHeader className="pb-0">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1.5">
-                      <CardTitle className="text-xl font-semibold">Zasady zatwierdzania</CardTitle>
-                      <CardDescription>
-                        Skonfiguruj zasady zatwierdzania i ograniczenia urlopów
-                      </CardDescription>
-                    </div>
-                    <Button 
-                      variant="secondary" 
-                      size="sm" 
-                      className="h-9"
-                      onClick={handleLeavePoliciesEdit}
-                    >
-                      Edytuj
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-0 pb-0 space-y-6">
-                  <div className="flex gap-6">
-                    <div className="w-[400px] space-y-2">
-                      <Label className="text-sm font-medium text-foreground">
-                        Minimalne wyprzedzenie (dni)
-                      </Label>
-                      <Input 
-                        value="7" 
-                        disabled 
-                        className="bg-card opacity-50 border h-9"
-                      />
-                      <p className="text-sm text-muted-foreground">
-                        Ile dni wcześniej należy złożyć wniosek urlopowy
-                      </p>
-                    </div>
-                    <div className="w-[400px] space-y-2">
-                      <Label className="text-sm font-medium text-foreground">
-                        Zatwierdzenie przez admina wymagane powyżej (dni)
-                      </Label>
-                      <Input 
-                        value="30" 
-                        disabled 
-                        className="bg-card opacity-50 border h-9"
-                      />
-                      <p className="text-sm text-muted-foreground">
-                        Urlopy dłuższe niż x dni wymagają zatwierdzenia przez administratora
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Switch disabled className="data-[state=unchecked]:bg-muted" />
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-foreground">
-                        Wymagaj zatwierdzenia przez menedżera/administratora
-                      </Label>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Limity urlopowe */}
-              <Card className="border border-border">
-                <CardHeader className="pb-0">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1.5">
-                      <CardTitle className="text-xl font-semibold">Limity urlopowe</CardTitle>
-                      <CardDescription>
-                        Skonfiguruj zasady zatwierdzania i ograniczenia urlopów
-                      </CardDescription>
-                    </div>
-                    <Button variant="secondary" size="sm" className="h-9">
-                      Edytuj
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-0 pb-0 space-y-6">
-                  <div className="flex gap-6">
-                    <div className="w-[400px] space-y-2">
-                      <Label className="text-sm font-medium text-foreground">
-                        Maksymalne kolejne dni
-                      </Label>
-                      <Input 
-                        value="7" 
-                        disabled 
-                        className="bg-card opacity-50 border h-9"
-                      />
-                      <p className="text-sm text-muted-foreground">
-                        Maksymalna liczba kolejnych dni urlopu w jednym wniosku
-                      </p>
-                    </div>
-                    <div className="w-[400px] space-y-2">
-                      <Label className="text-sm font-medium text-foreground">
-                        Minimalne wyprzedzenie dla długich urlopów (dni)
-                      </Label>
-                      <Input 
-                        value="14" 
-                        disabled 
-                        className="bg-card opacity-50 border h-9"
-                      />
-                      <p className="text-sm text-muted-foreground">
-                        Urlopy dłuższe niż x dni wymagają zatwierdzenia przez administratora
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Przenoszenie urlopów */}
-              <Card>
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="text-lg">Przenoszenie urlopów</CardTitle>
-                      <CardDescription className="text-sm text-muted-foreground">
-                        Ustawienia dotyczące przenoszenia niewykorzystanych urlopów
-                      </CardDescription>
-                    </div>
-                    <Button 
-                      variant="secondary" 
-                      size="sm" 
-                      className="h-9"
-                      onClick={handleLeavePoliciesEdit}
-                    >
-                      Edytuj
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-0 pb-0 space-y-6">
-                  <div className="flex items-start gap-3">
-                    <Switch disabled checked className="data-[state=checked]:bg-foreground" />
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-foreground">
-                        Zezwalaj na przenoszenie niewykorzystanych urlopów na kolejny rok
-                      </Label>
-                    </div>
-                  </div>
-                  <div className="w-[400px] space-y-2">
-                    <Label className="text-sm font-medium text-foreground">
-                      Maksymalna liczba dni do przeniesienia
-                    </Label>
-                    <Input 
-                      value="5" 
-                      disabled 
-                      className="bg-card opacity-50 border h-9"
-                    />
-                    <p className="text-sm text-muted-foreground">
-                      Ile dni urlopu można przenieść na kolejny rok
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Zasady liczenia dni roboczych */}
-              <Card>
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="text-lg">Zasady liczenia dni roboczych</CardTitle>
-                      <CardDescription className="text-sm text-muted-foreground">
-                        Zasady dotyczące liczenia weekendów i dni świątecznych
-                      </CardDescription>
-                    </div>
-                    <Button 
-                      variant="secondary" 
-                      size="sm" 
-                      className="h-9"
-                      onClick={handleLeavePoliciesEdit}
-                    >
-                      Edytuj
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-0 pb-0 space-y-6">
-                  <div className="w-[400px] space-y-2">
-                    <Label className="text-sm font-medium text-foreground">
-                      Polityka liczenia weekendów
-                    </Label>
-                    <Select disabled>
-                      <SelectTrigger className="bg-card border h-9">
-                        <SelectValue placeholder="Nie licz weekendów" />
-                      </SelectTrigger>
-                    </Select>
-                    <p className="text-sm text-muted-foreground">
-                      Jak traktować weekendy przy liczeniu dni urlopu
-                    </p>
-                  </div>
-                  <div className="w-[400px] space-y-2">
-                    <Label className="text-sm font-medium text-foreground">
-                      Polityka świąt
-                    </Label>
-                    <Input 
-                      value="Nie licz świąt państwowych" 
-                      disabled 
-                      className="bg-card opacity-50 border h-9"
-                    />
-                    <p className="text-sm text-muted-foreground">
-                      Jak traktować święta państwowe przy liczeniu dni urlopu
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+                </div>
         </FigmaTabsContent>
 
         <FigmaTabsContent value="billing" className="mt-6 space-y-6">
@@ -1410,101 +1135,19 @@ export default function AdminSettingsClient({
       </FigmaTabs>
 
       {/* Edit Leave Type Dialog */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-w-md">
-          <div className="absolute right-4 top-4 z-10">
-            <Button
-              variant="ghost" 
-              size="sm" 
-              className="h-9 w-9 p-0 border border bg-card shadow-sm"
-              onClick={() => setEditDialogOpen(false)}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-          
-          <DialogHeader className="space-y-1.5">
-            <DialogTitle className="text-lg font-semibold text-foreground">
-              Edytuj rodzaj urlopu
-            </DialogTitle>
-            <DialogDescription className="text-sm text-muted-foreground">
-              Zaktualizuj informacje o rodzaju urlopu
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleSubmitEdit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-name" className="text-sm font-medium text-foreground">
-                Nazwa urlopu
-              </Label>
-              <Input
-                id="edit-name"
-                value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                className="h-9 border bg-card"
-                required
-                disabled={loading}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="edit-days" className="text-sm font-medium text-foreground">
-                Liczba dni w roku
-              </Label>
-              <Input
-                id="edit-days"
-                type="number"
-                value={formData.days_per_year}
-                onChange={(e) => setFormData(prev => ({ ...prev, days_per_year: parseInt(e.target.value) || 0 }))}
-                className="h-9 border bg-card"
-                required
-                min="0"
-                disabled={loading}
-              />
-              <p className="text-sm text-muted-foreground">
-                Pamiętaj aby nie zmieniać podstawowych dni ustawowych.
-              </p>
-            </div>
-
-            <div className="flex items-start space-x-2">
-              <Checkbox
-                id="edit-requires-balance"
-                checked={formData.requires_balance}
-                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, requires_balance: !!checked }))}
-                disabled={loading}
-                className="mt-0.5 data-[state=checked]:bg-foreground data-[state=checked]:border-foreground"
-              />
-              <div className="grid gap-1.5 leading-none">
-                <Label htmlFor="edit-requires-balance" className="text-sm font-medium text-foreground">
-                  Wymagaj zarządzania saldem urlopowym
-                </Label>
-                <p className="text-sm text-muted-foreground">
-                  Zaznacz jeśli ten typ urlopu wymaga śledzenia i zarządzaniem dni urlopowych
-                </p>
-              </div>
-            </div>
-
-            <DialogFooter className="flex justify-end gap-2 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setEditDialogOpen(false)}
-                disabled={loading}
-                className="h-9 px-4 border bg-card"
-              >
-                Anuluj
-              </Button>
-              <Button
-                type="submit"
-                disabled={loading}
-                className="h-9 px-4 bg-foreground text-primary-foreground"
-              >
-                {loading ? 'Zapisywanie...' : 'Zapisz zmiany'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <EditLeaveTypeSheet
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        leaveType={selectedLeaveType}
+        onSuccess={(updatedLeaveType) => {
+          // Update local state
+          setLeaveTypes(prevLeaveTypes =>
+            prevLeaveTypes.map(lt =>
+              lt.id === updatedLeaveType.id ? updatedLeaveType : lt
+            )
+          )
+        }}
+      />
 
       {/* Delete Leave Type Dialog */}
       <Dialog

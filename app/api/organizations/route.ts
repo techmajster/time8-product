@@ -113,6 +113,7 @@ export async function POST(request: NextRequest) {
           color: type.color,
           requires_approval: type.requires_approval,
           requires_balance: type.requires_balance,
+          is_paid: type.is_paid,  // Include whether the leave type is paid
           leave_category: type.leave_category,
           is_mandatory: true  // Mark as mandatory so they cannot be deleted
         }))

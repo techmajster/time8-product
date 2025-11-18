@@ -9,13 +9,21 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Separator } from '@/components/ui/separator'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
 
-interface CreateLeaveTypeSheetProps {
+interface LeaveType {
+  id: string
+  name: string
+  days_per_year: number
+  requires_balance: boolean
+  requires_approval: boolean
+  is_paid: boolean
+}
+
+interface EditLeaveTypeSheetProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  organizationId: string
-  onSuccess?: (leaveType: any) => void
+  leaveType: LeaveType | null
+  onSuccess?: (leaveType: LeaveType) => void
 }
 
 interface LeaveTypeFormData {
@@ -26,13 +34,12 @@ interface LeaveTypeFormData {
   is_paid: boolean
 }
 
-export function CreateLeaveTypeSheet({
+export function EditLeaveTypeSheet({
   open,
   onOpenChange,
-  organizationId,
+  leaveType,
   onSuccess
-}: CreateLeaveTypeSheetProps) {
-  const router = useRouter()
+}: EditLeaveTypeSheetProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState<LeaveTypeFormData>({
     name: '',
@@ -42,18 +49,18 @@ export function CreateLeaveTypeSheet({
     is_paid: true
   })
 
-  // Reset form when sheet opens
+  // Update form when leaveType changes or sheet opens
   useEffect(() => {
-    if (open) {
+    if (open && leaveType) {
       setFormData({
-        name: '',
-        days_per_year: 0,
-        requires_balance: true,
-        requires_approval: true,
-        is_paid: true
+        name: leaveType.name,
+        days_per_year: leaveType.days_per_year,
+        requires_balance: leaveType.requires_balance,
+        requires_approval: leaveType.requires_approval,
+        is_paid: leaveType.is_paid
       })
     }
-  }, [open])
+  }, [open, leaveType])
 
   const handleClose = () => {
     onOpenChange(false)
@@ -64,6 +71,10 @@ export function CreateLeaveTypeSheet({
     setIsSubmitting(true)
 
     try {
+      if (!leaveType?.id) {
+        throw new Error('Nie wybrano rodzaju urlopu')
+      }
+
       // Validate form
       if (!formData.name.trim()) {
         throw new Error('Nazwa rodzaju urlopu jest wymagana')
@@ -75,69 +86,36 @@ export function CreateLeaveTypeSheet({
 
       const supabase = createClient()
 
-      // Create the leave type
-      const { data: createdLeaveType, error: createError } = await supabase
+      // Update the leave type
+      const { data: updatedLeaveType, error: updateError } = await supabase
         .from('leave_types')
-        .insert({
-          organization_id: organizationId,
+        .update({
           name: formData.name,
           days_per_year: formData.days_per_year,
-          color: '#3B82F6', // Default blue color
           requires_balance: formData.requires_balance,
           requires_approval: formData.requires_approval,
-          is_paid: formData.is_paid,
-          leave_category: 'other', // Default to 'other'
-          is_mandatory: false // Custom types are never mandatory
+          is_paid: formData.is_paid
         })
+        .eq('id', leaveType.id)
         .select()
         .single()
 
-      if (createError) {
-        throw new Error(createError.message || 'Nie udało się utworzyć rodzaju urlopu')
+      if (updateError) {
+        throw new Error(updateError.message || 'Nie udało się zaktualizować rodzaju urlopu')
       }
 
-      // If requires_balance and has days_per_year > 0, create balances for all existing users
-      if (formData.requires_balance && formData.days_per_year > 0) {
-        // Get all active users in the organization
-        const { data: userOrgs, error: usersError } = await supabase
-          .from('user_organizations')
-          .select('user_id')
-          .eq('organization_id', organizationId)
-          .eq('is_active', true)
-
-        if (!usersError && userOrgs && userOrgs.length > 0) {
-          // Create leave balances for all users
-          const leaveBalances = userOrgs.map(userOrg => ({
-            user_id: userOrg.user_id,
-            leave_type_id: createdLeaveType.id,
-            organization_id: organizationId,
-            year: new Date().getFullYear(),
-            entitled_days: formData.days_per_year,
-            used_days: 0
-          }))
-
-          const { error: balancesError } = await supabase
-            .from('leave_balances')
-            .insert(leaveBalances)
-
-          if (balancesError) {
-            console.warn('Could not create leave balances:', balancesError)
-          }
-        }
-      }
-
-      toast.success('Rodzaj urlopu został utworzony!')
+      toast.success('Rodzaj urlopu został zaktualizowany!')
 
       // Call success callback if provided
       if (onSuccess) {
-        onSuccess(createdLeaveType)
+        onSuccess(updatedLeaveType)
       }
 
       handleClose()
 
     } catch (error) {
-      console.error('Error creating leave type:', error)
-      toast.error(error instanceof Error ? error.message : 'Wystąpił błąd podczas tworzenia rodzaju urlopu')
+      console.error('Error updating leave type:', error)
+      toast.error(error instanceof Error ? error.message : 'Wystąpił błąd podczas aktualizacji rodzaju urlopu')
     } finally {
       setIsSubmitting(false)
     }
@@ -155,7 +133,7 @@ export function CreateLeaveTypeSheet({
             <div className="flex-1 overflow-y-auto">
               {/* Header */}
               <div className="flex flex-col gap-1.5 w-full px-6 pt-6 pb-6">
-                <SheetTitle className="text-xl font-semibold">Dodaj nowy rodzaj urlopu</SheetTitle>
+                <SheetTitle className="text-xl font-semibold">Edytuj rodzaj urlopu</SheetTitle>
               </div>
 
               <div className="px-6">
@@ -277,7 +255,7 @@ export function CreateLeaveTypeSheet({
                 disabled={!formData.name.trim() || isSubmitting}
                 onClick={handleSubmit}
               >
-                {isSubmitting ? 'Tworzenie...' : 'Utwórz rodzaj urlopu'}
+                {isSubmitting ? 'Zapisywanie...' : 'Zapisz zmiany'}
               </Button>
             </div>
           </div>

@@ -84,7 +84,7 @@ export default async function AdminSettingsPage() {
   // Get leave types for this organization
   const { data: leaveTypes } = await supabase
     .from('leave_types')
-    .select('id, name, color, leave_category, requires_balance, days_per_year, requires_approval, organization_id, is_mandatory')
+    .select('id, name, color, leave_category, requires_balance, days_per_year, requires_approval, is_paid, organization_id, is_mandatory')
     .eq('organization_id', profile.organization_id)
     .order('name')
 

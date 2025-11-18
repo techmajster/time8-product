@@ -15,6 +15,7 @@ Unlike traditional HR software with complex enterprise features, Time8 provides 
 
 ### Advanced Scheduling
 - **Team Calendar** - Visual calendar showing team availability and leave requests
+- **Work Schedule Configuration** - Customizable working days, hours, and holiday handling per organization
 - **Work Schedule Templates** - Configurable work patterns and schedules
 - **Overlap Detection** - Proactive warnings when multiple team members request overlapping leave
 - **Smart Availability** - Real-time team availability tracking
@@ -205,6 +206,116 @@ Once enabled, the system runs two automated background jobs:
    - Compares database seat counts vs Lemon Squeezy
    - Creates critical alerts for discrepancies
    - Sends Slack/email notifications to admins
+
+## Work Schedule Configuration
+
+Time8 allows each organization to customize their work schedule, including working days, work hours, and holiday handling. This configuration affects how calendars display working vs. non-working days and what hours are shown for each working day.
+
+### Features
+
+- **Customizable Working Days** - Select any combination of weekdays (Monday-Sunday)
+- **Flexible Work Hours** - Set daily start and end times (e.g., 08:30 - 16:45)
+- **Holiday Handling** - Choose whether public holidays are treated as working or non-working days
+- **Multi-Shift Support** - Foundation for future shift-based scheduling (UI preview available)
+
+### How It Works
+
+#### Database Schema
+
+The `organizations` table includes the following work schedule columns:
+
+- `working_days` - Array of weekday names (e.g., `['monday', 'tuesday', 'wednesday', 'thursday', 'friday']`)
+- `exclude_public_holidays` - Boolean flag (default: `true`) controlling holiday treatment
+- `daily_start_time` - Daily work start time in HH:MM format (default: `09:00`)
+- `daily_end_time` - Daily work end time in HH:MM format (default: `17:00`)
+- `work_schedule_type` - Either `'daily'` or `'multi_shift'` (default: `'daily'`)
+- `shift_count` - Number of shifts (1-3, default: 1)
+- `work_shifts` - JSONB array of shift definitions with `label`, `start_time`, and `end_time`
+
+#### API Endpoint
+
+**`POST /api/admin/settings/work-mode`**
+
+Updates organization work schedule configuration.
+
+Request payload:
+```json
+{
+  "working_days": ["monday", "tuesday", "wednesday", "thursday", "friday"],
+  "exclude_public_holidays": true,
+  "work_schedule_type": "daily",
+  "daily_start_time": "08:30",
+  "daily_end_time": "17:00"
+}
+```
+
+Multi-shift payload example:
+```json
+{
+  "working_days": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday"],
+  "exclude_public_holidays": false,
+  "work_schedule_type": "multi_shift",
+  "shift_count": 2,
+  "work_shifts": [
+    { "label": "Morning", "start_time": "06:00", "end_time": "14:00" },
+    { "label": "Afternoon", "start_time": "14:00", "end_time": "22:00" }
+  ]
+}
+```
+
+#### Validation Rules
+
+- **Working Days**: Must be valid weekday names (lowercase), at least one day required
+- **Work Hours**: Must be in HH:MM format (24-hour), start time must be before end time
+- **Shift Configuration**:
+  - Maximum 3 shifts
+  - Each shift must have valid start/end times with start < end
+  - Shifts cannot overlap in time
+  - `shift_count` must match number of provided shifts
+
+#### Admin UI
+
+Admins can configure work schedules via the "Tryb pracy" tab in Settings:
+
+1. **Dni pracujące (Working Days)**
+   - Select working days via clickable day chips
+   - Toggle "Wolne święta państwowe" to control holiday behavior
+   - Changes save optimistically with server validation
+
+2. **Godziny pracy (Work Hours)**
+   - Daily mode: Set start and end times with 15-minute granularity
+   - Shift mode: Preview UI for future multi-shift support (coming soon)
+
+#### Calendar Integration
+
+Work schedule configuration affects:
+
+- **Dashboard Card** - Shows current day's work hours or "Nie pracujemy" for non-working days
+- **Calendar Grid** - Displays work hours for each working day
+- **Holiday Display** - Shows holiday names when `exclude_public_holidays` is true, otherwise shows work hours
+- **Weekend Handling** - Weekends marked as non-working unless included in `working_days`
+
+#### Testing
+
+Work schedule functionality is covered by comprehensive test suites:
+
+```bash
+# API validation tests
+npm test -- __tests__/api/admin/work-mode-validation.test.ts
+
+# Component tests
+npm test -- __tests__/components/admin/EditWorkingDaysSheet.test.tsx
+
+# Calendar logic tests
+npm test -- __tests__/components/calendar/calendar-day-status.test.ts
+```
+
+Tests cover:
+- Working days validation (valid days, duplicates, invalid names)
+- Time format validation (HH:MM format, start < end)
+- Holiday toggle behavior
+- Multi-shift validation (overlaps, shift count limits)
+- Calendar day status computation based on configuration
 
 ## Testing
 
