@@ -101,13 +101,10 @@ export async function POST(request: NextRequest) {
         organization_id: org.id,
         lemonsqueezy_subscription_id: `free_${org.id}`, // Unique identifier for free tier
         status: 'active',
-        subscription_tier: 'free',
-        current_seats: 0, // Free tier doesn't count seats
-        paid_seats: 0,
+        current_seats: 0, // Free tier: 3 seats are built into the system, no paid seats
         billing_period: 'monthly', // Default to monthly for free tier
-        billing_type: 'usage_based', // Will change to usage_based when they upgrade
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        billing_type: 'usage_based', // Will change when they upgrade to paid
+        quantity: 0 // No paid quantity for free tier
       })
 
     if (subscriptionError) {
