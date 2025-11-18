@@ -163,10 +163,14 @@ export async function POST(request: NextRequest) {
     const customData: Record<string, string> = {
       organization_name: organization_data.name,
       organization_slug: organization_data.slug, // Pass the slug for webhook organization lookup
-      user_email: user_email || '', // Pass user email for webhook to identify the workspace creator
       user_count: user_count.toString(),
       tier
     };
+
+    // Only add user_email if it exists (don't send empty string)
+    if (user_email) {
+      customData.user_email = user_email;
+    }
 
     // Only add organization_id if it exists (for upgrades)
     if (organization_data.id) {

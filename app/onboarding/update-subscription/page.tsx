@@ -28,6 +28,7 @@ function UpdateSubscriptionPageContent() {
   const [renewalDate, setRenewalDate] = useState<string | null>(null)
   const [subscriptionId, setSubscriptionId] = useState<string | null>(null)
   const [organizationData, setOrganizationData] = useState<{ name: string; slug: string; country_code: string } | null>(null)
+  const [userEmail, setUserEmail] = useState<string | null>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -40,6 +41,9 @@ function UpdateSubscriptionPageContent() {
         router.push('/login')
         return
       }
+
+      // Store user email for billing
+      setUserEmail(user.email || null)
 
       // Get organization ID and seat count from URL params
       const orgId = searchParams.get('current_org')
@@ -194,6 +198,7 @@ function UpdateSubscriptionPageContent() {
             },
             user_count: userCount,
             tier: selectedTier === 'monthly' ? 'monthly' : 'annual',
+            user_email: userEmail,
             return_url: `${window.location.origin}/admin/settings?tab=billing`
           })
         })
