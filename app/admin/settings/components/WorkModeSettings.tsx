@@ -11,11 +11,11 @@ import { Check, X } from 'lucide-react'
 import { EditWorkingDaysSheet } from './EditWorkingDaysSheet'
 import { EditWorkHoursSheet } from './EditWorkHoursSheet'
 import { cn } from '@/lib/utils'
+import { useTranslations } from 'next-intl'
 
 interface WorkModeSettingsProps {
   currentOrganization: {
     id: string
-    work_mode?: 'monday_to_friday' | 'multi_shift'
     working_days?: string[]
     exclude_public_holidays?: boolean
     work_schedule_type?: 'daily' | 'multi_shift'
@@ -30,22 +30,23 @@ interface WorkModeSettingsProps {
   }
 }
 
-const DAY_LABELS: Record<string, string> = {
-  monday: 'Pon',
-  tuesday: 'Wt',
-  wednesday: 'Śr',
-  thursday: 'Czw',
-  friday: 'Pt',
-  saturday: 'Sob',
-  sunday: 'Niedz',
-}
-
 const DAY_ORDER = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
 
 export function WorkModeSettings({ currentOrganization: initialOrganization }: WorkModeSettingsProps) {
+  const t = useTranslations('adminSettings.workMode')
   const [editWorkingDaysOpen, setEditWorkingDaysOpen] = useState(false)
   const [editWorkHoursOpen, setEditWorkHoursOpen] = useState(false)
   const [organization, setOrganization] = useState(initialOrganization)
+
+  const DAY_LABELS: Record<string, string> = {
+    monday: t('workingDays.days.monday'),
+    tuesday: t('workingDays.days.tuesday'),
+    wednesday: t('workingDays.days.wednesday'),
+    thursday: t('workingDays.days.thursday'),
+    friday: t('workingDays.days.friday'),
+    saturday: t('workingDays.days.saturday'),
+    sunday: t('workingDays.days.sunday'),
+  }
 
   // Sync with prop changes
   React.useEffect(() => {
@@ -76,9 +77,9 @@ export function WorkModeSettings({ currentOrganization: initialOrganization }: W
         <CardHeader className="pb-0 p-0">
           <div className="flex items-center justify-between">
             <div className="space-y-1.5">
-              <CardTitle className="text-xl font-semibold">Dni pracujące</CardTitle>
+              <CardTitle className="text-xl font-semibold">{t('workingDays.title')}</CardTitle>
               <CardDescription>
-                Podstawowe informacje o przestrzeni roboczej
+                {t('workingDays.description')}
               </CardDescription>
             </div>
             <Button
@@ -87,7 +88,7 @@ export function WorkModeSettings({ currentOrganization: initialOrganization }: W
               onClick={() => setEditWorkingDaysOpen(true)}
               className="h-9"
             >
-              Edytuj
+              {t('workHours.edit')}
             </Button>
           </div>
         </CardHeader>
@@ -125,11 +126,11 @@ export function WorkModeSettings({ currentOrganization: initialOrganization }: W
                 disabled
               />
               <Label className="text-sm font-medium text-foreground">
-                Wolne święta państwowe
+                {t('workingDays.publicHolidays')}
               </Label>
             </div>
             <p className="text-xs text-muted-foreground">
-              Święta wypadające w dni pracujące zostaną wyłączone z harmonogramu
+              {t('workingDays.publicHolidaysDescription')}
             </p>
           </div>
         </CardContent>
@@ -143,9 +144,9 @@ export function WorkModeSettings({ currentOrganization: initialOrganization }: W
         <CardHeader className="pb-0 p-0">
           <div className="flex items-center justify-between">
             <div className="space-y-1.5">
-              <CardTitle className="text-xl font-semibold">Godziny pracy</CardTitle>
+              <CardTitle className="text-xl font-semibold">{t('workHours.title')}</CardTitle>
               <CardDescription>
-                Podstawowe informacje o przestrzeni roboczej
+                {t('workHours.description')}
               </CardDescription>
             </div>
             <Button
@@ -154,7 +155,7 @@ export function WorkModeSettings({ currentOrganization: initialOrganization }: W
               onClick={() => setEditWorkHoursOpen(true)}
               className="h-9"
             >
-              Edytuj
+              {t('workHours.edit')}
             </Button>
           </div>
         </CardHeader>
@@ -162,15 +163,15 @@ export function WorkModeSettings({ currentOrganization: initialOrganization }: W
           {scheduleType === 'daily' ? (
             <>
               <div>
-                <p className="text-sm font-medium">Praca codzienna</p>
+                <p className="text-sm font-medium">{t('workHours.dailyWork')}</p>
                 <p className="text-xs text-muted-foreground">
-                  Stałe godziny pracy każdego dnia pracującego
+                  {t('workHours.dailyWorkDescription')}
                 </p>
               </div>
               <div className="flex items-center gap-6">
-                <p className="text-sm font-medium">Godziny pracy</p>
+                <p className="text-sm font-medium">{t('workHours.workHoursLabel')}</p>
                 <div className="flex items-center gap-3.5">
-                  <p className="text-sm font-medium">Od</p>
+                  <p className="text-sm font-medium">{t('workHours.from')}</p>
                   <Select value={formatTime(dailyStartTime)} disabled>
                     <SelectTrigger className="w-[90px]">
                       <SelectValue />
@@ -179,7 +180,7 @@ export function WorkModeSettings({ currentOrganization: initialOrganization }: W
                       <SelectItem value={formatTime(dailyStartTime)}>{formatTime(dailyStartTime)}</SelectItem>
                     </SelectContent>
                   </Select>
-                  <p className="text-sm font-medium">do</p>
+                  <p className="text-sm font-medium">{t('workHours.to')}</p>
                   <Select value={formatTime(dailyEndTime)} disabled>
                     <SelectTrigger className="w-[90px]">
                       <SelectValue />
@@ -194,9 +195,9 @@ export function WorkModeSettings({ currentOrganization: initialOrganization }: W
           ) : (
             <>
               <div>
-                <p className="text-sm font-medium">Praca według grafiku</p>
+                <p className="text-sm font-medium">{t('workHours.multiShiftWork')}</p>
                 <p className="text-xs text-muted-foreground">
-                  Praca zmianowa w różnych dniach i/lub godzinach
+                  {t('workHours.multiShiftWorkDescription')}
                 </p>
               </div>
               {workShifts.length > 0 && (
@@ -204,10 +205,10 @@ export function WorkModeSettings({ currentOrganization: initialOrganization }: W
                   {workShifts.map((shift, index) => (
                     <div key={index} className="flex items-center gap-3">
                       <p className="text-sm font-medium min-w-[120px]">
-                        Zmiana {index + 1} pracuje
+                        {t('workHours.shiftWorks', { number: index + 1 })}
                       </p>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">Od</span>
+                        <span className="text-sm font-medium">{t('workHours.from')}</span>
                         <Select value={formatTime(shift.start_time)} disabled>
                           <SelectTrigger className="w-[90px]">
                             <SelectValue />
@@ -216,7 +217,7 @@ export function WorkModeSettings({ currentOrganization: initialOrganization }: W
                             <SelectItem value={formatTime(shift.start_time)}>{formatTime(shift.start_time)}</SelectItem>
                           </SelectContent>
                         </Select>
-                        <span className="text-sm font-medium">do</span>
+                        <span className="text-sm font-medium">{t('workHours.to')}</span>
                         <Select value={formatTime(shift.end_time)} disabled>
                           <SelectTrigger className="w-[90px]">
                             <SelectValue />

@@ -115,6 +115,7 @@ export default function AdminSettingsClient({
   canManageOwnership
 }: AdminSettingsClientProps) {
   const t = useTranslations('billing')
+  const tAdmin = useTranslations('adminSettings')
   const [currentOrganization, setCurrentOrganization] = useState(initialOrganization)
   const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>(initialLeaveTypes)
   const [pendingRemovalUsers, setPendingRemovalUsers] = useState<PendingRemovalUser[]>(initialPendingUsers)
@@ -544,10 +545,10 @@ export default function AdminSettingsClient({
       <FigmaTabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <div className="relative -mx-12 px-12">
           <FigmaTabsList className="border-b-0">
-            <FigmaTabsTrigger value="general">Ogólne</FigmaTabsTrigger>
-            <FigmaTabsTrigger value="work-modes">Tryb pracy</FigmaTabsTrigger>
-            <FigmaTabsTrigger value="leave-types">Urlopy</FigmaTabsTrigger>
-            <FigmaTabsTrigger value="billing">Rozliczenia</FigmaTabsTrigger>
+            <FigmaTabsTrigger value="general">{tAdmin('tabs.general')}</FigmaTabsTrigger>
+            <FigmaTabsTrigger value="work-modes">{tAdmin('tabs.workMode')}</FigmaTabsTrigger>
+            <FigmaTabsTrigger value="leave-types">{tAdmin('tabs.leave')}</FigmaTabsTrigger>
+            <FigmaTabsTrigger value="billing">{tAdmin('tabs.billing')}</FigmaTabsTrigger>
           </FigmaTabsList>
           <div className="absolute bottom-0 left-0 right-0 h-px bg-border" />
         </div>
@@ -611,7 +612,7 @@ export default function AdminSettingsClient({
                 </div>
 
                 <div className="w-[400px] space-y-2">
-                  <Label htmlFor="holiday-calendar">Kalendarz świąt</Label>
+                  <Label htmlFor="holiday-calendar">{tAdmin('general.holidayCalendar')}</Label>
                   <Select value={currentOrganization?.country_code || 'PL'} disabled>
                     <SelectTrigger className="w-[400px]">
                       <div className="flex items-center gap-2">
@@ -672,7 +673,7 @@ export default function AdminSettingsClient({
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">
-                    Domyślny język dla nowych użytkowników. Użytkownicy mogą zmienić język w swoim profilu.
+                    {tAdmin('general.languageHelper')}
                   </p>
                 </div>
               </div>
@@ -696,14 +697,14 @@ export default function AdminSettingsClient({
                 disabled={loading}
                 className="h-9"
               >
-                {loading ? 'Tworzenie...' : 'Utwórz domyślne rodzaje urlopów'}
+                {loading ? tAdmin('leave.creating') : tAdmin('leave.createDefault')}
               </Button>
               <Button
                 onClick={() => setIsCreateLeaveTypeSheetOpen(true)}
                 className="bg-primary text-primary-foreground h-9 shadow-sm"
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Dodaj rodzaj urlopu
+                {tAdmin('leave.addLeaveType')}
               </Button>
             </div>
           </div>

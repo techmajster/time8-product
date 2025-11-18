@@ -86,12 +86,12 @@
   - [x] 10.3 Keep leave types, users, teams, subscription data fetching unchanged
   - [x] 10.4 Verify page loads efficiently with reduced queries
 
-- [ ] 11. Translation Updates
-  - [ ] 11.1 Add/update Polish translations for new UI text
-  - [ ] 11.2 Add helper text for language selector
-  - [ ] 11.3 Add translations for working days and work hours sections
-  - [ ] 11.4 Remove translations for deprecated features
-  - [ ] 11.5 Verify all text displays correctly in Polish
+- [x] 11. Translation Updates
+  - [x] 11.1 Add/update Polish translations for new UI text
+  - [x] 11.2 Add helper text for language selector
+  - [x] 11.3 Add translations for working days and work hours sections
+  - [x] 11.4 Remove translations for deprecated features
+  - [x] 11.5 Verify all text displays correctly in Polish
 
 - [ ] 12. Component Testing Updates
   - [ ] 12.1 Update AdminSettingsClient tests for 4-tab structure

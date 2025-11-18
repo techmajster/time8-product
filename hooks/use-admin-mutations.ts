@@ -10,7 +10,6 @@ interface WorkShiftPayload {
 }
 
 interface UpdateWorkModePayload {
-  work_mode?: 'monday_to_friday' | 'multi_shift'
   working_days?: string[]
   exclude_public_holidays?: boolean
   work_schedule_type?: 'daily' | 'multi_shift'

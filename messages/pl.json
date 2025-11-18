@@ -1107,5 +1107,73 @@
       "error": "Wystąpił błąd"
     },
     "noLastName": "Bez nazwiska"
+  },
+  "adminSettings": {
+    "tabs": {
+      "general": "Ogólne",
+      "workMode": "Tryb pracy",
+      "leave": "Urlopy",
+      "billing": "Rozliczenia"
+    },
+    "general": {
+      "title": "Ustawienia ogólne",
+      "workspaceName": "Nazwa przestrzeni roboczej",
+      "administrator": "Administrator",
+      "holidayCalendar": "Kalendarz świąt",
+      "primaryLanguage": "Główny język",
+      "languageHelper": "Domyślny język dla nowych użytkowników. Użytkownicy mogą zmienić język w swoim profilu.",
+      "editData": "Edytuj dane"
+    },
+    "workMode": {
+      "title": "Tryb pracy",
+      "workingDays": {
+        "title": "Dni pracujące",
+        "description": "Podstawowe informacje o przestrzeni roboczej",
+        "publicHolidays": "Wolne święta państwowe",
+        "publicHolidaysDescription": "Święta wypadające w dni pracujące zostaną wyłączone z harmonogramu",
+        "days": {
+          "monday": "Pon",
+          "tuesday": "Wt",
+          "wednesday": "Śr",
+          "thursday": "Czw",
+          "friday": "Pt",
+          "saturday": "Sob",
+          "sunday": "Niedz"
+        }
+      },
+      "workHours": {
+        "title": "Godziny pracy",
+        "description": "Podstawowe informacje o przestrzeni roboczej",
+        "dailyWork": "Praca codzienna",
+        "dailyWorkDescription": "Stałe godziny pracy każdego dnia pracującego",
+        "multiShiftWork": "Praca według grafiku",
+        "multiShiftWorkDescription": "Praca zmianowa w różnych dniach i/lub godzinach",
+        "workHoursLabel": "Godziny pracy",
+        "from": "Od",
+        "to": "do",
+        "edit": "Edytuj",
+        "shiftWorks": "Zmiana {number} pracuje",
+        "defineWorkMode": "Określ tryb pracy",
+        "selectShiftCount": "Wybierz liczbę zmian",
+        "defineWorkHours": "Określ godziny pracy",
+        "shift": "zmiana",
+        "shifts": "zmiany",
+        "save": "Zapisz",
+        "cancel": "Anuluj"
+      }
+    },
+    "leave": {
+      "title": "Rodzaje urlopów",
+      "createDefault": "Utwórz domyślne rodzaje urlopów",
+      "creating": "Tworzenie...",
+      "addLeaveType": "Dodaj rodzaj urlopu",
+      "table": {
+        "name": "Nazwa",
+        "limit": "Limit",
+        "paid": "Płatny",
+        "mandatory": "Obowiązkowy",
+        "actions": "Akcje"
+      }
+    }
   }
 } 

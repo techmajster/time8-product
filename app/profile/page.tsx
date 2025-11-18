@@ -44,7 +44,6 @@ export default async function ProfilePage() {
         name,
         country_code,
         locale,
-        work_mode,
         working_days,
         exclude_public_holidays,
         daily_start_time,

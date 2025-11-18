@@ -12,7 +12,6 @@ const VALID_WEEK_DAYS = [
 const TIME_REGEX = /^([01]\d|2[0-3]):([0-5]\d)$/
 
 export type WorkScheduleType = 'daily' | 'multi_shift'
-export type WorkMode = 'monday_to_friday' | 'multi_shift'
 
 export interface WorkShift {
   label?: string
@@ -28,7 +27,6 @@ export interface WorkModePayloadInput {
   daily_end_time?: string
   shift_count?: number
   work_shifts?: WorkShift[]
-  work_mode?: WorkMode
 }
 
 export interface ValidatedWorkModeConfig {
@@ -39,7 +37,6 @@ export interface ValidatedWorkModeConfig {
   dailyEndTime: string
   shiftCount: number
   workShifts: WorkShift[]
-  workMode: WorkMode
   isLegacyPayload: boolean
 }
 
@@ -184,7 +181,6 @@ export const validateWorkModePayload = (payload: unknown): ValidatedWorkModeConf
       dailyEndTime: body.daily_end_time ?? '17:00',
       shiftCount,
       workShifts: shifts,
-      workMode: 'multi_shift',
       isLegacyPayload
     }
   }
@@ -198,7 +194,6 @@ export const validateWorkModePayload = (payload: unknown): ValidatedWorkModeConf
     dailyEndTime: end,
     shiftCount: 1,
     workShifts: [],
-    workMode: body.work_mode === 'multi_shift' ? 'multi_shift' : 'monday_to_friday',
     isLegacyPayload
   }
 }
