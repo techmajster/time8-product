@@ -57,13 +57,13 @@ function UpdateSubscriptionPageContent() {
       // Fetch organization data for checkout
       const { data: org } = await supabase
         .from('organizations')
-        .select('name, slug, country_code')
+        .select('name, country_code')
         .eq('id', orgId)
         .single()
 
       if (org) {
-        // Generate slug from name if it doesn't exist
-        const slug = org.slug || org.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+        // Generate slug from name for checkout
+        const slug = org.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
 
         setOrganizationData({
           name: org.name,
@@ -75,7 +75,7 @@ function UpdateSubscriptionPageContent() {
       // Fetch current subscription to determine billing period
       const { data: subscription } = await supabase
         .from('subscriptions')
-        .select('lemonsqueezy_subscription_id, lemonsqueezy_variant_id, lemonsqueezy_product_id, billing_period::text, current_seats, renews_at')
+        .select('lemonsqueezy_subscription_id, lemonsqueezy_variant_id, lemonsqueezy_product_id, billing_period, current_seats, renews_at')
         .eq('organization_id', orgId)
         .eq('status', 'active')
         .single()

@@ -218,10 +218,10 @@ async function findOrCreateCustomer(
   // Method 1: Direct organization ID (preferred for existing orgs)
   if (organizationData.id) {
     console.log(`🎯 Looking up organization by ID: ${organizationData.id}`);
-    
+
     const { data: orgById, error: orgByIdError } = await supabase
       .from('organizations')
-      .select('id, name, slug')
+      .select('id, name')
       .eq('id', organizationData.id)
       .single();
 
@@ -233,28 +233,29 @@ async function findOrCreateCustomer(
     }
   }
 
-  // Method 2: Lookup by slug (for new orgs during onboarding or fallback)
-  if (!organization && organizationData.slug) {
-    console.log(`🔍 Looking up organization by slug: ${organizationData.slug}`);
-    
-    const { data: orgBySlug, error: orgBySlugError } = await supabase
+  // Method 2: Lookup by name (fallback for new orgs during onboarding)
+  // slug column was removed, so we use name instead
+  if (!organization && organizationData.name) {
+    console.log(`🔍 Looking up organization by name: ${organizationData.name}`);
+
+    const { data: orgByName, error: orgByNameError } = await supabase
       .from('organizations')
-      .select('id, name, slug')
-      .eq('slug', organizationData.slug)
+      .select('id, name')
+      .eq('name', organizationData.name)
       .single();
 
-    if (orgBySlugError) {
-      console.error('❌ Failed to find organization by slug:', orgBySlugError);
+    if (orgByNameError) {
+      console.error('❌ Failed to find organization by name:', orgByNameError);
     } else {
-      organization = orgBySlug;
-      console.log(`✅ Found organization by slug: ${organization.name} (${organization.id})`);
+      organization = orgByName;
+      console.log(`✅ Found organization by name: ${organization.name} (${organization.id})`);
     }
   }
 
   if (!organization) {
     return {
       data: null,
-      error: { message: 'Organization not found using either ID or slug from checkout data' }
+      error: { message: 'Organization not found using either ID or name from checkout data' }
     };
   }
 
