@@ -92,6 +92,32 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: userOrgError.message }, { status: 400 })
     }
 
+    // Create free tier subscription record
+    // This enables the billing system to track the organization even before they upgrade to paid
+    console.log('💳 Creating free tier subscription...')
+    const { error: subscriptionError } = await supabaseAdmin
+      .from('subscriptions')
+      .insert({
+        organization_id: org.id,
+        lemonsqueezy_subscription_id: `free_${org.id}`, // Unique identifier for free tier
+        status: 'active',
+        subscription_tier: 'free',
+        current_seats: 0, // Free tier doesn't count seats
+        paid_seats: 0,
+        billing_period: 'monthly', // Default to monthly for free tier
+        billing_type: 'usage_based', // Will change to usage_based when they upgrade
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+
+    if (subscriptionError) {
+      console.error('⚠️ Free tier subscription creation error:', subscriptionError)
+      // Don't fail the process - organization is already created
+      // User can still use the system, but billing features may be limited
+    } else {
+      console.log('✅ Free tier subscription created for organization:', org.id)
+    }
+
     // Create ONLY the 2 mandatory leave types for new workspaces
     // (Urlop wypoczynkowy and Urlop bezpłatny)
     // Other Polish law templates (11 more types) can be added via "Create default leave types" button
