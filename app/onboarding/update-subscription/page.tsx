@@ -75,7 +75,7 @@ function UpdateSubscriptionPageContent() {
       // Fetch current subscription to determine billing period
       const { data: subscription } = await supabase
         .from('subscriptions')
-        .select('lemonsqueezy_subscription_id, lemonsqueezy_variant_id, lemonsqueezy_product_id, billing_period, current_seats, renews_at')
+        .select('lemonsqueezy_subscription_id, lemonsqueezy_variant_id, lemonsqueezy_product_id, billing_period::text, current_seats, renews_at')
         .eq('organization_id', orgId)
         .eq('status', 'active')
         .single()
