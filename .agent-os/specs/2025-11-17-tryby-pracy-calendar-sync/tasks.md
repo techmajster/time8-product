@@ -22,6 +22,6 @@
 - [x] 4.3 Update `CalendarClient` day status logic (hours label + holiday toggle)
 
 ## 5. QA / Documentation
-- [ ] 5.1 Add component/API tests covering new flows + validation failures
-- [ ] 5.2 Update spec docs / README section with new fields & behaviors
-- [ ] 5.3 Manual QA checklist: working day chips, holiday toggle, hours reflected on dashboard + calendar
+- [x] 5.1 Add component/API tests covering new flows + validation failures
+- [x] 5.2 Update spec docs / README section with new fields & behaviors
+- [x] 5.3 Manual QA checklist: working day chips, holiday toggle, hours reflected on dashboard + calendar

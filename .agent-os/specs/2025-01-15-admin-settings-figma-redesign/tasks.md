@@ -35,56 +35,56 @@
   - [x] 4.8 Update EditOrganizationSheet validation to exclude deprecated fields
   - [x] 4.9 Test Ogólne tab renders correctly with new layout
 
-- [ ] 5. Create Working Days Grid Component (Tryb pracy Tab)
-  - [ ] 5.1 Create WorkingDaysGrid.tsx component file
-  - [ ] 5.2 Implement 7-day horizontal checkbox grid layout
-  - [ ] 5.3 Add visual states: purple background for active days (Mon-Fri), gray for inactive (Sat-Sun)
-  - [ ] 5.4 Add checkmark icons for active days, X icons for inactive days
-  - [ ] 5.5 Apply 50% opacity to checkbox icons
-  - [ ] 5.6 Add "Wolne święta państwowe" checkbox with description
-  - [ ] 5.7 Ensure all elements are visual-only (no state management)
-  - [ ] 5.8 Test component renders correctly on different screen sizes
+- [x] 5. Create Working Days Grid Component (Tryb pracy Tab)
+  - [x] 5.1 Create WorkingDaysGrid.tsx component file
+  - [x] 5.2 Implement 7-day horizontal checkbox grid layout
+  - [x] 5.3 Add visual states: purple background for active days (Mon-Fri), gray for inactive (Sat-Sun)
+  - [x] 5.4 Add checkmark icons for active days, X icons for inactive days
+  - [x] 5.5 Apply 50% opacity to checkbox icons
+  - [x] 5.6 Add "Wolne święta państwowe" checkbox with description
+  - [x] 5.7 Ensure all elements are visual-only (no state management)
+  - [x] 5.8 Test component renders correctly on different screen sizes
 
-- [ ] 6. Create Work Hours Display Component (Tryb pracy Tab)
-  - [ ] 6.1 Create WorkHoursDisplay.tsx component file
-  - [ ] 6.2 Implement time range selector layout (Od/do inline format)
-  - [ ] 6.3 Add disabled time dropdowns showing 9:00 and 17:00
-  - [ ] 6.4 Apply 50% opacity and disabled styling
-  - [ ] 6.5 Add "Edytuj" button (visual-only, no functionality)
-  - [ ] 6.6 Add section title "Praca codzienna" with subtitle
-  - [ ] 6.7 Test component matches Figma design
+- [x] 6. Create Work Hours Display Component (Tryb pracy Tab)
+  - [x] 6.1 Create WorkHoursDisplay.tsx component file
+  - [x] 6.2 Implement time range selector layout (Od/do inline format)
+  - [x] 6.3 Add disabled time dropdowns showing 9:00 and 17:00
+  - [x] 6.4 Apply 50% opacity and disabled styling
+  - [x] 6.5 Add "Edytuj" button (visual-only, no functionality)
+  - [x] 6.6 Add section title "Praca codzienna" with subtitle
+  - [x] 6.7 Test component matches Figma design
 
-- [ ] 7. Integrate Tryb pracy Tab Components
-  - [ ] 7.1 Import WorkingDaysGrid and WorkHoursDisplay components
-  - [ ] 7.2 Replace existing WorkModeSettings with new components
-  - [ ] 7.3 Add horizontal separator between Dni pracujące and Godziny pracy sections
-  - [ ] 7.4 Apply correct card styling and spacing (24px gaps)
-  - [ ] 7.5 Test Tryb pracy tab renders with all visual elements
+- [x] 7. Integrate Tryb pracy Tab Components
+  - [x] 7.1 Import WorkingDaysGrid and WorkHoursDisplay components
+  - [x] 7.2 Replace existing WorkModeSettings with new components
+  - [x] 7.3 Add horizontal separator between Dni pracujące and Godziny pracy sections
+  - [x] 7.4 Apply correct card styling and spacing (24px gaps)
+  - [X] 7.5 Test Tryb pracy tab renders with all visual elements
 
-- [ ] 8. Urlopy Tab Simplification
-  - [ ] 8.1 Remove nested tab navigation (remove FigmaTabs for nested tabs)
-  - [ ] 8.2 Delete EditLeavePoliciesSheet component file
-  - [ ] 8.3 Remove "Polityki urlopowe" tab content
-  - [ ] 8.4 Update leave types table to be main tab content
-  - [ ] 8.5 Add lock icons to mandatory leave types in table
-  - [ ] 8.6 Update badge styling to match Figma (purple "Świąt" badges)
-  - [ ] 8.7 Update action buttons: "Utwórz domyślne rodzaje urlopów" (outline), "+ Dodaj rodzaj urlopu" (primary)
-  - [ ] 8.8 Verify all existing leave type functionality still works (create, edit, delete)
-  - [ ] 8.9 Test leave types table displays correctly
+- [x] 8. Urlopy Tab Simplification
+  - [x] 8.1 Remove nested tab navigation (remove FigmaTabs for nested tabs)
+  - [x] 8.2 Delete EditLeavePoliciesSheet component file
+  - [x] 8.3 Remove "Polityki urlopowe" tab content
+  - [x] 8.4 Update leave types table to be main tab content
+  - [x] 8.5 Add lock icons to mandatory leave types in table
+  - [x] 8.6 Update badge styling to match Figma (purple "Świąt" badges)
+  - [x] 8.7 Update action buttons: "Utwórz domyślne rodzaje urlopów" (outline), "+ Dodaj rodzaj urlopu" (primary)
+  - [x] 8.8 Verify all existing leave type functionality still works (create, edit, delete)
+  - [x] 8.9 Test leave types table displays correctly
 
-- [ ] 9. Remove Unused Components and Files
-  - [ ] 9.1 Delete EditGoogleWorkspaceSheet.tsx
-  - [ ] 9.2 Delete EditLeavePoliciesSheet.tsx
-  - [ ] 9.3 Remove calendar visibility related components (if standalone files exist)
-  - [ ] 9.4 Remove workspace deletion related components (if standalone)
-  - [ ] 9.5 Clean up unused imports in AdminSettingsClient
-  - [ ] 9.6 Remove unused component tests
+- [x] 9. Remove Unused Components and Files
+  - [x] 9.1 Delete EditGoogleWorkspaceSheet.tsx
+  - [x] 9.2 Delete EditLeavePoliciesSheet.tsx
+  - [x] 9.3 Remove calendar visibility related components (if standalone files exist)
+  - [x] 9.4 Remove workspace deletion related components (if standalone)
+  - [x] 9.5 Clean up unused imports in AdminSettingsClient
+  - [X] 9.6 Remove unused component tests
 
-- [ ] 10. Update Page Data Fetching
-  - [ ] 10.1 Remove Google Workspace related data queries from page.tsx
-  - [ ] 10.2 Remove calendar visibility data fetching (if no longer needed)
-  - [ ] 10.3 Keep leave types, users, teams, subscription data fetching unchanged
-  - [ ] 10.4 Verify page loads efficiently with reduced queries
+- [x] 10. Update Page Data Fetching
+  - [x] 10.1 Remove Google Workspace related data queries from page.tsx
+  - [x] 10.2 Remove calendar visibility data fetching (if no longer needed)
+  - [x] 10.3 Keep leave types, users, teams, subscription data fetching unchanged
+  - [x] 10.4 Verify page loads efficiently with reduced queries
 
 - [ ] 11. Translation Updates
   - [ ] 11.1 Add/update Polish translations for new UI text

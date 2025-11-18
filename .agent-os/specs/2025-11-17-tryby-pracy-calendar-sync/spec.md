@@ -118,4 +118,55 @@ As an employee, when I view the dashboard card or the calendar grid, I see my or
 4. New API returns validation errors for invalid payloads, with translated error copy rendered in sheets.
 5. Existing calendars keep functioning for organizations that never opened the new tab (defaults cover them).
 
+## Implementation Notes
+
+### Database Schema
+The following columns were added to `public.organizations`:
+- `exclude_public_holidays boolean default true`
+- `daily_start_time time default '09:00'`
+- `daily_end_time time default '17:00'`
+- `work_schedule_type text default 'daily'`
+- `shift_count integer default 1 CHECK (shift_count >= 1 AND shift_count <= 3)`
+- `work_shifts jsonb default '[]'`
+
+All existing organizations were backfilled with Monday-Friday working days, 09:00-17:00 hours, and holidays excluded.
+
+### API Validation
+The `/api/admin/settings/work-mode` endpoint validates:
+- Working days must be valid weekday names (lowercase)
+- At least one working day required
+- Work hours must be in HH:MM format (24-hour)
+- Start time must be before end time
+- For multi-shift: max 3 shifts, no overlaps, shift_count matches array length
+
+See `lib/validations/work-mode.ts` for complete validation logic.
+
+### Components
+- **EditWorkingDaysSheet** - [app/admin/settings/components/EditWorkingDaysSheet.tsx](app/admin/settings/components/EditWorkingDaysSheet.tsx)
+- **EditWorkHoursSheet** - [app/admin/settings/components/EditWorkHoursSheet.tsx](app/admin/settings/components/EditWorkHoursSheet.tsx)
+- **WorkModeSettings** - [app/admin/settings/components/WorkModeSettings.tsx](app/admin/settings/components/WorkModeSettings.tsx)
+
+### Calendar Integration
+The calendar day status logic ([app/calendar/components/CalendarClient.tsx](app/calendar/components/CalendarClient.tsx)) now:
+- Checks if a day is in `working_days` before showing work hours
+- Respects `exclude_public_holidays` flag for holiday rendering
+- Displays custom work hours from `daily_start_time` and `daily_end_time`
+- Shows "Niepracujący" for non-working days
+
+### Testing
+Comprehensive test coverage added:
+- **API Validation**: [__tests__/api/admin/work-mode-validation.test.ts](__tests__/api/admin/work-mode-validation.test.ts) - 44 tests
+- **Component Tests**: [__tests__/components/admin/EditWorkingDaysSheet.test.tsx](__tests__/components/admin/EditWorkingDaysSheet.test.tsx) - Component behavior tests
+- **Calendar Logic**: [__tests__/components/calendar/calendar-day-status.test.ts](__tests__/components/calendar/calendar-day-status.test.ts) - Day status computation tests
+
+Run tests with:
+```bash
+npm test -- __tests__/api/admin/work-mode-validation.test.ts
+npm test -- __tests__/components/admin/EditWorkingDaysSheet.test.tsx
+npm test -- __tests__/components/calendar/calendar-day-status.test.ts
+```
+
+### Documentation
+See [README.md](../../../README.md#work-schedule-configuration) for complete documentation of the work schedule configuration feature.
+
 

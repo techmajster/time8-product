@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Separator } from '@/components/ui/separator'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -150,14 +151,19 @@ export function CreateLeaveTypeSheet({
         className="overflow-y-auto"
       >
         <div className="bg-background relative rounded-lg h-full">
-          <div className="flex flex-col h-full">
-            <div className="flex flex-col gap-6 p-6 flex-1 overflow-y-auto">
-              <div className="flex flex-col gap-1.5 w-full">
-                <SheetTitle className="text-lg font-semibold mb-6">Dodaj nowy rodzaj urlopu</SheetTitle>
+          <div className="flex flex-col h-full overflow-hidden">
+            <div className="flex-1 overflow-y-auto">
+              {/* Header */}
+              <div className="flex flex-col gap-1.5 w-full px-6 pt-6 pb-6">
+                <SheetTitle className="text-xl font-semibold">Dodaj nowy rodzaj urlopu</SheetTitle>
               </div>
 
-              {/* Form */}
-              <form onSubmit={handleSubmit} className="space-y-5 flex-1">
+              <div className="px-6">
+                <Separator />
+              </div>
+
+              {/* Form Fields */}
+              <div className="flex flex-col gap-4 px-6 py-6">
                 {/* Leave Type Name */}
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">
@@ -187,79 +193,87 @@ export function CreateLeaveTypeSheet({
                     min="0"
                     disabled={isSubmitting}
                   />
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-sm text-muted-foreground">
                     Ustaw 0 dla nieograniczonej liczby dni
                   </p>
                 </div>
+              </div>
 
-                {/* Checkboxes */}
-                <div className="space-y-4">
-                  <div className="flex items-start space-x-2">
-                    <Checkbox
-                      id="requires-balance"
-                      checked={formData.requires_balance}
-                      onCheckedChange={(checked) => setFormData(prev => ({ ...prev, requires_balance: !!checked }))}
-                      disabled={isSubmitting}
-                      className="mt-0.5 data-[state=checked]:bg-foreground data-[state=checked]:border-foreground"
-                    />
-                    <div className="grid gap-1.5 leading-none">
-                      <Label htmlFor="requires-balance" className="text-sm font-medium text-foreground">
-                        Wymaga zarządzania saldem urlopowym
-                      </Label>
-                      <p className="text-sm text-muted-foreground">
-                        Zaznacz, jeśli ten typ urlopu wymaga śledzenia dostępnych dni
-                      </p>
-                    </div>
-                  </div>
+              <div className="px-6">
+                <Separator />
+              </div>
 
-                  <div className="flex items-start space-x-2">
-                    <Checkbox
-                      id="requires-approval"
-                      checked={formData.requires_approval}
-                      onCheckedChange={(checked) => setFormData(prev => ({ ...prev, requires_approval: !!checked }))}
-                      disabled={isSubmitting}
-                      className="mt-0.5 data-[state=checked]:bg-foreground data-[state=checked]:border-foreground"
-                    />
-                    <div className="grid gap-1.5 leading-none">
-                      <Label htmlFor="requires-approval" className="text-sm font-medium text-foreground">
-                        Wymaga zatwierdzenia
-                      </Label>
-                      <p className="text-sm text-muted-foreground">
-                        Wnioski tego typu będą wymagały akceptacji administratora
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start space-x-2">
-                    <Checkbox
-                      id="is-paid"
-                      checked={formData.is_paid}
-                      onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_paid: !!checked }))}
-                      disabled={isSubmitting}
-                      className="mt-0.5 data-[state=checked]:bg-foreground data-[state=checked]:border-foreground"
-                    />
-                    <div className="grid gap-1.5 leading-none">
-                      <Label htmlFor="is-paid" className="text-sm font-medium text-foreground">
-                        Płatny
-                      </Label>
-                      <p className="text-sm text-muted-foreground">
-                        Zaznacz, jeśli pracownik otrzymuje wynagrodzenie za ten urlop
-                      </p>
-                    </div>
+              {/* Checkboxes */}
+              <div className="space-y-4 px-6 py-6">
+                <div className="flex items-start space-x-2">
+                  <Checkbox
+                    id="requires-balance"
+                    checked={formData.requires_balance}
+                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, requires_balance: !!checked }))}
+                    disabled={isSubmitting}
+                    className="mt-0.5 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                  />
+                  <div className="grid gap-1.5 leading-none">
+                    <Label htmlFor="requires-balance" className="text-sm font-medium text-foreground">
+                      Wymaga zarządzania saldem urlopowym
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Zaznacz, jeśli ten typ urlopu wymaga śledzenia dostępnych dni
+                    </p>
                   </div>
                 </div>
-              </form>
+
+                <div className="flex items-start space-x-2">
+                  <Checkbox
+                    id="requires-approval"
+                    checked={formData.requires_approval}
+                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, requires_approval: !!checked }))}
+                    disabled={isSubmitting}
+                    className="mt-0.5 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                  />
+                  <div className="grid gap-1.5 leading-none">
+                    <Label htmlFor="requires-approval" className="text-sm font-medium text-foreground">
+                      Wymaga zatwierdzania
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Wnioski tego typu będą wymagały akceptacji administratora
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start space-x-2">
+                  <Checkbox
+                    id="is-paid"
+                    checked={formData.is_paid}
+                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_paid: !!checked }))}
+                    disabled={isSubmitting}
+                    className="mt-0.5 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                  />
+                  <div className="grid gap-1.5 leading-none">
+                    <Label htmlFor="is-paid" className="text-sm font-medium text-foreground">
+                      Płatny
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Zaznacz, jeśli pracownik otrzymuje wynagrodzenie za ten urlop
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="px-6">
+              <Separator />
             </div>
 
             {/* Footer - Fixed at Bottom */}
-            <div className="flex flex-row gap-2 items-center justify-between w-full p-6 pt-0 bg-background">
-              <Button variant="outline" size="sm" onClick={handleClose} disabled={isSubmitting}>
-                Anuluj
-              </Button>
+            <div className="flex gap-2 items-center justify-end w-full p-6 bg-background">
+              <div className="basis-0 grow flex gap-2.5 items-start">
+                <Button variant="outline" className="h-9" onClick={handleClose} disabled={isSubmitting}>
+                  Anuluj
+                </Button>
+              </div>
               <Button
-                type="submit"
-                size="sm"
-                className=""
+                className="h-9 shadow-sm"
                 disabled={!formData.name.trim() || isSubmitting}
                 onClick={handleSubmit}
               >
