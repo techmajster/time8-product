@@ -447,6 +447,13 @@ function UpdateSubscriptionPageContent() {
               </div>
             </div>
 
+            {/* Tax notice */}
+            <div className="w-full">
+              <p className="text-xs text-muted-foreground text-center">
+                {t('taxNotice')}
+              </p>
+            </div>
+
             {/* Error message */}
             {error && (
               <Alert variant="destructive" className="w-full">
