@@ -122,9 +122,11 @@ export default async function AdminSettingsPage() {
   // Get subscription data for SubscriptionWidget
   const { data: subscription } = await supabase
     .from('subscriptions')
-    .select('seat_limit, renews_at, status')
+    .select('current_seats, renews_at, status, billing_period')
     .eq('organization_id', profile.organization_id)
     .in('status', ['active', 'on_trial', 'past_due'])
+    .order('created_at', { ascending: false })
+    .limit(1)
     .single()
 
   // CRITICAL BUG FIX: Query actual user count from user_organizations
@@ -139,7 +141,7 @@ export default async function AdminSettingsPage() {
   const subscriptionData = subscription ? {
     ...subscription,
     current_seats: actualUserCount || 0, // Use actual user count
-    seat_limit: subscription.seat_limit || 3 // Fallback to free tier limit
+    seat_limit: 3 // Free tier limit (subscription.current_seats is the paid limit)
   } : null
 
   // Get users with pending_removal status
