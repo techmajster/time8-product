@@ -1530,10 +1530,6 @@ export async function processSubscriptionPaymentSuccess(payload: any): Promise<E
 
     // Pattern 2: Deferred Downgrade (has pending_seats)
     if (hasPendingChanges) {
-      if (alreadySynced) {
-        console.log(`[Webhook] subscription_payment_success: Changes already synced to Lemon Squeezy, applying locally for subscription ${subscriptionId}`);
-      }
-
       const previousSeats = existingSubscription.current_seats;
       const newSeats = existingSubscription.pending_seats;
 
