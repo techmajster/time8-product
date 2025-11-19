@@ -942,13 +942,9 @@ export default function AdminSettingsClient({
                           </Label>
                           <div className="text-sm text-muted-foreground space-y-1">
                             <div>• {t('plan')}: {subscriptionData.variant?.name || 'Subscription Plan'}</div>
-                            <div>• {t('price')}: {formatCurrency(subscriptionData.variant?.price || 0)} {t('perSeat')}{subscriptionData.variant?.interval === 'year' ? '/rok' : '/mies.'}</div>
                             {subscriptionData.current_period_end && (
                               <div>• {t('nextBilling')}: {formatDate(subscriptionData.current_period_end)}</div>
                             )}
-                            <div className="text-xs text-muted-foreground pt-1">
-                              {t('pricesInPLN')}
-                            </div>
                           </div>
                         </div>
 
