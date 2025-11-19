@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
     });
 
     // SECURITY: If organization_data includes an existing org ID (upgrade scenario),
-    // validate user belongs to that organization
+    // validate user belongs to that organization AND it matches their active org
     if (organization_data?.id) {
       const auth = await authenticateAndGetOrgContext();
       if (!auth.success) {
@@ -100,10 +100,24 @@ export async function POST(request: NextRequest) {
       const { context } = auth;
       const { organization } = context;
 
-      // Verify the organization ID matches the authenticated user's organization
+      // SECURITY: Verify the organization ID matches the CURRENT active organization
+      // This prevents checkouts being created for wrong org due to stale state
       if (organization.id !== organization_data.id) {
+        console.error('🚨 SECURITY: Organization mismatch in checkout!', {
+          requestedOrg: organization_data.id,
+          requestedOrgName: organization_data.name,
+          activeOrg: organization.id,
+          activeOrgName: organization.name,
+          timestamp: new Date().toISOString()
+        });
+
         return NextResponse.json(
-          { error: 'Unauthorized: Cannot create checkout for different organization' },
+          {
+            error: 'Organization mismatch: Requested organization does not match your active workspace',
+            details: 'Please refresh the page and try again. If this persists, switch to the correct workspace first.',
+            requested: organization_data.name,
+            active: organization.name
+          },
           { status: 403 }
         );
       }

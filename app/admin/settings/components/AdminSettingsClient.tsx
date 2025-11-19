@@ -350,12 +350,31 @@ export default function AdminSettingsClient({
   }
 
   // Handle subscription management - redirect to unified subscription management page
-  const handleManageSubscription = () => {
-    if (!currentOrganization?.id) return
+  const handleManageSubscription = async () => {
+    // SECURITY FIX: Always fetch current active organization from server
+    // to prevent stale state from causing checkout with wrong org
+    try {
+      const response = await fetch('/api/user/current-organization')
 
-    // Redirect to unified subscription management page
-    const currentSeats = getSeatUsage().total
-    window.location.href = `/onboarding/update-subscription?current_org=${currentOrganization?.id}&seats=${currentSeats}`
+      if (!response.ok) {
+        toast.error('Failed to determine current organization')
+        return
+      }
+
+      const data = await response.json()
+
+      if (!data.organizationId) {
+        toast.error('No active organization found')
+        return
+      }
+
+      // Redirect to unified subscription management page with fresh org ID
+      const currentSeats = getSeatUsage().total
+      window.location.href = `/onboarding/update-subscription?current_org=${data.organizationId}&seats=${currentSeats}`
+    } catch (error) {
+      console.error('Error getting current organization:', error)
+      toast.error('Failed to start subscription update')
+    }
   }
 
   // Handle customer portal access for billing issues

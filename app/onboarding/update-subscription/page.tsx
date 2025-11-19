@@ -46,15 +46,43 @@ function UpdateSubscriptionPageContent() {
       setUserEmail(user.email || null)
 
       // Get organization ID and seat count from URL params
-      const orgId = searchParams.get('current_org')
+      const orgIdFromUrl = searchParams.get('current_org')
       const seats = parseInt(searchParams.get('seats') || '3')
 
-      if (!orgId) {
+      if (!orgIdFromUrl) {
         router.push('/admin/settings?tab=billing')
         return
       }
 
-      setOrganizationId(orgId)
+      // SECURITY VALIDATION: Verify URL org matches user's active organization
+      try {
+        const currentOrgResponse = await fetch('/api/user/current-organization')
+
+        if (currentOrgResponse.ok) {
+          const currentOrgData = await currentOrgResponse.json()
+
+          // If URL org doesn't match active org, use active org instead
+          if (currentOrgData.organizationId && currentOrgData.organizationId !== orgIdFromUrl) {
+            console.warn('⚠️ URL organization mismatch! Using active organization instead', {
+              urlOrg: orgIdFromUrl,
+              activeOrg: currentOrgData.organizationId,
+              timestamp: new Date().toISOString()
+            })
+            setOrganizationId(currentOrgData.organizationId)
+          } else {
+            setOrganizationId(orgIdFromUrl)
+          }
+        } else {
+          // Fallback to URL param if API fails
+          console.warn('Failed to validate organization, using URL param')
+          setOrganizationId(orgIdFromUrl)
+        }
+      } catch (error) {
+        console.error('Error validating organization:', error)
+        // Fallback to URL param if validation fails
+        setOrganizationId(orgIdFromUrl)
+      }
+
       setUserCount(seats)
       setInitialUserCount(seats)
 
