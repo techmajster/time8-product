@@ -84,6 +84,7 @@ export async function middleware(request: NextRequest) {
     '/api/admin/force-delete-org', // Admin force organization deletion
     '/api/admin/migrate-billing-type', // Admin billing type migration
     '/api/admin/list-orgs', // Admin list organizations
+    '/api/admin/run-migration', // Admin run database migrations
   ]
 
   const { pathname } = request.nextUrl

@@ -142,16 +142,18 @@ function isValidSubscriptionStatus(status: string): status is SubscriptionStatus
 }
 
 /**
- * Finds or creates customer record, handling organization data from checkout
- * Updated to prioritize organization_id over slug-based lookup
+ * Finds or creates customer record by LemonSqueezy customer ID only
+ * Multi-workspace support: One LemonSqueezy customer can have multiple subscriptions
+ * Organization linkage happens at the SUBSCRIPTION level via custom_data
  */
 async function findOrCreateCustomer(
   supabase: any,
   lemonsqueezyCustomerId: string,
-  customData: any,
   customerEmail?: string
 ): Promise<{ data: any; error: any }> {
-  // First try to find existing customer
+  console.log(`🔍 Looking up customer by lemonsqueezy_customer_id: ${lemonsqueezyCustomerId}`);
+
+  // Try to find existing customer by LemonSqueezy customer ID
   const { data: existingCustomer, error: findError } = await supabase
     .from('customers')
     .select('*')
@@ -159,111 +161,24 @@ async function findOrCreateCustomer(
     .single();
 
   if (findError && findError.code !== 'PGRST116') {
+    // Error other than "not found"
+    console.error('❌ Error finding customer:', findError);
     return { data: null, error: findError };
   }
 
   if (existingCustomer) {
+    console.log(`✅ Found existing customer: ${existingCustomer.email} (${existingCustomer.id})`);
     return { data: existingCustomer, error: null };
   }
 
-  // Customer doesn't exist - try to find organization from custom checkout data
-  if (!customData) {
-    return { 
-      data: null, 
-      error: { message: 'No custom data available to identify organization' }
-    };
-  }
+  // Customer doesn't exist - create new one
+  // NOTE: organization_id is now nullable, we don't need to link customers to orgs
+  console.log(`📝 Creating new customer record for: ${customerEmail}`);
 
-  console.log('🔍 Processing webhook custom data:', customData);
-  
-  let organization = null;
-  let organizationData = null;
-
-  // Parse organization_data from custom fields - support both old and new formats
-  // Old format: organization_data as nested object/JSON string
-  // New format: organization_id and organization_name as flat fields
-  if (customData.organization_data) {
-    // Old format: organization_data as nested object
-    try {
-      organizationData = typeof customData.organization_data === 'string'
-        ? JSON.parse(customData.organization_data)
-        : customData.organization_data;
-
-      console.log('📋 Parsed organization data (nested format):', organizationData);
-    } catch (error) {
-      console.error('❌ Failed to parse organization_data:', error);
-      return {
-        data: null,
-        error: { message: 'Invalid organization data in checkout custom fields' }
-      };
-    }
-  } else if (customData.organization_id || customData.organization_name) {
-    // New format: flat structure with organization_id and organization_name
-    // IMPORTANT: Use the organization_slug from custom_data (passed from checkout)
-    // This slug was already generated in create-workspace page with the correct logic
-    organizationData = {
-      id: customData.organization_id,
-      name: customData.organization_name,
-      slug: customData.organization_slug // Use slug directly from checkout custom_data
-    };
-    console.log('📋 Using flat organization data format:', organizationData);
-  } else {
-    // Neither format found
-    return {
-      data: null,
-      error: { message: 'No organization data found in checkout custom fields' }
-    };
-  }
-
-  // Method 1: Direct organization ID (preferred for existing orgs)
-  if (organizationData.id) {
-    console.log(`🎯 Looking up organization by ID: ${organizationData.id}`);
-
-    const { data: orgById, error: orgByIdError } = await supabase
-      .from('organizations')
-      .select('id, name')
-      .eq('id', organizationData.id)
-      .single();
-
-    if (orgByIdError) {
-      console.error('❌ Failed to find organization by ID:', orgByIdError);
-    } else {
-      organization = orgById;
-      console.log(`✅ Found organization by ID: ${organization.name} (${organization.id})`);
-    }
-  }
-
-  // Method 2: Lookup by name (fallback for new orgs during onboarding)
-  // slug column was removed, so we use name instead
-  if (!organization && organizationData.name) {
-    console.log(`🔍 Looking up organization by name: ${organizationData.name}`);
-
-    const { data: orgByName, error: orgByNameError } = await supabase
-      .from('organizations')
-      .select('id, name')
-      .eq('name', organizationData.name)
-      .single();
-
-    if (orgByNameError) {
-      console.error('❌ Failed to find organization by name:', orgByNameError);
-    } else {
-      organization = orgByName;
-      console.log(`✅ Found organization by name: ${organization.name} (${organization.id})`);
-    }
-  }
-
-  if (!organization) {
-    return {
-      data: null,
-      error: { message: 'Organization not found using either ID or name from checkout data' }
-    };
-  }
-
-  // Create customer record linking the organization to Lemon Squeezy customer
   const { data: newCustomer, error: customerError } = await supabase
     .from('customers')
     .insert({
-      organization_id: organization.id,
+      organization_id: null, // No longer tie customers to specific organizations
       lemonsqueezy_customer_id: lemonsqueezyCustomerId,
       email: customerEmail
     })
@@ -271,10 +186,11 @@ async function findOrCreateCustomer(
     .single();
 
   if (customerError) {
+    console.error('❌ Error creating customer:', customerError);
     return { data: null, error: customerError };
   }
 
-  console.log(`✅ Created customer record: org=${organization.name} (${organization.id}), lemon_squeezy=${lemonsqueezyCustomerId}`);
+  console.log(`✅ Created customer record: ${newCustomer.email} (${newCustomer.id}), lemon_squeezy=${lemonsqueezyCustomerId}`);
   return { data: newCustomer, error: null };
 }
 
@@ -398,7 +314,6 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
       const result = await findOrCreateCustomer(
         supabase,
         customer_id.toString(),
-        meta.custom_data || null,
         attributes.user_email
       );
       customer = result.data;
@@ -417,13 +332,41 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
       }
     }
 
+    // CRITICAL FIX: Extract organization_id from custom_data for multi-workspace support
+    // Do NOT use customer.organization_id (which may be null or from a different workspace)
+    const organizationId = meta.custom_data?.organization_id;
+
+    if (!organizationId) {
+      const error = 'Missing organization_id in webhook custom_data - cannot link subscription to organization';
+      console.error(`❌ [Webhook] ${error}`, { customData: meta.custom_data });
+      await logBillingEvent(meta.event_name, meta.event_id, payload, 'failed', error);
+      return { success: false, error };
+    }
+
+    // Validate that organization exists before creating subscription
+    const { data: organization, error: orgError } = await supabase
+      .from('organizations')
+      .select('id, name')
+      .eq('id', organizationId)
+      .single();
+
+    if (orgError || !organization) {
+      const error = `Organization not found: ${organizationId}`;
+      console.error(`❌ [Webhook] ${error}`, { organizationId, orgError });
+      await logBillingEvent(meta.event_name, meta.event_id, payload, 'failed', error);
+      return { success: false, error };
+    }
+
+    console.log(`✅ [Webhook] Validated organization: ${organization.name} (${organization.id})`);
+
+
     // Extract subscription_item_id for usage records API
     const subscriptionItemId = first_subscription_item?.id;
 
     if (!subscriptionItemId) {
       console.error(`❌ [Webhook] Missing subscription_item_id in payload:`, {
         subscriptionId,
-        organizationId: customer.organization_id
+        organizationId // Use organizationId from custom_data
       });
     }
 
@@ -438,7 +381,7 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
       console.log(`🎫 [Webhook] Detected MONTHLY subscription (usage_based):`, {
         subscriptionId,
         variantId: variant_id,
-        organizationId: customer.organization_id,
+        organizationId, // Use organizationId from custom_data
         note: 'Will create usage records - charged at end of billing period'
       });
     } else if (variant_id === yearlyVariantId) {
@@ -446,7 +389,7 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
       console.log(`🎫 [Webhook] Detected YEARLY subscription (quantity_based):`, {
         subscriptionId,
         variantId: variant_id,
-        organizationId: customer.organization_id,
+        organizationId, // Use organizationId from custom_data
         note: 'Will use quantity updates - charged immediately with proration'
       });
     } else {
@@ -461,7 +404,7 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
     console.log(`📊 [Webhook] subscription_created - Before:`, {
       subscriptionId,
       subscriptionItemId,
-      organizationId: customer.organization_id,
+      organizationId, // Use organizationId from custom_data
       customerId: customer.id,
       status,
       quantity,
@@ -502,11 +445,11 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
       fallback_used: !tier
     });
 
-    // Create subscription record
+    // Create subscription record - CRITICAL FIX: Use organizationId from custom_data
     const { data: subscription, error: subscriptionError } = await supabase
       .from('subscriptions')
       .insert({
-        organization_id: customer.organization_id,
+        organization_id: organizationId, // CRITICAL FIX: Use organizationId from custom_data, not customer.organization_id
         customer_id: customer.id,
         lemonsqueezy_subscription_id: subscriptionId,
         lemonsqueezy_subscription_item_id: subscriptionItemId || null,
@@ -531,7 +474,7 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
     }
 
     // Update organization subscription (pass total user_count, function calculates paid_seats)
-    await updateOrganizationSubscription(supabase, customer.organization_id, userCount, status);
+    await updateOrganizationSubscription(supabase, organizationId, userCount, status);
 
     // Calculate paid_seats for logging (function already updated organization)
     const paidSeats = userCount > 3 ? userCount : 0;
@@ -540,7 +483,7 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
     console.log(`✅ [Webhook] subscription_created - After:`, {
       subscriptionId,
       subscriptionItemId,
-      organizationId: customer.organization_id,
+      organizationId, // Use organizationId from custom_data
       customerId: customer.id,
       status,
       quantity,
@@ -628,7 +571,7 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
       console.log(`⏭️  [Webhook] Skipping usage record for yearly (quantity_based) subscription:`, {
         subscriptionId,
         variantId: variant_id,
-        organizationId: customer.organization_id,
+        organizationId, // Use organizationId from custom_data
         userCount: desiredUserCount,
         note: 'Yearly subscriptions use quantity updates, not usage records'
       });
