@@ -55,6 +55,7 @@ function UpdateSubscriptionPageContent() {
       }
 
       // SECURITY VALIDATION: Verify URL org matches user's active organization
+      let finalOrgId = orgIdFromUrl
       try {
         const currentOrgResponse = await fetch('/api/user/current-organization')
 
@@ -68,21 +69,19 @@ function UpdateSubscriptionPageContent() {
               activeOrg: currentOrgData.organizationId,
               timestamp: new Date().toISOString()
             })
-            setOrganizationId(currentOrgData.organizationId)
-          } else {
-            setOrganizationId(orgIdFromUrl)
+            finalOrgId = currentOrgData.organizationId
           }
         } else {
           // Fallback to URL param if API fails
           console.warn('Failed to validate organization, using URL param')
-          setOrganizationId(orgIdFromUrl)
         }
       } catch (error) {
         console.error('Error validating organization:', error)
         // Fallback to URL param if validation fails
-        setOrganizationId(orgIdFromUrl)
       }
 
+      // Set organization ID for state
+      setOrganizationId(finalOrgId)
       setUserCount(seats)
       setInitialUserCount(seats)
 
@@ -90,7 +89,7 @@ function UpdateSubscriptionPageContent() {
       const { data: org } = await supabase
         .from('organizations')
         .select('name, country_code')
-        .eq('id', orgId)
+        .eq('id', finalOrgId)
         .single()
 
       if (org) {
@@ -108,7 +107,7 @@ function UpdateSubscriptionPageContent() {
       const { data: subscription } = await supabase
         .from('subscriptions')
         .select('lemonsqueezy_subscription_id, lemonsqueezy_variant_id, lemonsqueezy_product_id, billing_period, current_seats, renews_at')
-        .eq('organization_id', orgId)
+        .eq('organization_id', finalOrgId)
         .eq('status', 'active')
         .single()
 
