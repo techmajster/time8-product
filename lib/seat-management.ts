@@ -17,7 +17,6 @@ export interface RemoveUserResult {
     organizationId: string
     removalEffectiveDate: string
     currentSeats: number
-    pendingSeats: number
   }
 }
 
@@ -34,8 +33,8 @@ export interface ReactivateUserResult {
 /**
  * Removes a user from an organization with grace period
  *
- * Marks user as pending_removal and calculates new pending_seats.
- * User retains access until next subscription renewal.
+ * Marks user as pending_removal. User retains access until next subscription renewal
+ * when the webhook will archive them.
  *
  * @param userId - ID of user to remove
  * @param organizationId - ID of the organization
@@ -81,27 +80,13 @@ export async function removeUser(
       }
     }
 
-    // Get subscription details
-    const { data: subscription, error: subError } = await supabase
+    // Get subscription details (may not exist for free tier)
+    const { data: subscription } = await supabase
       .from('subscriptions')
-      .select('id, current_seats, pending_seats, renews_at')
+      .select('id, current_seats, renews_at')
       .eq('organization_id', organizationId)
       .in('status', ['active', 'on_trial'])
-      .single()
-
-    if (subError || !subscription) {
-      return {
-        success: false,
-        error: 'Active subscription not found'
-      }
-    }
-
-    if (!subscription.renews_at) {
-      return {
-        success: false,
-        error: 'Subscription renewal date not found'
-      }
-    }
+      .maybeSingle()
 
     // Check if user exists and is active
     // Note: Using maybeSingle() to handle potential duplicates
@@ -128,24 +113,6 @@ export async function removeUser(
       }
     }
 
-    // Calculate new pending_seats
-    // Count only truly active users (not pending_removal)
-    const { count: activeCount, error: countError } = await supabase
-      .from('user_organizations')
-      .select('*', { count: 'exact', head: true })
-      .eq('organization_id', organizationId)
-      .eq('status', 'active')
-
-    if (countError) {
-      return {
-        success: false,
-        error: 'Failed to count active users'
-      }
-    }
-
-    // New pending_seats = active users minus the one being removed
-    const newPendingSeats = (activeCount || 0) - 1
-
     // Update user status to pending_removal
     const { error: updateUserError } = await supabase
       .from('user_organizations')
@@ -164,35 +131,7 @@ export async function removeUser(
       }
     }
 
-    // Update subscription with pending_seats
-    const { error: updateSubError } = await supabase
-      .from('subscriptions')
-      .update({
-        pending_seats: newPendingSeats,
-        lemonsqueezy_quantity_synced: false,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', subscription.id)
-
-    if (updateSubError) {
-      // Rollback user status change
-      await supabase
-        .from('user_organizations')
-        .update({
-          status: 'active',
-          removal_effective_date: null,
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', userId)
-        .eq('organization_id', organizationId)
-
-      return {
-        success: false,
-        error: `Failed to update subscription: ${updateSubError.message}`
-      }
-    }
-
-    console.log(`[SeatManagement] User ${userId} marked for removal. Pending seats: ${newPendingSeats}, effective: ${subscription.renews_at}`)
+    console.log(`[SeatManagement] User ${userId} marked for removal, effective: ${subscription.renews_at}`)
 
     return {
       success: true,
@@ -200,8 +139,7 @@ export async function removeUser(
         userId,
         organizationId,
         removalEffectiveDate: subscription.renews_at,
-        currentSeats: subscription.current_seats,
-        pendingSeats: newPendingSeats
+        currentSeats: subscription.current_seats
       }
     }
 
@@ -259,7 +197,7 @@ export async function reactivateUser(
     // Get subscription details
     const { data: subscription, error: subError } = await supabase
       .from('subscriptions')
-      .select('id, current_seats, pending_seats')
+      .select('id, current_seats')
       .eq('organization_id', organizationId)
       .in('status', ['active', 'on_trial'])
       .single()
@@ -296,7 +234,7 @@ export async function reactivateUser(
       }
     }
 
-    // Update user status back to active first
+    // Update user status back to active
     const { error: updateUserError } = await supabase
       .from('user_organizations')
       .update({
@@ -314,71 +252,7 @@ export async function reactivateUser(
       }
     }
 
-    // Recalculate pending_seats after status update
-    // Count remaining pending_removal users
-    const { count: pendingRemovalCount, error: pendingError } = await supabase
-      .from('user_organizations')
-      .select('*', { count: 'exact', head: true })
-      .eq('organization_id', organizationId)
-      .eq('status', 'pending_removal')
-
-    if (pendingError) {
-      return {
-        success: false,
-        error: 'Failed to count pending removals'
-      }
-    }
-
-    // If no pending removals remain, pending_seats should be null
-    // Otherwise, count all active users (the new pending_seats value)
-    let newPendingSeats: number | null = null
-
-    if (pendingRemovalCount && pendingRemovalCount > 0) {
-      // Still have pending removals, so calculate new pending_seats
-      const { count: activeCount, error: countError } = await supabase
-        .from('user_organizations')
-        .select('*', { count: 'exact', head: true })
-        .eq('organization_id', organizationId)
-        .eq('status', 'active')
-
-      if (countError) {
-        return {
-          success: false,
-          error: 'Failed to count active users'
-        }
-      }
-
-      newPendingSeats = activeCount || 0
-    }
-
-    // Update subscription pending_seats
-    const { error: updateSubError } = await supabase
-      .from('subscriptions')
-      .update({
-        pending_seats: newPendingSeats,
-        lemonsqueezy_quantity_synced: false,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', subscription.id)
-
-    if (updateSubError) {
-      // Rollback user status change
-      await supabase
-        .from('user_organizations')
-        .update({
-          status: 'pending_removal',
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', userId)
-        .eq('organization_id', organizationId)
-
-      return {
-        success: false,
-        error: `Failed to update subscription: ${updateSubError.message}`
-      }
-    }
-
-    console.log(`[SeatManagement] User ${userId} reactivated. Pending seats: ${newPendingSeats}`)
+    console.log(`[SeatManagement] User ${userId} reactivated`)
 
     return {
       success: true,
@@ -443,7 +317,7 @@ export async function reactivateArchivedUser(
     // Get subscription and organization details for seat validation
     const { data: subscription, error: subError } = await supabase
       .from('subscriptions')
-      .select('id, current_seats, pending_seats')
+      .select('id, current_seats')
       .eq('organization_id', organizationId)
       .in('status', ['active', 'on_trial'])
       .single()
@@ -516,24 +390,6 @@ export async function reactivateArchivedUser(
       }
     }
 
-    // Calculate new pending_seats
-    // Count currently active users (including pending_removal)
-    const { count: activeCount, error: countError } = await supabase
-      .from('user_organizations')
-      .select('*', { count: 'exact', head: true })
-      .eq('organization_id', organizationId)
-      .in('status', ['active', 'pending_removal'])
-
-    if (countError) {
-      return {
-        success: false,
-        error: 'Failed to count active users'
-      }
-    }
-
-    // New pending_seats will be current active count plus 1 (the archived user being reactivated)
-    const newPendingSeats = (activeCount || 0) + 1
-
     // Update user status to active
     const { error: updateUserError } = await supabase
       .from('user_organizations')
@@ -552,34 +408,7 @@ export async function reactivateArchivedUser(
       }
     }
 
-    // Update subscription with new pending_seats (will increase seats at renewal)
-    const { error: updateSubError } = await supabase
-      .from('subscriptions')
-      .update({
-        pending_seats: newPendingSeats,
-        lemonsqueezy_quantity_synced: false,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', subscription.id)
-
-    if (updateSubError) {
-      // Rollback user status change
-      await supabase
-        .from('user_organizations')
-        .update({
-          status: 'archived',
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', userId)
-        .eq('organization_id', organizationId)
-
-      return {
-        success: false,
-        error: `Failed to update subscription: ${updateSubError.message}`
-      }
-    }
-
-    console.log(`[SeatManagement] Archived user ${userId} reactivated. Pending seats: ${newPendingSeats}`)
+    console.log(`[SeatManagement] Archived user ${userId} reactivated`)
 
     return {
       success: true,
@@ -625,7 +454,7 @@ export async function getSeatUsage(organizationId: string) {
   // Get subscription
   const { data: subscription } = await supabase
     .from('subscriptions')
-    .select('current_seats, pending_seats, renews_at')
+    .select('current_seats, renews_at')
     .eq('organization_id', organizationId)
     .in('status', ['active', 'on_trial'])
     .single()
@@ -638,7 +467,6 @@ export async function getSeatUsage(organizationId: string) {
     activeSeats: activeSeats || 0,
     pendingRemovals: pendingRemovals || 0,
     currentSeats: subscription?.current_seats || 0,
-    pendingSeats: subscription?.pending_seats,
     renewsAt: subscription?.renews_at
   }
 }
