@@ -121,6 +121,14 @@ function UpdateSubscriptionPageContent() {
           seats: subscription.current_seats,
           renewsAt: subscription.renews_at
         })
+      } else {
+        // No subscription = free tier
+        // Enforce minimum 4 seats for paid plan
+        if (seats < 4) {
+          setUserCount(4)
+          setInitialUserCount(4)
+          console.log('✅ Free tier user: enforcing minimum 4 seats for paid upgrade')
+        }
       }
 
       // Fetch dynamic pricing from API
@@ -160,8 +168,10 @@ function UpdateSubscriptionPageContent() {
   }, [router, searchParams])
 
   const handleUserCountChange = (delta: number) => {
-    // Minimum 3 seats (free tier includes 3 seats)
-    const newCount = Math.max(3, Math.min(50, userCount + delta))
+    // Free tier users upgrading to paid must select minimum 4 seats
+    // Paid users can go down to 3 seats (free tier)
+    const minSeats = !subscriptionId ? 4 : 3
+    const newCount = Math.max(minSeats, Math.min(50, userCount + delta))
     setUserCount(newCount)
   }
 
@@ -352,7 +362,7 @@ function UpdateSubscriptionPageContent() {
               {/* Minus button */}
               <Button
                 onClick={() => handleUserCountChange(-1)}
-                disabled={userCount <= 3}
+                disabled={userCount <= (!subscriptionId ? 4 : 3)}
                 variant="outline"
                 className="size-16 p-0 border-foreground"
               >
