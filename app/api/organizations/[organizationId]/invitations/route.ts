@@ -186,9 +186,8 @@ export async function POST(
     const emails = invitations.map(inv => inv.email.toLowerCase())
     const { data: existingMembers, error: membersError } = await supabaseAdmin
       .from('user_organizations')
-      .select('email')
+      .select('user_id, profiles!user_organizations_user_id_fkey(email)')
       .eq('organization_id', organizationId)
-      .in('email', emails)
 
     if (membersError) {
       console.error('[BulkInvitations] Error checking existing members:', membersError)
@@ -198,12 +197,16 @@ export async function POST(
       )
     }
 
-    if (existingMembers && existingMembers.length > 0) {
-      const existingEmails = existingMembers.map(m => m.email)
+    // Filter existing members whose emails match the invitation emails
+    const existingEmailMatches = existingMembers
+      ?.filter(m => m.profiles?.email && emails.includes(m.profiles.email.toLowerCase()))
+      .map(m => m.profiles.email) || []
+
+    if (existingEmailMatches.length > 0) {
       return NextResponse.json(
         {
           error: 'Some emails are already members of this organization',
-          existingMembers: existingEmails
+          existingMembers: existingEmailMatches
         },
         { status: 400 }
       )
@@ -236,10 +239,10 @@ export async function POST(
       )
     }
 
-    // Check seat availability
+    // Check seat availability from subscription
     const { data: subscription, error: subscriptionError } = await supabaseAdmin
       .from('subscriptions')
-      .select('current_seats, billing_override_seats, billing_override_expires_at')
+      .select('current_seats')
       .eq('organization_id', organizationId)
       .in('status', ['active', 'on_trial'])
       .maybeSingle()
@@ -252,9 +255,24 @@ export async function POST(
       )
     }
 
+    // Get billing override from organization table
+    const { data: orgBilling, error: orgBillingError } = await supabaseAdmin
+      .from('organizations')
+      .select('billing_override_seats, billing_override_expires_at')
+      .eq('id', organizationId)
+      .single()
+
+    if (orgBillingError) {
+      console.error('[BulkInvitations] Organization billing query error:', orgBillingError)
+      return NextResponse.json(
+        { error: 'Failed to check organization billing details' },
+        { status: 500 }
+      )
+    }
+
     const paidSeats = subscription?.current_seats || 0
-    const billingOverrideSeats = subscription?.billing_override_seats || null
-    const billingOverrideExpiresAt = subscription?.billing_override_expires_at || null
+    const billingOverrideSeats = orgBilling?.billing_override_seats || null
+    const billingOverrideExpiresAt = orgBilling?.billing_override_expires_at || null
 
     // Calculate available seats
     let totalSeats = 3 + paidSeats // 3 free seats + paid seats
@@ -266,12 +284,13 @@ export async function POST(
       }
     }
 
-    // Count active members
+    // Count active members (only status='active', NOT pending_removal)
+    // pending_removal users keep access until renewal but don't block new invitations
     const { count: activeMembers, error: activeMembersError } = await supabaseAdmin
       .from('user_organizations')
       .select('*', { count: 'exact', head: true })
       .eq('organization_id', organizationId)
-      .in('status', ['active', 'pending_removal'])
+      .eq('status', 'active')
 
     if (activeMembersError) {
       console.error('[BulkInvitations] Active members count error:', activeMembersError)
@@ -321,6 +340,7 @@ export async function POST(
       organization_id: organizationId,
       team_id: inv.teamId || null,
       personal_message: inv.personalMessage || null,
+      invited_by: user.id,
       status: 'pending' as const,
       expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days from now
     }))
