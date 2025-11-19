@@ -239,10 +239,10 @@ export async function POST(
       )
     }
 
-    // Check seat availability
+    // Check seat availability from subscription
     const { data: subscription, error: subscriptionError } = await supabaseAdmin
       .from('subscriptions')
-      .select('current_seats, billing_override_seats, billing_override_expires_at')
+      .select('current_seats')
       .eq('organization_id', organizationId)
       .in('status', ['active', 'on_trial'])
       .maybeSingle()
@@ -255,9 +255,24 @@ export async function POST(
       )
     }
 
+    // Get billing override from organization table
+    const { data: organization, error: organizationError } = await supabaseAdmin
+      .from('organizations')
+      .select('billing_override_seats, billing_override_expires_at')
+      .eq('id', organizationId)
+      .single()
+
+    if (organizationError) {
+      console.error('[BulkInvitations] Organization query error:', organizationError)
+      return NextResponse.json(
+        { error: 'Failed to check organization details' },
+        { status: 500 }
+      )
+    }
+
     const paidSeats = subscription?.current_seats || 0
-    const billingOverrideSeats = subscription?.billing_override_seats || null
-    const billingOverrideExpiresAt = subscription?.billing_override_expires_at || null
+    const billingOverrideSeats = organization?.billing_override_seats || null
+    const billingOverrideExpiresAt = organization?.billing_override_expires_at || null
 
     // Calculate available seats
     let totalSeats = 3 + paidSeats // 3 free seats + paid seats
