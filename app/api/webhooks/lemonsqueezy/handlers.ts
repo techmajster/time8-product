@@ -1440,17 +1440,17 @@ export async function processSubscriptionPaymentSuccess(payload: any): Promise<E
       note: 'Confirming payment'
     });
 
-    // For usage-based billing: Payment confirmation only, no seat changes
-    // Seats are managed via usage records, not quantity at checkout
-    if (existingSubscription.billing_type === 'usage_based') {
-      console.log(`✅ [Webhook] Usage-based billing payment confirmed for subscription ${subscriptionId}`);
+    // For usage-based and quantity-based billing: Payment confirmation only, no seat changes
+    // Seats are managed via usage records or checkout quantity, not via payment webhook
+    if (existingSubscription.billing_type === 'usage_based' || existingSubscription.billing_type === 'quantity_based') {
+      console.log(`✅ [Webhook] ${existingSubscription.billing_type} billing payment confirmed for subscription ${subscriptionId}`);
 
       await logBillingEvent(
         meta.event_name,
         meta.event_id,
         payload,
         'processed',
-        'Usage-based billing payment confirmed'
+        `${existingSubscription.billing_type} billing payment confirmed`
       );
 
       return {
@@ -1458,8 +1458,8 @@ export async function processSubscriptionPaymentSuccess(payload: any): Promise<E
         data: {
           subscription: existingSubscription.id,
           organization: existingSubscription.organization_id,
-          billingType: 'usage_based',
-          note: 'Payment confirmed - seats managed via usage records'
+          billingType: existingSubscription.billing_type,
+          note: 'Payment confirmed - seats already set during subscription creation'
         }
       };
     }
