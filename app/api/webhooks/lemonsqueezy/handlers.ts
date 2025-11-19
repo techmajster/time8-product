@@ -282,10 +282,11 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
       console.log(`🔄 [Webhook] Migration detected from subscription ${migrationFromSubscriptionId}`);
       console.log(`   Reusing existing customer instead of creating new one`);
 
-      // Find the old subscription to get its customer
+      // Find the old subscription to get its customer (NOT organization_id!)
+      // IMPORTANT: Do NOT use organization_id from old subscription - always use custom_data
       const { data: oldSubscription, error: oldSubError } = await supabase
         .from('subscriptions')
-        .select('customer_id, organization_id')
+        .select('customer_id')
         .eq('lemonsqueezy_subscription_id', migrationFromSubscriptionId)
         .single();
 
@@ -309,7 +310,8 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
       }
 
       customer = existingCustomer;
-      console.log(`✅ [Webhook] Reusing existing customer ${customer.id} for organization ${customer.organization_id}`);
+      // Note: Organization ID will be extracted from custom_data below (line 338)
+      console.log(`✅ [Webhook] Reusing existing customer ${customer.id} for migration`);
     } else {
       // Normal flow: Find or create customer
       const result = await findOrCreateCustomer(
@@ -417,8 +419,12 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
     });
 
     // Calculate user_count for subscription setup
-    // For usage-based billing: user_count from custom_data drives access control
-    const userCount = parseInt(meta.custom_data?.user_count || '0');
+    // For migrations (monthly→yearly): use preserve_seats to maintain seat count
+    // For new subscriptions: use user_count from custom_data
+    // CRITICAL FIX: preserve_seats takes priority over user_count for migrations
+    const userCount = meta.custom_data?.preserve_seats
+      ? parseInt(meta.custom_data.preserve_seats)
+      : parseInt(meta.custom_data?.user_count || '0');
 
     // CRITICAL BUG FIX: Extract billing_period from custom_data
     // The tier field ('monthly' or 'annual') is set during checkout

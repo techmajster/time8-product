@@ -228,3 +228,19 @@
   - [ ] 19.16 Deploy migration to production
   - [ ] 19.17 Monitor production logs for webhook processing
   - [ ] 19.18 Verify production multi-workspace creation works
+
+- [ ] 20. Fix Monthly→Yearly Migration Bugs (CRITICAL)
+  - [ ] 20.1 Add 'migrated' status to subscriptions table constraint
+  - [ ] 20.2 Create database migration for status constraint update
+  - [ ] 20.3 Run migration on development database
+  - [ ] 20.4 Fix migration customer lookup to use custom_data.organization_id
+  - [ ] 20.5 Extract user_count from preserve_seats (not user_count) during migration
+  - [ ] 20.6 Update processSubscriptionCreated to use preserve_seats for yearly migrations
+  - [ ] 20.7 Update /api/billing/subscription to filter out inactive subscriptions
+  - [ ] 20.8 Test monthly→yearly migration with 7 seats preserved
+  - [ ] 20.9 Verify UI shows only active (yearly) subscription
+  - [ ] 20.10 Verify database shows correct seats (7) and tier (paid)
+  - [ ] 20.11 Verify old subscription marked as 'migrated' status
+  - [ ] 20.12 Verify organization subscription_tier updated correctly
+  - [ ] 20.13 Verify all tests pass
+  - [ ] 20.14 Deploy fixes to production
