@@ -98,10 +98,10 @@ export function WorkspaceSwitcher({
         setPendingInvitations(data.pendingInvitations || [])
         
         console.log('Available workspaces:', data.userWorkspaces)
-        console.log('Member avatars for each workspace:', data.userWorkspaces?.map(ws => ({ 
-          name: ws.name, 
+        console.log('Member avatars for each workspace:', data.userWorkspaces?.map((ws: Workspace) => ({
+          name: ws.name,
           memberAvatars: ws.memberAvatars,
-          memberCount: ws.memberCount 
+          memberCount: ws.memberCount
         })))
         
         // Get current organization ID from the current organization API
@@ -115,7 +115,7 @@ export function WorkspaceSwitcher({
           } else {
             console.warn('Failed to get current organization, falling back to name matching')
             // Fallback to name matching
-            const currentWorkspace = data.userWorkspaces?.find(ws => ws.name === currentWorkspaceName)
+            const currentWorkspace = data.userWorkspaces?.find((ws: Workspace) => ws.name === currentWorkspaceName)
             if (currentWorkspace) {
               setCurrentWorkspaceId(currentWorkspace.id)
             } else if (data.userWorkspaces && data.userWorkspaces.length > 0) {
@@ -125,7 +125,7 @@ export function WorkspaceSwitcher({
         } catch (error) {
           console.error('Error getting current organization:', error)
           // Fallback to name matching
-          const currentWorkspace = data.userWorkspaces?.find(ws => ws.name === currentWorkspaceName)
+          const currentWorkspace = data.userWorkspaces?.find((ws: Workspace) => ws.name === currentWorkspaceName)
           if (currentWorkspace) {
             setCurrentWorkspaceId(currentWorkspace.id)
           } else if (data.userWorkspaces && data.userWorkspaces.length > 0) {
@@ -254,7 +254,7 @@ export function WorkspaceSwitcher({
                           <div className="flex items-end justify-between gap-8">
                             <div className="flex-1 space-y-6">
                               <div className="space-y-2.5">
-                                <h3 className="text-2xl font-semibold text-foreground leading-8">
+                                <h3 className="text-2xl font-semibold text-foreground leading-8 truncate max-w-[200px]">
                                   {workspace.name}
                                 </h3>
                                 <div className="flex items-center -space-x-2">
