@@ -1,5 +1,5 @@
 import { AppLayout } from '@/components/app-layout'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import AdminSettingsClient from '@/app/admin/settings/components/AdminSettingsClient'
@@ -35,13 +35,16 @@ export default async function AdminSettingsPage() {
       organizations (
         id,
         name,
-        slug,
-        google_domain,
-        require_google_domain,
         brand_color,
-        logo_url,
         country_code,
         locale,
+        working_days,
+        exclude_public_holidays,
+        daily_start_time,
+        daily_end_time,
+        work_schedule_type,
+        shift_count,
+        work_shifts,
         created_at,
         restrict_calendar_by_group
       )
@@ -80,26 +83,24 @@ export default async function AdminSettingsPage() {
   // Get leave types for this organization
   const { data: leaveTypes } = await supabase
     .from('leave_types')
-    .select('id, name, color, leave_category, requires_balance, days_per_year, requires_approval, organization_id, is_mandatory')
+    .select('id, name, color, leave_category, requires_balance, days_per_year, requires_approval, is_paid, organization_id, is_mandatory')
     .eq('organization_id', profile.organization_id)
     .order('name')
 
-  // Get all users in the organization for admin selector
-  const { data: orgUsers } = await supabase
+  // Get all ADMIN users in the organization for admin selector
+  // Use admin client to bypass RLS (like app-layout.tsx does)
+  const supabaseAdmin = createAdminClient()
+  const { data: orgUsers, error: orgUsersError } = await supabaseAdmin
     .from('user_organizations')
     .select(`
       user_id,
       role,
-      profiles!inner (
-        id,
-        email,
-        full_name,
-        avatar_url
-      )
+      is_owner,
+      profiles!user_organizations_user_id_fkey(id, email, full_name, avatar_url)
     `)
     .eq('organization_id', profile.organization_id)
     .eq('is_active', true)
-    .order('profiles(full_name)')
+    .eq('role', 'admin')  // Filter for admins only
 
   // Transform the data to match the expected format
   const users = orgUsers?.map(ou => ({
@@ -107,7 +108,8 @@ export default async function AdminSettingsPage() {
     email: (ou.profiles as any).email,
     full_name: (ou.profiles as any).full_name,
     avatar_url: (ou.profiles as any).avatar_url,
-    role: ou.role
+    role: ou.role,
+    isOwner: Boolean(ou.is_owner)
   })) || []
 
   // Get all teams/groups for calendar visibility settings
@@ -117,21 +119,30 @@ export default async function AdminSettingsPage() {
     .eq('organization_id', profile.organization_id)
     .order('name')
 
-  // Get team member assignments from user_organizations.team_id
-  const { data: teamMembers } = await supabase
-    .from('user_organizations')
-    .select('user_id, team_id')
-    .eq('organization_id', profile.organization_id)
-    .eq('is_active', true)
-    .not('team_id', 'is', null)
-
   // Get subscription data for SubscriptionWidget
   const { data: subscription } = await supabase
     .from('subscriptions')
-    .select('current_seats, renews_at, status')
+    .select('current_seats, renews_at, status, billing_period')
     .eq('organization_id', profile.organization_id)
     .in('status', ['active', 'on_trial', 'past_due'])
+    .order('created_at', { ascending: false })
+    .limit(1)
     .single()
+
+  // CRITICAL BUG FIX: Query actual user count from user_organizations
+  // DO NOT use subscription.current_seats (may be 0 or outdated)
+  const { count: actualUserCount } = await supabase
+    .from('user_organizations')
+    .select('*', { count: 'exact', head: true })
+    .eq('organization_id', profile.organization_id)
+    .eq('is_active', true)
+
+  // Combine subscription and actual user count for display
+  const subscriptionData = subscription ? {
+    ...subscription,
+    current_seats: actualUserCount || 0, // Use actual user count
+    seat_limit: subscription.current_seats || 3 // Use subscription limit, fallback to free tier (3)
+  } : null
 
   // Get users with pending_removal status
   const { data: pendingRemovalUsers } = await supabase
@@ -187,6 +198,8 @@ export default async function AdminSettingsPage() {
     role: au.role
   })) || []
 
+  const canManageOwnership = Boolean((userOrg as any)?.is_owner)
+
   return (
     <AppLayout>
       <AdminSettingsClient
@@ -194,10 +207,10 @@ export default async function AdminSettingsPage() {
         leaveTypes={leaveTypes || []}
         users={users || []}
         teams={teams || []}
-        teamMembers={teamMembers || []}
-        subscription={subscription}
+        subscription={subscriptionData}
         pendingRemovalUsers={transformedPendingUsers}
         archivedUsers={transformedArchivedUsers}
+        canManageOwnership={canManageOwnership}
       />
     </AppLayout>
   )

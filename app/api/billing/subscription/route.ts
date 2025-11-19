@@ -89,13 +89,13 @@ export async function GET(request: NextRequest) {
     const pendingInvitations = pendingInvitationsCount || 0;
 
     // Get subscription record from database FIRST (contains stored Lemon Squeezy subscription ID)
-    // Include all subscription statuses for display
+    // Only fetch ACTIVE subscriptions (excluding cancelled/expired/migrated)
     // IMPORTANT: Select current_seats which is the actual paid seat count (for usage-based billing)
-    const { data: subscriptionRecord, error: subError } = await supabase
+    const { data: subscriptionRecord, error: subError} = await supabase
       .from('subscriptions')
       .select('lemonsqueezy_subscription_id, status, trial_ends_at, current_seats')
       .eq('organization_id', organizationId)
-      .in('status', ['active', 'on_trial', 'paused', 'past_due', 'cancelled', 'expired', 'unpaid'])
+      .in('status', ['active', 'on_trial', 'paused', 'past_due', 'unpaid'])
       .single();
 
     // If no subscription record found AND no paid seats, return free tier

@@ -37,8 +37,14 @@ export default async function CalendarPage() {
         id,
         name,
         country_code,
-        work_mode,
-        working_days
+        locale,
+        working_days,
+        exclude_public_holidays,
+        daily_start_time,
+        daily_end_time,
+        work_schedule_type,
+        shift_count,
+        work_shifts
       )
     `)
     .eq('user_id', user.id)
@@ -225,6 +231,11 @@ export default async function CalendarPage() {
         teamMemberIds={teamMemberIds}
         teamScope={teamScope}
         workingDays={profile.organizations?.working_days || ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']}
+        workScheduleConfig={{
+          excludePublicHolidays: profile.organizations?.exclude_public_holidays ?? true,
+          dailyStartTime: profile.organizations?.daily_start_time || '09:00',
+          dailyEndTime: profile.organizations?.daily_end_time || '17:00'
+        }}
         disableResponsive={true}
         headerLayout="compact"
       />

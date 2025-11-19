@@ -10,7 +10,6 @@ export interface OrganizationStatusResponse {
     is_active: boolean
     organizations: {
       name: string
-      slug?: string
     }
   }>
   defaultOrganization?: {
@@ -34,9 +33,6 @@ export interface OrganizationStatusResponse {
 
 export interface CreateOrganizationRequest {
   name: string
-  slug: string
-  google_domain?: string | null
-  require_google_domain?: boolean
   country_code?: string
 }
 
@@ -45,8 +41,6 @@ export interface CreateOrganizationResponse {
   organization: {
     id: string
     name: string
-    slug: string
-    google_domain?: string | null
     country_code: string
     created_at: string
   }

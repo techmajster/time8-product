@@ -73,6 +73,15 @@ export async function POST(request: NextRequest) {
 
     const { variant_id, organization_data, user_count, tier, user_email, return_url, failure_url } = body;
 
+    console.log('🔍 DIAGNOSTIC: Checkout request received:', {
+      variant_id,
+      organization_data_full: organization_data,
+      user_count,
+      tier,
+      user_email,
+      timestamp: new Date().toISOString()
+    });
+
     console.log('📧 User email from request:', {
       user_email,
       has_email: !!user_email,
@@ -81,7 +90,7 @@ export async function POST(request: NextRequest) {
     });
 
     // SECURITY: If organization_data includes an existing org ID (upgrade scenario),
-    // validate user belongs to that organization
+    // validate user belongs to that organization AND it matches their active org
     if (organization_data?.id) {
       const auth = await authenticateAndGetOrgContext();
       if (!auth.success) {
@@ -91,10 +100,24 @@ export async function POST(request: NextRequest) {
       const { context } = auth;
       const { organization } = context;
 
-      // Verify the organization ID matches the authenticated user's organization
+      // SECURITY: Verify the organization ID matches the CURRENT active organization
+      // This prevents checkouts being created for wrong org due to stale state
       if (organization.id !== organization_data.id) {
+        console.error('🚨 SECURITY: Organization mismatch in checkout!', {
+          requestedOrg: organization_data.id,
+          requestedOrgName: organization_data.name,
+          activeOrg: organization.id,
+          activeOrgName: organization.name,
+          timestamp: new Date().toISOString()
+        });
+
         return NextResponse.json(
-          { error: 'Unauthorized: Cannot create checkout for different organization' },
+          {
+            error: 'Organization mismatch: Requested organization does not match your active workspace',
+            details: 'Please refresh the page and try again. If this persists, switch to the correct workspace first.',
+            requested: organization_data.name,
+            active: organization.name
+          },
           { status: 403 }
         );
       }
@@ -154,15 +177,26 @@ export async function POST(request: NextRequest) {
     const customData: Record<string, string> = {
       organization_name: organization_data.name,
       organization_slug: organization_data.slug, // Pass the slug for webhook organization lookup
-      user_email: user_email || '', // Pass user email for webhook to identify the workspace creator
       user_count: user_count.toString(),
       tier
     };
+
+    // Only add user_email if it exists (don't send empty string)
+    if (user_email) {
+      customData.user_email = user_email;
+    }
 
     // Only add organization_id if it exists (for upgrades)
     if (organization_data.id) {
       customData.organization_id = organization_data.id;
     }
+
+    console.log('🎯 DIAGNOSTIC: Customer name being sent to LemonSqueezy:', {
+      name: organization_data.name,
+      source: 'organization_data.name from request body',
+      email: user_email || `noreply+${Date.now()}@time8.io`,
+      WARNING: organization_data.name.includes('Paweł') ? '⚠️ TEST DATA DETECTED IN ORGANIZATION NAME!' : 'OK'
+    });
 
     const checkoutPayload = {
       checkoutData: {
@@ -178,7 +212,9 @@ export async function POST(request: NextRequest) {
       },
       productOptions: {
         name: `Leave Management for ${organization_data.name}`,
-        description: `Monthly subscription for ${user_count} users - includes 3 free seats`,
+        description: tier === 'monthly'
+          ? `Monthly subscription - ${user_count} seats at ${user_count} × monthly rate`
+          : `Annual subscription - ${user_count} seats at ${user_count} × annual rate`,
         redirectUrl: return_url || `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/onboarding/payment-success`,
         receiptThankYouNote: 'Thank you for subscribing to our leave management system!'
       },

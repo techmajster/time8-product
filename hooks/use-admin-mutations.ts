@@ -3,9 +3,20 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
 // Types for mutation payloads
+interface WorkShiftPayload {
+  label?: string
+  start_time: string
+  end_time: string
+}
+
 interface UpdateWorkModePayload {
-  work_mode: 'monday_to_friday' | 'multi_shift'
-  working_days: string[]
+  working_days?: string[]
+  exclude_public_holidays?: boolean
+  work_schedule_type?: 'daily' | 'multi_shift'
+  daily_start_time?: string
+  daily_end_time?: string
+  shift_count?: 1 | 2 | 3
+  work_shifts?: WorkShiftPayload[]
 }
 
 interface UpdateOrganizationPayload {
@@ -81,7 +92,8 @@ export function useUpdateWorkMode() {
         throw new Error(result.error || 'Nie udało się zaktualizować trybu pracy')
       }
 
-      return response.json()
+      const result = await response.json()
+      return result.data // Return the updated organization data
     },
     onSuccess: () => {
       // Invalidate relevant queries

@@ -2,7 +2,7 @@
 
 ## Tasks
 
-- [x] 1. Fix Critical Billing Period and Seat Count Bugs
+- [ ] 1. Fix Critical Billing Period and Seat Count Bugs
   - [x] 1.1 Write tests for billing period tracking and seat count display
   - [x] 1.2 Create migration to add `billing_period` enum column to subscriptions table
   - [x] 1.3 Update webhook handler to extract and save `tier` from custom_data
@@ -10,9 +10,9 @@
   - [x] 1.5 Update update-subscription page to use billing_period column as primary source
   - [x] 1.6 Find and fix "Upgrade to paid plan" button redirect path
   - [x] 1.7 Add billing_period to organization creation flow for free tier
-  - [x] 1.8 Test complete workspace creation flow with monthly selection
-  - [x] 1.9 Verify seat count shows "1 z 3 miejsc" for first user
-  - [x] 1.10 Verify all tests pass
+  - [ ] 1.8 Test complete workspace creation flow with monthly selection
+  - [ ] 1.9 Verify seat count shows "1 z 3 miejsc" for first user
+  - [ ] 1.10 Verify all tests pass
 
 - [x] 2. Database Schema Migration (Product ID Tracking)
   - [x] 2.1 Write migration script to add `lemonsqueezy_product_id` column

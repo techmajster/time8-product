@@ -142,16 +142,18 @@ function isValidSubscriptionStatus(status: string): status is SubscriptionStatus
 }
 
 /**
- * Finds or creates customer record, handling organization data from checkout
- * Updated to prioritize organization_id over slug-based lookup
+ * Finds or creates customer record by LemonSqueezy customer ID only
+ * Multi-workspace support: One LemonSqueezy customer can have multiple subscriptions
+ * Organization linkage happens at the SUBSCRIPTION level via custom_data
  */
 async function findOrCreateCustomer(
   supabase: any,
   lemonsqueezyCustomerId: string,
-  customData: any,
   customerEmail?: string
 ): Promise<{ data: any; error: any }> {
-  // First try to find existing customer
+  console.log(`🔍 Looking up customer by lemonsqueezy_customer_id: ${lemonsqueezyCustomerId}`);
+
+  // Try to find existing customer by LemonSqueezy customer ID
   const { data: existingCustomer, error: findError } = await supabase
     .from('customers')
     .select('*')
@@ -159,110 +161,24 @@ async function findOrCreateCustomer(
     .single();
 
   if (findError && findError.code !== 'PGRST116') {
+    // Error other than "not found"
+    console.error('❌ Error finding customer:', findError);
     return { data: null, error: findError };
   }
 
   if (existingCustomer) {
+    console.log(`✅ Found existing customer: ${existingCustomer.email} (${existingCustomer.id})`);
     return { data: existingCustomer, error: null };
   }
 
-  // Customer doesn't exist - try to find organization from custom checkout data
-  if (!customData) {
-    return { 
-      data: null, 
-      error: { message: 'No custom data available to identify organization' }
-    };
-  }
+  // Customer doesn't exist - create new one
+  // NOTE: organization_id is now nullable, we don't need to link customers to orgs
+  console.log(`📝 Creating new customer record for: ${customerEmail}`);
 
-  console.log('🔍 Processing webhook custom data:', customData);
-  
-  let organization = null;
-  let organizationData = null;
-
-  // Parse organization_data from custom fields - support both old and new formats
-  // Old format: organization_data as nested object/JSON string
-  // New format: organization_id and organization_name as flat fields
-  if (customData.organization_data) {
-    // Old format: organization_data as nested object
-    try {
-      organizationData = typeof customData.organization_data === 'string'
-        ? JSON.parse(customData.organization_data)
-        : customData.organization_data;
-
-      console.log('📋 Parsed organization data (nested format):', organizationData);
-    } catch (error) {
-      console.error('❌ Failed to parse organization_data:', error);
-      return {
-        data: null,
-        error: { message: 'Invalid organization data in checkout custom fields' }
-      };
-    }
-  } else if (customData.organization_id || customData.organization_name) {
-    // New format: flat structure with organization_id and organization_name
-    // IMPORTANT: Use the organization_slug from custom_data (passed from checkout)
-    // This slug was already generated in create-workspace page with the correct logic
-    organizationData = {
-      id: customData.organization_id,
-      name: customData.organization_name,
-      slug: customData.organization_slug // Use slug directly from checkout custom_data
-    };
-    console.log('📋 Using flat organization data format:', organizationData);
-  } else {
-    // Neither format found
-    return {
-      data: null,
-      error: { message: 'No organization data found in checkout custom fields' }
-    };
-  }
-
-  // Method 1: Direct organization ID (preferred for existing orgs)
-  if (organizationData.id) {
-    console.log(`🎯 Looking up organization by ID: ${organizationData.id}`);
-    
-    const { data: orgById, error: orgByIdError } = await supabase
-      .from('organizations')
-      .select('id, name, slug')
-      .eq('id', organizationData.id)
-      .single();
-
-    if (orgByIdError) {
-      console.error('❌ Failed to find organization by ID:', orgByIdError);
-    } else {
-      organization = orgById;
-      console.log(`✅ Found organization by ID: ${organization.name} (${organization.id})`);
-    }
-  }
-
-  // Method 2: Lookup by slug (for new orgs during onboarding or fallback)
-  if (!organization && organizationData.slug) {
-    console.log(`🔍 Looking up organization by slug: ${organizationData.slug}`);
-    
-    const { data: orgBySlug, error: orgBySlugError } = await supabase
-      .from('organizations')
-      .select('id, name, slug')
-      .eq('slug', organizationData.slug)
-      .single();
-
-    if (orgBySlugError) {
-      console.error('❌ Failed to find organization by slug:', orgBySlugError);
-    } else {
-      organization = orgBySlug;
-      console.log(`✅ Found organization by slug: ${organization.name} (${organization.id})`);
-    }
-  }
-
-  if (!organization) {
-    return {
-      data: null,
-      error: { message: 'Organization not found using either ID or slug from checkout data' }
-    };
-  }
-
-  // Create customer record linking the organization to Lemon Squeezy customer
   const { data: newCustomer, error: customerError } = await supabase
     .from('customers')
     .insert({
-      organization_id: organization.id,
+      organization_id: null, // No longer tie customers to specific organizations
       lemonsqueezy_customer_id: lemonsqueezyCustomerId,
       email: customerEmail
     })
@@ -270,10 +186,11 @@ async function findOrCreateCustomer(
     .single();
 
   if (customerError) {
+    console.error('❌ Error creating customer:', customerError);
     return { data: null, error: customerError };
   }
 
-  console.log(`✅ Created customer record: org=${organization.name} (${organization.id}), lemon_squeezy=${lemonsqueezyCustomerId}`);
+  console.log(`✅ Created customer record: ${newCustomer.email} (${newCustomer.id}), lemon_squeezy=${lemonsqueezyCustomerId}`);
   return { data: newCustomer, error: null };
 }
 
@@ -334,10 +251,11 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
 
     const { meta, data } = payload;
     const { id: subscriptionId, attributes } = data;
-    const { status, customer_id, variant_id, renews_at, ends_at, trial_ends_at, first_subscription_item } = attributes;
+    const { status, customer_id, variant_id, product_id, renews_at, ends_at, trial_ends_at, first_subscription_item } = attributes;
 
     // Extract quantity from first_subscription_item (where LemonSqueezy stores it)
-    const quantity = first_subscription_item?.quantity || 0;
+    // NOTE: For usage-based subscriptions, this will be 0 - we'll use user_count from custom_data instead
+    const rawQuantity = first_subscription_item?.quantity || 0;
 
     // Validate subscription status
     if (!isValidSubscriptionStatus(status)) {
@@ -354,26 +272,115 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
 
     const supabase = createAdminClient();
 
-    // Find customer record, passing custom data from checkout
-    // Note: custom_data is in meta object, not attributes
-    const { data: customer, error: customerError } = await findOrCreateCustomer(
-      supabase,
-      customer_id.toString(),
-      meta.custom_data || null,
-      attributes.user_email
-    );
+    // TWO-PRODUCT MIGRATION: Detect migration BEFORE customer lookup
+    // If this is a migration (monthly→yearly upgrade), reuse existing customer
+    const migrationFromSubscriptionId = meta.custom_data?.migration_from_subscription_id;
+    let customer = null;
+    let customerError = null;
 
-    if (customerError) {
-      const error = `Customer lookup failed: ${customerError.message}`;
+    if (migrationFromSubscriptionId) {
+      console.log(`🔄 [Webhook] Migration detected from subscription ${migrationFromSubscriptionId}`);
+      console.log(`   Reusing existing customer instead of creating new one`);
+
+      // Find the old subscription to get its customer (NOT organization_id!)
+      // IMPORTANT: Do NOT use organization_id from old subscription - always use custom_data
+      const { data: oldSubscription, error: oldSubError } = await supabase
+        .from('subscriptions')
+        .select('customer_id')
+        .eq('lemonsqueezy_subscription_id', migrationFromSubscriptionId)
+        .single();
+
+      if (oldSubError || !oldSubscription) {
+        const error = `Migration failed: Could not find old subscription ${migrationFromSubscriptionId}`;
+        await logBillingEvent(meta.event_name, meta.event_id, payload, 'failed', error);
+        return { success: false, error };
+      }
+
+      // Reuse the existing customer from the old subscription
+      const { data: existingCustomer, error: existingCustomerError } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('id', oldSubscription.customer_id)
+        .single();
+
+      if (existingCustomerError || !existingCustomer) {
+        const error = `Migration failed: Could not find existing customer for old subscription`;
+        await logBillingEvent(meta.event_name, meta.event_id, payload, 'failed', error);
+        return { success: false, error };
+      }
+
+      customer = existingCustomer;
+      // Note: Organization ID will be extracted from custom_data below (line 338)
+      console.log(`✅ [Webhook] Reusing existing customer ${customer.id} for migration`);
+    } else {
+      // Normal flow: Find or create customer
+      const result = await findOrCreateCustomer(
+        supabase,
+        customer_id.toString(),
+        attributes.user_email
+      );
+      customer = result.data;
+      customerError = result.error;
+
+      if (customerError) {
+        const error = `Customer lookup failed: ${customerError.message}`;
+        await logBillingEvent(meta.event_name, meta.event_id, payload, 'failed', error);
+        return { success: false, error };
+      }
+
+      if (!customer) {
+        const error = 'Customer not found and could not be created';
+        await logBillingEvent(meta.event_name, meta.event_id, payload, 'failed', error);
+        return { success: false, error };
+      }
+    }
+
+    // CRITICAL FIX: Extract organization_id from custom_data for multi-workspace support
+    // For migrations: organization_id is in custom_data
+    // For new workspaces: look up by organization_name
+    let organizationId = meta.custom_data?.organization_id;
+    let organization = null;
+
+    if (organizationId) {
+      // Migration flow: validate organization_id from custom_data
+      const { data: org, error: orgError } = await supabase
+        .from('organizations')
+        .select('id, name')
+        .eq('id', organizationId)
+        .single();
+
+      if (orgError || !org) {
+        const error = `Organization not found: ${organizationId}`;
+        console.error(`❌ [Webhook] ${error}`, { organizationId, orgError });
+        await logBillingEvent(meta.event_name, meta.event_id, payload, 'failed', error);
+        return { success: false, error };
+      }
+      organization = org;
+      console.log(`✅ [Webhook] Using organization_id from custom_data: ${organization.name} (${organization.id})`);
+    } else if (meta.custom_data?.organization_name) {
+      // New workspace flow: look up by organization_name
+      const { data: org, error: orgError } = await supabase
+        .from('organizations')
+        .select('id, name')
+        .eq('name', meta.custom_data.organization_name)
+        .single();
+
+      if (orgError || !org) {
+        const error = `Organization not found by name: ${meta.custom_data.organization_name}`;
+        console.error(`❌ [Webhook] ${error}`, { organizationName: meta.custom_data.organization_name, orgError });
+        await logBillingEvent(meta.event_name, meta.event_id, payload, 'failed', error);
+        return { success: false, error };
+      }
+      organization = org;
+      organizationId = org.id;
+      console.log(`✅ [Webhook] Found organization by name: ${organization.name} (${organization.id})`);
+    } else {
+      const error = 'Missing both organization_id and organization_name in webhook custom_data';
+      console.error(`❌ [Webhook] ${error}`, { customData: meta.custom_data });
       await logBillingEvent(meta.event_name, meta.event_id, payload, 'failed', error);
       return { success: false, error };
     }
 
-    if (!customer) {
-      const error = 'Customer not found and could not be created';
-      await logBillingEvent(meta.event_name, meta.event_id, payload, 'failed', error);
-      return { success: false, error };
-    }
 
     // Extract subscription_item_id for usage records API
     const subscriptionItemId = first_subscription_item?.id;
@@ -381,7 +388,7 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
     if (!subscriptionItemId) {
       console.error(`❌ [Webhook] Missing subscription_item_id in payload:`, {
         subscriptionId,
-        organizationId: customer.organization_id
+        organizationId // Use organizationId from custom_data
       });
     }
 
@@ -396,7 +403,7 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
       console.log(`🎫 [Webhook] Detected MONTHLY subscription (usage_based):`, {
         subscriptionId,
         variantId: variant_id,
-        organizationId: customer.organization_id,
+        organizationId, // Use organizationId from custom_data
         note: 'Will create usage records - charged at end of billing period'
       });
     } else if (variant_id === yearlyVariantId) {
@@ -404,7 +411,7 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
       console.log(`🎫 [Webhook] Detected YEARLY subscription (quantity_based):`, {
         subscriptionId,
         variantId: variant_id,
-        organizationId: customer.organization_id,
+        organizationId, // Use organizationId from custom_data
         note: 'Will use quantity updates - charged immediately with proration'
       });
     } else {
@@ -419,10 +426,10 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
     console.log(`📊 [Webhook] subscription_created - Before:`, {
       subscriptionId,
       subscriptionItemId,
-      organizationId: customer.organization_id,
+      organizationId, // Use organizationId from custom_data
       customerId: customer.id,
       status,
-      quantity,
+      rawQuantity,
       variant_id,
       billingType, // NEW: Log detected billing type
       correlationId: meta.event_id,
@@ -431,19 +438,66 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
     });
 
     // Calculate user_count for subscription setup
-    // For usage-based billing: user_count from custom_data drives access control
-    const userCount = parseInt(meta.custom_data?.user_count || '0');
+    // For migrations (monthly→yearly): use preserve_seats to maintain seat count
+    // For new subscriptions: use user_count from custom_data
+    // CRITICAL FIX: preserve_seats takes priority over user_count for migrations
+    const userCount = meta.custom_data?.preserve_seats
+      ? parseInt(meta.custom_data.preserve_seats)
+      : parseInt(meta.custom_data?.user_count || '0');
 
-    // Create subscription record
+    // CRITICAL BUG FIX: Extract billing_period from custom_data
+    // The tier field ('monthly' or 'annual') is set during checkout
+    // Map 'annual' to 'yearly' for consistency with database enum
+    let billingPeriod: 'monthly' | 'yearly' | null = null;
+    const tier = meta.custom_data?.tier;
+
+    if (tier === 'monthly') {
+      billingPeriod = 'monthly';
+    } else if (tier === 'annual') {
+      billingPeriod = 'yearly'; // Map 'annual' → 'yearly'
+    } else {
+      // Fallback: Infer from variant_id if tier not in custom_data
+      if (variant_id === monthlyVariantId) {
+        billingPeriod = 'monthly';
+      } else if (variant_id === yearlyVariantId) {
+        billingPeriod = 'yearly';
+      }
+    }
+
+    console.log(`💳 [Webhook] Billing period determination:`, {
+      tier_from_custom_data: tier,
+      calculated_billing_period: billingPeriod,
+      variant_id,
+      fallback_used: !tier
+    });
+
+    // CRITICAL FIX: Use correct quantity based on billing type
+    // - Usage-based (monthly): LemonSqueezy returns quantity=0, use user_count from custom_data
+    // - Quantity-based (yearly): LemonSqueezy returns actual quantity, use that
+    const quantity = billingType === 'usage_based' ? userCount : rawQuantity;
+
+    console.log(`📊 [Webhook] Quantity determination:`, {
+      billingType,
+      rawQuantity_from_lemonsqueezy: rawQuantity,
+      userCount_from_custom_data: userCount,
+      final_quantity: quantity,
+      note: billingType === 'usage_based'
+        ? 'Using userCount from custom_data (usage-based billing)'
+        : 'Using rawQuantity from LemonSqueezy (quantity-based billing)'
+    });
+
+    // Create subscription record - CRITICAL FIX: Use organizationId from custom_data
     const { data: subscription, error: subscriptionError } = await supabase
       .from('subscriptions')
       .insert({
-        organization_id: customer.organization_id,
+        organization_id: organizationId, // CRITICAL FIX: Use organizationId from custom_data, not customer.organization_id
         customer_id: customer.id,
         lemonsqueezy_subscription_id: subscriptionId,
         lemonsqueezy_subscription_item_id: subscriptionItemId || null,
         lemonsqueezy_variant_id: variant_id || null,
+        lemonsqueezy_product_id: product_id?.toString() || null,
         billing_type: billingType, // NEW: Use detected billing type (usage_based or quantity_based)
+        billing_period: billingPeriod, // CRITICAL FIX: Save billing period from custom_data
         status,
         quantity,
         current_seats: userCount,  // Use user_count from custom_data, not quantity from LemonSqueezy
@@ -461,7 +515,7 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
     }
 
     // Update organization subscription (pass total user_count, function calculates paid_seats)
-    await updateOrganizationSubscription(supabase, customer.organization_id, userCount, status);
+    await updateOrganizationSubscription(supabase, organizationId, userCount, status);
 
     // Calculate paid_seats for logging (function already updated organization)
     const paidSeats = userCount > 3 ? userCount : 0;
@@ -470,7 +524,7 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
     console.log(`✅ [Webhook] subscription_created - After:`, {
       subscriptionId,
       subscriptionItemId,
-      organizationId: customer.organization_id,
+      organizationId, // Use organizationId from custom_data
       customerId: customer.id,
       status,
       quantity,
@@ -558,10 +612,72 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
       console.log(`⏭️  [Webhook] Skipping usage record for yearly (quantity_based) subscription:`, {
         subscriptionId,
         variantId: variant_id,
-        organizationId: customer.organization_id,
+        organizationId, // Use organizationId from custom_data
         userCount: desiredUserCount,
         note: 'Yearly subscriptions use quantity updates, not usage records'
       });
+    }
+
+    // TWO-PRODUCT MIGRATION: Cancel old subscription if this was a migration
+    // migrationFromSubscriptionId was already extracted earlier (line 359)
+    if (migrationFromSubscriptionId) {
+      console.log(`🔄 [Webhook] Migration cleanup: Canceling old subscription ${migrationFromSubscriptionId}`);
+
+      try {
+        // Cancel old subscription via LemonSqueezy API
+        const cancelResponse = await fetch(
+          `https://api.lemonsqueezy.com/v1/subscriptions/${migrationFromSubscriptionId}`,
+          {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${process.env.LEMONSQUEEZY_API_KEY}`,
+              'Accept': 'application/vnd.api+json'
+            }
+          }
+        );
+
+        if (!cancelResponse.ok) {
+          const errorData = await cancelResponse.json();
+          console.error(`❌ [Webhook] Failed to cancel old subscription ${migrationFromSubscriptionId}:`, errorData);
+          // Log error but don't fail the webhook - new subscription is already created
+          await logBillingEvent(
+            meta.event_name,
+            meta.event_id,
+            { error: 'Failed to cancel old subscription', details: errorData },
+            'failed',
+            `Migration cleanup failed for ${migrationFromSubscriptionId}`
+          );
+        } else {
+          console.log(`✅ [Webhook] Successfully canceled old subscription ${migrationFromSubscriptionId}`);
+
+          // Update old subscription status in database
+          const { error: updateError } = await supabase
+            .from('subscriptions')
+            .update({
+              status: 'migrated',
+              migrated_to_subscription_id: subscriptionId,
+              updated_at: new Date().toISOString()
+            })
+            .eq('lemonsqueezy_subscription_id', migrationFromSubscriptionId);
+
+          if (updateError) {
+            console.error(`⚠️ [Webhook] Failed to update old subscription status:`, updateError);
+            // Log but don't fail - the cancellation succeeded
+          } else {
+            console.log(`✅ [Webhook] Updated old subscription status to 'migrated'`);
+          }
+        }
+      } catch (error) {
+        console.error(`❌ [Webhook] Error during migration cleanup:`, error);
+        // Log error but don't fail the webhook
+        await logBillingEvent(
+          meta.event_name,
+          meta.event_id,
+          { error: 'Migration cleanup exception', details: error },
+          'failed',
+          `Migration cleanup exception for ${migrationFromSubscriptionId}`
+        );
+      }
     }
 
     await logBillingEvent(meta.event_name, meta.event_id, payload, 'processed');
@@ -1393,17 +1509,17 @@ export async function processSubscriptionPaymentSuccess(payload: any): Promise<E
       note: 'Confirming payment'
     });
 
-    // For usage-based billing: Payment confirmation only, no seat changes
-    // Seats are managed via usage records, not quantity at checkout
-    if (existingSubscription.billing_type === 'usage_based') {
-      console.log(`✅ [Webhook] Usage-based billing payment confirmed for subscription ${subscriptionId}`);
+    // For usage-based and quantity-based billing: Payment confirmation only, no seat changes
+    // Seats are managed via usage records or checkout quantity, not via payment webhook
+    if (existingSubscription.billing_type === 'usage_based' || existingSubscription.billing_type === 'quantity_based') {
+      console.log(`✅ [Webhook] ${existingSubscription.billing_type} billing payment confirmed for subscription ${subscriptionId}`);
 
       await logBillingEvent(
         meta.event_name,
         meta.event_id,
         payload,
         'processed',
-        'Usage-based billing payment confirmed'
+        `${existingSubscription.billing_type} billing payment confirmed`
       );
 
       return {
@@ -1411,8 +1527,8 @@ export async function processSubscriptionPaymentSuccess(payload: any): Promise<E
         data: {
           subscription: existingSubscription.id,
           organization: existingSubscription.organization_id,
-          billingType: 'usage_based',
-          note: 'Payment confirmed - seats managed via usage records'
+          billingType: existingSubscription.billing_type,
+          note: 'Payment confirmed - seats already set during subscription creation'
         }
       };
     }
@@ -1483,10 +1599,6 @@ export async function processSubscriptionPaymentSuccess(payload: any): Promise<E
 
     // Pattern 2: Deferred Downgrade (has pending_seats)
     if (hasPendingChanges) {
-      if (alreadySynced) {
-        console.log(`[Webhook] subscription_payment_success: Changes already synced to Lemon Squeezy, applying locally for subscription ${subscriptionId}`);
-      }
-
       const previousSeats = existingSubscription.current_seats;
       const newSeats = existingSubscription.pending_seats;
 

@@ -46,17 +46,11 @@ describe('Workspace Deletion API Endpoint', () => {
     createdLeaveTypeIds = []
     createdLeaveRequestIds = []
     
-    // Create unique slug for each test
-    const timestamp = Date.now()
-    const randomSuffix = Math.random().toString(36).substring(7)
-    const uniqueSlug = `test-workspace-${timestamp}-${randomSuffix}`
-    
     // Create test organization
-    const { data: org, error: orgError } = await supabaseAdmin
+    const { data: org, error: orgError} = await supabaseAdmin
       .from('organizations')
       .insert({
-        name: 'Test Workspace for Deletion',
-        slug: uniqueSlug
+        name: 'Test Workspace for Deletion'
       })
       .select('id')
       .single()

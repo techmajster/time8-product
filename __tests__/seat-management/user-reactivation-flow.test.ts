@@ -34,7 +34,6 @@ describe('User Reactivation Flow E2E Tests', () => {
       .from('organizations')
       .insert({
         name: `Reactivation Test Org ${Date.now()}`,
-        slug: `reactivation-test-${Date.now()}`,
         country_code: 'PL'
       })
       .select()

@@ -144,6 +144,22 @@
         "cancel": "Cancel"
       }
     },
+    "updateSubscription": {
+      "title": "Manage Subscription",
+      "question": "Update your subscription",
+      "yearlyOnlyAtRenewal": "🔒 Switching to monthly is only available at renewal (after {renewalDate})",
+      "monthly": "Monthly",
+      "yearly": "Yearly",
+      "mostPopular": "Most popular",
+      "perMonthPerUser": "/ month / user",
+      "cancel": "Cancel",
+      "updateSubscription": "Update Subscription",
+      "switchToYearly": "Switch to Yearly",
+      "updating": "Updating...",
+      "infoMonthly": "You can upgrade to yearly billing anytime and adjust seats as needed.",
+      "infoYearly": "You can adjust your seat count anytime. Monthly billing will be available at renewal.",
+      "taxNotice": "Prices shown are before tax. VAT will be calculated and added at checkout based on your location."
+    },
     "paymentSuccess": {
       "loading": {
         "verifying": "Verifying payment...",
@@ -860,6 +876,7 @@
     "currentSubscription": "Current Subscription",
     "subscriptionDescription": "Your current subscription plan and billing details",
     "manageSeatSubscription": "Manage seat subscription",
+    "manageSubscription": "Manage Subscription",
     "opening": "Opening...",
     "seatUsage": "Seat Usage",
     "currentUsage": "Current usage",
@@ -870,7 +887,7 @@
     "price": "Price",
     "perSeat": "per seat",
     "nextBilling": "Next billing",
-    "pricesInPLN": "Prices shown in PLN. EUR available during checkout for EU customers.",
+    "pricesInPLN": "Prices shown in PLN.",
     "paymentMethod": "Payment Method",
     "endingIn": "ending in",
     "freeSeats": "3 team members included",
@@ -1089,5 +1106,73 @@
       "error": "An error occurred"
     },
     "noLastName": "No last name"
+  },
+  "adminSettings": {
+    "tabs": {
+      "general": "General",
+      "workMode": "Work Mode",
+      "leave": "Leave",
+      "billing": "Billing"
+    },
+    "general": {
+      "title": "General Settings",
+      "workspaceName": "Workspace Name",
+      "administrator": "Administrator",
+      "holidayCalendar": "Holiday Calendar",
+      "primaryLanguage": "Primary Language",
+      "languageHelper": "Default language for new users. Users can change their language in their profile.",
+      "editData": "Edit Data"
+    },
+    "workMode": {
+      "title": "Work Mode",
+      "workingDays": {
+        "title": "Working Days",
+        "description": "Basic workspace information",
+        "publicHolidays": "Public holidays off",
+        "publicHolidaysDescription": "Public holidays falling on working days will be excluded from the schedule",
+        "days": {
+          "monday": "Mon",
+          "tuesday": "Tue",
+          "wednesday": "Wed",
+          "thursday": "Thu",
+          "friday": "Fri",
+          "saturday": "Sat",
+          "sunday": "Sun"
+        }
+      },
+      "workHours": {
+        "title": "Work Hours",
+        "description": "Basic workspace information",
+        "dailyWork": "Daily Work",
+        "dailyWorkDescription": "Fixed work hours every working day",
+        "multiShiftWork": "Shift Work",
+        "multiShiftWorkDescription": "Shift work on different days and/or hours",
+        "workHoursLabel": "Work Hours",
+        "from": "From",
+        "to": "to",
+        "edit": "Edit",
+        "shiftWorks": "Shift {number} works",
+        "defineWorkMode": "Define work mode",
+        "selectShiftCount": "Select number of shifts",
+        "defineWorkHours": "Define work hours",
+        "shift": "shift",
+        "shifts": "shifts",
+        "save": "Save",
+        "cancel": "Cancel"
+      }
+    },
+    "leave": {
+      "title": "Leave Types",
+      "createDefault": "Create default leave types",
+      "creating": "Creating...",
+      "addLeaveType": "Add leave type",
+      "table": {
+        "name": "Name",
+        "limit": "Limit",
+        "paid": "Paid",
+        "mandatory": "Mandatory",
+        "actions": "Actions"
+      }
+    }
   }
 } 

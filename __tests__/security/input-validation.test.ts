@@ -121,7 +121,6 @@ describe('Input Validation and Sanitization Tests', () => {
         // Test SQL injection in organization name
         const nameRequest = createMockRequest('POST', '/api/organizations', {
           name: sqlPayload,
-          slug: 'test-org',
           googleDomain: 'example.com'
         }, { userId: adminUserId, organizationId: testOrgId })
 
@@ -249,7 +248,6 @@ describe('Input Validation and Sanitization Tests', () => {
       for (const xssPayload of securityPayloads.xss) {
         const request = createMockRequest('POST', '/api/organizations', {
           name: xssPayload,
-          slug: 'test-xss-org',
           googleDomain: 'example.com'
         }, { userId: adminUserId, organizationId: testOrgId })
 
@@ -349,7 +347,6 @@ describe('Input Validation and Sanitization Tests', () => {
       for (const pathPayload of securityPayloads.pathTraversal) {
         const request = createMockRequest('POST', '/api/organizations', {
           name: 'Test Org',
-          slug: 'test-path-org',
           logoUrl: pathPayload
         }, { userId: adminUserId, organizationId: testOrgId })
 

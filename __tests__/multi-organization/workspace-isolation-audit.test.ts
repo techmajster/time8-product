@@ -85,10 +85,6 @@ jest.mock('@/lib/auth-utils-v2', () => ({
         organization: {
           id: mockUser.organizationId,
           name: mockUser.organizationName || 'Test Org',
-          slug: 'test-org',
-          logo_url: null,
-          google_domain: null,
-          require_google_domain: false,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         },
@@ -369,37 +365,12 @@ describe('Workspace Isolation Audit - Integration Tests', () => {
         const firstOrgId = await createTestOrganization(`First Slug Test Org ${timestamp}`)
         const testSlug = `unique-slug-test-${timestamp}`
 
-        // Update the organization to have our test slug
-        await supabaseAdmin
-          .from('organizations')
-          .update({ slug: testSlug })
-          .eq('id', firstOrgId)
-
         // Set mock auth for adminUser1
         setMockAuth(adminUser1, 'admin1@audit.test', org1Id, 'admin', 'Org 1')
 
-        // Attempt to create second organization with same slug
-        const request = createMockRequest({
-          method: 'POST',
-          userId: adminUser1,
-          organizationId: org1Id,
-          cookies: {
-            'active-organization-id': org1Id
-          },
-          body: {
-            name: 'Second Slug Test Org',
-            slug: testSlug, // Duplicate slug - should fail
-            country_code: 'US'
-          }
-        })
-
-        const response = await createOrganizationPost(request)
-        const data = await response.json()
-
-        // Should fail with 409 Conflict status
-        expect(response.status).toBe(409)
-        expect(data.error).toContain('slug')
-        expect(data.error.toLowerCase()).toContain('already taken')
+        // Note: This test is no longer applicable as slug field has been removed
+        // from organization creation. Keeping test structure for potential future
+        // validation tests of other unique fields.
 
         // Cleanup
         await supabaseAdmin.from('organizations').delete().eq('id', firstOrgId)
@@ -637,7 +608,6 @@ describe('Workspace Isolation Audit - Integration Tests', () => {
             organization_data: {
               id: org1Id, // Attempting to upgrade org1
               name: 'Test Org',
-              slug: 'test-org',
               country_code: 'US'
             },
             user_count: 5,
@@ -663,7 +633,6 @@ describe('Workspace Isolation Audit - Integration Tests', () => {
             organization_data: {
               id: org2Id, // Trying to create checkout for org2
               name: 'Other Org',
-              slug: 'other-org',
               country_code: 'US'
             },
             user_count: 5,

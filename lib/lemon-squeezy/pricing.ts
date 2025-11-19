@@ -81,43 +81,16 @@ export async function getVariantPrice(variantId: string): Promise<{
     const variantData = await variantResponse.json()
     const variantAttrs = variantData.data.attributes
 
-    // Fetch price-model to get graduated pricing tiers
-    const priceModelResponse = await fetch(`https://api.lemonsqueezy.com/v1/variants/${variantId}/price-model`, {
-      headers: {
-        'Authorization': `Bearer ${process.env.LEMONSQUEEZY_API_KEY}`,
-        'Accept': 'application/vnd.api+json'
-      }
+    // FIXED: Use base variant price directly for volume pricing
+    // Volume pricing model means all units are charged at the same rate (no tiers)
+    // The base variant price IS the per-seat price
+    const price = parseFloat(variantAttrs.price || '0') / 100
+
+    console.log(`✅ Using base variant price: ${price} PLN (volume pricing model)`, {
+      variantId,
+      interval: variantAttrs.interval,
+      price_formatted: variantAttrs.price_formatted
     })
-
-    let price: number
-
-    if (priceModelResponse.ok) {
-      const priceModelData = await priceModelResponse.json()
-      const tiers = priceModelData.data?.attributes?.tiers
-
-      // Extract tier 4+ pricing (the last tier with last_unit: "inf")
-      if (tiers && Array.isArray(tiers) && tiers.length > 1) {
-        // Find the tier for 4+ users (should be the tier with last_unit: "inf")
-        const paidTier = tiers.find(tier => tier.last_unit === 'inf' || tier.last_unit === Infinity)
-        if (paidTier) {
-          // Use unit_price_decimal (string) if available, fallback to unit_price (deprecated)
-          const unitPrice = paidTier.unit_price_decimal || paidTier.unit_price || '0'
-          price = parseFloat(unitPrice) / 100
-          console.log(`✅ Extracted tier 4+ price: ${price} PLN from graduated pricing (unit_price_decimal: ${unitPrice})`)
-        } else {
-          // Fallback to base variant price if tier not found
-          price = parseFloat(variantAttrs.price || '0') / 100
-          console.warn('⚠️ Could not find tier 4+ pricing, using base price')
-        }
-      } else {
-        // No graduated tiers, use base price
-        price = parseFloat(variantAttrs.price || '0') / 100
-      }
-    } else {
-      // Fallback to base variant price if price-model fetch fails
-      console.warn('⚠️ Could not fetch price-model, using base variant price')
-      price = parseFloat(variantAttrs.price || '0') / 100
-    }
 
     // Extract currency from formatted price (e.g., "10,00 PLN" → "PLN")
     const priceParts = variantAttrs.price_formatted?.split(' ') || []
@@ -165,30 +138,26 @@ async function fetchVariantPricing(variantId: string) {
 }
 
 /**
- * Get dynamic pricing information from Lemon Squeezy
- * Uses REST API directly to fetch graduated pricing tiers
+ * Get dynamic pricing information from environment variables
+ *
+ * IMPORTANT: We use environment variables as the source of truth instead of
+ * the LemonSqueezy API because the API returns incorrect base prices that
+ * don't match the tier configuration shown in the LemonSqueezy dashboard.
+ *
+ * This is a known LemonSqueezy platform issue where the API response
+ * (variant.attributes.price) diverges from the actual tier pricing configured
+ * in the dashboard UI.
  */
 export async function getDynamicPricing(): Promise<PricingInfo> {
-  const monthlyVariantId = process.env.LEMONSQUEEZY_MONTHLY_VARIANT_ID!
-  const yearlyVariantId = process.env.LEMONSQUEEZY_YEARLY_VARIANT_ID!
+  const monthlyVariantId = (process.env.LEMONSQUEEZY_MONTHLY_VARIANT_ID || '').trim()
+  const yearlyVariantId = (process.env.LEMONSQUEEZY_YEARLY_VARIANT_ID || '').trim()
 
-  console.log('🔄 Fetching pricing from LemonSqueezy API...')
+  console.log('💰 Using environment variable pricing (LemonSqueezy API unreliable)')
   console.log('   Monthly variant:', monthlyVariantId)
   console.log('   Yearly variant:', yearlyVariantId)
 
-  // Fetch pricing for both variants using REST API (correctly handles graduated pricing)
-  const [monthlyPricing, yearlyPricing] = await Promise.all([
-    getVariantPrice(monthlyVariantId),
-    getVariantPrice(yearlyVariantId)
-  ])
-
-  console.log('📊 API Response:', {
-    monthlyPricing,
-    yearlyPricing
-  })
-
-  // Fallback to environment variables or default values if API fails
-  const fallbackPricing: PricingInfo = {
+  // Use environment variables as authoritative source
+  const pricing: PricingInfo = {
     monthlyPricePerSeat: parseFloat(process.env.MONTHLY_PRICE_PER_SEAT || '10.00'), // PLN
     annualPricePerSeat: parseFloat(process.env.ANNUAL_PRICE_PER_SEAT || '8.00'), // PLN (monthly equivalent of annual price)
     currency: 'PLN',
@@ -196,21 +165,9 @@ export async function getDynamicPricing(): Promise<PricingInfo> {
     yearlyVariantId
   }
 
-  if (!monthlyPricing || !yearlyPricing) {
-    console.warn('⚠️ Using fallback pricing due to API error')
-    console.warn('   Fallback:', fallbackPricing)
-    return fallbackPricing
-  }
+  console.log('✅ Pricing from environment variables:', pricing)
 
-  console.log('✅ Using LemonSqueezy API pricing (graduated tier 4+ prices)')
-
-  return {
-    monthlyPricePerSeat: monthlyPricing.price,
-    annualPricePerSeat: yearlyPricing.price / 12, // Convert annual price to monthly equivalent for display
-    currency: monthlyPricing.currency || 'PLN',
-    monthlyVariantId,
-    yearlyVariantId
-  }
+  return pricing
 }
 
 /**
@@ -264,7 +221,7 @@ export function getStaticPricingInfo(): PricingInfo {
     monthlyPricePerSeat: parseFloat(process.env.NEXT_PUBLIC_MONTHLY_PRICE_PER_SEAT || '10.00'),
     annualPricePerSeat: parseFloat(process.env.NEXT_PUBLIC_ANNUAL_PRICE_PER_SEAT || '8.00'),
     currency: process.env.NEXT_PUBLIC_CURRENCY || 'PLN',
-    monthlyVariantId: process.env.NEXT_PUBLIC_LEMONSQUEEZY_MONTHLY_VARIANT_ID || '972634',
-    yearlyVariantId: process.env.NEXT_PUBLIC_LEMONSQUEEZY_YEARLY_VARIANT_ID || '972635'
+    monthlyVariantId: (process.env.NEXT_PUBLIC_LEMONSQUEEZY_MONTHLY_VARIANT_ID || '972634').trim(),
+    yearlyVariantId: (process.env.NEXT_PUBLIC_LEMONSQUEEZY_YEARLY_VARIANT_ID || '972635').trim()
   }
 }

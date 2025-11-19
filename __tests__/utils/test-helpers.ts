@@ -190,9 +190,7 @@ export async function createTestOrganization(name: string): Promise<string> {
   const { data: organization, error } = await supabase
     .from('organizations')
     .insert({
-      name,
-      slug: name.toLowerCase().replace(/\s+/g, '-'),
-      google_domain: null
+      name
     })
     .select()
     .single()

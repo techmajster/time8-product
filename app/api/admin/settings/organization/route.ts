@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { authenticateAndGetOrgContext } from '@/lib/auth-utils-v2'
 
 export async function PUT(request: NextRequest) {
@@ -22,7 +22,7 @@ export async function PUT(request: NextRequest) {
     console.log('=== AUTH SUCCESS ===')
     
     const { context } = auth
-    const { user, organization, role } = context
+    const { user, organization, role, userOrganization } = context
     const organizationId = organization.id
     console.log('Authenticated user:', { userId: user.id, organizationId, role })
 
@@ -35,136 +35,131 @@ export async function PUT(request: NextRequest) {
     console.log('=== ADMIN CHECK PASSED ===')
 
     const supabase = await createClient()
+    const supabaseAdmin = createAdminClient()
 
     // Get request body
     const body = await request.json()
     console.log('Received request body:', body)
     console.log('Request headers:', Object.fromEntries(request.headers.entries()))
-    
-    const { name, slug, logo, adminId, countryCode, locale } = body
-    console.log('Extracted fields:', { name, slug, adminId, countryCode, locale })
+
+    // Check for deprecated fields and reject them
+    const deprecatedFields = ['slug', 'logo', 'logoUrl', 'googleDomain', 'requireGoogleDomain']
+    const foundDeprecatedFields = deprecatedFields.filter(field => field in body)
+
+    if (foundDeprecatedFields.length > 0) {
+      console.error('Deprecated fields found in request:', foundDeprecatedFields)
+      return NextResponse.json({
+        error: 'The following fields are no longer supported and have been removed',
+        deprecatedFields: foundDeprecatedFields
+      }, { status: 400 })
+    }
+
+    const { name, ownerId, countryCode, locale } = body
+    console.log('Extracted fields:', { name, ownerId, countryCode, locale })
 
     // Validate required fields
-    if (!name || !slug) {
-      console.error('Missing required fields:', { name, slug })
-      return NextResponse.json({ error: 'Name and slug are required' }, { status: 400 })
+    if (!name) {
+      console.error('Missing required field: name')
+      return NextResponse.json({ error: 'Name is required' }, { status: 400 })
     }
-    
+
+    // Note: ownerId is optional - only required if changing ownership
+    // If not provided, organization settings are updated without ownership change
+
     console.log('=== VALIDATION PASSED ===')
-
-    // Check if slug is already taken by another organization
-    const { data: existingOrgs, error: slugCheckError } = await supabase
-      .from('organizations')
-      .select('id')
-      .eq('slug', slug)
-      .neq('id', organizationId)
-
-    if (slugCheckError) {
-      console.error('Error checking slug:', slugCheckError)
-      return NextResponse.json({ error: 'Failed to check slug availability' }, { status: 500 })
-    }
-
-    if (existingOrgs && existingOrgs.length > 0) {
-      return NextResponse.json({ error: 'Slug already taken' }, { status: 400 })
-    }
-    
-    console.log('=== SLUG CHECK PASSED ===')
 
     // Update organization
     const updateData: any = {
       name,
-      slug,
       country_code: countryCode,
       locale
     }
 
-    // Process admin change if adminId is provided and it's different from current user
-    if (adminId && adminId !== user.id) {
-      console.log('Processing admin change from', user.id, 'to:', adminId)
-      
-      // Verify the new admin exists in the organization
-      const { data: newAdminOrg, error: newAdminError } = await supabase
-        .from('user_organizations')
-        .select(`
-          user_id,
-          role,
-          profiles!inner (
-            id,
-            email,
-            full_name
-          )
-        `)
-        .eq('user_id', adminId)
-        .eq('organization_id', organizationId)
-        .eq('is_active', true)
-        .single()
+    // Only process ownership changes if ownerId is provided
+    if (ownerId) {
+      // Determine current ownership status
+      const isCurrentOwner = Boolean(userOrganization?.is_owner)
 
-      if (newAdminError || !newAdminOrg) {
-        console.error('New admin not found in organization:', adminId, newAdminError)
-        return NextResponse.json({ error: 'Selected user not found in organization' }, { status: 400 })
+      const { data: currentOwnerRow, error: currentOwnerError} = await supabaseAdmin
+        .from('user_organizations')
+        .select('user_id')
+        .eq('organization_id', organizationId)
+        .eq('is_owner', true)
+        .maybeSingle()
+
+      if (currentOwnerError && currentOwnerError.code !== 'PGRST116') {
+        console.error('Failed to fetch current owner:', currentOwnerError)
+        return NextResponse.json({ error: 'Failed to verify current owner' }, { status: 500 })
       }
 
-      console.log('New admin found:', (newAdminOrg.profiles as any).email, 'current role:', newAdminOrg.role)
+      const currentOwnerId = currentOwnerRow?.user_id || null
+      const isOwnershipChange = ownerId !== currentOwnerId
+      const canTransferOwnership = isCurrentOwner || !currentOwnerId
 
-      // Check current admins in the organization
-      const { data: currentAdmins, error: currentAdminError } = await supabase
-        .from('user_organizations')
-        .select(`
-          user_id,
-          profiles!inner (
-            email
-          )
-        `)
-        .eq('organization_id', organizationId)
-        .eq('role', 'admin')
-        .eq('is_active', true)
-
-      if (currentAdminError) {
-        console.error('Error checking current admins:', currentAdminError)
-        return NextResponse.json({ error: 'Failed to check current admins' }, { status: 500 })
+      if (isOwnershipChange && !canTransferOwnership) {
+        console.error('Ownership transfer blocked: user is not current owner')
+        return NextResponse.json({ error: 'Only the current workspace owner can transfer ownership' }, { status: 403 })
       }
 
-      console.log('Current admins:', currentAdmins)
+      if (isOwnershipChange) {
+        console.log('Fetching target owner info:', ownerId)
+        const { data: targetOwner, error: targetOwnerError } = await supabaseAdmin
+          .from('user_organizations')
+          .select('user_id, role, is_owner')
+          .eq('user_id', ownerId)
+          .eq('organization_id', organizationId)
+          .eq('is_active', true)
+          .single()
 
-      // Allow admin change - the safety check was preventing legitimate transfers
-      console.log('Proceeding with admin change')
+        if (targetOwnerError || !targetOwner) {
+          console.error('Owner not found in organization:', ownerId, targetOwnerError)
+          return NextResponse.json({ error: 'Selected owner not found in organization' }, { status: 400 })
+        }
 
-      // Set the new admin as admin FIRST
-      const { error: setError } = await supabase
-        .from('user_organizations')
-        .update({ role: 'admin' })
-        .eq('user_id', adminId)
-        .eq('organization_id', organizationId)
+        if (targetOwner.role !== 'admin') {
+          console.log('Promoting selected owner to admin role')
+          const { error: promoteError } = await supabaseAdmin
+            .from('user_organizations')
+            .update({ role: 'admin' })
+            .eq('user_id', ownerId)
+            .eq('organization_id', organizationId)
 
-      if (setError) {
-        console.error('Error setting new admin:', setError)
-        return NextResponse.json({ error: 'Failed to set new admin' }, { status: 500 })
+          if (promoteError) {
+            console.error('Failed to promote owner to admin:', promoteError)
+            return NextResponse.json({ error: 'Failed to promote owner to admin role' }, { status: 500 })
+          }
+        }
+
+        console.log('Transferring ownership to user:', ownerId)
+
+        const { error: clearOwnerError } = await supabaseAdmin
+          .from('user_organizations')
+          .update({ is_owner: false })
+          .eq('organization_id', organizationId)
+          .eq('is_owner', true)
+
+        if (clearOwnerError) {
+          console.error('Failed to clear existing owner:', clearOwnerError)
+          return NextResponse.json({ error: 'Failed to clear existing owner' }, { status: 500 })
+        }
+
+        const { error: setOwnerError } = await supabaseAdmin
+          .from('user_organizations')
+          .update({ is_owner: true, role: 'admin' })
+          .eq('user_id', ownerId)
+          .eq('organization_id', organizationId)
+
+        if (setOwnerError) {
+          console.error('Failed to assign new owner:', setOwnerError)
+          return NextResponse.json({ error: 'Failed to assign new owner' }, { status: 500 })
+        }
+
+        console.log('Ownership transferred successfully')
+      } else {
+        console.log('Selected user is already the owner, skipping transfer')
       }
-      console.log('Admin role set successfully for:', (newAdminOrg.profiles as any).email)
-
-      // Then remove admin from current user
-      const { error: removeError } = await supabase
-        .from('user_organizations')
-        .update({ role: 'employee' })
-        .eq('user_id', user.id)
-        .eq('organization_id', organizationId)
-
-      if (removeError) {
-        console.error('Error removing current user admin role:', removeError)
-        return NextResponse.json({ error: 'Failed to remove current user admin role' }, { status: 500 })
-      }
-      console.log('Removed admin role from current user')
-
-      console.log('Admin changed successfully to:', (newAdminOrg.profiles as any).email)
-    } else if (adminId === user.id) {
-      console.log('Admin not changing - same user selected, keeping current admin')
-    }
-
-    // Handle logo upload if provided
-    if (logo) {
-      // TODO: Implement file upload to Supabase Storage
-      // For now, we'll skip logo upload
-      console.log('Logo upload not implemented yet')
+    } else {
+      console.log('No ownerId provided, skipping ownership transfer')
     }
 
     console.log('=== REACHING ORGANIZATION UPDATE ===')

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
 import { authenticateAndGetOrgContext } from '@/lib/auth-utils-v2'
+import { validateWorkModePayload, WorkModeValidationError } from '@/lib/validations/work-mode'
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,54 +23,36 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Parse request body
+    // Parse and validate request body
     const body = await request.json()
-    const { work_mode, working_days } = body
-
-    // Validate work_mode
-    if (!work_mode || !['monday_to_friday', 'multi_shift'].includes(work_mode)) {
-      return NextResponse.json(
-        { error: 'Invalid work_mode. Must be "monday_to_friday" or "multi_shift"' },
-        { status: 400 }
-      )
-    }
-
-    // Validate working_days (if provided)
-    if (working_days) {
-      if (!Array.isArray(working_days)) {
-        return NextResponse.json(
-          { error: 'working_days must be an array' },
-          { status: 400 }
-        )
-      }
-
-      const validDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
-      const invalidDays = working_days.filter(day => !validDays.includes(day.toLowerCase()))
-
-      if (invalidDays.length > 0) {
-        return NextResponse.json(
-          { error: `Invalid day names: ${invalidDays.join(', ')}` },
-          { status: 400 }
-        )
-      }
-    }
+    const config = validateWorkModePayload(body)
 
     const supabaseAdmin = await createAdminClient()
 
-    // Update organization work mode
-    const updateData: any = { work_mode }
-
-    // Only update working_days if provided
-    if (working_days) {
-      // Normalize to lowercase
-      updateData.working_days = working_days.map((day: string) => day.toLowerCase())
-    }
-
+    // Update organization work mode and schedule config
     const { data, error } = await supabaseAdmin
       .from('organizations')
-      .update(updateData)
+      .update({
+        working_days: config.workingDays,
+        exclude_public_holidays: config.excludePublicHolidays,
+        daily_start_time: config.dailyStartTime,
+        daily_end_time: config.dailyEndTime,
+        work_schedule_type: config.workScheduleType,
+        shift_count: config.shiftCount,
+        work_shifts: config.workShifts
+      })
       .eq('id', organization.id)
-      .select()
+      .select(`
+        id,
+        name,
+        working_days,
+        exclude_public_holidays,
+        daily_start_time,
+        daily_end_time,
+        work_schedule_type,
+        shift_count,
+        work_shifts
+      `)
       .single()
 
     if (error) {
@@ -82,19 +65,23 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Work mode updated successfully:', {
       organizationId: organization.id,
-      work_mode: data.work_mode,
+      work_schedule_type: data.work_schedule_type,
       working_days: data.working_days
     })
 
     return NextResponse.json({
       success: true,
-      data: {
-        work_mode: data.work_mode,
-        working_days: data.working_days
-      }
+      data
     })
 
   } catch (error) {
+    if (error instanceof WorkModeValidationError) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.status }
+      )
+    }
+
     console.error('Error in work mode API:', error)
     return NextResponse.json(
       { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },

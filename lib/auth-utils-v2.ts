@@ -28,6 +28,7 @@ export interface UserOrganization {
   team_id: string | null
   is_active: boolean
   is_default: boolean
+  is_owner?: boolean
   joined_via: 'google_domain' | 'invitation' | 'created' | 'request'
   employment_type: string
   contract_start_date: string | null
@@ -42,8 +43,17 @@ export interface Organization {
   logo_url: string | null
   google_domain: string | null
   require_google_domain: boolean
-  work_mode?: 'monday_to_friday' | 'multi_shift'
   working_days?: string[]
+  exclude_public_holidays?: boolean
+  daily_start_time?: string | null
+  daily_end_time?: string | null
+  work_schedule_type?: 'daily' | 'multi_shift'
+  shift_count?: number | null
+  work_shifts?: Array<{
+    label?: string
+    start_time: string
+    end_time: string
+  }> | null
   created_at: string
   updated_at: string
 }

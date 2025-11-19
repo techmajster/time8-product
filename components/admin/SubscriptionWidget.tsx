@@ -4,7 +4,8 @@ import { Users, Calendar } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface SubscriptionWidgetProps {
-  currentSeats: number
+  currentSeats: number // Actual active users (from organization_members)
+  seatLimit?: number // Maximum allowed seats (from subscription.seat_limit)
   renewsAt?: string | null
   status?: 'active' | 'on_trial' | 'past_due' | 'cancelled'
   className?: string
@@ -12,6 +13,7 @@ interface SubscriptionWidgetProps {
 
 export function SubscriptionWidget({
   currentSeats,
+  seatLimit = 3, // Default to free tier limit
   renewsAt,
   status = 'active',
   className
@@ -56,7 +58,7 @@ export function SubscriptionWidget({
             <Users className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm font-medium">Active Seats</span>
           </div>
-          <span className="text-2xl font-bold">{currentSeats}</span>
+          <span className="text-2xl font-bold">{currentSeats} / {seatLimit}</span>
         </div>
 
         {/* Renewal Date */}

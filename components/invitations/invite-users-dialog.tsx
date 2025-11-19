@@ -70,6 +70,7 @@ export function InviteUsersDialog({
   const [pricePerSeat, setPricePerSeat] = React.useState<number>(10.00) // Default fallback - correct PLN price
   const [currency, setCurrency] = React.useState<string>('PLN') // Default fallback - correct currency
   const [paymentStatus, setPaymentStatus] = React.useState<'idle' | 'processing' | 'success' | 'failed'>('idle')
+  const [userEmail, setUserEmail] = React.useState<string | null>(null)
 
   // Calculate how many seats are occupied and available
   const occupiedSeats = seatInfo ? seatInfo.currentSeats : 0
@@ -87,6 +88,17 @@ export function InviteUsersDialog({
       setCurrency(seatInfo.currency)
     }
   }, [seatInfo])
+
+  // Get user email for billing notifications
+  React.useEffect(() => {
+    const getUserEmail = async () => {
+      const { createClient } = await import('@/lib/supabase/client')
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      setUserEmail(user?.email || null)
+    }
+    getUserEmail()
+  }, [])
 
   // Calculate total cost for unpaid invitations
   const unpaidInvitations = queuedInvitations.filter(inv => inv.status === 'unpaid')
@@ -253,6 +265,7 @@ export function InviteUsersDialog({
             },
             user_count: requiredSeats,
             tier: 'monthly',
+            user_email: userEmail,
             return_url: `${window.location.origin}/onboarding/payment-success`,
             failure_url: `${window.location.origin}/admin/team-management`
           })

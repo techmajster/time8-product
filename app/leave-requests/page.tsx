@@ -23,7 +23,16 @@ async function checkAccess() {
       *,
       organizations (
         id,
-        name
+        name,
+        country_code,
+        locale,
+        working_days,
+        exclude_public_holidays,
+        daily_start_time,
+        daily_end_time,
+        work_schedule_type,
+        shift_count,
+        work_shifts
       )
     `)
     .eq('user_id', user.id)

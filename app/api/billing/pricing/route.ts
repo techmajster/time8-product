@@ -36,8 +36,8 @@ export async function GET() {
       monthlyPricePerSeat: parseFloat(process.env.MONTHLY_PRICE_PER_SEAT || '10.00'),
       annualPricePerSeat: parseFloat(process.env.ANNUAL_PRICE_PER_SEAT || '8.00'),
       currency: 'PLN',
-      monthlyVariantId: process.env.LEMONSQUEEZY_MONTHLY_VARIANT_ID || '972634',
-      yearlyVariantId: process.env.LEMONSQUEEZY_YEARLY_VARIANT_ID || '972635'
+      monthlyVariantId: (process.env.LEMONSQUEEZY_MONTHLY_VARIANT_ID || '972634').trim(),
+      yearlyVariantId: (process.env.LEMONSQUEEZY_YEARLY_VARIANT_ID || '972635').trim()
     }
 
     console.warn('⚠️ Using fallback pricing:', fallbackPricing)

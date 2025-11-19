@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useTranslations } from 'next-intl'
 import { FigmaTabs, FigmaTabsList, FigmaTabsTrigger, FigmaTabsContent } from '@/app/admin/team-management/components/FigmaTabs'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -9,20 +9,20 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
 import { EditOrganizationSheet } from './EditOrganizationSheet'
 import { EditLeaveTypesSheet } from './EditLeaveTypesSheet'
 import { EditLeavePoliciesSheet } from './EditLeavePoliciesSheet'
-import { EditGoogleWorkspaceSheet } from './EditGoogleWorkspaceSheet'
 import { CreateLeaveTypeSheet } from './CreateLeaveTypeSheet'
+import { EditLeaveTypeSheet } from './EditLeaveTypeSheet'
 import { WorkModeSettings } from './WorkModeSettings'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { getCountryFlag, getLanguageFlag } from '@/lib/flag-utils'
-import { Plus, MoreVertical, X, Lock } from 'lucide-react'
+import { Plus, MoreVertical, X, LockKeyhole } from 'lucide-react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { PolandFlag } from '@/components/icons/PolandFlag'
+import { UKFlag } from '@/components/icons/UKFlag'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Checkbox } from '@/components/ui/checkbox'
 import { toast } from 'sonner'
@@ -60,13 +60,9 @@ interface Team {
   name: string
 }
 
-interface TeamMember {
-  user_id: string
-  team_id: string
-}
-
 interface Subscription {
-  current_seats: number
+  current_seats: number // Actual user count from organization_members
+  seat_limit: number // Maximum allowed seats from subscription
   renews_at: string | null
   status: string
 }
@@ -88,15 +84,24 @@ interface ArchivedUser {
   role: string
 }
 
+interface AdminUser {
+  id: string
+  email: string
+  full_name: string | null
+  avatar_url: string | null
+  role: string
+  isOwner?: boolean
+}
+
 interface AdminSettingsClientProps {
   currentOrganization: any
-  users: any[]
+  users: AdminUser[]
   leaveTypes: LeaveType[]
   teams: Team[]
-  teamMembers: TeamMember[]
   subscription: Subscription | null
   pendingRemovalUsers: PendingRemovalUser[]
   archivedUsers: ArchivedUser[]
+  canManageOwnership: boolean
 }
 
 export default function AdminSettingsClient({
@@ -104,26 +109,37 @@ export default function AdminSettingsClient({
   users,
   leaveTypes: initialLeaveTypes,
   teams,
-  teamMembers,
   subscription: initialSubscription,
   pendingRemovalUsers: initialPendingUsers,
-  archivedUsers: initialArchivedUsers
+  archivedUsers: initialArchivedUsers,
+  canManageOwnership
 }: AdminSettingsClientProps) {
   const t = useTranslations('billing')
+  const tAdmin = useTranslations('adminSettings')
   const [currentOrganization, setCurrentOrganization] = useState(initialOrganization)
   const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>(initialLeaveTypes)
   const [pendingRemovalUsers, setPendingRemovalUsers] = useState<PendingRemovalUser[]>(initialPendingUsers)
   const [archivedUsers, setArchivedUsers] = useState<ArchivedUser[]>(initialArchivedUsers)
   const router = useRouter()
 
-  // Tab state management
+  // Sort leave types to always show mandatory ones first
+  const sortedLeaveTypes = useMemo(() => {
+    return [...leaveTypes].sort((a, b) => {
+      // Mandatory leave types come first
+      if (a.is_mandatory && !b.is_mandatory) return -1
+      if (!a.is_mandatory && b.is_mandatory) return 1
+      // Keep original order for same type
+      return 0
+    })
+  }, [leaveTypes])
+
+  // Tab state management - Only 4 tabs: Ogólne, Tryb pracy, Urlopy, Rozliczenia
   const [activeTab, setActiveTab] = useState('general')
   
   // Sheet states
   const [isOrganizationSheetOpen, setIsOrganizationSheetOpen] = useState(false)
   const [isLeaveTypesSheetOpen, setIsLeaveTypesSheetOpen] = useState(false)
   const [isLeavePoliciesSheetOpen, setIsLeavePoliciesSheetOpen] = useState(false)
-  const [isGoogleWorkspaceSheetOpen, setIsGoogleWorkspaceSheetOpen] = useState(false)
   const [isCreateLeaveTypeSheetOpen, setIsCreateLeaveTypeSheetOpen] = useState(false)
 
   // Dialog states for leave types management
@@ -131,10 +147,6 @@ export default function AdminSettingsClient({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [selectedLeaveType, setSelectedLeaveType] = useState<LeaveType | null>(null)
   const [loading, setLoading] = useState(false)
-  
-  // Workspace deletion state
-  const [deleteWorkspaceDialogOpen, setDeleteWorkspaceDialogOpen] = useState(false)
-  const [workspaceDeleteLoading, setWorkspaceDeleteLoading] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
     days_per_year: 0,
@@ -219,6 +231,8 @@ export default function AdminSettingsClient({
   // Handler for organization updates
   const handleOrganizationSave = (updatedOrganization: any) => {
     setCurrentOrganization(updatedOrganization)
+    // Refresh the page to get updated user roles after admin change
+    router.refresh()
   }
 
   // Handlers for leave management updates
@@ -240,49 +254,8 @@ export default function AdminSettingsClient({
     window.dispatchEvent(new Event(REFETCH_SETTINGS))
   }
 
-  // Handler for calendar restriction toggle
-  const handleCalendarRestrictionToggle = async (checked: boolean) => {
-    try {
-      const response = await fetch('/api/admin/settings/calendar-restriction', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          organizationId: currentOrganization.id,
-          restrictCalendarByGroup: checked
-        })
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to update calendar restriction setting')
-      }
-
-      // Update local state
-      setCurrentOrganization({
-        ...currentOrganization,
-        restrict_calendar_by_group: checked
-      })
-
-      toast.success(
-        checked
-          ? 'Widoczność kalendarza została ograniczona według grup'
-          : 'Widoczność kalendarza została odblokowana dla wszystkich'
-      )
-    } catch (error) {
-      console.error('Error updating calendar restriction:', error)
-      toast.error(error instanceof Error ? error.message : 'Nie udało się zaktualizować ustawienia')
-    }
-  }
-
-
   // Handlers for leave types edit and delete
   const handleEditLeaveType = (leaveType: LeaveType) => {
-    setFormData({
-      name: leaveType.name,
-      days_per_year: leaveType.days_per_year,
-      requires_balance: leaveType.requires_balance
-    })
     setSelectedLeaveType(leaveType)
     setEditDialogOpen(true)
   }
@@ -296,59 +269,6 @@ export default function AdminSettingsClient({
     }, 100)
   }
 
-  const handleSubmitEdit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (!selectedLeaveType?.id) {
-      toast.error('Nie wybrano rodzaju urlopu')
-      return
-    }
-
-    setLoading(true)
-
-    try {
-      const supabase = createClient()
-
-      const { error: updateError } = await supabase
-        .from('leave_types')
-        .update({
-          name: formData.name,
-          days_per_year: formData.days_per_year,
-          requires_balance: formData.requires_balance
-        })
-        .eq('id', selectedLeaveType.id)
-
-      if (updateError) {
-        throw new Error(updateError.message || 'Nie udało się zaktualizować rodzaju urlopu')
-      }
-
-      // Update local state immediately (optimistic update)
-      setLeaveTypes(prevLeaveTypes =>
-        prevLeaveTypes.map(lt =>
-          lt.id === selectedLeaveType.id
-            ? {
-                ...lt,
-                name: formData.name,
-                days_per_year: formData.days_per_year,
-                requires_balance: formData.requires_balance
-              }
-            : lt
-        )
-      )
-
-      // Show success message
-      toast.success('Rodzaj urlopu został zaktualizowany!')
-
-    } catch (error) {
-      console.error('Error updating leave type:', error)
-      toast.error(error instanceof Error ? error.message : 'Wystąpił błąd podczas aktualizacji rodzaju urlopu')
-    } finally {
-      setLoading(false)
-      // Close dialog after loading is complete
-      setEditDialogOpen(false)
-      setSelectedLeaveType(null)
-    }
-  }
 
   const handleSubmitDelete = async () => {
     if (!selectedLeaveType?.id) {
@@ -429,60 +349,32 @@ export default function AdminSettingsClient({
     }
   }
 
-  // Workspace deletion handler
-  const handleDeleteWorkspace = () => {
-    setDeleteWorkspaceDialogOpen(true)
-  }
-
-  const handleConfirmDeleteWorkspace = async () => {
-    setWorkspaceDeleteLoading(true)
-
+  // Handle subscription management - redirect to unified subscription management page
+  const handleManageSubscription = async () => {
+    // SECURITY FIX: Always fetch current active organization from server
+    // to prevent stale state from causing checkout with wrong org
     try {
-      const response = await fetch(`/api/workspaces/${currentOrganization?.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      })
-
-      const result = await response.json()
+      const response = await fetch('/api/user/current-organization')
 
       if (!response.ok) {
-        throw new Error(result.error || 'Nie udało się usunąć workspace')
+        toast.error('Failed to determine current organization')
+        return
       }
 
-      toast.success('Workspace został pomyślnie usunięty!')
-      
-      // Redirect to onboarding since current workspace no longer exists
-      setTimeout(() => {
-        window.location.href = '/onboarding'
-      }, 2000)
+      const data = await response.json()
 
+      if (!data.organizationId) {
+        toast.error('No active organization found')
+        return
+      }
+
+      // Redirect to unified subscription management page with fresh org ID
+      const currentSeats = getSeatUsage().total
+      window.location.href = `/onboarding/update-subscription?current_org=${data.organizationId}&seats=${currentSeats}`
     } catch (error) {
-      console.error('Error deleting workspace:', error)
-      toast.error(error instanceof Error ? error.message : 'Wystąpił błąd podczas usuwania workspace')
-    } finally {
-      setWorkspaceDeleteLoading(false)
-      setDeleteWorkspaceDialogOpen(false)
+      console.error('Error getting current organization:', error)
+      toast.error('Failed to start subscription update')
     }
-  }
-
-  // Handle seat management - always redirect to seat management page
-  const handleManageSeatSubscription = () => {
-    if (!currentOrganization?.id) return
-
-    // Always redirect to seat management page (add users/upgrade page)
-    const currentSeats = getSeatUsage().total
-    window.location.href = `/onboarding/add-users?upgrade=true&current_org=${currentOrganization?.id}&seats=${currentSeats}`
-  }
-
-  // Handle billing period change
-  const handleChangeBillingPeriod = () => {
-    if (!currentOrganization?.id) return
-
-    // Redirect to billing period change page
-    const currentSeats = getSeatUsage().total
-    window.location.href = `/onboarding/change-billing-period?current_org=${currentOrganization?.id}&seats=${currentSeats}`
   }
 
   // Handle customer portal access for billing issues
@@ -668,18 +560,14 @@ export default function AdminSettingsClient({
         <h1 className="text-3xl font-semibold text-foreground">Ustawienia administracyjne</h1>
       </div>
 
-      {/* Tabs */}
+      {/* Tabs - 4 tabs only: Ogólne, Tryb pracy, Urlopy, Rozliczenia */}
       <FigmaTabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <div className="relative -mx-12 px-12">
           <FigmaTabsList className="border-b-0">
-            <FigmaTabsTrigger value="general">Ogólne</FigmaTabsTrigger>
-            <FigmaTabsTrigger value="leave-types">Urlopy</FigmaTabsTrigger>
-            <FigmaTabsTrigger value="calendar-visibility">Widoczność kalendarza</FigmaTabsTrigger>
-            <FigmaTabsTrigger value="billing">Billing</FigmaTabsTrigger>
-            <FigmaTabsTrigger value="workspace">Workspace</FigmaTabsTrigger>
-            <FigmaTabsTrigger value="notifications">Powiadomienia</FigmaTabsTrigger>
-            <FigmaTabsTrigger value="work-modes">Tryby pracy</FigmaTabsTrigger>
-            <FigmaTabsTrigger value="additional-rules">Dodatkowe reguły</FigmaTabsTrigger>
+            <FigmaTabsTrigger value="general">{tAdmin('tabs.general')}</FigmaTabsTrigger>
+            <FigmaTabsTrigger value="work-modes">{tAdmin('tabs.workMode')}</FigmaTabsTrigger>
+            <FigmaTabsTrigger value="leave-types">{tAdmin('tabs.leave')}</FigmaTabsTrigger>
+            <FigmaTabsTrigger value="billing">{tAdmin('tabs.billing')}</FigmaTabsTrigger>
           </FigmaTabsList>
           <div className="absolute bottom-0 left-0 right-0 h-px bg-border" />
         </div>
@@ -687,107 +575,77 @@ export default function AdminSettingsClient({
         {/* Tab Content */}
         <FigmaTabsContent value="general" className="mt-6 space-y-6">
           {/* Organization Settings Card */}
-          <Card className="border border-border">
-            <CardHeader className="pb-0">
+          <Card className="border-0 p-0">
+            <CardHeader className="pb-0 p-0">
               <div className="flex items-center justify-between">
                 <div className="space-y-1.5">
                   <div className="flex items-center gap-2">
-                    <CardTitle className="text-xl font-semibold">Ustawienia organizacji</CardTitle>
+                    <CardTitle className="text-xl font-semibold">Ustawienia workspace</CardTitle>
                   </div>
                   <CardDescription>
-                    Podstawowe informacje o organizacji
+                    Podstawowe informacje o przestrzeni roboczej
                   </CardDescription>
                 </div>
-                <Button variant="secondary" size="sm" className="h-9" onClick={() => setIsOrganizationSheetOpen(true)}>
+                <Button variant="outline" size="sm" className="h-9" onClick={() => setIsOrganizationSheetOpen(true)}>
                   Edytuj dane
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="pt-0 pb-6 space-y-6">
+            <CardContent className="pt-0 pb-0 p-0 space-y-6">
               <div className="space-y-6">
                 <div className="w-[400px] space-y-2">
-                  <Label htmlFor="org-name">Nazwa organizacji</Label>
-                  <Input 
+                  <Label htmlFor="org-name">Nazwa workspace</Label>
+                  <Input
                     id="org-name"
-                    value={currentOrganization?.name || 'BB8'} 
-                    disabled 
+                    value={currentOrganization?.name || 'BB8'}
+                    disabled
                     className="opacity-50"
                   />
                 </div>
-                
-                <div className="w-[400px] space-y-2">
-                  <Label htmlFor="org-logo">Logo organizacji</Label>
-                  <div className="relative">
-                    <Input 
-                      id="org-logo"
-                      value="Nie wybrano pliku" 
-                      disabled 
-                      className="opacity-50 pl-[100px]"
-                    />
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2">
-                      <Button variant="ghost" size="sm" className="h-auto p-1.5 text-sm font-medium">
-                        Wybierz plik
-                      </Button>
-                    </div>
-                  </div>
-                </div>
 
                 <div className="w-[400px] space-y-2">
-                  <Label htmlFor="org-slug">Slug organizacji</Label>
-                  <Input 
-                    id="org-slug"
-                    value={currentOrganization?.slug || 'bb8'} 
-                    disabled 
-                    className="opacity-50"
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    Unikalny identyfikator (tylko małe litery, cyfry i myślniki)
-                  </p>
-                </div>
-
-                <div className="w-[400px] space-y-2">
-                  <Label>Administrator</Label>
+                  <Label>Właściciel workspace</Label>
                   <div className="flex items-center gap-4 w-full">
                     {(() => {
-                      const adminUser = users.find(u => u.role === 'admin')
-                      return adminUser ? (
+                      const ownerUser = users.find(u => u.isOwner)
+                      const fallbackAdmin = users.find(u => u.role === 'admin')
+                      const displayUser = ownerUser || fallbackAdmin
+                      return displayUser ? (
                         <>
                           <Avatar className="h-10 w-10">
-                            <AvatarImage src={adminUser.avatar_url || undefined} />
+                            <AvatarImage src={displayUser.avatar_url || undefined} />
                             <AvatarFallback className="">
-                              {getUserInitials(adminUser.full_name || '', adminUser.email)}
+                              {getUserInitials(displayUser.full_name || '', displayUser.email)}
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex-1">
-                            <p className="text-sm font-medium text-foreground">{adminUser.full_name || adminUser.email}</p>
-                            <p className="text-sm text-muted-foreground">{adminUser.email}</p>
+                            <p className="text-sm font-medium text-foreground">{displayUser.full_name || displayUser.email}</p>
+                            <p className="text-sm text-muted-foreground">{displayUser.email}</p>
                           </div>
                         </>
                       ) : (
-                        <span className="text-muted-foreground">Brak administratora</span>
+                        <span className="text-muted-foreground">Brak właściciela</span>
                       )
                     })()}
                   </div>
                 </div>
 
-                <Separator />
-
                 <div className="w-[400px] space-y-2">
-                  <Label htmlFor="holiday-calendar">Kalendarz świąt</Label>
+                  <Label htmlFor="holiday-calendar">{tAdmin('general.holidayCalendar')}</Label>
                   <Select value={currentOrganization?.country_code || 'PL'} disabled>
-                    <SelectTrigger>
+                    <SelectTrigger className="w-[400px]">
                       <div className="flex items-center gap-2">
-                        {currentOrganization?.country_code === 'PL' && (
-                          <span className="text-lg">🇵🇱</span>
+                        {(currentOrganization?.country_code === 'PL' || !currentOrganization?.country_code) && (
+                          <PolandFlag size={16} />
                         )}
                         {currentOrganization?.country_code === 'IE' && (
-                          <span className="text-lg">🇮🇪</span>
+                          <UKFlag size={16} />
                         )}
                         {currentOrganization?.country_code === 'US' && (
-                          <span className="text-lg">🇺🇸</span>
+                          <UKFlag size={16} />
                         )}
                         <span className="font-medium text-sm">
-                          {currentOrganization?.country_code === 'PL' ? 'Polska' :
+                          {currentOrganization?.country_code === 'PL' || !currentOrganization?.country_code ? 'Polska' :
                            currentOrganization?.country_code === 'IE' ? 'Irlandia' :
                            currentOrganization?.country_code === 'US' ? 'Stany Zjednoczone' :
                            'Polska'}
@@ -803,13 +661,13 @@ export default function AdminSettingsClient({
                 <div className="w-[400px] space-y-2">
                   <Label htmlFor="primary-language">Język podstawowy organizacji</Label>
                   <Select value={currentOrganization?.locale || 'pl'} disabled>
-                    <SelectTrigger>
+                    <SelectTrigger className="w-[400px]">
                       <div className="flex items-center gap-2">
                         {(currentOrganization?.locale === 'pl' || !currentOrganization?.locale) && (
-                          <span className="text-lg">🇵🇱</span>
+                          <PolandFlag size={16} />
                         )}
                         {currentOrganization?.locale === 'en' && (
-                          <span className="text-lg">🇺🇸</span>
+                          <UKFlag size={16} />
                         )}
                         <span className="font-medium text-sm">
                           {(currentOrganization?.locale === 'pl' || !currentOrganization?.locale) ? 'Polski' :
@@ -821,70 +679,21 @@ export default function AdminSettingsClient({
                     <SelectContent>
                       <SelectItem value="pl">
                         <div className="flex items-center gap-2">
-                          <span className="text-lg">🇵🇱</span>
+                          <PolandFlag size={16} />
                           <span>Polski</span>
                         </div>
                       </SelectItem>
                       <SelectItem value="en">
                         <div className="flex items-center gap-2">
-                          <span className="text-lg">🇺🇸</span>
+                          <UKFlag size={16} />
                           <span>English</span>
                         </div>
                       </SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">
-                    Domyślny język dla nowych użytkowników. Użytkownicy mogą zmienić język w swoim profilu.
+                    {tAdmin('general.languageHelper')}
                   </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Google Workspace Integration Card */}
-          <Card className="border border-border">
-            <CardHeader className="pb-0">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-2">
-                    <CardTitle className="text-xl font-semibold">Integracja z Google Workspace</CardTitle>
-                  </div>
-                  <CardDescription>
-                    Konfiguracja domeny Google
-                  </CardDescription>
-                </div>
-                <Button variant="secondary" size="sm" className="h-9" onClick={() => setIsGoogleWorkspaceSheetOpen(true)}>
-                  Edytuj dane
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0 pb-6">
-              <div className="space-y-6">
-                <div className="w-[400px] space-y-2">
-                  <Label htmlFor="google-domain">Domena Google Workspace</Label>
-                  <Input 
-                    id="google-domain"
-                    value={currentOrganization?.google_domain || 'bb8.pl'} 
-                    disabled 
-                    className="opacity-50"
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    Jeśli ustawione, tylko użytkownicy z tej domeny będą mogli się logować przez Google
-                  </p>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <Switch 
-                    id="require-google-domain" 
-                    checked={currentOrganization?.require_google_domain || false}
-                    disabled
-                    className="opacity-50"
-                  />
-                  <div className="space-y-2">
-                    <Label htmlFor="require-google-domain" className="text-sm font-medium">
-                      Wymagaj domeny Google dla wszystkich nowych użytkowników
-                    </Label>
-                  </div>
                 </div>
               </div>
             </CardContent>
@@ -892,105 +701,85 @@ export default function AdminSettingsClient({
         </FigmaTabsContent>
 
         <FigmaTabsContent value="leave-types" className="mt-6 space-y-6">
-          {/* Nested Tabs for Urlopy */}
-          <Tabs defaultValue="rodzaje-urlopow" className="w-full">
-            <TabsList className="bg-muted p-[3px] h-9 rounded-lg">
-              <TabsTrigger value="rodzaje-urlopow" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">
-                Rodzaje urlopów
-              </TabsTrigger>
-              <TabsTrigger value="polityki-urlopowe" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">
-                Polityki urlopowe
-              </TabsTrigger>
-            </TabsList>
+          {/* Section Header */}
+          <div className="flex items-center justify-between">
+            <div className="space-y-1.5">
+              <h2 className="text-xl font-semibold text-foreground">Rodzaje urlopów</h2>
+              <p className="text-sm text-muted-foreground">
+                Zarządzaj dostępnymi rodzajami urlopów w organizacji
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                onClick={handleCreateDefaults}
+                disabled={loading}
+                className="h-9"
+              >
+                {loading ? tAdmin('leave.creating') : tAdmin('leave.createDefault')}
+              </Button>
+              <Button
+                onClick={() => setIsCreateLeaveTypeSheetOpen(true)}
+                className="bg-primary text-primary-foreground h-9 shadow-sm"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                {tAdmin('leave.addLeaveType')}
+              </Button>
+            </div>
+          </div>
 
-            {/* Leave Types Tab */}
-            <TabsContent value="rodzaje-urlopow" className="mt-6">
-              <Card className="border border-border">
-                <CardHeader className="pb-0">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1.5">
-                      <div className="flex items-center gap-2">
-                        <CardTitle className="text-xl font-semibold">Rodzaje urlopów</CardTitle>
-                      </div>
-                      <CardDescription>
-                        Zarządzaj dostępnymi rodzajami urlopów w organizacji
-                      </CardDescription>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Button 
-                        variant="outline" 
-                        onClick={handleCreateDefaults}
-                        disabled={loading}
-                        className="h-9 px-4 rounded-lg border bg-card text-foreground"
-                      >
-                        {loading ? 'Tworzenie...' : 'Utwórz domyślne rodzaje urlopów'}
-                      </Button>
-                      <Button
-                        onClick={() => setIsCreateLeaveTypeSheetOpen(true)}
-                        className="bg-foreground text-primary-foreground h-9 px-4 rounded-lg shadow-sm"
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Dodaj rodzaj urlopu
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-0 pb-6">
-                  <div className="overflow-hidden">
+          {/* Table */}
+          <div className="mt-6">
                     <table className="w-full">
                       {/* Table Header */}
                       <thead>
-                        <tr className="border-b border">
-                          <th className="text-left py-2.5 px-2 text-sm font-medium text-muted-foreground">
+                        <tr className="border-b h-[40px]">
+                          <th className="text-left px-2 text-sm font-medium text-muted-foreground">
                             Rodzaj urlopu
                           </th>
-                          <th className="text-left py-2.5 px-2 text-sm font-medium text-muted-foreground">
+                          <th className="text-left px-2 text-sm font-medium text-muted-foreground">
                             Dni rocznie
                           </th>
-                          <th className="py-2.5 px-2"></th>
-                          <th className="py-2.5 px-2"></th>
+                          <th className="px-2"></th>
+                          <th className="px-2"></th>
                         </tr>
                       </thead>
                       <tbody>
-                        {leaveTypes.map((leaveType) => (
-                          <tr key={leaveType.id} className="border-b border last:border-b-0">
-                            <td className="py-2 px-2">
-                              <div className="flex flex-col gap-0">
-                                <div className="flex items-center gap-2">
-                                  {leaveType.is_mandatory && (
-                                    <div title="Obowiązkowy typ urlopu - nie można usunąć">
-                                      <Lock className="h-4 w-4 text-muted-foreground" />
-                                    </div>
-                                  )}
-                                  <span className="text-sm font-medium text-foreground">
-                                    {leaveType.name}
-                                  </span>
-                                  {leaveType.is_mandatory && (
-                                    <Badge className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-lg border border-blue-200">
-                                      Obowiązkowy
-                                    </Badge>
-                                  )}
-                                </div>
+                        {sortedLeaveTypes.map((leaveType, index) => (
+                          <tr key={leaveType.id} className={`border-b h-[52px] ${index === sortedLeaveTypes.length - 1 ? '' : ''}`}>
+                            <td className="px-2">
+                              <div className="flex items-center gap-2">
+                                {leaveType.is_mandatory && (
+                                  <LockKeyhole className="h-4 w-4 text-muted-foreground" />
+                                )}
+                                <span className="text-sm font-medium text-foreground">
+                                  {leaveType.name}
+                                </span>
+                                {leaveType.is_mandatory && (
+                                  <Badge variant="secondary" className="text-xs px-2 py-0.5 rounded-md">
+                                    Obowiązkowy
+                                  </Badge>
+                                )}
                               </div>
                             </td>
-                            <td className="py-2 px-2">
+                            <td className="px-2">
                               <span className="text-sm font-medium text-foreground">
                                 {leaveType.days_per_year === 0
                                   ? "Nielimitowany"
                                   : `${leaveType.days_per_year} dni rocznie`}
                               </span>
                             </td>
-                            <td className="py-2 px-2">
+                            <td className="px-2">
                               {leaveType.requires_balance && (
-                                <Badge className="bg-foreground text-primary-foreground text-xs px-2 py-0.5 rounded-lg">
+                                <Badge className="bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded-md">
                                   Saldo
                                 </Badge>
                               )}
                             </td>
-                            <td className="py-2 px-2 text-right">
+                            <td className="px-2 text-right">
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="sm" className="h-9 w-9 p-0 hover:bg-muted">
+                                  <Button variant="outline" size="sm" className="h-9 w-9 p-0">
                                     <MoreVertical className="h-4 w-4" />
                                   </Button>
                                 </DropdownMenuTrigger>
@@ -1004,7 +793,7 @@ export default function AdminSettingsClient({
                                       className="text-muted-foreground cursor-not-allowed"
                                       title="Nie można usunąć obowiązkowego typu urlopu"
                                     >
-                                      <Lock className="h-3 w-3 mr-2" />
+                                      <LockKeyhole className="h-3 w-3 mr-2" />
                                       Usuń
                                     </DropdownMenuItem>
                                   ) : (
@@ -1022,345 +811,7 @@ export default function AdminSettingsClient({
                         ))}
                       </tbody>
                     </table>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Leave Policies Tab */}
-            <TabsContent value="polityki-urlopowe" className="mt-6 space-y-6">
-              {/* Zasady zatwierdzania */}
-              <Card className="border border-border">
-                <CardHeader className="pb-0">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1.5">
-                      <CardTitle className="text-xl font-semibold">Zasady zatwierdzania</CardTitle>
-                      <CardDescription>
-                        Skonfiguruj zasady zatwierdzania i ograniczenia urlopów
-                      </CardDescription>
-                    </div>
-                    <Button 
-                      variant="secondary" 
-                      size="sm" 
-                      className="h-9"
-                      onClick={handleLeavePoliciesEdit}
-                    >
-                      Edytuj
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-0 pb-0 space-y-6">
-                  <div className="flex gap-6">
-                    <div className="w-[400px] space-y-2">
-                      <Label className="text-sm font-medium text-foreground">
-                        Minimalne wyprzedzenie (dni)
-                      </Label>
-                      <Input 
-                        value="7" 
-                        disabled 
-                        className="bg-card opacity-50 border h-9"
-                      />
-                      <p className="text-sm text-muted-foreground">
-                        Ile dni wcześniej należy złożyć wniosek urlopowy
-                      </p>
-                    </div>
-                    <div className="w-[400px] space-y-2">
-                      <Label className="text-sm font-medium text-foreground">
-                        Zatwierdzenie przez admina wymagane powyżej (dni)
-                      </Label>
-                      <Input 
-                        value="30" 
-                        disabled 
-                        className="bg-card opacity-50 border h-9"
-                      />
-                      <p className="text-sm text-muted-foreground">
-                        Urlopy dłuższe niż x dni wymagają zatwierdzenia przez administratora
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Switch disabled className="data-[state=unchecked]:bg-muted" />
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-foreground">
-                        Wymagaj zatwierdzenia przez menedżera/administratora
-                      </Label>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Limity urlopowe */}
-              <Card className="border border-border">
-                <CardHeader className="pb-0">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1.5">
-                      <CardTitle className="text-xl font-semibold">Limity urlopowe</CardTitle>
-                      <CardDescription>
-                        Skonfiguruj zasady zatwierdzania i ograniczenia urlopów
-                      </CardDescription>
-                    </div>
-                    <Button variant="secondary" size="sm" className="h-9">
-                      Edytuj
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-0 pb-0 space-y-6">
-                  <div className="flex gap-6">
-                    <div className="w-[400px] space-y-2">
-                      <Label className="text-sm font-medium text-foreground">
-                        Maksymalne kolejne dni
-                      </Label>
-                      <Input 
-                        value="7" 
-                        disabled 
-                        className="bg-card opacity-50 border h-9"
-                      />
-                      <p className="text-sm text-muted-foreground">
-                        Maksymalna liczba kolejnych dni urlopu w jednym wniosku
-                      </p>
-                    </div>
-                    <div className="w-[400px] space-y-2">
-                      <Label className="text-sm font-medium text-foreground">
-                        Minimalne wyprzedzenie dla długich urlopów (dni)
-                      </Label>
-                      <Input 
-                        value="14" 
-                        disabled 
-                        className="bg-card opacity-50 border h-9"
-                      />
-                      <p className="text-sm text-muted-foreground">
-                        Urlopy dłuższe niż x dni wymagają zatwierdzenia przez administratora
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Przenoszenie urlopów */}
-              <Card>
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="text-lg">Przenoszenie urlopów</CardTitle>
-                      <CardDescription className="text-sm text-muted-foreground">
-                        Ustawienia dotyczące przenoszenia niewykorzystanych urlopów
-                      </CardDescription>
-                    </div>
-                    <Button 
-                      variant="secondary" 
-                      size="sm" 
-                      className="h-9"
-                      onClick={handleLeavePoliciesEdit}
-                    >
-                      Edytuj
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-0 pb-0 space-y-6">
-                  <div className="flex items-start gap-3">
-                    <Switch disabled checked className="data-[state=checked]:bg-foreground" />
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-foreground">
-                        Zezwalaj na przenoszenie niewykorzystanych urlopów na kolejny rok
-                      </Label>
-                    </div>
-                  </div>
-                  <div className="w-[400px] space-y-2">
-                    <Label className="text-sm font-medium text-foreground">
-                      Maksymalna liczba dni do przeniesienia
-                    </Label>
-                    <Input 
-                      value="5" 
-                      disabled 
-                      className="bg-card opacity-50 border h-9"
-                    />
-                    <p className="text-sm text-muted-foreground">
-                      Ile dni urlopu można przenieść na kolejny rok
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Zasady liczenia dni roboczych */}
-              <Card>
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="text-lg">Zasady liczenia dni roboczych</CardTitle>
-                      <CardDescription className="text-sm text-muted-foreground">
-                        Zasady dotyczące liczenia weekendów i dni świątecznych
-                      </CardDescription>
-                    </div>
-                    <Button 
-                      variant="secondary" 
-                      size="sm" 
-                      className="h-9"
-                      onClick={handleLeavePoliciesEdit}
-                    >
-                      Edytuj
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-0 pb-0 space-y-6">
-                  <div className="w-[400px] space-y-2">
-                    <Label className="text-sm font-medium text-foreground">
-                      Polityka liczenia weekendów
-                    </Label>
-                    <Select disabled>
-                      <SelectTrigger className="bg-card border h-9">
-                        <SelectValue placeholder="Nie licz weekendów" />
-                      </SelectTrigger>
-                    </Select>
-                    <p className="text-sm text-muted-foreground">
-                      Jak traktować weekendy przy liczeniu dni urlopu
-                    </p>
-                  </div>
-                  <div className="w-[400px] space-y-2">
-                    <Label className="text-sm font-medium text-foreground">
-                      Polityka świąt
-                    </Label>
-                    <Input 
-                      value="Nie licz świąt państwowych" 
-                      disabled 
-                      className="bg-card opacity-50 border h-9"
-                    />
-                    <p className="text-sm text-muted-foreground">
-                      Jak traktować święta państwowe przy liczeniu dni urlopu
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        </FigmaTabsContent>
-
-        <FigmaTabsContent value="calendar-visibility" className="mt-6 space-y-6">
-          {/* Calendar Visibility Settings Card */}
-          <Card className="border border-border">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-xl font-semibold">Widoczność kalendarza</CardTitle>
-              <CardDescription>
-                Kontroluj, którzy użytkownicy mogą widzieć kalendarze innych osób w organizacji.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Calendar Restriction Toggle */}
-              <div className="flex items-center justify-between p-4 border border-border rounded-lg bg-muted/30">
-                <div className="space-y-1">
-                  <div className="font-medium text-foreground">
-                    Ogranicz widoczność kalendarza według grup
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    Gdy włączone, użytkownicy w grupach widzą tylko kalendarze członków swojej grupy. Użytkownicy bez grupy widzą wszystkich.
-                  </div>
                 </div>
-                <Switch
-                  checked={currentOrganization?.restrict_calendar_by_group || false}
-                  onCheckedChange={handleCalendarRestrictionToggle}
-                />
-              </div>
-
-              {/* Current Status Explanation */}
-              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-sm text-blue-900">
-                  <strong>Obecny status:</strong>{' '}
-                  {currentOrganization?.restrict_calendar_by_group
-                    ? 'Użytkownicy w grupach widzą tylko kalendarze członków swojej grupy. Użytkownicy bez grupy widzą wszystkich w organizacji.'
-                    : 'Wszyscy użytkownicy w organizacji widzą nawzajem swoje kalendarze, niezależnie od przynależności do grup.'}
-                </p>
-              </div>
-
-              <Separator />
-
-              {/* User Group Assignments */}
-              <div className="space-y-2">
-                <h3 className="text-base font-medium text-foreground">Przypisania użytkowników do grup</h3>
-                <p className="text-sm text-muted-foreground">
-                  Zarządzaj grupami użytkowników na stronie Zarządzania Zespołem
-                </p>
-              </div>
-
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="font-medium text-muted-foreground">Użytkownik</TableHead>
-                    <TableHead className="font-medium text-muted-foreground">Email</TableHead>
-                    <TableHead className="font-medium text-muted-foreground">Grupa</TableHead>
-                    <TableHead className="font-medium text-muted-foreground">Widoczność kalendarza</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {users.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={4} className="h-16 text-center">
-                        <div className="text-muted-foreground">
-                          Brak użytkowników w organizacji
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    users.map((user) => {
-                      const userTeam = teamMembers.find(tm => tm.user_id === user.id)
-                      const team = userTeam ? teams.find(t => t.id === userTeam.team_id) : null
-
-                      // Calculate visibility based on restriction setting
-                      let visibilityText: string
-                      if (currentOrganization?.restrict_calendar_by_group) {
-                        // Restriction is ON
-                        visibilityText = team
-                          ? `Tylko grupa: ${team.name}`
-                          : 'Wszyscy w organizacji'
-                      } else {
-                        // Restriction is OFF - everyone sees everyone
-                        visibilityText = 'Wszyscy w organizacji'
-                      }
-
-                      return (
-                        <TableRow key={user.id} className="h-[72px]">
-                          <TableCell>
-                            <div className="flex items-center gap-3">
-                              <Avatar className="size-10">
-                                <AvatarImage src={user.avatar_url || undefined} />
-                                <AvatarFallback className="text-sm font-medium">
-                                  {user.full_name
-                                    ? user.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase()
-                                    : user.email.charAt(0).toUpperCase()}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <div className="font-medium text-foreground">
-                                  {user.full_name || 'Bez nazwiska'}
-                                </div>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-sm text-muted-foreground">
-                              {user.email}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {team ? (
-                              <Badge variant="secondary">
-                                {team.name}
-                              </Badge>
-                            ) : (
-                              <span className="text-sm text-muted-foreground">Brak grupy</span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-sm text-muted-foreground">
-                              {visibilityText}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      )
-                    })
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
         </FigmaTabsContent>
 
         <FigmaTabsContent value="billing" className="mt-6 space-y-6">
@@ -1420,20 +871,10 @@ export default function AdminSettingsClient({
                     variant="secondary"
                     size="sm"
                     className="h-9"
-                    onClick={handleManageSeatSubscription}
+                    onClick={handleManageSubscription}
                   >
-                    {t('manageSeatSubscription')}
+                    {t('manageSubscription')}
                   </Button>
-                  {subscriptionData && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-9"
-                      onClick={handleChangeBillingPeriod}
-                    >
-                      Change Billing Period
-                    </Button>
-                  )}
                 </div>
               </div>
             </CardHeader>
@@ -1501,13 +942,9 @@ export default function AdminSettingsClient({
                           </Label>
                           <div className="text-sm text-muted-foreground space-y-1">
                             <div>• {t('plan')}: {subscriptionData.variant?.name || 'Subscription Plan'}</div>
-                            <div>• {t('price')}: {formatCurrency(subscriptionData.variant?.price || 0)} {t('perSeat')}</div>
                             {subscriptionData.current_period_end && (
                               <div>• {t('nextBilling')}: {formatDate(subscriptionData.current_period_end)}</div>
                             )}
-                            <div className="text-xs text-muted-foreground pt-1">
-                              {t('pricesInPLN')}
-                            </div>
                           </div>
                         </div>
 
@@ -1541,13 +978,14 @@ export default function AdminSettingsClient({
                   <div className="space-y-4">
                     {!subscriptionData ? (
                       <>
-                        <Button 
+                        <Button
                           className=" text-primary-foreground h-9 px-4 rounded-lg shadow-sm"
                           onClick={() => {
-                            // Redirect to upgrade flow - start with current team size + 1 buffer
+                            // CRITICAL BUG FIX: Redirect to update-subscription, not add-users
+                            // add-users is for creating NEW workspaces, update-subscription is for upgrading existing
                             const currentTeamSize = users.length || 1
                             const recommendedSeats = Math.max(currentTeamSize + 1, 4) // At least 4 total
-                            router.push(`/onboarding/add-users?upgrade=true&current_org=${currentOrganization?.id}&seats=${recommendedSeats}`)
+                            router.push(`/onboarding/update-subscription?current_org=${currentOrganization?.id}&seats=${recommendedSeats}`)
                           }}
                         >
                           {t('upgradeToPaid')}
@@ -1678,16 +1116,6 @@ export default function AdminSettingsClient({
             </Card>
           )}
 
-          {/* Subscription Widget */}
-          {initialSubscription && (
-            <SubscriptionWidget
-              currentSeats={initialSubscription.current_seats}
-              renewsAt={initialSubscription.renews_at}
-              status={initialSubscription.status as 'active' | 'on_trial' | 'past_due' | 'cancelled'}
-              className="mt-6"
-            />
-          )}
-
           {/* Pending Removals Section */}
           <PendingChangesSection
             users={pendingRemovalUsers}
@@ -1706,226 +1134,25 @@ export default function AdminSettingsClient({
 
         </FigmaTabsContent>
 
-        <FigmaTabsContent value="workspace" className="mt-6 space-y-6">
-          {/* Workspace Management Card */}
-          <Card className="border border-border">
-            <CardHeader className="pb-0">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-2">
-                    <CardTitle className="text-xl font-semibold">Zarządzanie workspace</CardTitle>
-                  </div>
-                  <CardDescription>
-                    Zarządzaj ustawieniami i danymi workspace
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0 pb-6 space-y-6">
-              <div className="space-y-6">
-                <div className="w-[400px] space-y-2">
-                  <Label htmlFor="workspace-name">Nazwa workspace</Label>
-                  <Input 
-                    id="workspace-name"
-                    value={currentOrganization?.name || ''} 
-                    disabled 
-                    className="opacity-50"
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    Obecna nazwa Twojego workspace
-                  </p>
-                </div>
-                
-                <div className="w-[400px] space-y-2">
-                  <Label htmlFor="workspace-slug">Identyfikator workspace</Label>
-                  <Input 
-                    id="workspace-slug"
-                    value={currentOrganization?.slug || ''} 
-                    disabled 
-                    className="opacity-50"
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    Unikalny identyfikator używany w URL
-                  </p>
-                </div>
-
-                <div className="w-[400px] space-y-2">
-                  <Label htmlFor="workspace-created">Data utworzenia</Label>
-                  <Input 
-                    id="workspace-created"
-                    value={currentOrganization?.created_at ? new Date(currentOrganization.created_at).toLocaleDateString('pl-PL') : 'Nieznana'} 
-                    disabled 
-                    className="opacity-50"
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    Kiedy workspace został utworzony
-                  </p>
-                </div>
-
-                <Separator />
-                
-                {/* Danger Zone */}
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label className="text-base font-semibold text-red-600">Strefa niebezpieczna</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Nieodwracalne operacje dotyczące workspace. Użyj ostrożnie.
-                    </p>
-                  </div>
-                  
-                  <div className="border border-red-200 rounded-lg p-4 bg-red-50">
-                    <div className="space-y-3">
-                      <div>
-                        <h4 className="text-sm font-semibold text-red-800">Usuń workspace</h4>
-                        <p className="text-sm text-red-600 mt-1">
-                          Trwale usuwa workspace wraz z wszystkimi danymi: użytkownikami, urlopami, żądaniami, zespołami i ustawieniami. 
-                          <strong> Ta operacja jest nieodwracalna!</strong>
-                        </p>
-                      </div>
-                      <Button
-                        onClick={handleDeleteWorkspace}
-                        disabled={workspaceDeleteLoading}
-                        className="bg-red-600 text-red-50 hover:bg-red-700 h-9 px-4 rounded-lg"
-                      >
-                        {workspaceDeleteLoading ? 'Usuwanie...' : 'Usuń workspace'}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </FigmaTabsContent>
-
-        <FigmaTabsContent value="notifications" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Powiadomienia</CardTitle>
-              <CardDescription>
-                Konfiguracja powiadomień email i w aplikacji
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">Ta sekcja będzie wkrótce dostępna.</p>
-            </CardContent>
-          </Card>
-        </FigmaTabsContent>
-
         <FigmaTabsContent value="work-modes" className="mt-6">
           <WorkModeSettings currentOrganization={currentOrganization} />
         </FigmaTabsContent>
-
-        <FigmaTabsContent value="additional-rules" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Dodatkowe reguły</CardTitle>
-              <CardDescription>
-                Dodatkowe reguły biznesowe i konfiguracja zaawansowana
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">Ta sekcja będzie wkrótce dostępna.</p>
-            </CardContent>
-          </Card>
-                  </FigmaTabsContent>
       </FigmaTabs>
 
       {/* Edit Leave Type Dialog */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-w-md">
-          <div className="absolute right-4 top-4 z-10">
-            <Button
-              variant="ghost" 
-              size="sm" 
-              className="h-9 w-9 p-0 border border bg-card shadow-sm"
-              onClick={() => setEditDialogOpen(false)}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-          
-          <DialogHeader className="space-y-1.5">
-            <DialogTitle className="text-lg font-semibold text-foreground">
-              Edytuj rodzaj urlopu
-            </DialogTitle>
-            <DialogDescription className="text-sm text-muted-foreground">
-              Zaktualizuj informacje o rodzaju urlopu
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleSubmitEdit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-name" className="text-sm font-medium text-foreground">
-                Nazwa urlopu
-              </Label>
-              <Input
-                id="edit-name"
-                value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                className="h-9 border bg-card"
-                required
-                disabled={loading}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="edit-days" className="text-sm font-medium text-foreground">
-                Liczba dni w roku
-              </Label>
-              <Input
-                id="edit-days"
-                type="number"
-                value={formData.days_per_year}
-                onChange={(e) => setFormData(prev => ({ ...prev, days_per_year: parseInt(e.target.value) || 0 }))}
-                className="h-9 border bg-card"
-                required
-                min="0"
-                disabled={loading}
-              />
-              <p className="text-sm text-muted-foreground">
-                Pamiętaj aby nie zmieniać podstawowych dni ustawowych.
-              </p>
-            </div>
-
-            <div className="flex items-start space-x-2">
-              <Checkbox
-                id="edit-requires-balance"
-                checked={formData.requires_balance}
-                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, requires_balance: !!checked }))}
-                disabled={loading}
-                className="mt-0.5 data-[state=checked]:bg-foreground data-[state=checked]:border-foreground"
-              />
-              <div className="grid gap-1.5 leading-none">
-                <Label htmlFor="edit-requires-balance" className="text-sm font-medium text-foreground">
-                  Wymagaj zarządzania saldem urlopowym
-                </Label>
-                <p className="text-sm text-muted-foreground">
-                  Zaznacz jeśli ten typ urlopu wymaga śledzenia i zarządzaniem dni urlopowych
-                </p>
-              </div>
-            </div>
-
-            <DialogFooter className="flex justify-end gap-2 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setEditDialogOpen(false)}
-                disabled={loading}
-                className="h-9 px-4 border bg-card"
-              >
-                Anuluj
-              </Button>
-              <Button
-                type="submit"
-                disabled={loading}
-                className="h-9 px-4 bg-foreground text-primary-foreground"
-              >
-                {loading ? 'Zapisywanie...' : 'Zapisz zmiany'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <EditLeaveTypeSheet
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        leaveType={selectedLeaveType}
+        onSuccess={(updatedLeaveType) => {
+          // Update local state
+          setLeaveTypes(prevLeaveTypes =>
+            prevLeaveTypes.map(lt =>
+              lt.id === updatedLeaveType.id ? updatedLeaveType : lt
+            )
+          )
+        }}
+      />
 
       {/* Delete Leave Type Dialog */}
       <Dialog
@@ -1976,79 +1203,14 @@ export default function AdminSettingsClient({
         </DialogContent>
       </Dialog>
 
-      {/* Delete Workspace Confirmation Dialog */}
-      <Dialog open={deleteWorkspaceDialogOpen} onOpenChange={setDeleteWorkspaceDialogOpen}>
-        <DialogContent className="max-w-md">
-          <div className="absolute right-4 top-4 z-10">
-            <Button
-              variant="ghost" 
-              size="sm" 
-              className="h-9 w-9 p-0 border border bg-card shadow-sm"
-              onClick={() => setDeleteWorkspaceDialogOpen(false)}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-          
-          <DialogHeader className="space-y-1.5">
-            <DialogTitle className="text-lg font-semibold text-red-950">
-              Usuń workspace
-            </DialogTitle>
-            <div className="space-y-3">
-              <DialogDescription className="text-sm text-red-500">
-                Czy na pewno chcesz usunąć workspace <strong>"{currentOrganization?.name}"</strong>?
-              </DialogDescription>
-              
-              <div className="text-sm text-red-500">
-                <p>Ta operacja usunie <strong>WSZYSTKIE DANE</strong> z workspace:</p>
-                <ul className="list-disc list-inside mt-2 space-y-1">
-                  <li>Wszystkich użytkowników i ich uprawnienia</li>
-                  <li>Wszystkie urlopy i wnioski urlopowe</li>
-                  <li>Wszystkie zespoły i struktura organizacyjna</li>
-                  <li>Wszystkie ustawienia i konfiguracje</li>
-                </ul>
-                <p className="mt-3">
-                  <strong className="text-red-600">Ta operacja jest nieodwracalna!</strong>
-                </p>
-              </div>
-            </div>
-          </DialogHeader>
-
-          <DialogFooter className="flex justify-end gap-2 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setDeleteWorkspaceDialogOpen(false)}
-              disabled={workspaceDeleteLoading}
-              className="h-9 px-4 border bg-card"
-            >
-              Anuluj
-            </Button>
-            <Button
-              type="button"
-              onClick={handleConfirmDeleteWorkspace}
-              disabled={workspaceDeleteLoading}
-              className="h-9 px-4 bg-red-600 text-red-50 hover:bg-red-700"
-            >
-              {workspaceDeleteLoading ? 'Usuwanie workspace...' : 'Tak, usuń workspace'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       {/* Edit Sheets */}
         <EditOrganizationSheet
           open={isOrganizationSheetOpen}
           onOpenChange={setIsOrganizationSheetOpen}
           organization={currentOrganization}
           users={users}
-          onSave={handleOrganizationSave}
-        />
-
-        <EditGoogleWorkspaceSheet
-          open={isGoogleWorkspaceSheetOpen}
-          onOpenChange={setIsGoogleWorkspaceSheetOpen}
-          organization={currentOrganization}
+          currentOwnerId={users.find(u => u.isOwner)?.id || null}
+          canManageOwnership={canManageOwnership}
           onSave={handleOrganizationSave}
         />
 

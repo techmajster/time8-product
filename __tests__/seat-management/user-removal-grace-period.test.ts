@@ -38,7 +38,6 @@ describe('User Removal with Grace Period E2E Tests', () => {
       .from('organizations')
       .insert({
         name: `Seat Mgmt Test Org ${Date.now()}`,
-        slug: `seat-test-${Date.now()}`,
         country_code: 'PL'
       })
       .select()
