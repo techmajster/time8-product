@@ -317,6 +317,176 @@ workMode: body.work_mode === 'multi_shift'
 - Calendar and dashboard use `work_schedule_type` exclusively
 - No code references to deprecated column
 
+## Production Issues Discovered & Fixed
+
+### Issue 1: LemonSqueezy 422 Error - Empty user_email in custom_data
+
+**Symptom:**
+```json
+{
+  "error": "Unprocessable Entity",
+  "cause": [{
+    "detail": "The {0} field must be a string.",
+    "source": {
+      "pointer": "/data/attributes/checkout_data/custom/user_email"
+    },
+    "status": "422"
+  }]
+}
+```
+
+**Root Cause:**
+- Create-checkout route was setting `user_email: user_email || ''` in custom_data
+- When user_email was undefined, it sent empty string `''`
+- LemonSqueezy API rejects empty string - field must either have non-empty value or be omitted entirely
+
+**Files Fixed:**
+1. [app/onboarding/update-subscription/page.tsx:31,46,201](app/onboarding/update-subscription/page.tsx#L31) - Added state for userEmail, fetch from authenticated session, pass to checkout
+2. [components/invitations/invite-users-dialog.tsx:72,92-100,267](components/invitations/invite-users-dialog.tsx#L72) - Added useEffect to get user email, pass to checkout
+3. [app/api/billing/create-checkout/route.ts:163-178](app/api/billing/create-checkout/route.ts#L163) - Changed to conditionally add user_email only when provided (not empty string)
+
+**Impact:** Fixed workspace upgrades from 3 to 4 seats on monthly plan
+
+**Commit:** fad225f - "Pass authenticated user email to checkout"
+
+---
+
+### Issue 2: LemonSqueezy 404 Error - Trailing Newline in Variant ID
+
+**Symptom:**
+```
+variant_id: '1090954\n',  // Newline character included
+Error: "The related resource does not exist."
+```
+
+**Root Cause:**
+- Vercel environment variable `LEMONSQUEEZY_YEARLY_VARIANT_ID` had trailing newline character
+- When reading `process.env.LEMONSQUEEZY_YEARLY_VARIANT_ID`, it included the `\n`
+- LemonSqueezy API looked for variant `"1090954\n"` instead of `"1090954"`
+
+**Files Fixed:**
+1. [lib/lemon-squeezy/pricing.ts:172-173,267-268](lib/lemon-squeezy/pricing.ts#L172) - Added `.trim()` to all variant ID reads
+2. [app/api/billing/pricing/route.ts:39-40](app/api/billing/pricing/route.ts#L39) - Added `.trim()` to fallback variant IDs
+3. User manually removed trailing newline from Vercel environment variables
+
+**Impact:** Fixed yearly plan upgrades (404 errors prevented checkout creation)
+
+**Commit:** ed7f3a5 - "Trim variant IDs to remove trailing newlines"
+
+---
+
+### Issue 3: Wrong Checkout Description (Always Shows "Monthly")
+
+**Symptom:**
+- Checkout always displayed "Monthly subscription for X users" regardless of actual billing period
+- Yearly checkouts showed monthly description (confusing for users)
+
+**Root Cause:**
+- Hardcoded description string in create-checkout route at line 201
+- No conditional logic based on `tier` parameter
+
+**Files Fixed:**
+1. [app/api/billing/create-checkout/route.ts:197-203](app/api/billing/create-checkout/route.ts#L197) - Made description dynamic based on tier
+
+**Code Change:**
+```typescript
+description: tier === 'monthly'
+  ? `Monthly subscription - ${user_count} seats at ${user_count} × monthly rate`
+  : `Annual subscription - ${user_count} seats at ${user_count} × annual rate`
+```
+
+**Impact:** Checkout descriptions now accurately reflect selected billing period
+
+**Commit:** c0daff8 - "Update checkout description to show correct billing period"
+
+---
+
+### Issue 4: LemonSqueezy Pricing Model Misconfiguration
+
+**Symptom:**
+- Checkout for 4 yearly seats showed 96 PLN total instead of 384 PLN (96 × 4)
+- Business logic: When you hit 4+ seats, you pay for ALL seats, not just extras
+
+**Root Cause:**
+- Monthly variant was configured with `graduated` pricing in LemonSqueezy:
+  - Tier 1 (1-3 seats): 0 PLN per seat
+  - Tier 2 (4+ seats): 10 PLN per seat
+  - Calculation for 4 seats: (3 × 0) + (1 × 10) = 10 PLN ❌
+- Yearly variant was correctly configured with `volume` pricing
+
+**Correct Pricing Model: Volume**
+- All units billed at same rate
+- 4 seats @ 10 PLN = 40 PLN (monthly) or 96 PLN (yearly) ✓
+- When 4+ seats selected, ALL seats are charged
+
+**Fix:**
+- Changed monthly variant from `graduated` to `volume` in LemonSqueezy dashboard
+- Now matches yearly variant pricing model
+- Aligns with business logic: free tier (1-3 seats), paid tier (4+ seats, ALL charged)
+
+**Verification:**
+- Confirmed usage-based billing implementation exists in [lib/billing/seat-manager.ts](lib/billing/seat-manager.ts) with proper usage records API integration
+- Usage records API uses `MAX` aggregation (correct for volume pricing)
+
+**Impact:** Checkout pricing now accurately reflects per-seat costs (4 seats = 4 × rate)
+
+---
+
+### Issue 5: Seat Minimum Logic Needs Revision (Pending Fix)
+
+**Current Implementation (Commit 80b978e):**
+- Enforces minimum 4 seats for ALL free tier users
+- Prevents free tier users from seeing/selecting 3 seats option
+
+**User Correction - Correct Business Logic:**
+1. **Free tier → Paid upgrade**: Must select 4+ seats (validation error if < 4)
+2. **Already on paid (monthly or yearly)**: CAN select 3 seats (triggers downgrade to free tier)
+3. **Yearly users selecting 3 seats**: Downgrade happens at end of annual period, users auto-archived
+
+**Required Changes:**
+1. Remove forced initialization to 4 seats for free tier users
+2. Add validation error when free tier tries checkout with < 4 seats
+3. Add downgrade warning when paid user selects 3 seats
+4. Different warnings for monthly vs yearly downgrades:
+   - Monthly: "Selecting 3 seats will immediately downgrade you to free tier"
+   - Yearly: "Selecting 3 seats will downgrade you to free tier at the end of your annual period. Users above 3 seats will be automatically archived"
+
+**Translation Keys Needed:**
+- `minimumFourSeatsForPaid`: "You need at least 4 seats for a paid plan. Free tier includes up to 3 seats."
+- `yearlyDowngradeWarning`: "Selecting 3 seats will downgrade you to free tier at the end of your annual period. Users above 3 seats will be automatically archived."
+- `monthlyDowngradeWarning`: "Selecting 3 seats will immediately downgrade you to free tier."
+
+**Pending Task:** Revise [app/onboarding/update-subscription/page.tsx](app/onboarding/update-subscription/page.tsx) with correct logic
+
+---
+
+### LemonSqueezy Configuration Verification
+
+**Pricing Model Settings (Confirmed via API):**
+- Monthly variant (972634): `volume` pricing ✓
+- Yearly variant (1090954): `volume` pricing ✓
+- Both correctly set after manual fix to monthly variant
+
+**Usage-Based Billing Implementation:**
+- Implementation exists in [lib/billing/seat-manager.ts](lib/billing/seat-manager.ts)
+- Uses LemonSqueezy usage records API
+- POST to `/v1/usage-records` endpoint
+- Aggregation type: `MAX` (correct for volume pricing)
+- New seats billed at end of current billing period
+
+**Graduated vs Volume Pricing:**
+- **Graduated**: Different rates per tier (e.g., 1-3 free @ 0 PLN, 4+ @ 10 PLN)
+  - Calculation: (tier1_quantity × tier1_rate) + (tier2_quantity × tier2_rate)
+  - Example: 4 seats = (3 × 0) + (1 × 10) = 10 PLN ❌
+- **Volume**: All units at same rate
+  - Calculation: total_quantity × rate
+  - Example: 4 seats = 4 × 10 = 40 PLN ✓
+
+**Business Logic Alignment:**
+- Free tier: 1-3 seats (owner + 2 free invites) @ 0 PLN
+- Paid tier: 4+ seats, ALL seats charged (not just extras)
+- Volume pricing correctly implements this logic
+
 ## Out of Scope
 
 - Yearly→monthly downgrade functionality (blocked until renewal)

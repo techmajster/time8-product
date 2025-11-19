@@ -138,30 +138,26 @@ async function fetchVariantPricing(variantId: string) {
 }
 
 /**
- * Get dynamic pricing information from Lemon Squeezy
- * Uses REST API directly to fetch graduated pricing tiers
+ * Get dynamic pricing information from environment variables
+ *
+ * IMPORTANT: We use environment variables as the source of truth instead of
+ * the LemonSqueezy API because the API returns incorrect base prices that
+ * don't match the tier configuration shown in the LemonSqueezy dashboard.
+ *
+ * This is a known LemonSqueezy platform issue where the API response
+ * (variant.attributes.price) diverges from the actual tier pricing configured
+ * in the dashboard UI.
  */
 export async function getDynamicPricing(): Promise<PricingInfo> {
   const monthlyVariantId = (process.env.LEMONSQUEEZY_MONTHLY_VARIANT_ID || '').trim()
   const yearlyVariantId = (process.env.LEMONSQUEEZY_YEARLY_VARIANT_ID || '').trim()
 
-  console.log('🔄 Fetching pricing from LemonSqueezy API...')
+  console.log('💰 Using environment variable pricing (LemonSqueezy API unreliable)')
   console.log('   Monthly variant:', monthlyVariantId)
   console.log('   Yearly variant:', yearlyVariantId)
 
-  // Fetch pricing for both variants using REST API (correctly handles graduated pricing)
-  const [monthlyPricing, yearlyPricing] = await Promise.all([
-    getVariantPrice(monthlyVariantId),
-    getVariantPrice(yearlyVariantId)
-  ])
-
-  console.log('📊 API Response:', {
-    monthlyPricing,
-    yearlyPricing
-  })
-
-  // Fallback to environment variables or default values if API fails
-  const fallbackPricing: PricingInfo = {
+  // Use environment variables as authoritative source
+  const pricing: PricingInfo = {
     monthlyPricePerSeat: parseFloat(process.env.MONTHLY_PRICE_PER_SEAT || '10.00'), // PLN
     annualPricePerSeat: parseFloat(process.env.ANNUAL_PRICE_PER_SEAT || '8.00'), // PLN (monthly equivalent of annual price)
     currency: 'PLN',
@@ -169,21 +165,9 @@ export async function getDynamicPricing(): Promise<PricingInfo> {
     yearlyVariantId
   }
 
-  if (!monthlyPricing || !yearlyPricing) {
-    console.warn('⚠️ Using fallback pricing due to API error')
-    console.warn('   Fallback:', fallbackPricing)
-    return fallbackPricing
-  }
+  console.log('✅ Pricing from environment variables:', pricing)
 
-  console.log('✅ Using LemonSqueezy API pricing (graduated tier 4+ prices)')
-
-  return {
-    monthlyPricePerSeat: monthlyPricing.price,
-    annualPricePerSeat: yearlyPricing.price / 12, // Convert annual price to monthly equivalent for display
-    currency: monthlyPricing.currency || 'PLN',
-    monthlyVariantId,
-    yearlyVariantId
-  }
+  return pricing
 }
 
 /**

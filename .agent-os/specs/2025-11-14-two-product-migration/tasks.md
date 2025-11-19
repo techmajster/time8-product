@@ -142,3 +142,69 @@
   - [ ] 12.17 Verify production organization creation works
   - [ ] 12.18 Monitor production for constraint violations
   - [ ] 12.19 Verify all tests pass
+
+- [x] 13. Fix Production Issue: Empty user_email Causing 422 Errors
+  - [x] 13.1 Add userEmail state to update-subscription page
+  - [x] 13.2 Fetch authenticated user email in update-subscription page
+  - [x] 13.3 Pass user_email to checkout API call
+  - [x] 13.4 Add userEmail state to invite-users-dialog
+  - [x] 13.5 Fetch authenticated user email in invite-users-dialog
+  - [x] 13.6 Pass user_email to checkout API call from dialog
+  - [x] 13.7 Update create-checkout route to conditionally add user_email
+  - [x] 13.8 Test workspace upgrade from 3 to 4 seats
+  - [x] 13.9 Verify checkout creation succeeds
+  - [x] 13.10 Commit: fad225f "Pass authenticated user email to checkout"
+
+- [x] 14. Fix Production Issue: Trailing Newline in Variant ID
+  - [x] 14.1 Add .trim() to variant ID reads in pricing.ts (getDynamicPricing)
+  - [x] 14.2 Add .trim() to variant ID reads in pricing.ts (getStaticPricingInfo)
+  - [x] 14.3 Add .trim() to fallback variant IDs in pricing route
+  - [x] 14.4 User manually removed trailing newline from Vercel env vars
+  - [x] 14.5 Test yearly plan upgrade
+  - [x] 14.6 Verify checkout creation succeeds (no 404)
+  - [x] 14.7 Commit: ed7f3a5 "Trim variant IDs to remove trailing newlines"
+
+- [x] 15. Fix Production Issue: Wrong Checkout Description
+  - [x] 15.1 Update create-checkout route description to be dynamic
+  - [x] 15.2 Use tier parameter to determine monthly vs annual wording
+  - [x] 15.3 Test monthly checkout description
+  - [x] 15.4 Test yearly checkout description
+  - [x] 15.5 Commit: c0daff8 "Update checkout description to show correct billing period"
+
+- [ ] 16. Fix LemonSqueezy Pricing Model (Graduated → Volume)
+  - [x] 16.1 User changed monthly variant from graduated to volume in LemonSqueezy dashboard
+  - [x] 16.2 Verify pricing model via LemonSqueezy API (GET /variants/{id})
+  - [x] 16.3 Confirm monthly variant (972634) uses volume pricing
+  - [x] 16.4 Confirm yearly variant (1090954) uses volume pricing
+  - [x] 16.5 Verify usage-based billing implementation in seat-manager.ts
+  - [x] 16.6 Confirm usage records API uses MAX aggregation
+  - [ ] 16.7 Test checkout pricing calculation for 4 seats (should be 4 × rate)
+  - [ ] 16.8 Verify monthly: 4 seats = 40 PLN total
+  - [ ] 16.9 Verify yearly: 4 seats = 384 PLN total (96 × 4)
+  - [ ] 16.10 Document graduated vs volume pricing difference in spec
+
+- [ ] 17. Revise Seat Minimum Logic (Free vs Paid Tier)
+  - [ ] 17.1 Remove forced initialization to 4 seats for free tier users
+  - [ ] 17.2 Add validation: free tier → paid upgrade requires 4+ seats
+  - [ ] 17.3 Add validation: paid users CAN select 3 seats (downgrade to free)
+  - [ ] 17.4 Add downgrade warning for monthly users selecting 3 seats
+  - [ ] 17.5 Add downgrade warning for yearly users selecting 3 seats
+  - [ ] 17.6 Add translation key: minimumFourSeatsForPaid
+  - [ ] 17.7 Add translation key: yearlyDowngradeWarning
+  - [ ] 17.8 Add translation key: monthlyDowngradeWarning
+  - [ ] 17.9 Update update-subscription page with correct validation logic
+  - [ ] 17.10 Test free tier → 4+ seats (should succeed)
+  - [ ] 17.11 Test free tier → 3 seats (should show error)
+  - [ ] 17.12 Test monthly paid → 3 seats (should show warning, allow)
+  - [ ] 17.13 Test yearly paid → 3 seats (should show warning, allow)
+  - [ ] 17.14 Verify all tests pass
+
+- [ ] 18. Implement Auto-Archive on Yearly Downgrade to 3 Seats
+  - [ ] 18.1 Check if auto-archive logic exists for yearly subscriptions
+  - [ ] 18.2 Implement archive trigger when yearly subscription ends with 3 seats
+  - [ ] 18.3 Keep owner + 2 oldest users (by invite date)
+  - [ ] 18.4 Archive all remaining users automatically
+  - [ ] 18.5 Test yearly subscription renewal with 3 seats
+  - [ ] 18.6 Verify users above 3 are archived correctly
+  - [ ] 18.7 Verify archived users lose access
+  - [ ] 18.8 Verify all tests pass
