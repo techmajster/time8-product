@@ -198,7 +198,9 @@ export async function POST(request: NextRequest) {
       },
       productOptions: {
         name: `Leave Management for ${organization_data.name}`,
-        description: `Monthly subscription for ${user_count} users - includes 3 free seats`,
+        description: tier === 'monthly'
+          ? `Monthly subscription - ${user_count} seats at ${user_count} × monthly rate`
+          : `Annual subscription - ${user_count} seats at ${user_count} × annual rate`,
         redirectUrl: return_url || `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/onboarding/payment-success`,
         receiptThankYouNote: 'Thank you for subscribing to our leave management system!'
       },
