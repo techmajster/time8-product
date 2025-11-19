@@ -256,23 +256,23 @@ export async function POST(
     }
 
     // Get billing override from organization table
-    const { data: organization, error: organizationError } = await supabaseAdmin
+    const { data: orgBilling, error: orgBillingError } = await supabaseAdmin
       .from('organizations')
       .select('billing_override_seats, billing_override_expires_at')
       .eq('id', organizationId)
       .single()
 
-    if (organizationError) {
-      console.error('[BulkInvitations] Organization query error:', organizationError)
+    if (orgBillingError) {
+      console.error('[BulkInvitations] Organization billing query error:', orgBillingError)
       return NextResponse.json(
-        { error: 'Failed to check organization details' },
+        { error: 'Failed to check organization billing details' },
         { status: 500 }
       )
     }
 
     const paidSeats = subscription?.current_seats || 0
-    const billingOverrideSeats = organization?.billing_override_seats || null
-    const billingOverrideExpiresAt = organization?.billing_override_expires_at || null
+    const billingOverrideSeats = orgBilling?.billing_override_seats || null
+    const billingOverrideExpiresAt = orgBilling?.billing_override_expires_at || null
 
     // Calculate available seats
     let totalSeats = 3 + paidSeats // 3 free seats + paid seats
