@@ -254,7 +254,8 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
     const { status, customer_id, variant_id, product_id, renews_at, ends_at, trial_ends_at, first_subscription_item } = attributes;
 
     // Extract quantity from first_subscription_item (where LemonSqueezy stores it)
-    const quantity = first_subscription_item?.quantity || 0;
+    // NOTE: For usage-based subscriptions, this will be 0 - we'll use user_count from custom_data instead
+    const rawQuantity = first_subscription_item?.quantity || 0;
 
     // Validate subscription status
     if (!isValidSubscriptionStatus(status)) {
@@ -407,7 +408,7 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
       organizationId, // Use organizationId from custom_data
       customerId: customer.id,
       status,
-      quantity,
+      rawQuantity,
       variant_id,
       billingType, // NEW: Log detected billing type
       correlationId: meta.event_id,
@@ -443,6 +444,21 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
       calculated_billing_period: billingPeriod,
       variant_id,
       fallback_used: !tier
+    });
+
+    // CRITICAL FIX: Use correct quantity based on billing type
+    // - Usage-based (monthly): LemonSqueezy returns quantity=0, use user_count from custom_data
+    // - Quantity-based (yearly): LemonSqueezy returns actual quantity, use that
+    const quantity = billingType === 'usage_based' ? userCount : rawQuantity;
+
+    console.log(`📊 [Webhook] Quantity determination:`, {
+      billingType,
+      rawQuantity_from_lemonsqueezy: rawQuantity,
+      userCount_from_custom_data: userCount,
+      final_quantity: quantity,
+      note: billingType === 'usage_based'
+        ? 'Using userCount from custom_data (usage-based billing)'
+        : 'Using rawQuantity from LemonSqueezy (quantity-based billing)'
     });
 
     // Create subscription record - CRITICAL FIX: Use organizationId from custom_data
