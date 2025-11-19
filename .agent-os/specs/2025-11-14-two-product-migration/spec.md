@@ -37,6 +37,7 @@ During testing of workspace creation with user "testlemoniady", the following cr
 3. **Wrong Redirect on Upgrade**: "Uaktualnij do płatnego planu" button redirects to new workspace creation instead of subscription management
 4. **Monthly Option Incorrectly Locked**: Update subscription page shows monthly as unavailable even though user is on monthly plan
 5. **Webhook Not Processing Billing Period**: No webhook received, or webhook fails to process billing period information
+6. **Multi-Workspace Webhook Bug** (CRITICAL): When user creates multiple workspaces with the same email, all subscriptions attach to the first workspace instead of the correct one
 
 ### Root Causes
 
@@ -62,6 +63,13 @@ During testing of workspace creation with user "testlemoniady", the following cr
 - When product_id is NULL (no webhook yet), defaults to yearly
 - Fallback logic: `subscription.lemonsqueezy_variant_id !== monthlyVariantId` also defaults to yearly when NULL
 
+**Multi-Workspace Webhook Bug**:
+- LemonSqueezy reuses customer IDs for the same email address (standard behavior)
+- `findOrCreateCustomer()` finds existing customer by `lemonsqueezy_customer_id` and returns it
+- Webhook uses `customer.organization_id` instead of `custom_data.organization_id`
+- Result: Second workspace's subscription gets linked to first workspace's organization
+- Database constraint: `customers.organization_id` is UNIQUE, preventing multiple customer records
+
 ### Required Fixes (Added to Spec Scope)
 
 1. **Add `billing_period` Column** - Explicit enum column ('monthly', 'yearly', null) in subscriptions table
@@ -70,6 +78,7 @@ During testing of workspace creation with user "testlemoniady", the following cr
 4. **Fix Billing Period Detection** - Use `billing_period` column as primary source in update-subscription page
 5. **Fix Upgrade Button Redirect** - Change redirect from workspace creation to subscription management
 6. **Add Billing Period to Org Creation** - Save billing period during free tier organization creation
+7. **Fix Multi-Workspace Support** - Drop UNIQUE constraint on `customers.organization_id`, refactor webhook to use `custom_data.organization_id` for subscription linking
 
 ## Spec Scope
 

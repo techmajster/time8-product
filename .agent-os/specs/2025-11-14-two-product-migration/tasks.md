@@ -208,3 +208,23 @@
   - [ ] 18.6 Verify users above 3 are archived correctly
   - [ ] 18.7 Verify archived users lose access
   - [ ] 18.8 Verify all tests pass
+
+- [ ] 19. Fix Multi-Workspace Webhook Bug (LemonSqueezy Customer ID Reuse)
+  - [ ] 19.1 Create migration to drop UNIQUE constraint on customers.organization_id
+  - [ ] 19.2 Run migration on development database
+  - [ ] 19.3 Refactor findOrCreateCustomer() to remove organization lookup logic
+  - [ ] 19.4 Update findOrCreateCustomer() to only find/create customer by lemonsqueezy_customer_id
+  - [ ] 19.5 Update processSubscriptionCreated() to extract organization_id from custom_data
+  - [ ] 19.6 Add validation that organization exists before creating subscription
+  - [ ] 19.7 Add error handling for missing organization_id in webhook custom_data
+  - [ ] 19.8 Update subscription insert to use organization_id from custom_data
+  - [ ] 19.9 Test: Create workspace A with email@test.com → verify subscription links to org A
+  - [ ] 19.10 Test: Create workspace B with email@test.com → verify subscription links to org B
+  - [ ] 19.11 Verify database shows: one customer, two subscriptions, different organization_ids
+  - [ ] 19.12 Test: Upgrade workspace A seats → verify only workspace A affected
+  - [ ] 19.13 Test: Upgrade workspace B seats → verify only workspace B affected
+  - [ ] 19.14 Delete test organizations (testlemoniady, testlemoniady_narok)
+  - [ ] 19.15 Verify all tests pass
+  - [ ] 19.16 Deploy migration to production
+  - [ ] 19.17 Monitor production logs for webhook processing
+  - [ ] 19.18 Verify production multi-workspace creation works
