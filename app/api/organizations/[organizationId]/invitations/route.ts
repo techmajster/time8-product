@@ -284,12 +284,13 @@ export async function POST(
       }
     }
 
-    // Count active members
+    // Count active members (only status='active', NOT pending_removal)
+    // pending_removal users keep access until renewal but don't block new invitations
     const { count: activeMembers, error: activeMembersError } = await supabaseAdmin
       .from('user_organizations')
       .select('*', { count: 'exact', head: true })
       .eq('organization_id', organizationId)
-      .in('status', ['active', 'pending_removal'])
+      .eq('status', 'active')
 
     if (activeMembersError) {
       console.error('[BulkInvitations] Active members count error:', activeMembersError)
