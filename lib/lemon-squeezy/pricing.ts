@@ -81,43 +81,16 @@ export async function getVariantPrice(variantId: string): Promise<{
     const variantData = await variantResponse.json()
     const variantAttrs = variantData.data.attributes
 
-    // Fetch price-model to get graduated pricing tiers
-    const priceModelResponse = await fetch(`https://api.lemonsqueezy.com/v1/variants/${variantId}/price-model`, {
-      headers: {
-        'Authorization': `Bearer ${process.env.LEMONSQUEEZY_API_KEY}`,
-        'Accept': 'application/vnd.api+json'
-      }
+    // FIXED: Use base variant price directly for volume pricing
+    // Volume pricing model means all units are charged at the same rate (no tiers)
+    // The base variant price IS the per-seat price
+    const price = parseFloat(variantAttrs.price || '0') / 100
+
+    console.log(`✅ Using base variant price: ${price} PLN (volume pricing model)`, {
+      variantId,
+      interval: variantAttrs.interval,
+      price_formatted: variantAttrs.price_formatted
     })
-
-    let price: number
-
-    if (priceModelResponse.ok) {
-      const priceModelData = await priceModelResponse.json()
-      const tiers = priceModelData.data?.attributes?.tiers
-
-      // Extract tier 4+ pricing (the last tier with last_unit: "inf")
-      if (tiers && Array.isArray(tiers) && tiers.length > 1) {
-        // Find the tier for 4+ users (should be the tier with last_unit: "inf")
-        const paidTier = tiers.find(tier => tier.last_unit === 'inf' || tier.last_unit === Infinity)
-        if (paidTier) {
-          // Use unit_price_decimal (string) if available, fallback to unit_price (deprecated)
-          const unitPrice = paidTier.unit_price_decimal || paidTier.unit_price || '0'
-          price = parseFloat(unitPrice) / 100
-          console.log(`✅ Extracted tier 4+ price: ${price} PLN from graduated pricing (unit_price_decimal: ${unitPrice})`)
-        } else {
-          // Fallback to base variant price if tier not found
-          price = parseFloat(variantAttrs.price || '0') / 100
-          console.warn('⚠️ Could not find tier 4+ pricing, using base price')
-        }
-      } else {
-        // No graduated tiers, use base price
-        price = parseFloat(variantAttrs.price || '0') / 100
-      }
-    } else {
-      // Fallback to base variant price if price-model fetch fails
-      console.warn('⚠️ Could not fetch price-model, using base variant price')
-      price = parseFloat(variantAttrs.price || '0') / 100
-    }
 
     // Extract currency from formatted price (e.g., "10,00 PLN" → "PLN")
     const priceParts = variantAttrs.price_formatted?.split(' ') || []
