@@ -126,7 +126,7 @@ export async function GET(
     // Get users marked for removal with their effective dates
     const { data: usersMarkedForRemoval, error: markedForRemovalError } = await supabaseAdmin
       .from('user_organizations')
-      .select('removal_effective_date, profiles(email)')
+      .select('removal_effective_date, profiles!user_organizations_user_id_fkey(email)')
       .eq('organization_id', organizationId)
       .eq('status', 'pending_removal')
 

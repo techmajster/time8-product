@@ -186,9 +186,8 @@ export async function POST(
     const emails = invitations.map(inv => inv.email.toLowerCase())
     const { data: existingMembers, error: membersError } = await supabaseAdmin
       .from('user_organizations')
-      .select('email')
+      .select('user_id, profiles!user_organizations_user_id_fkey(email)')
       .eq('organization_id', organizationId)
-      .in('email', emails)
 
     if (membersError) {
       console.error('[BulkInvitations] Error checking existing members:', membersError)
@@ -198,12 +197,16 @@ export async function POST(
       )
     }
 
-    if (existingMembers && existingMembers.length > 0) {
-      const existingEmails = existingMembers.map(m => m.email)
+    // Filter existing members whose emails match the invitation emails
+    const existingEmailMatches = existingMembers
+      ?.filter(m => m.profiles?.email && emails.includes(m.profiles.email.toLowerCase()))
+      .map(m => m.profiles.email) || []
+
+    if (existingEmailMatches.length > 0) {
       return NextResponse.json(
         {
           error: 'Some emails are already members of this organization',
-          existingMembers: existingEmails
+          existingMembers: existingEmailMatches
         },
         { status: 400 }
       )
