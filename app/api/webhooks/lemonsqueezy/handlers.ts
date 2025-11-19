@@ -336,31 +336,50 @@ export async function processSubscriptionCreated(payload: any): Promise<EventRes
     }
 
     // CRITICAL FIX: Extract organization_id from custom_data for multi-workspace support
-    // Do NOT use customer.organization_id (which may be null or from a different workspace)
-    const organizationId = meta.custom_data?.organization_id;
+    // For migrations: organization_id is in custom_data
+    // For new workspaces: look up by organization_name
+    let organizationId = meta.custom_data?.organization_id;
+    let organization = null;
 
-    if (!organizationId) {
-      const error = 'Missing organization_id in webhook custom_data - cannot link subscription to organization';
+    if (organizationId) {
+      // Migration flow: validate organization_id from custom_data
+      const { data: org, error: orgError } = await supabase
+        .from('organizations')
+        .select('id, name')
+        .eq('id', organizationId)
+        .single();
+
+      if (orgError || !org) {
+        const error = `Organization not found: ${organizationId}`;
+        console.error(`❌ [Webhook] ${error}`, { organizationId, orgError });
+        await logBillingEvent(meta.event_name, meta.event_id, payload, 'failed', error);
+        return { success: false, error };
+      }
+      organization = org;
+      console.log(`✅ [Webhook] Using organization_id from custom_data: ${organization.name} (${organization.id})`);
+    } else if (meta.custom_data?.organization_name) {
+      // New workspace flow: look up by organization_name
+      const { data: org, error: orgError } = await supabase
+        .from('organizations')
+        .select('id, name')
+        .eq('name', meta.custom_data.organization_name)
+        .single();
+
+      if (orgError || !org) {
+        const error = `Organization not found by name: ${meta.custom_data.organization_name}`;
+        console.error(`❌ [Webhook] ${error}`, { organizationName: meta.custom_data.organization_name, orgError });
+        await logBillingEvent(meta.event_name, meta.event_id, payload, 'failed', error);
+        return { success: false, error };
+      }
+      organization = org;
+      organizationId = org.id;
+      console.log(`✅ [Webhook] Found organization by name: ${organization.name} (${organization.id})`);
+    } else {
+      const error = 'Missing both organization_id and organization_name in webhook custom_data';
       console.error(`❌ [Webhook] ${error}`, { customData: meta.custom_data });
       await logBillingEvent(meta.event_name, meta.event_id, payload, 'failed', error);
       return { success: false, error };
     }
-
-    // Validate that organization exists before creating subscription
-    const { data: organization, error: orgError } = await supabase
-      .from('organizations')
-      .select('id, name')
-      .eq('id', organizationId)
-      .single();
-
-    if (orgError || !organization) {
-      const error = `Organization not found: ${organizationId}`;
-      console.error(`❌ [Webhook] ${error}`, { organizationId, orgError });
-      await logBillingEvent(meta.event_name, meta.event_id, payload, 'failed', error);
-      return { success: false, error };
-    }
-
-    console.log(`✅ [Webhook] Validated organization: ${organization.name} (${organization.id})`);
 
 
     // Extract subscription_item_id for usage records API
