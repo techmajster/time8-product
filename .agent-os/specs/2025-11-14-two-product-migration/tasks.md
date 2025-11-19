@@ -199,15 +199,22 @@
   - [ ] 17.13 Test yearly paid → 3 seats (should show warning, allow)
   - [ ] 17.14 Verify all tests pass
 
-- [ ] 18. Implement Auto-Archive on Yearly Downgrade to 3 Seats
-  - [ ] 18.1 Check if auto-archive logic exists for yearly subscriptions
-  - [ ] 18.2 Implement archive trigger when yearly subscription ends with 3 seats
-  - [ ] 18.3 Keep owner + 2 oldest users (by invite date)
-  - [ ] 18.4 Archive all remaining users automatically
-  - [ ] 18.5 Test yearly subscription renewal with 3 seats
-  - [ ] 18.6 Verify users above 3 are archived correctly
-  - [ ] 18.7 Verify archived users lose access
-  - [ ] 18.8 Verify all tests pass
+- [ ] 18. Auto-Archive on Downgrade to Free Tier (Both Monthly & Yearly)
+  - [x] 18.1 Create /lib/billing/seat-validation.ts utility functions (count only active users)
+  - [x] 18.2 Update /api/team-management to return active_user_count
+  - [x] 18.3 Add translation keys for archive warnings (archiveUsersFirst, tooManyActiveUsers)
+  - [x] 18.4 Update update-subscription page to fetch active user count
+  - [x] 18.5 Disable minus button when active_users >= target_seats
+  - [x] 18.6 Add tooltip directing to Team Management with renewal date
+  - [x] 18.7 Enhance webhook to archive pending_removal users at renewal
+  - [x] 18.8 Enhance webhook to archive pending_removal users on cancellation
+  - [x] 18.9 Add unarchive validation for seat availability (check active + pending_invitations + 1 <= paid_seats)
+  - [x] 18.10 Update Team Management UI to show active vs total count
+  - [ ] 18.11 Test monthly downgrade flow with archive (manual archive then downgrade)
+  - [ ] 18.12 Test yearly downgrade flow with archive (manual archive then downgrade)
+  - [ ] 18.13 Test unarchive validation (should block when insufficient seats)
+  - [ ] 18.14 Test pending invitations count towards seats
+  - [ ] 18.15 Verify all tests pass
 
 - [x] 19. Fix Multi-Workspace Webhook Bug (LemonSqueezy Customer ID Reuse) ✅
   - [x] 19.1 Create migration to drop UNIQUE constraint on customers.organization_id

@@ -321,6 +321,14 @@ export async function GET() {
       email: item.profiles.email
     })) || []
 
+    // Get active user count (only status = 'active', excludes pending_removal and archived)
+    // This is used for downgrade validation in update-subscription page
+    const { count: activeUserCount } = await supabaseAdmin
+      .from('user_organizations')
+      .select('*', { count: 'exact', head: true })
+      .eq('organization_id', organizationId)
+      .eq('status', 'active')
+
     return NextResponse.json({
       teamMembers,
       teams: teamsWithDetails || [],
@@ -329,7 +337,8 @@ export async function GET() {
       pendingRemovalUsers: transformedPendingUsers,
       archivedUsers: transformedArchivedUsers,
       leaveTypes: leaveTypes || [],
-      approvers: approvers
+      approvers: approvers,
+      activeUserCount: activeUserCount || 0
     })
 
   } catch (error) {

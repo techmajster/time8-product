@@ -432,6 +432,16 @@ export default async function AdminTeamManagementPage() {
     email: item.profiles.email
   })) || []
 
+  // Get active user count (only status = 'active', excludes pending_removal and archived)
+  // This is used for seat limit display in the UI
+  const { count: activeUserCount } = await supabaseAdmin
+    .from('user_organizations')
+    .select('*', { count: 'exact', head: true })
+    .eq('organization_id', profile.organization_id)
+    .eq('status', 'active')
+
+  console.log('✅ Active user count:', activeUserCount || 0)
+
   return (
     <AppLayout>
       <TeamManagementClient
@@ -445,6 +455,7 @@ export default async function AdminTeamManagementPage() {
         archivedUsers={transformedArchivedUsers}
         leaveTypes={leaveTypes || []}
         approvers={approvers}
+        activeUserCount={activeUserCount || 0}
       />
     </AppLayout>
   )

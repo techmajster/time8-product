@@ -20,6 +20,7 @@ export interface SeatInfo {
   availableSeats: number  // Empty seats that can be filled
   freeTierSeats?: number  // Tier threshold (always 3)
   paidSeats?: number      // Number of paid seats
+  activeUserCount?: number // Only status='active' users (for downgrade validation)
   pendingInvitations: number
   usersMarkedForRemoval: number
   plan: 'free' | 'business'

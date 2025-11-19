@@ -188,6 +188,7 @@ export async function GET(
       availableSeats: seatInfo.availableSeats,  // ✅ CLEAR - empty seats that can be filled
       freeTierSeats: 3,                          // ✅ CLEAR - tier threshold (always 3 for graduated pricing)
       paidSeats: paidSeats,                      // Number of paid seats in subscription
+      activeUserCount: activeMembers || 0,       // Only status='active' users (for downgrade validation)
       pendingInvitations: seatInfo.pendingInvitations,
       usersMarkedForRemoval: (usersMarkedForRemoval || []).length,
       plan: (paidSeats > 0 ? 'business' : 'free') as 'free' | 'business',

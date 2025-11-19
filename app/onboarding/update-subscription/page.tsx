@@ -12,6 +12,7 @@ import { DecorativeBackground } from '@/components/auth/DecorativeBackground'
 import { LanguageDropdown } from '@/components/auth/LanguageDropdown'
 import { OnboardingLogo } from '@/components/OnboardingLogo'
 import { Minus, Plus, Loader2, Lock, Info } from 'lucide-react'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 function UpdateSubscriptionPageContent() {
   const t = useTranslations('onboarding.updateSubscription')
@@ -29,6 +30,7 @@ function UpdateSubscriptionPageContent() {
   const [subscriptionId, setSubscriptionId] = useState<string | null>(null)
   const [organizationData, setOrganizationData] = useState<{ name: string; slug: string; country_code: string } | null>(null)
   const [userEmail, setUserEmail] = useState<string | null>(null)
+  const [activeUserCount, setActiveUserCount] = useState<number>(0)
   const router = useRouter()
 
   useEffect(() => {
@@ -101,6 +103,18 @@ function UpdateSubscriptionPageContent() {
           slug: slug,
           country_code: org.country_code
         })
+      }
+
+      // Fetch active user count (for downgrade validation)
+      try {
+        const response = await fetch('/api/team-management')
+        if (response.ok) {
+          const data = await response.json()
+          setActiveUserCount(data.activeUserCount || 0)
+          console.log('✅ Active user count loaded:', data.activeUserCount)
+        }
+      } catch (error) {
+        console.error('❌ Failed to fetch active user count:', error)
       }
 
       // Fetch current subscription to determine billing period
@@ -387,14 +401,27 @@ function UpdateSubscriptionPageContent() {
             {/* Counter section */}
             <div className="flex gap-2 items-center w-80">
               {/* Minus button */}
-              <Button
-                onClick={() => handleUserCountChange(-1)}
-                disabled={userCount <= (!subscriptionId ? 4 : 3)}
-                variant="outline"
-                className="size-16 p-0 border-foreground"
-              >
-                <Minus className="size-6 text-foreground" />
-              </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div>
+                      <Button
+                        onClick={() => handleUserCountChange(-1)}
+                        disabled={userCount <= (!subscriptionId ? 4 : 3) || (activeUserCount > 0 && activeUserCount >= userCount - 1)}
+                        variant="outline"
+                        className="size-16 p-0 border-foreground"
+                      >
+                        <Minus className="size-6 text-foreground" />
+                      </Button>
+                    </div>
+                  </TooltipTrigger>
+                  {activeUserCount > 0 && activeUserCount >= userCount - 1 && (
+                    <TooltipContent className="max-w-xs">
+                      <p>{t('archiveUsersFirst', { renewalDate: formatRenewalDate(renewalDate) })}</p>
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
 
               {/* Number display */}
               <div className="flex-1 h-16 flex items-center justify-center border rounded-lg bg-white shadow-xs">

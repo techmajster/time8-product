@@ -832,6 +832,43 @@ export async function processSubscriptionUpdated(payload: any): Promise<EventRes
       );
     }
 
+    // Archive users marked as pending_removal at renewal
+    // This happens when subscription renews and users should lose access
+    const now = new Date();
+    const { data: usersToArchive, error: usersError } = await supabase
+      .from('user_organizations')
+      .select('user_id, removal_effective_date')
+      .eq('organization_id', existingSubscription.organization_id)
+      .eq('status', 'pending_removal')
+      .not('removal_effective_date', 'is', null)
+      .lte('removal_effective_date', now.toISOString());
+
+    let archivedCount = 0;
+
+    if (usersError) {
+      console.error(`❌ [Webhook] Failed to fetch users for archival: ${usersError.message}`);
+    } else if (usersToArchive && usersToArchive.length > 0) {
+      console.log(`🗄️  [Webhook] Archiving ${usersToArchive.length} users marked as pending_removal at renewal`);
+
+      // Update all users to archived status
+      const { error: archiveError } = await supabase
+        .from('user_organizations')
+        .update({
+          status: 'archived',
+          is_active: false,
+          updated_at: new Date().toISOString()
+        })
+        .eq('organization_id', existingSubscription.organization_id)
+        .in('user_id', usersToArchive.map(u => u.user_id));
+
+      if (archiveError) {
+        console.error(`❌ [Webhook] Failed to archive users: ${archiveError.message}`);
+      } else {
+        archivedCount = usersToArchive.length;
+        console.log(`✅ [Webhook] Successfully archived ${archivedCount} users at renewal`);
+      }
+    }
+
     // Log after state for comprehensive debugging
     const finalCurrentSeats = isUsageBased ? existingSubscription.current_seats : quantity;
     console.log(`✅ [Webhook] subscription_updated - After:`, {
@@ -843,6 +880,7 @@ export async function processSubscriptionUpdated(payload: any): Promise<EventRes
       status,
       paid_seats: seatsForOrg > 3 ? seatsForOrg : 0,
       subscription_tier: status === 'active' && seatsForOrg > 0 ? 'active' : 'free',
+      usersArchived: archivedCount,
       correlationId: meta.event_id,
       note: isUsageBased
         ? 'Usage-based: current_seats preserved, quantity=0'
@@ -850,7 +888,13 @@ export async function processSubscriptionUpdated(payload: any): Promise<EventRes
     });
 
     // Log successful processing
-    await logBillingEvent(meta.event_name, meta.event_id, payload, 'processed');
+    await logBillingEvent(
+      meta.event_name,
+      meta.event_id,
+      payload,
+      'processed',
+      archivedCount > 0 ? `Archived ${archivedCount} users at renewal` : undefined
+    );
 
     return {
       success: true,
@@ -954,6 +998,40 @@ export async function processSubscriptionCancelled(payload: any): Promise<EventR
       return { success: false, error };
     }
 
+    // Archive ALL users with pending_removal status on cancellation
+    // When subscription is cancelled, all pending removal users lose access immediately
+    const { data: usersToArchive, error: usersError } = await supabase
+      .from('user_organizations')
+      .select('user_id')
+      .eq('organization_id', existingSubscription.organization_id)
+      .eq('status', 'pending_removal');
+
+    let archivedCount = 0;
+
+    if (usersError) {
+      console.error(`❌ [Webhook] Failed to fetch users for archival on cancellation: ${usersError.message}`);
+    } else if (usersToArchive && usersToArchive.length > 0) {
+      console.log(`🗄️  [Webhook] Archiving ${usersToArchive.length} users on subscription cancellation`);
+
+      // Update all pending_removal users to archived status
+      const { error: archiveError } = await supabase
+        .from('user_organizations')
+        .update({
+          status: 'archived',
+          is_active: false,
+          updated_at: new Date().toISOString()
+        })
+        .eq('organization_id', existingSubscription.organization_id)
+        .in('user_id', usersToArchive.map(u => u.user_id));
+
+      if (archiveError) {
+        console.error(`❌ [Webhook] Failed to archive users on cancellation: ${archiveError.message}`);
+      } else {
+        archivedCount = usersToArchive.length;
+        console.log(`✅ [Webhook] Successfully archived ${archivedCount} users on cancellation`);
+      }
+    }
+
     // Reset organization subscription to free tier
     await updateOrganizationSubscription(supabase, existingSubscription.organization_id, 0, status);
 
@@ -966,13 +1044,20 @@ export async function processSubscriptionCancelled(payload: any): Promise<EventR
       current_seats: 0,         // Reset to 0
       paid_seats: 0,            // Organization reset to free tier
       subscription_tier: 'free',
+      usersArchived: archivedCount,
       ends_at: ends_at || null,
       renews_at: null,
       correlationId: eventId
     });
 
     // Log successful processing
-    await logBillingEvent(meta.event_name, eventId, payload, 'processed');
+    await logBillingEvent(
+      meta.event_name,
+      eventId,
+      payload,
+      'processed',
+      archivedCount > 0 ? `Archived ${archivedCount} users on cancellation` : undefined
+    );
 
     return {
       success: true,

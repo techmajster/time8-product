@@ -112,6 +112,7 @@ interface TeamManagementClientProps {
   archivedUsers?: ArchivedUser[]
   leaveTypes?: LeaveType[]
   approvers?: Approver[]
+  activeUserCount?: number
 }
 
 export function TeamManagementClient({
@@ -124,7 +125,8 @@ export function TeamManagementClient({
   pendingRemovalUsers: initialPendingUsers = [],
   archivedUsers: initialArchivedUsers = [],
   leaveTypes: initialLeaveTypes = [],
-  approvers: initialApprovers = []
+  approvers: initialApprovers = [],
+  activeUserCount: initialActiveUserCount = 0
 }: TeamManagementClientProps) {
   const router = useRouter()
 
@@ -137,6 +139,7 @@ export function TeamManagementClient({
   const [archivedUsers, setArchivedUsers] = useState<ArchivedUser[]>(initialArchivedUsers)
   const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>(initialLeaveTypes)
   const [approvers, setApprovers] = useState<Approver[]>(initialApprovers)
+  const [activeUserCount, setActiveUserCount] = useState<number>(initialActiveUserCount)
 
   // State for active tab (aktywni, zaproszeni, zarchiwizowani)
   const [activeTab, setActiveTab] = useState('aktywni')
@@ -184,6 +187,7 @@ export function TeamManagementClient({
       setLeaveBalances(data.leaveBalances || [])
       setInvitations(data.invitations || [])
       setPendingRemovalUsers(data.pendingRemovalUsers || [])
+      setActiveUserCount(data.activeUserCount || 0)
       setArchivedUsers(data.archivedUsers || [])
       setLeaveTypes(data.leaveTypes || [])
       setApprovers(data.approvers || [])
@@ -384,9 +388,30 @@ export function TeamManagementClient({
       <FigmaTabs value={activeTab} onValueChange={setActiveTab} className="w-full mt-6">
         <div className="relative -mx-12 px-12">
           <FigmaTabsList className="border-b-0">
-            <FigmaTabsTrigger value="aktywni">Aktywni</FigmaTabsTrigger>
-            <FigmaTabsTrigger value="zaproszeni">Zaproszeni</FigmaTabsTrigger>
-            <FigmaTabsTrigger value="zarchiwizowani">Zarchiwizowani</FigmaTabsTrigger>
+            <FigmaTabsTrigger value="aktywni">
+              Aktywni
+              {seatInfo && seatInfo.maxSeats > 0 && (
+                <span className="ml-2 text-xs text-muted-foreground font-normal">
+                  ({activeUserCount}/{seatInfo.maxSeats})
+                </span>
+              )}
+            </FigmaTabsTrigger>
+            <FigmaTabsTrigger value="zaproszeni">
+              Zaproszeni
+              {invitations && invitations.length > 0 && (
+                <span className="ml-2 text-xs text-muted-foreground font-normal">
+                  ({invitations.length})
+                </span>
+              )}
+            </FigmaTabsTrigger>
+            <FigmaTabsTrigger value="zarchiwizowani">
+              Zarchiwizowani
+              {archivedUsers && archivedUsers.length > 0 && (
+                <span className="ml-2 text-xs text-muted-foreground font-normal">
+                  ({archivedUsers.length})
+                </span>
+              )}
+            </FigmaTabsTrigger>
           </FigmaTabsList>
           <div className="absolute bottom-0 left-0 right-0 h-px bg-border" />
         </div>
