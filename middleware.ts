@@ -80,6 +80,10 @@ export async function middleware(request: NextRequest) {
     '/api/billing/products', // Public billing products endpoint
     '/api/billing/create-checkout', // Public checkout creation for onboarding
     '/api/webhooks/lemonsqueezy', // Lemon Squeezy webhooks
+    '/api/admin/delete-organization', // Admin organization deletion
+    '/api/admin/force-delete-org', // Admin force organization deletion
+    '/api/admin/migrate-billing-type', // Admin billing type migration
+    '/api/admin/list-orgs', // Admin list organizations
   ]
 
   const { pathname } = request.nextUrl
