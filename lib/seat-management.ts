@@ -7,6 +7,7 @@
 
 import { createAdminClient } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/permissions'
+import { getTotalOccupiedSeats } from '@/lib/billing/seat-validation'
 
 export interface RemoveUserResult {
   success: boolean
@@ -439,7 +440,7 @@ export async function reactivateArchivedUser(
       }
     }
 
-    // Get subscription details
+    // Get subscription and organization details for seat validation
     const { data: subscription, error: subError } = await supabase
       .from('subscriptions')
       .select('id, current_seats, pending_seats')
@@ -451,6 +452,35 @@ export async function reactivateArchivedUser(
       return {
         success: false,
         error: 'Active subscription not found'
+      }
+    }
+
+    // Get organization to check paid_seats
+    const { data: organization, error: orgError } = await supabase
+      .from('organizations')
+      .select('paid_seats')
+      .eq('id', organizationId)
+      .single()
+
+    if (orgError || !organization) {
+      return {
+        success: false,
+        error: 'Organization not found'
+      }
+    }
+
+    // Validate seat availability BEFORE reactivating
+    // Check that active + pending_invitations + 1 (for the user being reactivated) <= total_seats
+    const { activeUsers, pendingInvitations, totalOccupied } = await getTotalOccupiedSeats(organizationId)
+
+    // Calculate total seats (free tier = 3, paid tier = paid_seats)
+    const totalSeats = organization.paid_seats > 0 ? organization.paid_seats : 3
+    const availableSeats = Math.max(0, totalSeats - totalOccupied)
+
+    if (availableSeats < 1) {
+      return {
+        success: false,
+        error: `No available seats. You have ${activeUsers} active users and ${pendingInvitations} pending invitations. Upgrade your plan or archive users first.`
       }
     }
 

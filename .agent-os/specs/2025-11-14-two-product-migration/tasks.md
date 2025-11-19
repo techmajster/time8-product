@@ -2,86 +2,252 @@
 
 ## Tasks
 
-- [x] 1. Database Schema Migration
-  - [x] 1.1 Write migration script to add `lemonsqueezy_product_id` column
-  - [x] 1.2 Write migration script to add `migrated_to_subscription_id` column
-  - [x] 1.3 Add backfill logic to populate product_id based on variant mapping
-  - [x] 1.4 Run migration on development database
-  - [x] 1.5 Verify indexes created correctly
-  - [x] 1.6 Run migration on production database (after testing)
+- [x] 1. Fix Critical Billing Period and Seat Count Bugs
+  - [x] 1.1 Write tests for billing period tracking and seat count display
+  - [x] 1.2 Create migration to add `billing_period` enum column to subscriptions table
+  - [x] 1.3 Update webhook handler to extract and save `tier` from custom_data
+  - [x] 1.4 Update SubscriptionWidget to query actual user count from organization_members
+  - [x] 1.5 Update update-subscription page to use billing_period column as primary source
+  - [x] 1.6 Find and fix "Upgrade to paid plan" button redirect path
+  - [x] 1.7 Add billing_period to organization creation flow for free tier
+  - [x] 1.8 Test complete workspace creation flow with monthly selection
+  - [x] 1.9 Verify seat count shows "1 z 3 miejsc" for first user
+  - [x] 1.10 Verify all tests pass
 
-- [x] 2. Environment Variables Configuration
-  - [x] 2.1 Add LEMONSQUEEZY_MONTHLY_PRODUCT_ID=621389 to .env.example
-  - [x] 2.2 Add LEMONSQUEEZY_YEARLY_PRODUCT_ID=693341 to .env.example
-  - [x] 2.3 Update LEMONSQUEEZY_YEARLY_VARIANT_ID=1090954 in .env.example
-  - [x] 2.4 Update production environment variables in Vercel
+- [x] 2. Database Schema Migration (Product ID Tracking)
+  - [x] 2.1 Write migration script to add `lemonsqueezy_product_id` column
+  - [x] 2.2 Write migration script to add `migrated_to_subscription_id` column
+  - [x] 2.3 Add backfill logic to populate product_id based on variant mapping
+  - [x] 2.4 Run migration on development database
+  - [x] 2.5 Verify indexes created correctly
+  - [x] 2.6 Run migration on production database (after testing)
 
-- [x] 3. Create New Switch-to-Yearly Endpoint
-  - [x] 3.1 Write tests for /api/billing/switch-to-yearly endpoint
-  - [x] 3.2 Create app/api/billing/switch-to-yearly/route.ts file
-  - [x] 3.3 Implement authentication and organization context validation
-  - [x] 3.4 Implement monthly subscription fetch logic
-  - [x] 3.5 Implement yearly checkout creation with custom_data
-  - [x] 3.6 Implement error handling for checkout failures
-  - [x] 3.7 Verify all tests pass
+- [x] 3. Environment Variables Configuration
+  - [x] 3.1 Add LEMONSQUEEZY_MONTHLY_PRODUCT_ID=621389 to .env.example
+  - [x] 3.2 Add LEMONSQUEEZY_YEARLY_PRODUCT_ID=693341 to .env.example
+  - [x] 3.3 Update LEMONSQUEEZY_YEARLY_VARIANT_ID=1090954 in .env.example
+  - [x] 3.4 Update production environment variables in Vercel
 
-- [x] 4. Update Change Billing Period Endpoint
-  - [x] 4.1 Write tests for yearly→monthly blocking logic
-  - [x] 4.2 Add validation to block yearly→monthly switches (before line 106)
-  - [x] 4.3 Add redirect logic for monthly→yearly to new endpoint
-  - [x] 4.4 Update error responses with renewal_date
-  - [x] 4.5 Verify all tests pass
+- [x] 4. Create New Switch-to-Yearly Endpoint
+  - [x] 4.1 Write tests for /api/billing/switch-to-yearly endpoint
+  - [x] 4.2 Create app/api/billing/switch-to-yearly/route.ts file
+  - [x] 4.3 Implement authentication and organization context validation
+  - [x] 4.4 Implement monthly subscription fetch logic
+  - [x] 4.5 Implement yearly checkout creation with custom_data
+  - [x] 4.6 Implement error handling for checkout failures
+  - [x] 4.7 Verify all tests pass
 
-- [x] 5. Update Webhook Handlers
-  - [x] 5.1 Write tests for subscription_created webhook with product_id
-  - [x] 5.2 Update subscription_created handler to extract product_id
-  - [x] 5.3 Update database insert to save lemonsqueezy_product_id
-  - [x] 5.4 Implement migration detection logic (check custom_data)
-  - [x] 5.5 Implement old subscription cancellation logic
-  - [x] 5.6 Implement database update for migrated subscription status
-  - [x] 5.7 Add error handling for cancellation failures
-  - [x] 5.8 Verify all tests pass
+- [x] 5. Update Change Billing Period Endpoint
+  - [x] 5.1 Write tests for yearly→monthly blocking logic
+  - [x] 5.2 Add validation to block yearly→monthly switches (before line 106)
+  - [x] 5.3 Add redirect logic for monthly→yearly to new endpoint
+  - [x] 5.4 Update error responses with renewal_date
+  - [x] 5.5 Verify all tests pass
 
-- [ ] 6. Create Update Subscription Page
-  - [ ] 6.1 Create /app/onboarding/update-subscription/page.tsx
-  - [ ] 6.2 Implement seat adjustment controls (+/- buttons)
-  - [ ] 6.3 Implement pricing cards display (monthly + yearly)
-  - [ ] 6.4 Implement monthly user flow (both cards selectable)
-  - [ ] 6.5 Implement yearly user flow (banner + locked monthly card)
-  - [ ] 6.6 Fetch and display renewal date for yearly users
-  - [ ] 6.7 Implement API call logic based on user changes
-  - [ ] 6.8 Add loading states and error handling
-  - [ ] 6.9 Write tests for all user flows
-  - [ ] 6.10 Verify all tests pass
+- [x] 6. Update Webhook Handlers
+  - [x] 6.1 Write tests for subscription_created webhook with product_id
+  - [x] 6.2 Update subscription_created handler to extract product_id
+  - [x] 6.3 Update database insert to save lemonsqueezy_product_id
+  - [x] 6.4 Implement migration detection logic (check custom_data)
+  - [x] 6.5 Implement old subscription cancellation logic
+  - [x] 6.6 Implement database update for migrated subscription status
+  - [x] 6.7 Add error handling for cancellation failures
+  - [x] 6.8 Verify all tests pass
 
-- [ ] 7. Update Admin Settings & Simplify Add Users Page
-  - [ ] 7.1 Update AdminSettingsClient: Replace two buttons with "Manage Subscription"
-  - [ ] 7.2 Update handler to redirect to /onboarding/update-subscription
-  - [ ] 7.3 Remove old handleManageSeatSubscription handler
-  - [ ] 7.4 Remove old handleChangeBillingPeriod handler
-  - [ ] 7.5 Simplify add-users page: Remove isUpgradeFlow logic
-  - [ ] 7.6 Simplify add-users page: Remove subscription fetching
-  - [ ] 7.7 Simplify add-users page: Update warning text
-  - [ ] 7.8 Delete /app/onboarding/change-billing-period/page.tsx
-  - [ ] 7.9 Delete /__tests__/app/onboarding/change-billing-period/
-  - [ ] 7.10 Verify all tests pass
+- [x] 7. Create Update Subscription Page
+  - [x] 7.1 Create /app/onboarding/update-subscription/page.tsx
+  - [x] 7.2 Implement seat adjustment controls (+/- buttons)
+  - [x] 7.3 Implement pricing cards display (monthly + yearly)
+  - [x] 7.4 Implement monthly user flow (both cards selectable)
+  - [x] 7.5 Implement yearly user flow (banner + locked monthly card)
+  - [x] 7.6 Fetch and display renewal date for yearly users
+  - [x] 7.7 Implement API call logic based on user changes
+  - [x] 7.8 Add loading states and error handling
+  - [x] 7.9 Write tests for all user flows
+  - [x] 7.10 Verify all tests pass
 
-- [ ] 8. Integration Testing
-  - [ ] 8.1 Test monthly→yearly upgrade flow end-to-end on development
-  - [ ] 8.2 Verify seat preservation through checkout custom_data
-  - [ ] 8.3 Verify webhook cancels old subscription correctly
-  - [ ] 8.4 Verify database status updates to 'migrated'
-  - [ ] 8.5 Test yearly→monthly blocking in UI and API
-  - [ ] 8.6 Verify renewal date display accuracy
-  - [ ] 8.7 Test error scenarios (checkout failure, cancel failure)
-  - [ ] 8.8 Verify all tests pass
+- [ ] 8. Update Admin Settings & Simplify Add Users Page
+  - [x] 8.1 Update AdminSettingsClient: Replace two buttons with "Manage Subscription"
+  - [x] 8.2 Update handler to redirect to /onboarding/update-subscription
+  - [x] 8.3 Remove old handleManageSeatSubscription handler
+  - [x] 8.4 Remove old handleChangeBillingPeriod handler
+  - [x] 8.5 Simplify add-users page: Remove isUpgradeFlow logic
+  - [x] 8.6 Simplify add-users page: Remove subscription fetching
+  - [x] 8.7 Simplify add-users page: Update warning text
+  - [x] 8.8 Delete /app/onboarding/change-billing-period/page.tsx
+  - [x] 8.9 Delete /__tests__/app/onboarding/change-billing-period/
+  - [ ] 8.10 Verify all tests pass
 
-- [ ] 9. Documentation and Deployment
-  - [ ] 9.1 Update README with new environment variables
-  - [ ] 9.2 Document migration flow for team
-  - [ ] 9.3 Create rollback plan for database migration
-  - [ ] 9.4 Deploy to production
-  - [ ] 9.5 Monitor logs for migration events
-  - [ ] 9.6 Verify production monthly→yearly upgrade works
-  - [ ] 9.7 Verify production yearly→monthly blocking works
-  - [ ] 9.8 All production tests verified
+- [ ] 9. Integration Testing
+  - [ ] 9.1 Test monthly→yearly upgrade flow end-to-end on development
+  - [ ] 9.2 Verify seat preservation through checkout custom_data
+  - [ ] 9.3 Verify webhook cancels old subscription correctly
+  - [ ] 9.4 Verify database status updates to 'migrated'
+  - [ ] 9.5 Test yearly→monthly blocking in UI and API
+  - [ ] 9.6 Verify renewal date display accuracy
+  - [ ] 9.7 Test error scenarios (checkout failure, cancel failure)
+  - [ ] 9.8 Verify all tests pass
+
+- [ ] 10. Documentation and Deployment
+  - [ ] 10.1 Update README with new environment variables
+  - [ ] 10.2 Document migration flow for team
+  - [ ] 10.3 Create rollback plan for database migration
+  - [ ] 10.4 Deploy to production
+  - [ ] 10.5 Monitor logs for migration events
+  - [ ] 10.6 Verify production monthly→yearly upgrade works
+  - [ ] 10.7 Verify production yearly→monthly blocking works
+  - [ ] 10.8 All production tests verified
+
+- [ ] 11. Fix Webhook Reliability & Implement Auto-Archival
+  - [ ] 11.1 Write tests for `subscription_deleted` webhook handler
+  - [ ] 11.2 Add `subscription_deleted` case to webhook route.ts switch statement
+  - [ ] 11.3 Implement `processSubscriptionDeleted()` handler in handlers.ts
+  - [ ] 11.4 Write tests for `subscription_unpaused` webhook handler
+  - [ ] 11.5 Implement `processSubscriptionUnpaused()` handler in handlers.ts
+  - [ ] 11.6 Verify webhook handlers log to billing_events correctly
+  - [ ] 11.7 Write tests for user selection logic (owner + 2 admins priority)
+  - [ ] 11.8 Create `selectUsersToKeepOnDowngrade()` helper in lib/billing/
+  - [ ] 11.9 Write tests for auto-archival on subscription cancellation
+  - [ ] 11.10 Enhance `processSubscriptionCancelled()` with auto-archival logic
+  - [ ] 11.11 Enhance `processSubscriptionDeleted()` with auto-archival logic
+  - [ ] 11.12 Only archive if seats > 3 (preserve free tier access)
+  - [ ] 11.13 Write tests for reconciliation cron with auto-archival
+  - [ ] 11.14 Enhance `/api/cron/reconcile-subscriptions` endpoint
+  - [ ] 11.15 Fetch subscription status from LemonSqueezy API
+  - [ ] 11.16 Compare with database, detect discrepancies
+  - [ ] 11.17 Auto-fix status/seats mismatches in database
+  - [ ] 11.18 Trigger archival if subscription cancelled/deleted remotely
+  - [ ] 11.19 Add comprehensive logging to billing_events table
+  - [ ] 11.20 Document LemonSqueezy dashboard webhook configuration
+  - [ ] 11.21 Add verification checklist for webhook event subscriptions
+  - [ ] 11.22 Verify all tests pass
+
+- [ ] 12. Fix Work Mode Column Migration Conflict (PRODUCTION BLOCKER)
+  - [x] 12.1 Create database cleanup migration file
+  - [x] 12.2 Migrate existing `work_mode = 'monday_to_friday'` to `work_schedule_type = 'daily'`
+  - [x] 12.3 Drop old `work_mode` column and constraint
+  - [x] 12.4 Verify migration on local database
+  - [x] 12.5 Remove `work_mode` from API endpoint (app/api/admin/settings/work-mode/route.ts)
+  - [x] 12.6 Remove value mapping logic (lib/validations/work-mode.ts)
+  - [x] 12.7 Update type definitions (lib/auth-utils-v2.ts)
+  - [x] 12.8 Update WorkModeSettings component (app/admin/settings/components/)
+  - [x] 12.9 Update use-admin-mutations hook (hooks/use-admin-mutations.ts)
+  - [x] 12.10 Remove old values from types/leave.ts
+  - [x] 12.11 Update all test files and component types to use new column/values
+  - [x] 12.12 Test organization creation locally
+  - [x] 12.13 Test Tryb Pracy admin settings UI
+  - [x] 12.14 Verify calendar uses work_schedule_type correctly
+  - [x] 12.15 Run full test suite
+  - [ ] 12.16 Deploy migration to production
+  - [ ] 12.17 Verify production organization creation works
+  - [ ] 12.18 Monitor production for constraint violations
+  - [ ] 12.19 Verify all tests pass
+
+- [x] 13. Fix Production Issue: Empty user_email Causing 422 Errors
+  - [x] 13.1 Add userEmail state to update-subscription page
+  - [x] 13.2 Fetch authenticated user email in update-subscription page
+  - [x] 13.3 Pass user_email to checkout API call
+  - [x] 13.4 Add userEmail state to invite-users-dialog
+  - [x] 13.5 Fetch authenticated user email in invite-users-dialog
+  - [x] 13.6 Pass user_email to checkout API call from dialog
+  - [x] 13.7 Update create-checkout route to conditionally add user_email
+  - [x] 13.8 Test workspace upgrade from 3 to 4 seats
+  - [x] 13.9 Verify checkout creation succeeds
+  - [x] 13.10 Commit: fad225f "Pass authenticated user email to checkout"
+
+- [x] 14. Fix Production Issue: Trailing Newline in Variant ID
+  - [x] 14.1 Add .trim() to variant ID reads in pricing.ts (getDynamicPricing)
+  - [x] 14.2 Add .trim() to variant ID reads in pricing.ts (getStaticPricingInfo)
+  - [x] 14.3 Add .trim() to fallback variant IDs in pricing route
+  - [x] 14.4 User manually removed trailing newline from Vercel env vars
+  - [x] 14.5 Test yearly plan upgrade
+  - [x] 14.6 Verify checkout creation succeeds (no 404)
+  - [x] 14.7 Commit: ed7f3a5 "Trim variant IDs to remove trailing newlines"
+
+- [x] 15. Fix Production Issue: Wrong Checkout Description
+  - [x] 15.1 Update create-checkout route description to be dynamic
+  - [x] 15.2 Use tier parameter to determine monthly vs annual wording
+  - [x] 15.3 Test monthly checkout description
+  - [x] 15.4 Test yearly checkout description
+  - [x] 15.5 Commit: c0daff8 "Update checkout description to show correct billing period"
+
+- [ ] 16. Fix LemonSqueezy Pricing Model (Graduated → Volume)
+  - [x] 16.1 User changed monthly variant from graduated to volume in LemonSqueezy dashboard
+  - [x] 16.2 Verify pricing model via LemonSqueezy API (GET /variants/{id})
+  - [x] 16.3 Confirm monthly variant (972634) uses volume pricing
+  - [x] 16.4 Confirm yearly variant (1090954) uses volume pricing
+  - [x] 16.5 Verify usage-based billing implementation in seat-manager.ts
+  - [x] 16.6 Confirm usage records API uses MAX aggregation
+  - [ ] 16.7 Test checkout pricing calculation for 4 seats (should be 4 × rate)
+  - [ ] 16.8 Verify monthly: 4 seats = 40 PLN total
+  - [ ] 16.9 Verify yearly: 4 seats = 384 PLN total (96 × 4)
+  - [ ] 16.10 Document graduated vs volume pricing difference in spec
+
+- [ ] 17. Revise Seat Minimum Logic (Free vs Paid Tier)
+  - [ ] 17.1 Remove forced initialization to 4 seats for free tier users
+  - [ ] 17.2 Add validation: free tier → paid upgrade requires 4+ seats
+  - [ ] 17.3 Add validation: paid users CAN select 3 seats (downgrade to free)
+  - [ ] 17.4 Add downgrade warning for monthly users selecting 3 seats
+  - [ ] 17.5 Add downgrade warning for yearly users selecting 3 seats
+  - [ ] 17.6 Add translation key: minimumFourSeatsForPaid
+  - [ ] 17.7 Add translation key: yearlyDowngradeWarning
+  - [ ] 17.8 Add translation key: monthlyDowngradeWarning
+  - [ ] 17.9 Update update-subscription page with correct validation logic
+  - [ ] 17.10 Test free tier → 4+ seats (should succeed)
+  - [ ] 17.11 Test free tier → 3 seats (should show error)
+  - [ ] 17.12 Test monthly paid → 3 seats (should show warning, allow)
+  - [ ] 17.13 Test yearly paid → 3 seats (should show warning, allow)
+  - [ ] 17.14 Verify all tests pass
+
+- [ ] 18. Auto-Archive on Downgrade to Free Tier (Both Monthly & Yearly)
+  - [x] 18.1 Create /lib/billing/seat-validation.ts utility functions (count only active users)
+  - [x] 18.2 Update /api/team-management to return active_user_count
+  - [x] 18.3 Add translation keys for archive warnings (archiveUsersFirst, tooManyActiveUsers)
+  - [x] 18.4 Update update-subscription page to fetch active user count
+  - [x] 18.5 Disable minus button when active_users >= target_seats
+  - [x] 18.6 Add tooltip directing to Team Management with renewal date
+  - [x] 18.7 Enhance webhook to archive pending_removal users at renewal
+  - [x] 18.8 Enhance webhook to archive pending_removal users on cancellation
+  - [x] 18.9 Add unarchive validation for seat availability (check active + pending_invitations + 1 <= paid_seats)
+  - [x] 18.10 Update Team Management UI to show active vs total count
+  - [ ] 18.11 Test monthly downgrade flow with archive (manual archive then downgrade)
+  - [ ] 18.12 Test yearly downgrade flow with archive (manual archive then downgrade)
+  - [ ] 18.13 Test unarchive validation (should block when insufficient seats)
+  - [ ] 18.14 Test pending invitations count towards seats
+  - [ ] 18.15 Verify all tests pass
+
+- [x] 19. Fix Multi-Workspace Webhook Bug (LemonSqueezy Customer ID Reuse) ✅
+  - [x] 19.1 Create migration to drop UNIQUE constraint on customers.organization_id
+  - [x] 19.2 Run migration on development database
+  - [x] 19.3 Refactor findOrCreateCustomer() to remove organization lookup logic
+  - [x] 19.4 Update findOrCreateCustomer() to only find/create customer by lemonsqueezy_customer_id
+  - [x] 19.5 Update processSubscriptionCreated() to extract organization_id from custom_data
+  - [x] 19.6 Add validation that organization exists before creating subscription
+  - [x] 19.7 Add error handling for missing organization_id in webhook custom_data
+  - [x] 19.8 Update subscription insert to use organization_id from custom_data
+  - [x] 19.9 Test: Create workspace A with email@test.com → verify subscription links to org A
+  - [x] 19.10 Test: Create workspace B with email@test.com → verify subscription links to org B
+  - [x] 19.11 Verify database shows: one customer, two subscriptions, different organization_ids
+  - [x] 19.12 Test: Upgrade workspace A seats → verify only workspace A affected
+  - [x] 19.13 Test: Upgrade workspace B seats → verify only workspace B affected
+  - [x] 19.14 Delete test organizations (testlemoniady, testlemoniady_narok)
+  - [x] 19.15 Verify all tests pass
+  - [x] 19.16 Deploy migration to production
+  - [x] 19.17 Monitor production logs for webhook processing
+  - [x] 19.18 Verify production multi-workspace creation works
+
+- [x] 20. Fix Monthly→Yearly Migration Bugs (CRITICAL) ✅
+  - [x] 20.1 Add 'migrated' status to subscriptions table constraint
+  - [x] 20.2 Create database migration for status constraint update
+  - [x] 20.3 Run migration on development database
+  - [x] 20.4 Fix migration customer lookup to use custom_data.organization_id
+  - [x] 20.5 Extract user_count from preserve_seats (not user_count) during migration
+  - [x] 20.6 Update processSubscriptionCreated to use preserve_seats for yearly migrations
+  - [x] 20.7 Update /api/billing/subscription to filter out inactive subscriptions
+  - [x] 20.8 Test monthly→yearly migration with 7 seats preserved
+  - [x] 20.9 Verify UI shows only active (yearly) subscription
+  - [x] 20.10 Verify database shows correct seats (7) and tier (paid)
+  - [x] 20.11 Verify old subscription marked as 'migrated' status
+  - [x] 20.12 Verify organization subscription_tier updated correctly
+  - [x] 20.13 Verify all tests pass
+  - [x] 20.14 Deploy fixes to production
