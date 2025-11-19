@@ -169,8 +169,8 @@ async function fetchVariantPricing(variantId: string) {
  * Uses REST API directly to fetch graduated pricing tiers
  */
 export async function getDynamicPricing(): Promise<PricingInfo> {
-  const monthlyVariantId = process.env.LEMONSQUEEZY_MONTHLY_VARIANT_ID!
-  const yearlyVariantId = process.env.LEMONSQUEEZY_YEARLY_VARIANT_ID!
+  const monthlyVariantId = (process.env.LEMONSQUEEZY_MONTHLY_VARIANT_ID || '').trim()
+  const yearlyVariantId = (process.env.LEMONSQUEEZY_YEARLY_VARIANT_ID || '').trim()
 
   console.log('🔄 Fetching pricing from LemonSqueezy API...')
   console.log('   Monthly variant:', monthlyVariantId)
@@ -264,7 +264,7 @@ export function getStaticPricingInfo(): PricingInfo {
     monthlyPricePerSeat: parseFloat(process.env.NEXT_PUBLIC_MONTHLY_PRICE_PER_SEAT || '10.00'),
     annualPricePerSeat: parseFloat(process.env.NEXT_PUBLIC_ANNUAL_PRICE_PER_SEAT || '8.00'),
     currency: process.env.NEXT_PUBLIC_CURRENCY || 'PLN',
-    monthlyVariantId: process.env.NEXT_PUBLIC_LEMONSQUEEZY_MONTHLY_VARIANT_ID || '972634',
-    yearlyVariantId: process.env.NEXT_PUBLIC_LEMONSQUEEZY_YEARLY_VARIANT_ID || '972635'
+    monthlyVariantId: (process.env.NEXT_PUBLIC_LEMONSQUEEZY_MONTHLY_VARIANT_ID || '972634').trim(),
+    yearlyVariantId: (process.env.NEXT_PUBLIC_LEMONSQUEEZY_YEARLY_VARIANT_ID || '972635').trim()
   }
 }
