@@ -942,7 +942,7 @@ export default function AdminSettingsClient({
                           </Label>
                           <div className="text-sm text-muted-foreground space-y-1">
                             <div>• {t('plan')}: {subscriptionData.variant?.name || 'Subscription Plan'}</div>
-                            <div>• {t('price')}: {formatCurrency(subscriptionData.variant?.price || 0)} {t('perSeat')}</div>
+                            <div>• {t('price')}: {formatCurrency(subscriptionData.variant?.price || 0)} {t('perSeat')}{subscriptionData.variant?.interval === 'year' ? '/rok' : '/mies.'}</div>
                             {subscriptionData.current_period_end && (
                               <div>• {t('nextBilling')}: {formatDate(subscriptionData.current_period_end)}</div>
                             )}
@@ -1118,17 +1118,6 @@ export default function AdminSettingsClient({
                 </div>
               </CardContent>
             </Card>
-          )}
-
-          {/* Subscription Widget */}
-          {initialSubscription && (
-            <SubscriptionWidget
-              currentSeats={initialSubscription.current_seats}
-              seatLimit={initialSubscription.seat_limit}
-              renewsAt={initialSubscription.renews_at}
-              status={initialSubscription.status as 'active' | 'on_trial' | 'past_due' | 'cancelled'}
-              className="mt-6"
-            />
           )}
 
           {/* Pending Removals Section */}

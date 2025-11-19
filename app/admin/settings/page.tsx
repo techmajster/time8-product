@@ -141,7 +141,7 @@ export default async function AdminSettingsPage() {
   const subscriptionData = subscription ? {
     ...subscription,
     current_seats: actualUserCount || 0, // Use actual user count
-    seat_limit: 3 // Free tier limit (subscription.current_seats is the paid limit)
+    seat_limit: subscription.current_seats || 3 // Use subscription limit, fallback to free tier (3)
   } : null
 
   // Get users with pending_removal status
