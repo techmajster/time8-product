@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import crypto from 'crypto'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/permissions'
 import { sendInvitationEmail } from '@/lib/email'
@@ -342,7 +343,8 @@ export async function POST(
       personal_message: inv.personalMessage || null,
       invited_by: user.id,
       status: 'pending' as const,
-      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days from now
+      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
+      token: crypto.randomBytes(32).toString('hex') // Generate unique token for invitation link
     }))
 
     const { data: createdInvitations, error: createError } = await supabaseAdmin
