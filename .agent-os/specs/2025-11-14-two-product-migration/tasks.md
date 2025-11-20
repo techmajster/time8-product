@@ -212,8 +212,8 @@
   - [x] 18.10 Update Team Management UI to show active vs total count
   - [ ] 18.11 Test monthly downgrade flow with archive (manual archive then downgrade)
   - [x] 18.12 Test yearly downgrade flow with archive (manual archive then downgrade)
-  - [ ] 18.13 Test unarchive validation (should block when insufficient seats)
-  - [ ] 18.14 Test pending invitations count towards seats
+  - [x] 18.13 Test unarchive validation (should block when insufficient seats)
+  - [x] 18.14 Test pending invitations count towards seats
   - [ ] 18.15 Verify all tests pass
 
 - [x] 19. Fix Multi-Workspace Webhook Bug (LemonSqueezy Customer ID Reuse) ✅
