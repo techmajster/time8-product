@@ -178,9 +178,9 @@
   - [x] 16.4 Confirm yearly variant (1090954) uses volume pricing
   - [x] 16.5 Verify usage-based billing implementation in seat-manager.ts
   - [x] 16.6 Confirm usage records API uses MAX aggregation
-  - [ ] 16.7 Test checkout pricing calculation for 4 seats (should be 4 × rate)
-  - [ ] 16.8 Verify monthly: 4 seats = 40 PLN total
-  - [ ] 16.9 Verify yearly: 4 seats = 384 PLN total (96 × 4)
+  - [x] 16.7 Test checkout pricing calculation for 4 seats (should be 4 × rate)
+  - [x] 16.8 Verify monthly: 4 seats = 40 PLN total
+  - [x] 16.9 Verify yearly: 4 seats = 384 PLN total (96 × 4)
   - [ ] 16.10 Document graduated vs volume pricing difference in spec
 
 - [ ] 17. Revise Seat Minimum Logic (Free vs Paid Tier)
@@ -199,7 +199,7 @@
   - [ ] 17.13 Test yearly paid → 3 seats (should show warning, allow)
   - [ ] 17.14 Verify all tests pass
 
-- [ ] 18. Auto-Archive on Downgrade to Free Tier (Both Monthly & Yearly)
+- [x] 18. Auto-Archive on Downgrade to Free Tier (Both Monthly & Yearly)
   - [x] 18.1 Create /lib/billing/seat-validation.ts utility functions (count only active users)
   - [x] 18.2 Update /api/team-management to return active_user_count
   - [x] 18.3 Add translation keys for archive warnings (archiveUsersFirst, tooManyActiveUsers)
@@ -210,11 +210,11 @@
   - [x] 18.8 Enhance webhook to archive pending_removal users on cancellation
   - [x] 18.9 Add unarchive validation for seat availability (check active + pending_invitations + 1 <= paid_seats)
   - [x] 18.10 Update Team Management UI to show active vs total count
-  - [ ] 18.11 Test monthly downgrade flow with archive (manual archive then downgrade)
+  - [x] 18.11 Test monthly downgrade flow with archive (manual archive then downgrade)
   - [x] 18.12 Test yearly downgrade flow with archive (manual archive then downgrade)
   - [x] 18.13 Test unarchive validation (should block when insufficient seats)
   - [x] 18.14 Test pending invitations count towards seats
-  - [ ] 18.15 Verify all tests pass
+  - [x] 18.15 Verify all tests pass
 
 - [x] 19. Fix Multi-Workspace Webhook Bug (LemonSqueezy Customer ID Reuse) ✅
   - [x] 19.1 Create migration to drop UNIQUE constraint on customers.organization_id

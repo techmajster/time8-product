@@ -91,7 +91,7 @@ function getBreadcrumbItems(pathname: string, t?: any) {
       'groups': t?.('navigation.groupsPage') || 'Groups',
       'schedule': t?.('navigation.schedule') || 'Schedule',
       'settings': t?.('navigation.settings') || 'Settings',
-      'profile': t?.('navigation.profile') || 'Profile',
+      'profile': t?.('navigation.profile') || 'Mój profil',
       'admin': t?.('navigation.admin') || 'Administration',
       'new': t?.('leave.newRequest') || 'New Request',
       'edit': t?.('common.edit') || 'Edit Request',
