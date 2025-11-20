@@ -2,7 +2,7 @@
 
 ## Tasks
 
-- [ ] 1. Fix Critical Billing Period and Seat Count Bugs
+- [x] 1. Fix Critical Billing Period and Seat Count Bugs
   - [x] 1.1 Write tests for billing period tracking and seat count display
   - [x] 1.2 Create migration to add `billing_period` enum column to subscriptions table
   - [x] 1.3 Update webhook handler to extract and save `tier` from custom_data
@@ -10,9 +10,9 @@
   - [x] 1.5 Update update-subscription page to use billing_period column as primary source
   - [x] 1.6 Find and fix "Upgrade to paid plan" button redirect path
   - [x] 1.7 Add billing_period to organization creation flow for free tier
-  - [ ] 1.8 Test complete workspace creation flow with monthly selection
-  - [ ] 1.9 Verify seat count shows "1 z 3 miejsc" for first user
-  - [ ] 1.10 Verify all tests pass
+  - [x] 1.8 Test complete workspace creation flow with monthly selection
+  - [x] 1.9 Verify seat count shows "1 z 3 miejsc" for first user
+  - [x] 1.10 Verify all tests pass
 
 - [x] 2. Database Schema Migration (Product ID Tracking)
   - [x] 2.1 Write migration script to add `lemonsqueezy_product_id` column
@@ -66,7 +66,7 @@
   - [x] 7.9 Write tests for all user flows
   - [x] 7.10 Verify all tests pass
 
-- [ ] 8. Update Admin Settings & Simplify Add Users Page
+- [x] 8. Update Admin Settings & Simplify Add Users Page
   - [x] 8.1 Update AdminSettingsClient: Replace two buttons with "Manage Subscription"
   - [x] 8.2 Update handler to redirect to /onboarding/update-subscription
   - [x] 8.3 Remove old handleManageSeatSubscription handler
@@ -76,17 +76,17 @@
   - [x] 8.7 Simplify add-users page: Update warning text
   - [x] 8.8 Delete /app/onboarding/change-billing-period/page.tsx
   - [x] 8.9 Delete /__tests__/app/onboarding/change-billing-period/
-  - [ ] 8.10 Verify all tests pass
+  - [x] 8.10 Verify all tests pass
 
-- [ ] 9. Integration Testing
-  - [ ] 9.1 Test monthly→yearly upgrade flow end-to-end on development
-  - [ ] 9.2 Verify seat preservation through checkout custom_data
-  - [ ] 9.3 Verify webhook cancels old subscription correctly
-  - [ ] 9.4 Verify database status updates to 'migrated'
-  - [ ] 9.5 Test yearly→monthly blocking in UI and API
-  - [ ] 9.6 Verify renewal date display accuracy
-  - [ ] 9.7 Test error scenarios (checkout failure, cancel failure)
-  - [ ] 9.8 Verify all tests pass
+- [x] 9. Integration Testing
+  - [x] 9.1 Test monthly→yearly upgrade flow end-to-end on development
+  - [x] 9.2 Verify seat preservation through checkout custom_data
+  - [x] 9.3 Verify webhook cancels old subscription correctly
+  - [x] 9.4 Verify database status updates to 'migrated'
+  - [x] 9.5 Test yearly→monthly blocking in UI and API
+  - [x] 9.6 Verify renewal date display accuracy
+  - [x] 9.7 Test error scenarios (checkout failure, cancel failure)
+  - [x] 9.8 Verify all tests pass
 
 - [ ] 10. Documentation and Deployment
   - [ ] 10.1 Update README with new environment variables
@@ -211,7 +211,7 @@
   - [x] 18.9 Add unarchive validation for seat availability (check active + pending_invitations + 1 <= paid_seats)
   - [x] 18.10 Update Team Management UI to show active vs total count
   - [ ] 18.11 Test monthly downgrade flow with archive (manual archive then downgrade)
-  - [ ] 18.12 Test yearly downgrade flow with archive (manual archive then downgrade)
+  - [x] 18.12 Test yearly downgrade flow with archive (manual archive then downgrade)
   - [ ] 18.13 Test unarchive validation (should block when insufficient seats)
   - [ ] 18.14 Test pending invitations count towards seats
   - [ ] 18.15 Verify all tests pass
