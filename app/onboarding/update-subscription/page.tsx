@@ -407,7 +407,7 @@ function UpdateSubscriptionPageContent() {
                     <div>
                       <Button
                         onClick={() => handleUserCountChange(-1)}
-                        disabled={userCount <= (!subscriptionId ? 4 : 3) || (activeUserCount > 0 && activeUserCount >= userCount - 1)}
+                        disabled={userCount <= (!subscriptionId ? 4 : 3) || (activeUserCount > 0 && activeUserCount > userCount - 1)}
                         variant="outline"
                         className="size-16 p-0 border-foreground"
                       >
@@ -415,9 +415,9 @@ function UpdateSubscriptionPageContent() {
                       </Button>
                     </div>
                   </TooltipTrigger>
-                  {activeUserCount > 0 && activeUserCount >= userCount - 1 && (
+                  {activeUserCount > 0 && activeUserCount > userCount - 1 && (
                     <TooltipContent className="max-w-xs">
-                      <p>{t('archiveUsersFirst', { renewalDate: formatRenewalDate(renewalDate) })}</p>
+                      <p>{t('archiveUsersFirst', { activeUsers: activeUserCount, renewalDate: formatRenewalDate(renewalDate) })}</p>
                     </TooltipContent>
                   )}
                 </Tooltip>
