@@ -222,9 +222,9 @@ function UpdateSubscriptionPageContent() {
   }, [router, searchParams])
 
   const handleUserCountChange = (delta: number) => {
-    // Free tier users upgrading to paid must select minimum 4 seats
-    // Paid users can go down to 3 seats (free tier)
-    const minSeats = !subscriptionId ? 4 : 3
+    // All users can go down to 3 seats in UI
+    // Validation happens at checkout: free tier needs 4+ for paid plan
+    const minSeats = 3
     const newCount = Math.max(minSeats, Math.min(50, userCount + delta))
     setUserCount(newCount)
   }
@@ -427,7 +427,7 @@ function UpdateSubscriptionPageContent() {
                     <div className="disabled:cursor-not-allowed">
                       <Button
                         onClick={() => handleUserCountChange(-1)}
-                        disabled={userCount <= (!subscriptionId ? 4 : 3) || ((activeUserCount + pendingInvitationsCount) > 0 && (activeUserCount + pendingInvitationsCount) > userCount - 1)}
+                        disabled={userCount <= 3 || ((activeUserCount + pendingInvitationsCount) > 0 && (activeUserCount + pendingInvitationsCount) > userCount - 1)}
                         variant="outline"
                         className="size-16 p-0 border-foreground disabled:cursor-not-allowed"
                       >
@@ -435,7 +435,7 @@ function UpdateSubscriptionPageContent() {
                       </Button>
                     </div>
                   </TooltipTrigger>
-                  {(userCount <= (!subscriptionId ? 4 : 3) || ((activeUserCount + pendingInvitationsCount) > 0 && (activeUserCount + pendingInvitationsCount) > userCount - 1)) && (
+                  {(userCount <= 3 || ((activeUserCount + pendingInvitationsCount) > 0 && (activeUserCount + pendingInvitationsCount) > userCount - 1)) && (
                     <TooltipContent className="max-w-xs">
                       {(activeUserCount + pendingInvitationsCount) > 0 && (activeUserCount + pendingInvitationsCount) > userCount - 1 ? (
                         pendingInvitationsCount > 0 ? (
@@ -449,7 +449,7 @@ function UpdateSubscriptionPageContent() {
                           <p>{t('archiveUsersFirst', { activeUsers: activeUserCount, renewalDate: formatRenewalDate(renewalDate) })}</p>
                         )
                       ) : (
-                        <p>{t('minimumSeats', { minimum: !subscriptionId ? 4 : 3 })}</p>
+                        <p>{t('minimumSeats', { minimum: 3 })}</p>
                       )}
                     </TooltipContent>
                   )}
