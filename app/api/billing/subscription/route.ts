@@ -58,6 +58,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Count active members using direct query for real-time accuracy
+    // IMPORTANT: Use status='active' not is_active=true to exclude pending_removal users
+    // pending_removal users keep is_active=true for access but don't count toward seats
     const serviceClient = createServiceClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -67,7 +69,7 @@ export async function GET(request: NextRequest) {
       .from('user_organizations')
       .select('*', { count: 'exact', head: true })
       .eq('organization_id', organizationId)
-      .eq('is_active', true);
+      .eq('status', 'active');
 
     if (memberError) {
       console.error('❌ Active members count query failed:', memberError);

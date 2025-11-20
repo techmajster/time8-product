@@ -234,6 +234,22 @@ export async function reactivateUser(
       }
     }
 
+    // Validate seat availability BEFORE reactivating
+    // User might have been marked pending_removal, then seats were reduced
+    // Need to ensure there's space to bring them back to active
+    const { activeUsers, pendingInvitations, totalOccupied } = await getTotalOccupiedSeats(organizationId)
+
+    // Calculate total seats using graduated pricing model
+    const totalSeats = subscription.current_seats > 0 ? subscription.current_seats : 3
+    const availableSeats = Math.max(0, totalSeats - totalOccupied)
+
+    if (availableSeats < 1) {
+      return {
+        success: false,
+        error: `Cannot cancel removal - no available seats. You have ${activeUsers} active users and ${pendingInvitations} pending invitations. Seats may have been reduced while this user was pending removal. Upgrade your plan first.`
+      }
+    }
+
     // Update user status back to active
     const { error: updateUserError } = await supabase
       .from('user_organizations')
