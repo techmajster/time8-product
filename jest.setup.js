@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom'
 import { TextEncoder, TextDecoder } from 'util'
 import { config } from 'dotenv'
+import 'whatwg-fetch'
 
 // Load environment variables from .env.local for integration tests
 config({ path: '.env.local' })
