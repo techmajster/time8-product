@@ -183,21 +183,21 @@
   - [x] 16.9 Verify yearly: 4 seats = 384 PLN total (96 × 4)
   - [x] 16.10 Document graduated vs volume pricing difference in spec
 
-- [ ] 17. Revise Seat Minimum Logic (Free vs Paid Tier)
-  - [ ] 17.1 Remove forced initialization to 4 seats for free tier users
-  - [ ] 17.2 Add validation: free tier → paid upgrade requires 4+ seats
-  - [ ] 17.3 Add validation: paid users CAN select 3 seats (downgrade to free)
-  - [ ] 17.4 Add downgrade warning for monthly users selecting 3 seats
-  - [ ] 17.5 Add downgrade warning for yearly users selecting 3 seats
-  - [ ] 17.6 Add translation key: minimumFourSeatsForPaid
-  - [ ] 17.7 Add translation key: yearlyDowngradeWarning
-  - [ ] 17.8 Add translation key: monthlyDowngradeWarning
-  - [ ] 17.9 Update update-subscription page with correct validation logic
-  - [ ] 17.10 Test free tier → 4+ seats (should succeed)
-  - [ ] 17.11 Test free tier → 3 seats (should show error)
-  - [ ] 17.12 Test monthly paid → 3 seats (should show warning, allow)
-  - [ ] 17.13 Test yearly paid → 3 seats (should show warning, allow)
-  - [ ] 17.14 Verify all tests pass
+- [x] 17. Revise Seat Minimum Logic (Free vs Paid Tier)
+  - [x] 17.1 Remove forced initialization to 4 seats for free tier users
+  - [x] 17.2 Add validation: free tier → paid upgrade requires 4+ seats
+  - [x] 17.3 Add validation: paid users CAN select 3 seats (downgrade to free)
+  - [x] 17.4 Add downgrade warning for monthly users selecting 3 seats (already in Task 18)
+  - [x] 17.5 Add downgrade warning for yearly users selecting 3 seats (already in Task 18)
+  - [x] 17.6 Add translation key: minimumSeats (simpler than originally planned)
+  - [x] 17.7 Translation keys from Task 18: archiveUsersFirst, archiveUsersOrCancelInvites (better than planned)
+  - [x] 17.8 Update update-subscription page with correct validation logic
+  - [x] 17.9 Update UI to allow all users to select 3 seats
+  - [x] 17.10 Add checkout validation preventing free tier < 4 seats
+  - [x] 17.11 Test free tier → 4+ seats (should succeed)
+  - [x] 17.12 Test free tier → 3 seats (should show error at checkout)
+  - [x] 17.13 Test paid users → 3 seats (already working from Task 18)
+  - [x] 17.14 Verify all tests pass
 
 - [x] 18. Auto-Archive on Downgrade to Free Tier (Both Monthly & Yearly)
   - [x] 18.1 Create /lib/billing/seat-validation.ts utility functions (count only active users)
