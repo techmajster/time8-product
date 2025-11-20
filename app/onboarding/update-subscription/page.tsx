@@ -405,20 +405,24 @@ function UpdateSubscriptionPageContent() {
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <div>
+                    <div className="disabled:cursor-not-allowed">
                       <Button
                         onClick={() => handleUserCountChange(-1)}
                         disabled={userCount <= (!subscriptionId ? 4 : 3) || (activeUserCount > 0 && activeUserCount > userCount - 1)}
                         variant="outline"
-                        className="size-16 p-0 border-foreground"
+                        className="size-16 p-0 border-foreground disabled:cursor-not-allowed"
                       >
                         <Minus className="size-6 text-foreground" />
                       </Button>
                     </div>
                   </TooltipTrigger>
-                  {activeUserCount > 0 && activeUserCount > userCount - 1 && (
+                  {(userCount <= (!subscriptionId ? 4 : 3) || (activeUserCount > 0 && activeUserCount > userCount - 1)) && (
                     <TooltipContent className="max-w-xs">
-                      <p>{t('archiveUsersFirst', { activeUsers: activeUserCount, renewalDate: formatRenewalDate(renewalDate) })}</p>
+                      {activeUserCount > 0 && activeUserCount > userCount - 1 ? (
+                        <p>{t('archiveUsersFirst', { activeUsers: activeUserCount, renewalDate: formatRenewalDate(renewalDate) })}</p>
+                      ) : (
+                        <p>{t('minimumSeats', { minimum: !subscriptionId ? 4 : 3 })}</p>
+                      )}
                     </TooltipContent>
                   )}
                 </Tooltip>
@@ -434,7 +438,7 @@ function UpdateSubscriptionPageContent() {
                 onClick={() => handleUserCountChange(1)}
                 disabled={userCount >= 50}
                 variant="outline"
-                className="size-16 p-0 border-foreground"
+                className="size-16 p-0 border-foreground disabled:cursor-not-allowed"
               >
                 <Plus className="size-6 text-foreground" />
               </Button>
