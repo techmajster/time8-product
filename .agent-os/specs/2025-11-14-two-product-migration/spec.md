@@ -496,6 +496,54 @@ description: tier === 'monthly'
 - Paid tier: 4+ seats, ALL seats charged (not just extras)
 - Volume pricing correctly implements this logic
 
+---
+
+### Pricing Model Documentation Summary
+
+**Decision: Volume Pricing Model** (Issue 4 Resolution)
+
+**Date Fixed:** During Task 16 implementation
+**Changed By:** Manual configuration in LemonSqueezy dashboard
+**Verification Date:** Task 16 completion
+
+**Why Volume Pricing:**
+
+Our business model has a clear boundary:
+- **1-3 seats:** Free tier (no subscription, no payment)
+- **4+ seats:** Paid tier (ALL seats billed)
+
+Volume pricing correctly implements this by charging the full seat count once the threshold is crossed. Graduated pricing would incorrectly charge only the "extra" seats beyond 3, which doesn't match our freemium model.
+
+**Configuration Details:**
+
+| Variant | Product | Pricing Model | Per-Seat Rate | Aggregation |
+|---------|---------|---------------|---------------|-------------|
+| 972634 | Monthly (621389) | Volume | 10 PLN/month | MAX |
+| 1090954 | Yearly (693341) | Volume | 96 PLN/year | MAX |
+
+**Pricing Examples:**
+
+| Seats | Monthly Cost | Yearly Cost | Calculation |
+|-------|-------------|-------------|-------------|
+| 1-3   | 0 PLN       | 0 PLN       | Free tier |
+| 4     | 40 PLN      | 384 PLN     | 4 × rate |
+| 5     | 50 PLN      | 480 PLN     | 5 × rate |
+| 10    | 100 PLN     | 960 PLN     | 10 × rate |
+
+**Implementation Files:**
+- Usage tracking: [lib/billing/seat-manager.ts](lib/billing/seat-manager.ts)
+- Usage records API: POST `/v1/usage-records` with `MAX` aggregation
+- Billing at period end: New seats prorated to next renewal
+
+**Critical Learnings:**
+1. **Graduated pricing** charges incrementally per tier → Wrong for our model
+2. **Volume pricing** charges all units at same rate → Correct for our model
+3. LemonSqueezy defaults to graduated for usage-based variants
+4. Must manually verify pricing model in dashboard after variant creation
+5. API returns pricing_model in variant details for verification
+
+**Status:** ✅ Verified correct in production (both variants)
+
 ## Downgrade to Free Tier (3 Seats) Behavior
 
 ### Business Logic

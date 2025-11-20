@@ -171,7 +171,7 @@
   - [x] 15.4 Test yearly checkout description
   - [x] 15.5 Commit: c0daff8 "Update checkout description to show correct billing period"
 
-- [ ] 16. Fix LemonSqueezy Pricing Model (Graduated → Volume)
+- [x] 16. Fix LemonSqueezy Pricing Model (Graduated → Volume)
   - [x] 16.1 User changed monthly variant from graduated to volume in LemonSqueezy dashboard
   - [x] 16.2 Verify pricing model via LemonSqueezy API (GET /variants/{id})
   - [x] 16.3 Confirm monthly variant (972634) uses volume pricing
@@ -181,7 +181,7 @@
   - [x] 16.7 Test checkout pricing calculation for 4 seats (should be 4 × rate)
   - [x] 16.8 Verify monthly: 4 seats = 40 PLN total
   - [x] 16.9 Verify yearly: 4 seats = 384 PLN total (96 × 4)
-  - [ ] 16.10 Document graduated vs volume pricing difference in spec
+  - [x] 16.10 Document graduated vs volume pricing difference in spec
 
 - [ ] 17. Revise Seat Minimum Logic (Free vs Paid Tier)
   - [ ] 17.1 Remove forced initialization to 4 seats for free tier users
