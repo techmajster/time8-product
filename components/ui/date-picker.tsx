@@ -108,6 +108,7 @@ export function DatePickerWithDropdowns({
           initialFocus
           weekStartsOn={1}
           locale={dateLocale}
+          defaultMonth={selectedDate}
         />
       </PopoverContent>
     </Popover>
