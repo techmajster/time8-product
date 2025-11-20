@@ -28,10 +28,11 @@ Unlike traditional HR software with complex enterprise features, Time8 provides 
 
 ### Subscription & Billing
 - **Seat-Based Subscriptions** - Pay only for active team members via Lemon Squeezy
+- **Two-Product Architecture** - Separate products for monthly (621389) and yearly (693341) billing
+- **Monthly↔Yearly Switching** - Seamless upgrade from monthly to yearly with seat preservation
 - **Grace Period System** - Users marked for removal retain access until next billing cycle
 - **Automatic Billing Sync** - Multi-layer billing guarantees ensure accurate charges
-- **Trial Management** - 7-day free trials with automatic conversion prompts
-- **Flexible Plans** - Free tier (3 seats) and paid plans with per-seat pricing
+- **Flexible Plans** - Free tier (3 seats) and paid plans with volume pricing (4+ seats)
 
 ### Recent Enhancements
 - **React Query Migration** - Real-time data synchronization across all pages
@@ -119,6 +120,12 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 LEMONSQUEEZY_API_KEY=your_lemonsqueezy_api_key
 LEMONSQUEEZY_STORE_ID=your_store_id
 LEMONSQUEEZY_WEBHOOK_SECRET=your_webhook_secret
+
+# Two-Product Architecture (Monthly vs Yearly)
+LEMONSQUEEZY_MONTHLY_PRODUCT_ID=621389
+LEMONSQUEEZY_YEARLY_PRODUCT_ID=693341
+LEMONSQUEEZY_MONTHLY_VARIANT_ID=972634
+LEMONSQUEEZY_YEARLY_VARIANT_ID=1090954
 ```
 
 #### Required - Email (Resend)
@@ -206,6 +213,177 @@ Once enabled, the system runs two automated background jobs:
    - Compares database seat counts vs Lemon Squeezy
    - Creates critical alerts for discrepancies
    - Sends Slack/email notifications to admins
+
+## Two-Product Migration (Monthly ↔ Yearly Billing)
+
+Time8 uses a two-product architecture in Lemon Squeezy to enable monthly→yearly billing period upgrades. This works around LemonSqueezy's platform limitation that prevents switching between usage-based (monthly) and non-usage-based (yearly) variants within the same product.
+
+### Architecture
+
+**Two Separate Products:**
+- **Monthly Product (ID: 621389)** - Usage-based billing with variant 972634
+- **Yearly Product (ID: 693341)** - Quantity-based billing with variant 1090954
+
+**Why Two Products:**
+LemonSqueezy API returns 422 error when attempting to switch from usage-based to non-usage-based variants. By using separate products, we can cancel the monthly subscription and create a new yearly subscription with preserved seat counts.
+
+### Pricing Model: Volume (Not Graduated)
+
+**Critical Configuration:**
+Both variants use **volume pricing** (not graduated):
+- Free tier: 1-3 seats = 0 PLN
+- Paid tier: 4+ seats = ALL seats charged at same rate
+- Volume pricing charges: `total_seats × rate`
+- Graduated would incorrectly charge: `(tier1_seats × rate1) + (tier2_seats × rate2)`
+
+**Per-Seat Rates:**
+- Monthly: 10 PLN/month per seat
+- Yearly: 96 PLN/year per seat (20% discount)
+
+### Monthly → Yearly Upgrade Flow
+
+1. **User Initiates Upgrade**
+   - Navigate to `/onboarding/update-subscription`
+   - Select yearly billing period
+   - System preserves current seat count
+
+2. **API Creates Checkout**
+   - `POST /api/billing/switch-to-yearly`
+   - Creates new checkout with `preserve_seats` in custom_data
+   - Redirects to LemonSqueezy payment page
+
+3. **Webhook Processes Payment**
+   - `subscription_created` webhook fires
+   - Extracts `preserve_seats` from custom_data
+   - Creates new yearly subscription with preserved seats
+   - Cancels old monthly subscription via API
+   - Updates database: old subscription marked as `status='migrated'`
+
+4. **Database State After Migration**
+   - New subscription: `billing_period='yearly'`, `status='active'`
+   - Old subscription: `status='migrated'`, `migrated_to_subscription_id` set
+   - UI filters out migrated subscriptions
+
+### Yearly → Monthly: Blocked Until Renewal
+
+**Policy:** Yearly→monthly downgrades are NOT allowed until subscription renewal.
+
+**Reason:** Users have prepaid for annual period. Honoring prepayment by blocking mid-period downgrades.
+
+**UI Behavior:**
+- Monthly pricing card shown but locked/disabled
+- Lock icon with tooltip: "Available after [renewal_date]"
+- Banner message explains one-way upgrade policy
+
+### Free Tier Logic
+
+**Seat Count Rules:**
+- Free tier: 1-3 seats (no subscription required)
+- Paid tier: 4+ seats (LemonSqueezy subscription required)
+- Free tier users upgrading to paid: MUST select 4+ seats
+- Paid users can reduce to 3 seats (triggers free tier)
+
+**Validation:**
+- Frontend prevents free tier checkout with < 4 seats
+- Backend `/api/billing/create-checkout` validates minimum 4 seats
+- Active user count prevents reducing below occupied seats
+
+### Database Schema
+
+**Key Columns Added:**
+- `subscriptions.lemonsqueezy_product_id` - Tracks which product (monthly/yearly)
+- `subscriptions.billing_period` - Enum: 'monthly' | 'yearly' | null
+- `subscriptions.migrated_to_subscription_id` - Links old→new during migration
+- `subscriptions.status` - Added 'migrated' enum value
+
+**Migration Files:**
+- `20251114_add_product_tracking.sql` - Added product_id and billing_period
+- `20251114_add_migration_tracking.sql` - Added migrated_to_subscription_id
+- `20251119_drop_work_mode_column.sql` - Cleaned up deprecated column
+
+### API Endpoints
+
+- `POST /api/billing/switch-to-yearly` - Initiates monthly→yearly migration
+- `POST /api/billing/create-checkout` - Creates LemonSqueezy checkout
+- `POST /api/billing/update-subscription-quantity` - Adjusts seat count
+- `GET /api/billing/subscription` - Fetches subscription (filters migrated)
+- `POST /api/webhooks/lemonsqueezy` - Processes subscription webhooks
+
+### Webhook Events
+
+**Handled Events:**
+- `subscription_created` - New subscription (including migrations)
+- `subscription_updated` - Seat changes, renewals
+- `subscription_cancelled` - User cancellation
+- `subscription_expired` - End of subscription period
+- `subscription_paused` / `subscription_resumed` - Pause/resume handling
+- `subscription_payment_success` / `subscription_payment_failed` - Payment events
+
+### Testing Migration Flow
+
+**Prerequisites:**
+1. Monthly subscription with N seats
+2. All environment variables configured
+3. Webhook endpoint accessible
+
+**Test Steps:**
+1. Navigate to `/onboarding/update-subscription?seats=N`
+2. Select yearly billing period
+3. Click "Zaktualizuj subskrypcję"
+4. Complete LemonSqueezy checkout
+5. Verify webhook received and processed
+6. Check database: old subscription marked 'migrated'
+7. Check UI: Only yearly subscription visible
+
+**Expected Results:**
+- ✅ Seat count preserved (N seats on yearly)
+- ✅ Monthly subscription cancelled
+- ✅ Yearly subscription active
+- ✅ Database shows single active subscription
+- ✅ UI shows correct billing period and seats
+
+### Rollback Plan
+
+**If Migration Fails:**
+
+1. **Identify Failed Subscription** (in Lemon Squeezy dashboard)
+   - Check webhook logs in `/api/webhooks/lemonsqueezy`
+   - Find subscription ID that failed to process
+
+2. **Database Rollback:**
+   ```sql
+   -- Restore old subscription
+   UPDATE subscriptions
+   SET status = 'active'
+   WHERE lemonsqueezy_subscription_id = 'OLD_SUB_ID';
+
+   -- Remove failed new subscription
+   DELETE FROM subscriptions
+   WHERE lemonsqueezy_subscription_id = 'NEW_SUB_ID';
+   ```
+
+3. **Cancel New Subscription** (via Lemon Squeezy API or dashboard)
+   - DELETE `/v1/subscriptions/{id}`
+   - User reverts to monthly billing
+
+4. **User Communication:**
+   - Notify user of failed migration
+   - Confirm monthly subscription still active
+   - Offer manual migration assistance
+
+### Production Verification Checklist
+
+After deploying to production, verify:
+
+- [ ] Environment variables set (product IDs, variant IDs)
+- [ ] Webhook endpoint receiving events
+- [ ] Monthly→yearly migration works end-to-end
+- [ ] Yearly→monthly is blocked with clear messaging
+- [ ] Free tier users see validation error at < 4 seats
+- [ ] Paid users can reduce to 3 seats (free tier UI)
+- [ ] Migrated subscriptions hidden from UI
+- [ ] Database status tracking accurate
+- [ ] Seat counts preserved through migration
 
 ## Work Schedule Configuration
 
