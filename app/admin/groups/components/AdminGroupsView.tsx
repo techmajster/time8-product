@@ -19,6 +19,7 @@ import { ManageTeamMembersSheet } from '@/app/admin/team-management/components/M
 import { CreateTeamSheet } from '@/app/admin/team-management/components/CreateTeamSheet'
 import { useRouter } from 'next/navigation'
 import { refetchTeamManagement, REFETCH_TEAM_MANAGEMENT } from '@/lib/refetch-events'
+import { getInitials } from '@/lib/utils/initials'
 
 interface TeamMember {
   id: string
@@ -251,10 +252,7 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
                           <Avatar className="size-8">
                             <AvatarImage src={team.manager.avatar_url || undefined} />
                             <AvatarFallback className="text-sm">
-                              {team.manager.full_name
-                                ? team.manager.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase()
-                                : team.manager.email.charAt(0).toUpperCase()
-                              }
+                              {getInitials(team.manager.full_name, team.manager.email.charAt(0).toUpperCase())}
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex flex-col">
@@ -387,7 +385,7 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
                                   <Avatar className="size-8">
                                     <AvatarImage src={selectedManager.avatar_url || undefined} />
                                     <AvatarFallback className="text-sm font-normal">
-                                      {selectedManager.full_name ? selectedManager.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : selectedManager.email.charAt(0).toUpperCase()}
+                                      {getInitials(selectedManager.full_name, selectedManager.email.charAt(0).toUpperCase())}
                                     </AvatarFallback>
                                   </Avatar>
                                   <div className="flex flex-col text-left">
@@ -432,7 +430,7 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
                                 <Avatar className="size-8">
                                   <AvatarImage src={manager.avatar_url || undefined} />
                                   <AvatarFallback className="text-sm font-normal">
-                                    {manager.full_name ? manager.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : manager.email.charAt(0).toUpperCase()}
+                                    {getInitials(manager.full_name, manager.email.charAt(0).toUpperCase())}
                                   </AvatarFallback>
                                 </Avatar>
                                 <div className="flex flex-col">
@@ -581,10 +579,7 @@ export function AdminGroupsView({ teams, teamMembers }: AdminGroupsViewProps) {
                               <Avatar className="size-10">
                                 <AvatarImage src={member.avatar_url || undefined} />
                                 <AvatarFallback className="text-sm">
-                                  {member.full_name
-                                    ? member.full_name.split(' ').map(n => n[0]).join('').toUpperCase()
-                                    : member.email.charAt(0).toUpperCase()
-                                  }
+                                  {getInitials(member.full_name, member.email.charAt(0).toUpperCase())}
                                 </AvatarFallback>
                               </Avatar>
                               <div className="flex flex-col flex-1">

@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Loader2, ChevronDownIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { refetchTeamManagement } from '@/lib/refetch-events'
+import { getInitials } from '@/lib/utils/initials'
 
 /**
  * CREATE GROUP COMPONENT
@@ -157,7 +158,7 @@ export function CreateTeamSheet({ open, onOpenChange, teamMembers, onTeamCreated
                                 <Avatar className="size-8">
                                   <AvatarImage src={selectedManager.avatar_url || undefined} />
                                   <AvatarFallback className="text-sm font-normal">
-                                    {selectedManager.full_name ? selectedManager.full_name.split(' ').map(n => n[0]).join('').toUpperCase() : selectedManager.email.charAt(0).toUpperCase()}
+                                    {getInitials(selectedManager.full_name, selectedManager.email.charAt(0).toUpperCase())}
                                   </AvatarFallback>
                                 </Avatar>
                                 <div className="flex flex-col text-left">
@@ -202,7 +203,7 @@ export function CreateTeamSheet({ open, onOpenChange, teamMembers, onTeamCreated
                               <Avatar className="size-8">
                                 <AvatarImage src={manager.avatar_url || undefined} />
                                 <AvatarFallback className="text-sm font-normal">
-                                  {manager.full_name ? manager.full_name.split(' ').map(n => n[0]).join('').toUpperCase() : manager.email.charAt(0).toUpperCase()}
+                                  {getInitials(manager.full_name, manager.email.charAt(0).toUpperCase())}
                                 </AvatarFallback>
                               </Avatar>
                               <div className="flex flex-col">

@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { getTranslations } from 'next-intl/server'
 import { TeamManagementClient } from './components/TeamManagementClient'
+import { getInitials } from '@/lib/utils/initials'
 
 export default async function AdminTeamManagementPage() {
   const t = await getTranslations('admin')
@@ -332,10 +333,7 @@ export default async function AdminTeamManagementPage() {
   }
 
   const getUserInitials = (member: any): string => {
-    if (member.full_name) {
-      return member.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase()
-    }
-    return member.email.charAt(0).toUpperCase()
+    return getInitials(member.full_name, member.email.charAt(0).toUpperCase())
   }
 
   const getTeamDisplayName = (member: any): string => {

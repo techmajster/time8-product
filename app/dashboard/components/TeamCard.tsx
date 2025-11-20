@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { TreePalm, UserCheck, Users } from 'lucide-react'
 import { useTranslations } from 'next-intl'
+import { getInitials } from '@/lib/utils/initials'
 
 interface TeamMember {
   id: string
@@ -121,7 +122,7 @@ export function TeamCard({ allTeamMembers, absentMembers, teams, defaultTeamId, 
               <div className="space-y-4">
                 {filteredAbsentMembers.map((request, index) => {
                   const member = request.profiles
-                  const initials = member.full_name?.split(' ').map((n: string) => n[0]).join('') || member.email?.charAt(0) || '?'
+                  const initials = getInitials(member.full_name, member.email?.charAt(0))
                   const leaveTypeColor = request.leaveType?.color || '#gray-500'
                   const leaveTypeName = request.leaveType?.name || 'Urlop'
                   // Format date consistently for SSR (use Polish locale to match design)

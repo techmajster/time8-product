@@ -14,6 +14,7 @@ import { Plus } from 'lucide-react'
 import Link from 'next/link'
 import { useTeamMembersQuery, useTeamLeaveBalances } from '@/hooks/use-team-queries'
 import { useTranslations } from 'next-intl'
+import { getInitials } from '@/lib/utils/initials'
 
 interface TeamMember {
   id: string
@@ -104,10 +105,7 @@ export function AdminTeamView({
 
   // Get user initials for avatar fallback
   const getUserInitials = (member: TeamMember): string => {
-    if (member.full_name) {
-      return member.full_name.split(' ').map(n => n[0]).join('').toUpperCase()
-    }
-    return member.email.charAt(0).toUpperCase()
+    return getInitials(member.full_name, member.email.charAt(0).toUpperCase())
   }
 
   // Get approver for a team member

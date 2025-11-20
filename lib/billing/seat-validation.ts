@@ -12,14 +12,14 @@
  * - pending_invitations: unfilled invitations that count as occupied seats
  */
 
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/server'
 
 /**
  * Get count of ONLY active users (excludes pending_removal and archived)
  * This is the count used for downgrade validation
  */
 export async function getActiveUserCount(organizationId: string): Promise<number> {
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   const { count, error } = await supabase
     .from('user_organizations')
@@ -39,9 +39,9 @@ export async function getActiveUserCount(organizationId: string): Promise<number
  * Get count of pending invitations (occupy seats until accepted/declined)
  */
 export async function getPendingInvitationsCount(organizationId: string): Promise<number> {
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
-  const { count, error } = await supabase
+  const { count, error} = await supabase
     .from('invitations')
     .select('*', { count: 'exact', head: true })
     .eq('organization_id', organizationId)
@@ -155,7 +155,7 @@ export async function getSeatInfo(organizationId: string, paidSeats: number): Pr
   archivedUsers: number
   availableSeats: number
 }> {
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   // Get counts in parallel
   const [

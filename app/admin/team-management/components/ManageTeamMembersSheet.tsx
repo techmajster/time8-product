@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Loader2, Plus, Minus } from 'lucide-react'
 import { toast } from 'sonner'
 import { refetchTeamManagement } from '@/lib/refetch-events'
+import { getInitials } from '@/lib/utils/initials'
 
 interface TeamMember {
   id: string
@@ -74,10 +75,7 @@ export function ManageTeamMembersSheet({
   }, [open, selectedTeam?.id])
 
   const getUserInitials = (member: TeamMember): string => {
-    if (member.full_name) {
-      return member.full_name.split(' ').map(n => n[0]).join('').toUpperCase()
-    }
-    return member.email.charAt(0).toUpperCase()
+    return getInitials(member.full_name, member.email.charAt(0).toUpperCase())
   }
 
   const handleAddMember = (memberId: string) => {

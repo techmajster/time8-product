@@ -11,6 +11,7 @@ import { CurrentDayCard } from './CurrentDayCard'
 import { BirthdayCard } from './BirthdayCard'
 import { DashboardCalendar } from './DashboardCalendar'
 import { useLeaveBalances, useTeamMembers, useCurrentLeaveRequests, usePendingRequestsCount } from '@/hooks/use-dashboard-queries'
+import { getInitials } from '@/lib/utils/initials'
 
 interface DashboardClientProps {
   profile: any
@@ -95,7 +96,7 @@ export function DashboardClient({
           <Avatar className="w-12 h-12">
             <AvatarImage src={profile.avatar_url || ''} />
             <AvatarFallback>
-              {profile.full_name?.split(' ').map((n: string) => n[0]).join('') || 'U'}
+              {getInitials(profile.full_name, 'U')}
             </AvatarFallback>
           </Avatar>
           <span className="text-5xl font-semibold text-foreground">

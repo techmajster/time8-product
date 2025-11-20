@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useRouter } from 'next/navigation'
+import { getInitials } from '@/lib/utils/initials'
 
 interface Workspace {
   id: string
@@ -62,7 +63,7 @@ const AvatarGroup = ({ memberAvatars, memberCount }: {
             className="object-cover"
           />
           <AvatarFallback className="text-xs">
-            {member.full_name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?'}
+            {getInitials(member.full_name)}
           </AvatarFallback>
         </Avatar>
       ))}

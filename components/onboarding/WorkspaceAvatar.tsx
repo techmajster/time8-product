@@ -1,5 +1,7 @@
 'use client'
 
+import { getInitials } from '@/lib/utils/initials'
+
 interface WorkspaceAvatarProps {
   workspaceName: string
   memberCount: number
@@ -17,18 +19,8 @@ export function WorkspaceAvatar({
   memberCount, 
   memberAvatars = [],
   size = 'md',
-  showMemberCount = true 
+  showMemberCount = true
 }: WorkspaceAvatarProps) {
-  // Extract initials from workspace name
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(word => word.charAt(0))
-      .join('')
-      .toUpperCase()
-      .slice(0, 2)
-  }
-
   // Size configurations
   const sizeConfig = {
     sm: {
@@ -77,7 +69,7 @@ export function WorkspaceAvatar({
                 />
               ) : (
                 <span className="text-xs font-medium text-muted-foreground">
-                  {member.full_name.charAt(0).toUpperCase()}
+                  {getInitials(member.full_name)}
                 </span>
               )}
             </div>

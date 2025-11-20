@@ -40,6 +40,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { Switch } from "@/components/ui/switch"
+import { getInitials } from '@/lib/utils/initials'
 
 const languages = [
   {
@@ -74,14 +75,9 @@ export function NavUser({
   const [isPending, startTransition] = useTransition()
 
   // Generate initials from name or email
-  const getInitials = (name: string, email: string) => {
-    if (name && name !== email.split('@')[0]) {
-      return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-    }
-    return email.slice(0, 2).toUpperCase()
-  }
-
-  const initials = getInitials(user.name, user.email)
+  const initials = user.name && user.name !== user.email.split('@')[0]
+    ? getInitials(user.name)
+    : user.email.slice(0, 2).toUpperCase()
 
   const handleSignOut = async () => {
     try {

@@ -23,6 +23,7 @@ import { useHolidays, holidayKeys } from '@/hooks/useHolidays'
 import { CalendarSkeleton } from './CalendarSkeleton'
 import { DaySheetSkeleton } from './DaySheetSkeleton'
 import { useSonnerToast } from '@/hooks/use-sonner-toast'
+import { getInitials } from '@/lib/utils/initials'
 import {
   CALENDAR_GRID_SIZE,
   MAX_VISIBLE_AVATARS,
@@ -1044,7 +1045,7 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
                             <Avatar className="w-10 h-10 shrink-0">
                               <AvatarImage src={member.avatar} alt={`${member.name}'s avatar`} />
                               <AvatarFallback>
-                                {member.name.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
+                                {getInitials(member.name, 'U')}
                               </AvatarFallback>
                             </Avatar>
                             <div className="flex flex-1 flex-col items-start leading-0 min-h-px min-w-px text-sm">
@@ -1083,7 +1084,7 @@ export default function CalendarClient({ organizationId, countryCode, userId, co
                               <Avatar className="w-10 h-10 shrink-0">
                                 <AvatarImage src={leave.user_avatar} alt={`${leave.user_name}'s avatar`} />
                                 <AvatarFallback>
-                                  {leave.user_name.split(' ').map(n => n[0]).join('').toUpperCase() || leave.user_email[0].toUpperCase()}
+                                  {getInitials(leave.user_name, leave.user_email[0].toUpperCase())}
                                 </AvatarFallback>
                               </Avatar>
                               <div className="flex flex-1 flex-col items-start leading-0 min-h-px min-w-px text-sm">

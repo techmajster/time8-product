@@ -7,6 +7,7 @@ import { Upload, User, Camera, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import { getInitials } from '@/lib/utils/initials'
 
 interface AvatarUploadProps {
   userId: string
@@ -188,7 +189,7 @@ export function AvatarUpload({ userId, currentAvatarUrl, userName }: AvatarUploa
   }
 
   const displayAvatarUrl = previewUrl || avatarUrl
-  const initials = userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+  const initials = getInitials(userName)
 
   return (
     <div className="flex flex-col items-center space-y-4">

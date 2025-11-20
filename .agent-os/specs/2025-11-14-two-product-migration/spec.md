@@ -496,6 +496,92 @@ description: tier === 'monthly'
 - Paid tier: 4+ seats, ALL seats charged (not just extras)
 - Volume pricing correctly implements this logic
 
+## Downgrade to Free Tier (3 Seats) Behavior
+
+### Business Logic
+
+**Free Tier Definition:**
+- 1-3 active users = Free tier (no subscription, no charges)
+- 4+ active users = Paid tier (LemonSqueezy subscription required)
+
+### When User Reduces to 3 Seats
+
+**Current Implementation (Keep Until Renewal):**
+When a paid user (monthly or yearly) reduces their seat count to 3:
+
+1. **Subscription Stays Active**
+   - LemonSqueezy subscription remains active until current billing period ends
+   - User continues paying for current billing period
+   - No immediate cancellation or refund
+
+2. **At Renewal (Webhook subscription_updated)**
+   - Webhook detects total users ≤ 3
+   - Automatically cancels LemonSqueezy subscription
+   - Updates organization:
+     - `subscription_tier = 'free'`
+     - `paid_seats = 0`
+   - Organization seamlessly transitions to free tier
+   - Users retain access (no disruption)
+
+3. **Prorated Billing**
+   - User pays for seats used during current period
+   - LemonSqueezy calculates prorated charges at renewal
+   - If reduced from 10 → 3 seats mid-month, pays for (10 seats × days_used + 3 seats × days_remaining)
+
+### Why Keep Until Renewal
+
+**Advantages:**
+- Avoids complex refund calculations
+- Matches existing "changes at renewal" UX pattern
+- User gets full value for already-paid period
+- Simpler implementation (webhook-driven, no manual intervention)
+
+**User Experience:**
+- Clear messaging: "Changes take effect at renewal (renewal_date)"
+- Consistent with seat reduction behavior (archived users keep access until renewal)
+- No surprise mid-period disruptions
+
+### Monthly vs Yearly Behavior
+
+**Monthly Plan → 3 Seats:**
+- Subscription active until next monthly renewal (max 30 days)
+- At renewal: auto-cancel subscription, switch to free tier
+- Quick transition (within one month)
+
+**Yearly Plan → 3 Seats:**
+- Subscription active until annual renewal (potentially 11 months remaining)
+- User keeps paid benefits for remaining annual period
+- At renewal: auto-cancel subscription, switch to free tier
+- Longer transition period (user benefits from already-paid year)
+
+### Database State During Transition
+
+**While Waiting for Renewal:**
+```
+organizations.subscription_tier = 'active' (or 'monthly'/'yearly')
+organizations.paid_seats = 3
+subscriptions.current_seats = 3
+subscriptions.status = 'active'
+Active users = 3
+LemonSqueezy subscription = active
+```
+
+**After Renewal (Auto-Transition):**
+```
+organizations.subscription_tier = 'free'
+organizations.paid_seats = 0
+subscriptions.status = 'cancelled'
+Active users = 3
+LemonSqueezy subscription = cancelled
+```
+
+### Implementation Notes
+
+- No changes needed to seat reduction endpoint
+- Webhook `subscription_updated` handler already has logic to detect free tier transition
+- Database correctly reflects "3 seats on paid plan" state during transition period
+- UI should show: "3 of 3 seats used • Downgrading to free tier at renewal (date)"
+
 ## Out of Scope
 
 - Yearly→monthly downgrade functionality (blocked until renewal)

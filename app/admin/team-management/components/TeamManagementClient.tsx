@@ -20,6 +20,7 @@ import { EditEmployeeSheet } from './EditEmployeeSheet'
 import { InviteUsersDialog, SeatInfo } from '@/components/invitations/invite-users-dialog'
 import { useDeleteAccount, useCancelRemoval, useReactivateUser } from '@/hooks/use-team-mutations'
 import { REFETCH_TEAM_MANAGEMENT } from '@/lib/refetch-events'
+import { getInitials } from '@/lib/utils/initials'
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -276,10 +277,7 @@ export function TeamManagementClient({
   }
 
   const getUserInitials = (member: TeamMember): string => {
-    if (member.full_name) {
-      return member.full_name.split(' ').map(n => n[0]).join('').toUpperCase()
-    }
-    return member.email.charAt(0).toUpperCase()
+    return getInitials(member.full_name, member.email.charAt(0).toUpperCase())
   }
 
   const getTeamDisplayName = (member: TeamMember): string => {
@@ -419,29 +417,31 @@ export function TeamManagementClient({
         {/* Aktywni Tab */}
         <FigmaTabsContent value="aktywni" className="mt-0">
 
-          <div className="mb-6 mt-6">
-            {/* Custom Figma-style tabs for team filtering */}
-            <div className="bg-muted relative rounded-lg p-[3px] flex w-fit">
-              {teamTabs.map((teamName: string) => (
-                <button
-                  key={teamName}
-                  onClick={() => {
-                    setActiveTeamFilter(teamName)
-                    setCurrentPage(1) // Reset to first page when changing filter
-                  }}
-                  className={`
-                    flex items-center justify-center px-2.5 py-2 rounded-lg text-sm font-normal leading-5 transition-all
-                    ${activeTeamFilter === teamName
-                      ? 'bg-background text-foreground shadow-sm'
-                      : 'text-muted-foreground hover:bg-background/50'
-                    }
-                  `}
-                >
-                  {teamName}
-                </button>
-              ))}
+          {teams.length > 0 && (
+            <div className="mb-6 mt-6">
+              {/* Custom Figma-style tabs for team filtering */}
+              <div className="bg-muted relative rounded-lg p-[3px] flex w-fit">
+                {teamTabs.map((teamName: string) => (
+                  <button
+                    key={teamName}
+                    onClick={() => {
+                      setActiveTeamFilter(teamName)
+                      setCurrentPage(1) // Reset to first page when changing filter
+                    }}
+                    className={`
+                      flex items-center justify-center px-2.5 py-2 rounded-lg text-sm font-normal leading-5 transition-all
+                      ${activeTeamFilter === teamName
+                        ? 'bg-background text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:bg-background/50'
+                      }
+                    `}
+                  >
+                    {teamName}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           <div>
             <Table>
