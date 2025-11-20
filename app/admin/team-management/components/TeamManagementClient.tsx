@@ -93,7 +93,7 @@ interface LeaveType {
   id: string
   name: string
   requires_balance: boolean
-  default_days?: number
+  days_per_year?: number
 }
 
 interface Approver {

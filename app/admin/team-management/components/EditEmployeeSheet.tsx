@@ -26,7 +26,7 @@ interface LeaveType {
   id: string
   name: string
   requires_balance: boolean
-  default_days?: number
+  days_per_year?: number
 }
 
 interface LeaveBalance {
@@ -136,10 +136,10 @@ export function EditEmployeeSheet({
 
   const handleResetToDefault = (leaveTypeId: string) => {
     const leaveType = globalLeaveTypes.find(lt => lt.id === leaveTypeId)
-    if (leaveType?.default_days !== undefined) {
+    if (leaveType?.days_per_year !== undefined) {
       setLeaveBalances(prev => ({
         ...prev,
-        [leaveTypeId]: leaveType.default_days!
+        [leaveTypeId]: leaveType.days_per_year!
       }))
     }
   }
@@ -345,7 +345,7 @@ export function EditEmployeeSheet({
                       <div className="w-[200px] min-w-[85px] px-2 py-3 flex items-center">
                         <Input
                           type="number"
-                          value={leaveBalances[leaveType.id] ?? leaveType.default_days ?? 0}
+                          value={leaveBalances[leaveType.id] ?? leaveType.days_per_year ?? 0}
                           onChange={(e) => setLeaveBalances(prev => ({
                             ...prev,
                             [leaveType.id]: parseInt(e.target.value) || 0
