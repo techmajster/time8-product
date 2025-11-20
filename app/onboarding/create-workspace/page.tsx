@@ -52,10 +52,14 @@ function CreateWorkspacePageContent() {
       setIsSubmitting(true)
       setError(null)
 
+      // Map language selection to locale code
+      const locale = language === 'polish' ? 'pl' : 'en'
+
       // Store organization data in session storage instead of creating in DB
       const organizationData = {
         name: workspaceName.trim(),
-        country_code: country === 'ireland' ? 'IE' : country === 'poland' ? 'PL' : 'GB'
+        country_code: country === 'ireland' ? 'IE' : country === 'poland' ? 'PL' : 'GB',
+        locale
       }
 
       // Store in session storage

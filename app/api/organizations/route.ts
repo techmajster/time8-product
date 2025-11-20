@@ -7,8 +7,8 @@ export async function POST(request: NextRequest) {
   try {
     console.log('📝 Parsing request body...')
     const body = await request.json()
-    const { name, country_code } = body
-    console.log('📝 Request data:', { name, country_code })
+    const { name, country_code, locale } = body
+    console.log('📝 Request data:', { name, country_code, locale })
 
     // Get current user from session
     console.log('🔐 Getting user from session...')
@@ -50,6 +50,7 @@ export async function POST(request: NextRequest) {
       .insert({
         name,
         country_code: country_code || 'PL',
+        locale: locale || 'pl',
       })
       .select()
       .single()
