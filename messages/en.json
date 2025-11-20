@@ -163,7 +163,8 @@
       "taxNotice": "Prices shown are before tax. VAT will be calculated and added at checkout based on your location.",
       "archiveUsersFirst": "You have {activeUsers} active team members. Archive users before reducing seats below {activeUsers}. Changes take effect at renewal ({renewalDate}).",
       "archiveUsersOrCancelInvites": "You have {activeUsers} active and {pendingInvites} invited team members ({total} total). Archive users or cancel invitations before reducing seats below {total}. Changes take effect at renewal ({renewalDate}).",
-      "tooManyActiveUsers": "Cannot reduce seats below active user count"
+      "tooManyActiveUsers": "Cannot reduce seats below active user count",
+      "minimumSeats": "Minimum {minimum} seats required"
     },
     "paymentSuccess": {
       "loading": {

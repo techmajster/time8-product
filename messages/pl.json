@@ -163,7 +163,8 @@
       "taxNotice": "Ceny podane przed podatkiem. VAT zostanie obliczony i dodany przy kasie w zależności od Twojej lokalizacji.",
       "archiveUsersFirst": "Masz {activeUsers} aktywnych członków zespołu. Zarchiwizuj użytkowników przed zmniejszeniem miejsc poniżej {activeUsers}. Zmiany wejdą w życie przy odnowieniu ({renewalDate}).",
       "archiveUsersOrCancelInvites": "Masz {activeUsers} aktywnych i {pendingInvites} zaproszonych członków zespołu ({total} łącznie). Zarchiwizuj użytkowników lub anuluj zaproszenia przed zmniejszeniem miejsc poniżej {total}. Zmiany wejdą w życie przy odnowieniu ({renewalDate}).",
-      "tooManyActiveUsers": "Nie można zmniejszyć miejsc poniżej liczby aktywnych użytkowników"
+      "tooManyActiveUsers": "Nie można zmniejszyć miejsc poniżej liczby aktywnych użytkowników",
+      "minimumSeats": "Wymagane minimum {minimum} miejsc"
     },
     "paymentSuccess": {
       "loading": {

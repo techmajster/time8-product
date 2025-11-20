@@ -181,12 +181,8 @@ function UpdateSubscriptionPageContent() {
         })
       } else {
         // No subscription = free tier
-        // Enforce minimum 4 seats for paid plan
-        if (seats < 4) {
-          setUserCount(4)
-          setInitialUserCount(4)
-          console.log('✅ Free tier user: enforcing minimum 4 seats for paid upgrade')
-        }
+        // User can select any seat count, validation happens at checkout
+        console.log('✅ Free tier user loaded, initial seats:', seats)
       }
 
       // Fetch dynamic pricing from API
@@ -246,6 +242,13 @@ function UpdateSubscriptionPageContent() {
       // CRITICAL FIX: Handle free tier users upgrading to paid plan
       if (!subscriptionId && organizationData) {
         // Free tier user upgrading to paid plan - create checkout
+
+        // Validate minimum 4 seats for paid plan
+        if (userCount < 4) {
+          setError(t('minimumSeats', { minimum: 4 }))
+          return
+        }
+
         const variantId = selectedTier === 'monthly'
           ? pricingInfo.monthlyVariantId
           : pricingInfo.yearlyVariantId
