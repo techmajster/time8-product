@@ -1,7 +1,9 @@
 'use client'
 
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { LanguageDropdown } from '@/components/auth/LanguageDropdown'
 import { DecorativeBackground } from '@/components/auth/DecorativeBackground'
 import { OnboardingCard } from './OnboardingCard'
@@ -14,10 +16,26 @@ interface WelcomeScreenProps {
 
 export function WelcomeScreen({ userName }: WelcomeScreenProps) {
   const t = useTranslations('onboarding.welcome')
+  const tLogout = useTranslations('onboarding.logout')
+  const [loggingOut, setLoggingOut] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const router = useRouter()
 
   const handleCreateWorkspace = () => {
     router.push('/onboarding/create-workspace')
+  }
+
+  const handleLogout = async () => {
+    try {
+      setLoggingOut(true)
+      await fetch('/api/logout', { method: 'POST' })
+      router.push('/login')
+    } catch (error) {
+      console.error('Error signing out:', error)
+      setError('Failed to log out. Please try again.')
+    } finally {
+      setLoggingOut(false)
+    }
   }
 
   return (
@@ -47,6 +65,13 @@ export function WelcomeScreen({ userName }: WelcomeScreenProps) {
             </p>
           </div>
 
+          {/* Error Alert */}
+          {error && (
+            <Alert variant="destructive" className="max-w-[788px]">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
           {/* Single Card */}
           <OnboardingCard
             variant="create"
@@ -62,6 +87,19 @@ export function WelcomeScreen({ userName }: WelcomeScreenProps) {
             freeText={t('card.free')}
             userLimitText={t('card.limit')}
           />
+
+          {/* Logout Link */}
+          <div className="text-center text-sm">
+            {tLogout('prompt')}{" "}
+            <button
+              type="button"
+              onClick={handleLogout}
+              disabled={loggingOut}
+              className="text-primary underline underline-offset-4 hover:text-primary/80 hover:no-underline transition-colors cursor-pointer disabled:opacity-50"
+            >
+              {tLogout('action')}
+            </button>
+          </div>
         </div>
       </div>
     </div>
