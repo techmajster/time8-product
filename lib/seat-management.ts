@@ -333,8 +333,10 @@ export async function reactivateArchivedUser(
     // Check that active + pending_invitations + 1 (for the user being reactivated) <= total_seats
     const { activeUsers, pendingInvitations, totalOccupied } = await getTotalOccupiedSeats(organizationId)
 
-    // Calculate total seats (3 free seats + current_seats from subscription)
-    const totalSeats = 3 + (subscription.current_seats || 0)
+    // Calculate total seats using graduated pricing model
+    // - Tier 1 (0-3 users): FREE tier = 3 seats
+    // - Tier 2 (4+ users): Pay for ALL seats = current_seats (NOT 3 + current_seats)
+    const totalSeats = subscription.current_seats > 0 ? subscription.current_seats : 3
     const availableSeats = Math.max(0, totalSeats - totalOccupied)
 
     if (availableSeats < 1) {
