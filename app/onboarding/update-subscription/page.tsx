@@ -32,6 +32,7 @@ function UpdateSubscriptionPageContent() {
   const [organizationData, setOrganizationData] = useState<{ name: string; slug: string; country_code: string } | null>(null)
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [activeUserCount, setActiveUserCount] = useState<number>(0)
+  const [pendingInvitationsCount, setPendingInvitationsCount] = useState<number>(0)
   const router = useRouter()
 
   useEffect(() => {
@@ -106,13 +107,16 @@ function UpdateSubscriptionPageContent() {
         })
       }
 
-      // Fetch active user count (for downgrade validation)
+      // Fetch active user count and pending invitations (for downgrade validation)
       try {
         const response = await fetch('/api/team-management')
         if (response.ok) {
           const data = await response.json()
           setActiveUserCount(data.activeUserCount || 0)
+          const pendingInvites = data.invitations?.filter((inv: any) => inv.status === 'pending').length || 0
+          setPendingInvitationsCount(pendingInvites)
           console.log('✅ Active user count loaded:', data.activeUserCount)
+          console.log('✅ Pending invitations count loaded:', pendingInvites)
         }
       } catch (error) {
         console.error('❌ Failed to fetch active user count:', error)
@@ -408,7 +412,7 @@ function UpdateSubscriptionPageContent() {
                     <div className="disabled:cursor-not-allowed">
                       <Button
                         onClick={() => handleUserCountChange(-1)}
-                        disabled={userCount <= (!subscriptionId ? 4 : 3) || (activeUserCount > 0 && activeUserCount > userCount - 1)}
+                        disabled={userCount <= (!subscriptionId ? 4 : 3) || ((activeUserCount + pendingInvitationsCount) > 0 && (activeUserCount + pendingInvitationsCount) > userCount - 1)}
                         variant="outline"
                         className="size-16 p-0 border-foreground disabled:cursor-not-allowed"
                       >
@@ -416,10 +420,10 @@ function UpdateSubscriptionPageContent() {
                       </Button>
                     </div>
                   </TooltipTrigger>
-                  {(userCount <= (!subscriptionId ? 4 : 3) || (activeUserCount > 0 && activeUserCount > userCount - 1)) && (
+                  {(userCount <= (!subscriptionId ? 4 : 3) || ((activeUserCount + pendingInvitationsCount) > 0 && (activeUserCount + pendingInvitationsCount) > userCount - 1)) && (
                     <TooltipContent className="max-w-xs">
-                      {activeUserCount > 0 && activeUserCount > userCount - 1 ? (
-                        <p>{t('archiveUsersFirst', { activeUsers: activeUserCount, renewalDate: formatRenewalDate(renewalDate) })}</p>
+                      {(activeUserCount + pendingInvitationsCount) > 0 && (activeUserCount + pendingInvitationsCount) > userCount - 1 ? (
+                        <p>{t('archiveUsersFirst', { activeUsers: activeUserCount + pendingInvitationsCount, renewalDate: formatRenewalDate(renewalDate) })}</p>
                       ) : (
                         <p>{t('minimumSeats', { minimum: !subscriptionId ? 4 : 3 })}</p>
                       )}
