@@ -35,6 +35,9 @@ function UpdateSubscriptionPageContent() {
   const [pendingInvitationsCount, setPendingInvitationsCount] = useState<number>(0)
   const router = useRouter()
 
+  // Free tier detection: no subscription AND user count <= 3
+  const isFreeTier = !subscriptionId && userCount <= 3
+
   useEffect(() => {
     const initializePage = async () => {
       // Check authentication
@@ -459,64 +462,105 @@ function UpdateSubscriptionPageContent() {
 
             {/* Pricing cards */}
             <div className="grid grid-cols-2 gap-5 w-full">
-              {/* Monthly payment card */}
-              <div
-                className={`
-                  ${selectedTier === 'monthly' ? 'bg-violet-100 border-2 border-primary' : 'bg-card border-2 border-border'}
-                  rounded-xl p-8 flex flex-col gap-6 relative
-                  ${isYearlyUser ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}
-                  ${selectedTier !== 'monthly' && !isYearlyUser ? 'opacity-50' : ''}
-                `}
-                onClick={() => !isYearlyUser && setSelectedTier('monthly')}
-              >
-                {/* Lock overlay for yearly users */}
-                {isYearlyUser && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-gray-900/10 rounded-xl">
-                    <Lock className="h-8 w-8 text-gray-600" />
-                  </div>
-                )}
-
-                <div className="flex flex-col gap-3">
-                  <div className="flex gap-2.5 items-center">
-                    <div className="bg-white relative rounded-full size-4 border">
-                      {selectedTier === 'monthly' && !isYearlyUser && (
-                        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 size-2 rounded-full bg-foreground" />
-                      )}
+              {isFreeTier ? (
+                <>
+                  {/* Free card - selected when user count <= 3 and no subscription */}
+                  <div
+                    className="bg-violet-100 border-2 border-primary rounded-xl p-8 flex flex-col gap-6 cursor-pointer relative"
+                    onClick={() => setSelectedTier('monthly')}
+                  >
+                    <div className="flex flex-col gap-3">
+                      <div className="flex gap-2.5 items-center">
+                        <div className="bg-white relative rounded-full size-4 border">
+                          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 size-2 rounded-full bg-primary" />
+                        </div>
+                        <span className="flex-1 text-lg font-semibold leading-7">{t('freeTier')}</span>
+                      </div>
                     </div>
-                    <span className="flex-1 text-lg font-semibold leading-7">{t('monthly')}</span>
-                    <Badge className="ml-auto">{t('mostPopular')}</Badge>
-                  </div>
-                </div>
-                <div className="flex gap-1.5 items-end">
-                  <span className="text-3xl font-semibold leading-9">{pricing.monthlyPerSeat.toFixed(2)} {pricing.currency}</span>
-                  <span className="text-sm text-muted-foreground">{t('perMonthPerUser')}</span>
-                </div>
-              </div>
-
-              {/* Yearly payment card */}
-              <div
-                className={`
-                  ${selectedTier === 'yearly' ? 'bg-violet-100 border-2 border-primary' : 'bg-card border-2 border-border'}
-                  rounded-xl p-8 flex flex-col gap-6 cursor-pointer relative
-                  ${selectedTier !== 'yearly' ? 'opacity-50' : ''}
-                `}
-                onClick={() => setSelectedTier('yearly')}
-              >
-                <div className="flex flex-col gap-3">
-                  <div className="flex gap-2.5 items-center">
-                    <div className="bg-white relative rounded-full size-4 border">
-                      {selectedTier === 'yearly' && (
-                        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 size-2 rounded-full bg-foreground" />
-                      )}
+                    <div className="flex gap-1.5 items-end">
+                      <span className="text-3xl font-semibold leading-9">{t('freeTier')}</span>
+                      <span className="text-sm text-muted-foreground">{t('upTo3Users')}</span>
                     </div>
-                    <span className="flex-1 text-lg font-semibold leading-7">{t('yearly')}</span>
                   </div>
-                </div>
-                <div className="flex gap-1.5 items-end">
-                  <span className="text-3xl font-semibold leading-9">{pricing.yearlyPerSeat.toFixed(2)} {pricing.currency}</span>
-                  <span className="text-sm text-muted-foreground">{t('perMonthPerUser')}</span>
-                </div>
-              </div>
+
+                  {/* Annual payment card - disabled when free */}
+                  <div className="bg-muted border border-border rounded-xl p-8 flex flex-col gap-6 cursor-not-allowed relative">
+                    <div className="flex flex-col gap-6 opacity-50">
+                      <div className="flex flex-col gap-3">
+                        <div className="flex gap-2.5 items-center">
+                          <div className="bg-white relative rounded-full size-4 border" />
+                          <span className="flex-1 text-lg font-semibold leading-7">{t('yearly')}</span>
+                        </div>
+                      </div>
+                      <div className="flex gap-1.5 items-end">
+                        <span className="text-3xl font-semibold leading-9">{pricing.yearlyPerSeat.toFixed(2)} {pricing.currency}</span>
+                        <span className="text-sm text-muted-foreground">{t('perMonthPerUser')}</span>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* Monthly payment card */}
+                  <div
+                    className={`
+                      ${selectedTier === 'monthly' ? 'bg-violet-100 border-2 border-primary' : 'bg-card border-2 border-border'}
+                      rounded-xl p-8 flex flex-col gap-6 relative
+                      ${isYearlyUser ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}
+                      ${selectedTier !== 'monthly' && !isYearlyUser ? 'opacity-50' : ''}
+                    `}
+                    onClick={() => !isYearlyUser && setSelectedTier('monthly')}
+                  >
+                    {/* Lock overlay for yearly users */}
+                    {isYearlyUser && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-gray-900/10 rounded-xl">
+                        <Lock className="h-8 w-8 text-gray-600" />
+                      </div>
+                    )}
+
+                    <div className="flex flex-col gap-3">
+                      <div className="flex gap-2.5 items-center">
+                        <div className="bg-white relative rounded-full size-4 border">
+                          {selectedTier === 'monthly' && !isYearlyUser && (
+                            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 size-2 rounded-full bg-foreground" />
+                          )}
+                        </div>
+                        <span className="flex-1 text-lg font-semibold leading-7">{t('monthly')}</span>
+                        <Badge className="ml-auto">{t('mostPopular')}</Badge>
+                      </div>
+                    </div>
+                    <div className="flex gap-1.5 items-end">
+                      <span className="text-3xl font-semibold leading-9">{pricing.monthlyPerSeat.toFixed(2)} {pricing.currency}</span>
+                      <span className="text-sm text-muted-foreground">{t('perMonthPerUser')}</span>
+                    </div>
+                  </div>
+
+                  {/* Yearly payment card */}
+                  <div
+                    className={`
+                      ${selectedTier === 'yearly' ? 'bg-violet-100 border-2 border-primary' : 'bg-card border-2 border-border'}
+                      rounded-xl p-8 flex flex-col gap-6 cursor-pointer relative
+                      ${selectedTier !== 'yearly' ? 'opacity-50' : ''}
+                    `}
+                    onClick={() => setSelectedTier('yearly')}
+                  >
+                    <div className="flex flex-col gap-3">
+                      <div className="flex gap-2.5 items-center">
+                        <div className="bg-white relative rounded-full size-4 border">
+                          {selectedTier === 'yearly' && (
+                            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 size-2 rounded-full bg-foreground" />
+                          )}
+                        </div>
+                        <span className="flex-1 text-lg font-semibold leading-7">{t('yearly')}</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-1.5 items-end">
+                      <span className="text-3xl font-semibold leading-9">{pricing.yearlyPerSeat.toFixed(2)} {pricing.currency}</span>
+                      <span className="text-sm text-muted-foreground">{t('perMonthPerUser')}</span>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Tax notice */}

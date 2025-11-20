@@ -152,6 +152,8 @@
       "yearly": "Yearly",
       "mostPopular": "Most popular",
       "perMonthPerUser": "/ month / user",
+      "freeTier": "Free",
+      "upTo3Users": "up to 3 users",
       "cancel": "Cancel",
       "updateSubscription": "Update Subscription",
       "switchToYearly": "Switch to Yearly",
