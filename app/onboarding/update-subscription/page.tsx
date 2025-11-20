@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -16,6 +16,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 
 function UpdateSubscriptionPageContent() {
   const t = useTranslations('onboarding.updateSubscription')
+  const locale = useLocale()
   const searchParams = useSearchParams()
   const [userCount, setUserCount] = useState(3)
   const [selectedTier, setSelectedTier] = useState<'monthly' | 'yearly'>('monthly') // Default to monthly for free tier
@@ -341,7 +342,7 @@ function UpdateSubscriptionPageContent() {
   // Format renewal date
   const formatRenewalDate = (date: string | null) => {
     if (!date) return ''
-    return new Date(date).toLocaleDateString('en-US', {
+    return new Date(date).toLocaleDateString(locale, {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
@@ -404,20 +405,24 @@ function UpdateSubscriptionPageContent() {
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <div>
+                    <div className="disabled:cursor-not-allowed">
                       <Button
                         onClick={() => handleUserCountChange(-1)}
-                        disabled={userCount <= (!subscriptionId ? 4 : 3) || (activeUserCount > 0 && activeUserCount >= userCount - 1)}
+                        disabled={userCount <= (!subscriptionId ? 4 : 3) || (activeUserCount > 0 && activeUserCount > userCount - 1)}
                         variant="outline"
-                        className="size-16 p-0 border-foreground"
+                        className="size-16 p-0 border-foreground disabled:cursor-not-allowed"
                       >
                         <Minus className="size-6 text-foreground" />
                       </Button>
                     </div>
                   </TooltipTrigger>
-                  {activeUserCount > 0 && activeUserCount >= userCount - 1 && (
+                  {(userCount <= (!subscriptionId ? 4 : 3) || (activeUserCount > 0 && activeUserCount > userCount - 1)) && (
                     <TooltipContent className="max-w-xs">
-                      <p>{t('archiveUsersFirst', { renewalDate: formatRenewalDate(renewalDate) })}</p>
+                      {activeUserCount > 0 && activeUserCount > userCount - 1 ? (
+                        <p>{t('archiveUsersFirst', { activeUsers: activeUserCount, renewalDate: formatRenewalDate(renewalDate) })}</p>
+                      ) : (
+                        <p>{t('minimumSeats', { minimum: !subscriptionId ? 4 : 3 })}</p>
+                      )}
                     </TooltipContent>
                   )}
                 </Tooltip>
@@ -433,7 +438,7 @@ function UpdateSubscriptionPageContent() {
                 onClick={() => handleUserCountChange(1)}
                 disabled={userCount >= 50}
                 variant="outline"
-                className="size-16 p-0 border-foreground"
+                className="size-16 p-0 border-foreground disabled:cursor-not-allowed"
               >
                 <Plus className="size-6 text-foreground" />
               </Button>

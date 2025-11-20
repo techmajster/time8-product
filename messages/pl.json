@@ -158,7 +158,9 @@
       "updating": "Aktualizowanie...",
       "infoMonthly": "Możesz przejść na roczną subskrypcję w dowolnym momencie i dostosować liczbę miejsc według potrzeb.",
       "infoYearly": "Możesz dostosować liczbę miejsc w dowolnym momencie. Przełączenie na miesięczną subskrypcję będzie dostępne przy odnowieniu.",
-      "taxNotice": "Ceny podane przed podatkiem. VAT zostanie obliczony i dodany przy kasie w zależności od Twojej lokalizacji."
+      "taxNotice": "Ceny podane przed podatkiem. VAT zostanie obliczony i dodany przy kasie w zależności od Twojej lokalizacji.",
+      "archiveUsersFirst": "Masz {activeUsers} aktywnych członków zespołu. Zarchiwizuj użytkowników przed zmniejszeniem miejsc poniżej {activeUsers}. Zmiany wejdą w życie przy odnowieniu ({renewalDate}).",
+      "tooManyActiveUsers": "Nie można zmniejszyć miejsc poniżej liczby aktywnych użytkowników"
     },
     "paymentSuccess": {
       "loading": {

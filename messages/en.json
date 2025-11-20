@@ -158,7 +158,9 @@
       "updating": "Updating...",
       "infoMonthly": "You can upgrade to yearly billing anytime and adjust seats as needed.",
       "infoYearly": "You can adjust your seat count anytime. Monthly billing will be available at renewal.",
-      "taxNotice": "Prices shown are before tax. VAT will be calculated and added at checkout based on your location."
+      "taxNotice": "Prices shown are before tax. VAT will be calculated and added at checkout based on your location.",
+      "archiveUsersFirst": "You have {activeUsers} active team members. Archive users before reducing seats below {activeUsers}. Changes take effect at renewal ({renewalDate}).",
+      "tooManyActiveUsers": "Cannot reduce seats below active user count"
     },
     "paymentSuccess": {
       "loading": {
