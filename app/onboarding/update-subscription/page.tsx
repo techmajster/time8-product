@@ -423,7 +423,16 @@ function UpdateSubscriptionPageContent() {
                   {(userCount <= (!subscriptionId ? 4 : 3) || ((activeUserCount + pendingInvitationsCount) > 0 && (activeUserCount + pendingInvitationsCount) > userCount - 1)) && (
                     <TooltipContent className="max-w-xs">
                       {(activeUserCount + pendingInvitationsCount) > 0 && (activeUserCount + pendingInvitationsCount) > userCount - 1 ? (
-                        <p>{t('archiveUsersFirst', { activeUsers: activeUserCount + pendingInvitationsCount, renewalDate: formatRenewalDate(renewalDate) })}</p>
+                        pendingInvitationsCount > 0 ? (
+                          <p>{t('archiveUsersOrCancelInvites', {
+                            activeUsers: activeUserCount,
+                            pendingInvites: pendingInvitationsCount,
+                            total: activeUserCount + pendingInvitationsCount,
+                            renewalDate: formatRenewalDate(renewalDate)
+                          })}</p>
+                        ) : (
+                          <p>{t('archiveUsersFirst', { activeUsers: activeUserCount, renewalDate: formatRenewalDate(renewalDate) })}</p>
+                        )
                       ) : (
                         <p>{t('minimumSeats', { minimum: !subscriptionId ? 4 : 3 })}</p>
                       )}
