@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -16,6 +16,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 
 function UpdateSubscriptionPageContent() {
   const t = useTranslations('onboarding.updateSubscription')
+  const locale = useLocale()
   const searchParams = useSearchParams()
   const [userCount, setUserCount] = useState(3)
   const [selectedTier, setSelectedTier] = useState<'monthly' | 'yearly'>('monthly') // Default to monthly for free tier
@@ -341,7 +342,7 @@ function UpdateSubscriptionPageContent() {
   // Format renewal date
   const formatRenewalDate = (date: string | null) => {
     if (!date) return ''
-    return new Date(date).toLocaleDateString('en-US', {
+    return new Date(date).toLocaleDateString(locale, {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
