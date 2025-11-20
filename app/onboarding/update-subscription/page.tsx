@@ -35,8 +35,17 @@ function UpdateSubscriptionPageContent() {
   const [pendingInvitationsCount, setPendingInvitationsCount] = useState<number>(0)
   const router = useRouter()
 
-  // Free tier detection: no subscription AND user count <= 3
-  const isFreeTier = !subscriptionId && userCount <= 3
+  // Free tier detection: 3 or fewer seats = free tier (regardless of subscription status)
+  // This handles both: (1) no subscription yet, (2) scheduled downgrade to free at renewal
+  const isFreeTier = userCount <= 3
+
+  // Debug logging
+  console.log('🔍 Free tier detection:', {
+    subscriptionId,
+    userCount,
+    isFreeTier,
+    calculation: `${userCount} <= 3 = ${isFreeTier}`
+  })
 
   useEffect(() => {
     const initializePage = async () => {
